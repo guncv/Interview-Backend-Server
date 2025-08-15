@@ -1,0 +1,31 @@
+# Version control
+.git
+.gitignore
+.gitlab-ci.yml
+
+# Environment and secrets
+.env
+*.env
+.env.*
+
+# Development tools
+!.air.toml
+.idea
+.vscode
+__debug_bin
+tmp
+
+# Test files
+*_test.go
+coverage.*
+
+# Build artifacts
+bin/
+dist/
+
+# OS specific
+.DS_Store
+*.swp
+
+# Go specific
+vendor/

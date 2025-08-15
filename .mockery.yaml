@@ -1,0 +1,46 @@
+with-expecter: true
+issue-845-fix: true
+
+packages:
+  gitlab.com/interview-simulation/interview-backend-server/internal/repositories:
+    config:
+      dir: ./internal/mocks/repositories
+      filename: "{{.InterfaceName}}.go"
+      outpkg: repositories
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/utils:
+    config:
+      dir: ./internal/mocks/utils
+      filename: "{{.InterfaceName}}.go"
+      outpkg: utils
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue:
+    config:
+      dir: ./internal/mocks/queue
+      filename: "{{.InterfaceName}}.go"
+      outpkg: queue
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/infras/database:
+    config:
+      dir: ./internal/mocks/database
+      filename: "{{.InterfaceName}}.go"
+      outpkg: database
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/middleware:
+    config:
+      dir: ./internal/mocks/middleware
+      filename: "{{.InterfaceName}}.go"
+      outpkg: middleware
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/services:
+    config:
+      dir: ./internal/mocks/services
+      filename: "{{.InterfaceName}}.go"
+      outpkg: services
+      recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws:
+    config:
+      dir: ./internal/mocks/aws
+      filename: "{{.InterfaceName}}.go"
+      outpkg: aws
+      recursive: true
