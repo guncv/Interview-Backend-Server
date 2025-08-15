@@ -40,11 +40,13 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	JwtSecretKey         string        `mapstructure:"JWT_SECRET_KEY"`
-	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
-	CookieDomain         string        `mapstructure:"COOKIE_DOMAIN"`
-	CookieRejectHTTP     bool          `mapstructure:"COOKIE_REJECT_HTTP"`
+	JwtSecretKey               string        `mapstructure:"JWT_SECRET_KEY"`
+	AccessTokenDuration        time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	ResetPasswordTokenDuration time.Duration `mapstructure:"RESET_PASSWORD_TOKEN_DURATION"`
+	VerifyEmailTokenDuration   time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
+	CookieDomain               string        `mapstructure:"COOKIE_DOMAIN"`
+	CookieRejectHTTP           bool          `mapstructure:"COOKIE_REJECT_HTTP"`
 }
 
 type EmailConfig struct {

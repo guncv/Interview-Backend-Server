@@ -17,9 +17,8 @@ const (
 
 // User Role Constants
 const (
-	UserRoleMentor  UserRole = "mentor"
-	UserRoleTrainee UserRole = "trainee"
-	UserRoleAdmin   UserRole = "admin"
+	UserRoleUser  UserRole = "user"
+	UserRoleAdmin UserRole = "admin"
 )
 
 // Publish Constants
@@ -63,11 +62,19 @@ var (
 // Email Constants
 var (
 	TaskSendResetPasswordEmail = "task:send_reset_password_email"
+	TaskSendVerifyEmail        = "task:send_verify_email"
 	QueueCritical              = "critical"
 	QueueDefault               = "default"
 	MaxRetry                   = 10
 
 	OptionResetPasswordEmail = "option_reset_password_email"
+
+	SubjectResetPassword = "Reset your password"
+	SubjectVerifyEmail   = "Verify your email"
+
+	CriticalQueueConcurrency = 10
+	DefaultQueueConcurrency  = 5
+	DefaultConcurrency       = 10
 )
 
 // Test Env

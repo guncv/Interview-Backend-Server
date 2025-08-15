@@ -15,6 +15,7 @@ import (
 
 type RedisTaskPublisher interface {
 	PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error
+	PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error
 	DefineTaskOptions(taskName string) []asynq.Option
 }
 
@@ -57,12 +58,37 @@ func (p *redisTaskPublisher) PublishTaskSendResetPasswordEmail(ctx context.Conte
 	return nil
 }
 
+func (p *redisTaskPublisher) PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskSendVerifyEmail, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Enqueued task", info)
+	return nil
+}
+
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
 	case constants.TaskSendResetPasswordEmail:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueCritical),
+		}
+	case constants.TaskSendVerifyEmail:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
 		}
 	}
 	return []asynq.Option{

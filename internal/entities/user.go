@@ -67,7 +67,7 @@ type TokenRequest struct {
 
 type VerifyEmailTokenRequest struct {
 	UserID   string        `json:"user_id"`
-	Email    string        `json:"email"`
+	Code     string        `json:"code"`
 	Duration time.Duration `json:"duration"`
 }
 

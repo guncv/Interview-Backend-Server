@@ -10,6 +10,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -19,6 +20,7 @@ import (
 
 type UserService interface {
 	HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error)
+	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
 }
 
 type userService struct {
@@ -90,6 +92,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 			}
 
 			createUserReq := &db.CreateUserParams{
+				ID:           s.generator.GenerateUUID(ctx),
 				Email:        req.Email,
 				PasswordHash: hashedPassword,
 				FullName:     req.FullName,
@@ -107,8 +110,39 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 				return nil, err
 			}
 
+			code := s.generator.GenerateRandomString(ctx, 6)
+
+			verifyEmailReq := &entities.VerifyEmailTokenRequest{
+				UserID:   resp.ID.String(),
+				Code:     code,
+				Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
+			}
+
+			verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating verify email token", "error", err)
+				return nil, err
+			}
+
+			if err = s.redisClient.Set(ctx, database.RedisPayload{
+				Key:   verifyEmailToken,
+				Value: code,
+				TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+			}); err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
+				return nil, err
+			}
+
+			if err = s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+				EmailReceiver: req.Email,
+				Code:          code,
+			}); err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error publishing task send verify email", "error", err)
+				return nil, err
+			}
+
 			return &entities.SignUpUserResponse{
-				TokenId: resp.ID.String(),
+				TokenId: verifyEmailToken,
 			}, nil
 		}
 		return nil, err
@@ -148,7 +182,40 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 		return nil, err
 	}
 
+	code := s.generator.GenerateRandomString(ctx, 6)
+
+	s.log.InfoWithID(ctx, "[Service: SignUpUser] Code", code)
+
+	verifyEmailReq := &entities.VerifyEmailTokenRequest{
+		UserID:   resp.ID.String(),
+		Code:     code,
+		Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
+	}
+
+	verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating verify email token", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   verifyEmailToken,
+		Value: code,
+		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+		EmailReceiver: req.Email,
+		Code:          code,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error publishing task send verify email", "error", err)
+		return nil, err
+	}
+
 	return &entities.SignUpUserResponse{
-		TokenId: resp.ID.String(),
+		TokenId: verifyEmailToken,
 	}, nil
 }

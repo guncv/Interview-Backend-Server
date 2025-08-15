@@ -30,7 +30,7 @@ func TestNewTokenPayload(t *testing.T) {
 			name: "Valid token request with different role",
 			request: &entities.TokenRequest{
 				UserID:   "user789",
-				Role:     constants.UserRoleMentor,
+				Role:     constants.UserRoleUser,
 				Duration: 12 * time.Hour,
 			},
 			wantErr: false,
@@ -39,7 +39,7 @@ func TestNewTokenPayload(t *testing.T) {
 			name: "Valid token request with zero duration",
 			request: &entities.TokenRequest{
 				UserID:   "user456",
-				Role:     constants.UserRoleTrainee,
+				Role:     constants.UserRoleUser,
 				Duration: 0,
 			},
 			wantErr: false,

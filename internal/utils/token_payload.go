@@ -19,7 +19,7 @@ type SignInTokenPayload struct {
 type VerifyEmailTokenPayload struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    string    `json:"user_id"`
-	Email     string    `json:"email"`
+	Code      string    `json:"code"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expires_at"`
 }
@@ -50,7 +50,7 @@ func NewVerifyEmailTokenPayload(req *entities.VerifyEmailTokenRequest) (*VerifyE
 	payload := &VerifyEmailTokenPayload{
 		ID:        tokenID,
 		UserID:    req.UserID,
-		Email:     req.Email,
+		Code:      req.Code,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(req.Duration),
 	}

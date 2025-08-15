@@ -12,14 +12,10 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
-const (
-	QueueCritical = "critical"
-	QueueDefault  = "default"
-)
-
 type RedisTaskConsumer interface {
 	Start(ctx context.Context) error
 	ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error
+	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
@@ -40,10 +36,10 @@ func NewRedisTaskConsumer(
 	}
 
 	server := asynq.NewServer(redisOpt, asynq.Config{
-		Concurrency: 10,
+		Concurrency: constants.DefaultConcurrency,
 		Queues: map[string]int{
-			QueueCritical: 10,
-			QueueDefault:  5,
+			constants.QueueCritical: constants.CriticalQueueConcurrency,
+			constants.QueueDefault:  constants.DefaultQueueConcurrency,
 		},
 		ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 			log.ErrorWithID(ctx, "[Email: Consumer] Error processing task", err)
@@ -59,31 +55,51 @@ func NewRedisTaskConsumer(
 }
 
 func (c *redisTaskConsumer) Start(ctx context.Context) error {
-	c.log.InfoWithID(ctx, "[Email: Start] Called")
+	c.log.InfoWithID(ctx, "[Email: Start] Starting email consumer server")
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(constants.TaskSendResetPasswordEmail, c.ConsumeTaskSendResetPasswordEmail)
+	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
 
 	if err := c.server.Start(mux); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: Start] Error starting server", err)
-		return err
+		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
+		return fmt.Errorf("failed to start email consumer server: %w", err)
 	}
 
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ComsumeTaskSendResetPasswordEmail] Called")
-	var payload ResetPasswordEmailPayload
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Processing reset password email task")
 
+	var payload ResetPasswordEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ComsumeTaskSendResetPasswordEmail] Error unmarshalling payload", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid reset password email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
 	if err := c.emailSender.SendResetPasswordEmail(ctx, &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ComsumeTaskSendResetPasswordEmail] Error sending reset password email", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Failed to send reset password email", err)
+		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Successfully sent reset password email", nil)
+	return nil
+}
+
+func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Processing verify email task")
+
+	var payload VerifyEmailPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid verify email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.emailSender.SendVerifyEmail(ctx, &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Failed to send verify email", err)
+		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Successfully sent verify email", nil)
 	return nil
 }
