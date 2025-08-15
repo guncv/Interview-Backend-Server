@@ -27,40 +27,6 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeAuthUserRoleNotFound:          ErrHttpCodeNotFound,
 	ErrCodeAuthOrganizationNotFound:      ErrHttpCodeNotFound,
 	ErrCodeAuthMissingRole:               ErrHttpCodeBadRequest,
-
-	// Category
-	ErrCodeCategoriesNotFound:            ErrHttpCodeNotFound,
-	ErrCodeCategoriesAlreadyExists:       ErrHttpCodeBadRequest,
-	ErrCodeCategoriesInvalidRequest:      ErrHttpCodeBadRequest,
-	ErrCodeCategoriesForeignKeyViolation: ErrHttpCodeBadRequest,
-
-	// Course
-	ErrCodeCoursesNotFound:       ErrHttpCodeNotFound,
-	ErrCodeCoursesAlreadyExists:  ErrHttpCodeBadRequest,
-	ErrCodeCoursesInvalidRequest: ErrHttpCodeBadRequest,
-
-	// Organization
-	ErrCodeOrganizationCourseNotFound:       ErrHttpCodeNotFound,
-	ErrCodeOrganizationCourseAlreadyExists:  ErrHttpCodeBadRequest,
-	ErrCodeOrganizationCourseInvalidRequest: ErrHttpCodeBadRequest,
-
-	// Review
-	ErrCodeReviewsNotFound:       ErrHttpCodeNotFound,
-	ErrCodeReviewsAlreadyExists:  ErrHttpCodeBadRequest,
-	ErrCodeReviewsInvalidRequest: ErrHttpCodeBadRequest,
-	ErrCodeReviewsInvalidRating:  ErrHttpCodeBadRequest,
-	ErrCodeReviewsInvalidTarget:  ErrHttpCodeBadRequest,
-
-	// Course Section
-	ErrCodeCourseSectionNotFound:       ErrHttpCodeNotFound,
-	ErrCodeCourseSectionAlreadyExists:  ErrHttpCodeBadRequest,
-	ErrCodeCourseSectionInvalidRequest: ErrHttpCodeBadRequest,
-
-	// Section Content
-	ErrCodeSectionContentsNotFound:       ErrHttpCodeNotFound,
-	ErrCodeSectionContentsAlreadyExists:  ErrHttpCodeBadRequest,
-	ErrCodeSectionContentsInvalidRequest: ErrHttpCodeBadRequest,
-	ErrCodeSectionContentsInvalidType:    ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -90,38 +56,4 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeAuthUserRoleNotFound:          ErrMessageAuthUserRoleNotFound,
 	ErrCodeAuthOrganizationNotFound:      ErrMessageAuthOrganizationNotFound,
 	ErrCodeAuthMissingRole:               ErrMessageAuthMissingRole,
-
-	// Category
-	ErrCodeCategoriesNotFound:            ErrMessageCategoriesNotFound,
-	ErrCodeCategoriesAlreadyExists:       ErrMessageCategoriesAlreadyExists,
-	ErrCodeCategoriesInvalidRequest:      ErrMessageCategoriesInvalidRequest,
-	ErrCodeCategoriesForeignKeyViolation: ErrMessageCategoriesForeignKeyViolation,
-
-	// Course
-	ErrCodeCoursesNotFound:       ErrMessageCoursesNotFound,
-	ErrCodeCoursesAlreadyExists:  ErrMessageCoursesAlreadyExists,
-	ErrCodeCoursesInvalidRequest: ErrMessageCoursesInvalidRequest,
-
-	// Organization
-	ErrCodeOrganizationCourseNotFound:       ErrMessageOrganizationCourseNotFound,
-	ErrCodeOrganizationCourseAlreadyExists:  ErrMessageOrganizationCourseAlreadyExists,
-	ErrCodeOrganizationCourseInvalidRequest: ErrMessageOrganizationCourseInvalidRequest,
-
-	// Review
-	ErrCodeReviewsNotFound:       ErrMessageReviewsNotFound,
-	ErrCodeReviewsAlreadyExists:  ErrMessageReviewsAlreadyExists,
-	ErrCodeReviewsInvalidRequest: ErrMessageReviewsInvalidRequest,
-	ErrCodeReviewsInvalidRating:  ErrMessageReviewsInvalidRating,
-	ErrCodeReviewsInvalidTarget:  ErrMessageReviewsInvalidTarget,
-
-	// Course Section
-	ErrCodeCourseSectionNotFound:       ErrMessageCourseSectionNotFound,
-	ErrCodeCourseSectionAlreadyExists:  ErrMessageCourseSectionAlreadyExists,
-	ErrCodeCourseSectionInvalidRequest: ErrMessageCourseSectionInvalidRequest,
-
-	// Section Content
-	ErrCodeSectionContentsNotFound:       ErrMessageSectionContentsNotFound,
-	ErrCodeSectionContentsAlreadyExists:  ErrMessageSectionContentsAlreadyExists,
-	ErrCodeSectionContentsInvalidRequest: ErrMessageSectionContentsInvalidRequest,
-	ErrCodeSectionContentsInvalidType:    ErrMessageSectionContentsInvalidType,
 }

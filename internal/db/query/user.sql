@@ -1,25 +1,40 @@
--- name: AdminCreateUser :one
+-- name: CreateUser :one
 INSERT INTO users (
     id,
     email,
     password_hash,
-    name
+    full_name,
+    country,
+    city,
+    address,
+    postal_code,
+    gender,
+    date_of_birth
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
+RETURNING *;
+
+-- name: UpdateUser :one
+UPDATE users
+SET email = $2,
+    password_hash = $3,
+    full_name = $4,
+    country = $5,
+    city = $6,
+    address = $7,
+    postal_code = $8,
+    gender = $9,
+    date_of_birth = $10
+WHERE id = $1
 RETURNING *;
 
 -- name: CheckIsEmailExists :one
 SELECT * FROM users
 WHERE email = $1;
 
--- name: CheckIsUserIDExists :one
-SELECT * FROM users
-WHERE id = $1;
-
--- name: ResetUserPassword :exec
+-- name: VerifyEmail :execrows
 UPDATE users
-SET password_hash = $2,
-    is_temp_password = FALSE,
+SET is_email_verified = TRUE,
     updated_at = now()
 WHERE id = $1;

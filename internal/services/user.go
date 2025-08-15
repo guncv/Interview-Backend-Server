@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -22,7 +24,6 @@ type UserService interface {
 type userService struct {
 	log                  *log.Logger
 	userRepository       repositories.UserRepository
-	userRoleRepository   repositories.UserRoleRepository
 	jwtToken             utils.JwtToken
 	config               *config.Config
 	db                   db.Store
@@ -36,7 +37,6 @@ type userService struct {
 
 func NewUserService(l *log.Logger,
 	r repositories.UserRepository,
-	ur repositories.UserRoleRepository,
 	jt utils.JwtToken,
 	db db.Store,
 	config *config.Config,
@@ -50,7 +50,6 @@ func NewUserService(l *log.Logger,
 	return &userService{
 		log:                  l,
 		userRepository:       r,
-		userRoleRepository:   ur,
 		jwtToken:             jt,
 		db:                   db,
 		config:               config,
@@ -76,4 +75,80 @@ func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResp
 	}
 
 	return result, nil
+}
+
+func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: SignUpUser] Called")
+
+	user, err := s.userRepository.CheckIsEmailExists(ctx, req.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			hashedPassword, err := s.password.HashPassword(ctx, req.Password)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+				return nil, err
+			}
+
+			createUserReq := &db.CreateUserParams{
+				Email:        req.Email,
+				PasswordHash: hashedPassword,
+				FullName:     req.FullName,
+				Country:      req.Country,
+				City:         req.City,
+				Address:      req.Address,
+				PostalCode:   req.PostalCode,
+				Gender:       req.Gender,
+				DateOfBirth:  req.DateOfBirth,
+			}
+
+			resp, err := s.userRepository.CreateUser(ctx, createUserReq)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+				return nil, err
+			}
+
+			return &entities.SignUpUserResponse{
+				TokenId: resp.ID.String(),
+			}, nil
+		}
+		return nil, err
+	}
+
+	if user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error", "error", errors.New("this email already exists and verified"))
+		return nil, app_error.New(errors.New("this email already exists"), app_error.ErrCodeAuthUserAlreadyExists)
+	}
+
+	newHashedPassword, err := s.password.HashPassword(ctx, req.Password)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+		return nil, err
+	}
+
+	updateUserReq := &db.UpdateUserParams{
+		ID:           user.ID,
+		Email:        req.Email,
+		PasswordHash: newHashedPassword,
+		FullName:     req.FullName,
+		Country:      req.Country,
+		City:         req.City,
+		Address:      req.Address,
+		PostalCode:   req.PostalCode,
+		Gender:       req.Gender,
+		DateOfBirth:  req.DateOfBirth,
+	}
+
+	resp, err := s.userRepository.UpdateUser(ctx, updateUserReq)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
+			return nil, err
+		}
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
+		return nil, err
+	}
+
+	return &entities.SignUpUserResponse{
+		TokenId: resp.ID.String(),
+	}, nil
 }

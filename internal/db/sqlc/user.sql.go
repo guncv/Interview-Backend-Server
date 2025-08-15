@@ -7,60 +7,13 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const adminCreateUser = `-- name: AdminCreateUser :one
-INSERT INTO users (
-    id,
-    email,
-    password_hash,
-    name
-) VALUES (
-    $1, $2, $3, $4
-)
-RETURNING id, email, password_hash, is_temp_password, oauth_provider, oauth_provider_id, name, avatar_url, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
-`
-
-type AdminCreateUserParams struct {
-	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"password_hash"`
-	Name         string    `json:"name"`
-}
-
-func (q *Queries) AdminCreateUser(ctx context.Context, arg AdminCreateUserParams) (Users, error) {
-	row := q.db.QueryRowContext(ctx, adminCreateUser,
-		arg.ID,
-		arg.Email,
-		arg.PasswordHash,
-		arg.Name,
-	)
-	var i Users
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.PasswordHash,
-		&i.IsTempPassword,
-		&i.OauthProvider,
-		&i.OauthProviderID,
-		&i.Name,
-		&i.AvatarUrl,
-		&i.IsEmailVerified,
-		&i.LastLoginAt,
-		&i.LoginAttemptCount,
-		&i.IsSuspended,
-		&i.LastLoginIp,
-		&i.LastLoginUserAgent,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const checkIsEmailExists = `-- name: CheckIsEmailExists :one
-SELECT id, email, password_hash, is_temp_password, oauth_provider, oauth_provider_id, name, avatar_url, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
+SELECT id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
 WHERE email = $1
 `
 
@@ -71,11 +24,15 @@ func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, 
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
-		&i.IsTempPassword,
-		&i.OauthProvider,
-		&i.OauthProviderID,
-		&i.Name,
+		&i.FullName,
+		&i.Country,
+		&i.City,
+		&i.Address,
+		&i.PostalCode,
+		&i.Gender,
+		&i.DateOfBirth,
 		&i.AvatarUrl,
+		&i.IsAdmin,
 		&i.IsEmailVerified,
 		&i.LastLoginAt,
 		&i.LoginAttemptCount,
@@ -88,23 +45,64 @@ func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, 
 	return i, err
 }
 
-const checkIsUserIDExists = `-- name: CheckIsUserIDExists :one
-SELECT id, email, password_hash, is_temp_password, oauth_provider, oauth_provider_id, name, avatar_url, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
-WHERE id = $1
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    id,
+    email,
+    password_hash,
+    full_name,
+    country,
+    city,
+    address,
+    postal_code,
+    gender,
+    date_of_birth
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+RETURNING id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
 `
 
-func (q *Queries) CheckIsUserIDExists(ctx context.Context, id uuid.UUID) (Users, error) {
-	row := q.db.QueryRowContext(ctx, checkIsUserIDExists, id)
+type CreateUserParams struct {
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	FullName     string    `json:"full_name"`
+	Country      string    `json:"country"`
+	City         string    `json:"city"`
+	Address      string    `json:"address"`
+	PostalCode   string    `json:"postal_code"`
+	Gender       string    `json:"gender"`
+	DateOfBirth  time.Time `json:"date_of_birth"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FullName,
+		arg.Country,
+		arg.City,
+		arg.Address,
+		arg.PostalCode,
+		arg.Gender,
+		arg.DateOfBirth,
+	)
 	var i Users
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
-		&i.IsTempPassword,
-		&i.OauthProvider,
-		&i.OauthProviderID,
-		&i.Name,
+		&i.FullName,
+		&i.Country,
+		&i.City,
+		&i.Address,
+		&i.PostalCode,
+		&i.Gender,
+		&i.DateOfBirth,
 		&i.AvatarUrl,
+		&i.IsAdmin,
 		&i.IsEmailVerified,
 		&i.LastLoginAt,
 		&i.LoginAttemptCount,
@@ -117,20 +115,84 @@ func (q *Queries) CheckIsUserIDExists(ctx context.Context, id uuid.UUID) (Users,
 	return i, err
 }
 
-const resetUserPassword = `-- name: ResetUserPassword :exec
+const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET password_hash = $2,
-    is_temp_password = FALSE,
+SET email = $2,
+    password_hash = $3,
+    full_name = $4,
+    country = $5,
+    city = $6,
+    address = $7,
+    postal_code = $8,
+    gender = $9,
+    date_of_birth = $10
+WHERE id = $1
+RETURNING id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	FullName     string    `json:"full_name"`
+	Country      string    `json:"country"`
+	City         string    `json:"city"`
+	Address      string    `json:"address"`
+	PostalCode   string    `json:"postal_code"`
+	Gender       string    `json:"gender"`
+	DateOfBirth  time.Time `json:"date_of_birth"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FullName,
+		arg.Country,
+		arg.City,
+		arg.Address,
+		arg.PostalCode,
+		arg.Gender,
+		arg.DateOfBirth,
+	)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Country,
+		&i.City,
+		&i.Address,
+		&i.PostalCode,
+		&i.Gender,
+		&i.DateOfBirth,
+		&i.AvatarUrl,
+		&i.IsAdmin,
+		&i.IsEmailVerified,
+		&i.LastLoginAt,
+		&i.LoginAttemptCount,
+		&i.IsSuspended,
+		&i.LastLoginIp,
+		&i.LastLoginUserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const verifyEmail = `-- name: VerifyEmail :execrows
+UPDATE users
+SET is_email_verified = TRUE,
     updated_at = now()
 WHERE id = $1
 `
 
-type ResetUserPasswordParams struct {
-	ID           uuid.UUID `json:"id"`
-	PasswordHash string    `json:"password_hash"`
-}
-
-func (q *Queries) ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, resetUserPassword, arg.ID, arg.PasswordHash)
-	return err
+func (q *Queries) VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, verifyEmail, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

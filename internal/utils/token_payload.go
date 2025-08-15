@@ -9,12 +9,11 @@ import (
 )
 
 type TokenPayload struct {
-	ID             uuid.UUID          `json:"id"`
-	UserID         string             `json:"user_id"`
-	OrganizationID string             `json:"organization_id"`
-	Role           constants.UserRole `json:"role"`
-	IssuedAt       time.Time          `json:"issued_at"`
-	ExpiredAt      time.Time          `json:"expires_at"`
+	ID        uuid.UUID          `json:"id"`
+	UserID    string             `json:"user_id"`
+	Role      constants.UserRole `json:"role"`
+	IssuedAt  time.Time          `json:"issued_at"`
+	ExpiredAt time.Time          `json:"expires_at"`
 }
 
 func NewTokenPayload(req *entities.TokenRequest) (*TokenPayload, error) {
@@ -24,12 +23,11 @@ func NewTokenPayload(req *entities.TokenRequest) (*TokenPayload, error) {
 	}
 
 	payload := &TokenPayload{
-		ID:             tokenID,
-		UserID:         req.UserID,
-		OrganizationID: req.OrganizationID,
-		Role:           req.Role,
-		IssuedAt:       time.Now(),
-		ExpiredAt:      time.Now().Add(req.Duration),
+		ID:        tokenID,
+		UserID:    req.UserID,
+		Role:      req.Role,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(req.Duration),
 	}
 
 	return payload, nil

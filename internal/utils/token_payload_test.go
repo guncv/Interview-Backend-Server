@@ -72,7 +72,6 @@ func TestNewTokenPayload(t *testing.T) {
 			assert.NotNil(t, payload)
 			assert.NotEqual(t, uuid.Nil, payload.ID)
 			assert.Equal(t, tt.request.UserID, payload.UserID)
-			assert.Equal(t, tt.request.OrganizationID, payload.OrganizationID)
 			assert.Equal(t, tt.request.Role, payload.Role)
 
 			// Check that IssuedAt is recent (within 1 second)
@@ -96,36 +95,33 @@ func TestTokenPayload_Valid(t *testing.T) {
 		{
 			name: "Valid token - not expired",
 			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-1 * time.Hour),
-				ExpiredAt:      now.Add(1 * time.Hour),
+				ID:        uuid.New(),
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
+				IssuedAt:  now.Add(-1 * time.Hour),
+				ExpiredAt: now.Add(1 * time.Hour),
 			},
 			wantErr: false,
 		},
 		{
 			name: "Expired token",
 			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-2 * time.Hour),
-				ExpiredAt:      now.Add(-1 * time.Hour),
+				ID:        uuid.New(),
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
+				IssuedAt:  now.Add(-2 * time.Hour),
+				ExpiredAt: now.Add(-1 * time.Hour),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Token expiring now",
 			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-1 * time.Hour),
-				ExpiredAt:      now,
+				ID:        uuid.New(),
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
+				IssuedAt:  now.Add(-1 * time.Hour),
+				ExpiredAt: now,
 			},
 			wantErr: true,
 		},

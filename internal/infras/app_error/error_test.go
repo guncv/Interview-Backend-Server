@@ -14,12 +14,6 @@ func TestHandleForeignKeyViolation(t *testing.T) {
 		expectedMsg    string
 	}{
 		{
-			name:           "courses_category_id_fkey",
-			constraintName: "courses_category_id_fkey",
-			expectedCode:   ErrCodeCategoriesForeignKeyViolation,
-			expectedMsg:    "The specified category does not exist. Please select a valid category.",
-		},
-		{
 			name:           "courses_created_by_fkey",
 			constraintName: "courses_created_by_fkey",
 			expectedCode:   ErrCodeGeneralConstraintViolation,
@@ -73,20 +67,6 @@ func TestHandleForeignKeyViolationWithContext(t *testing.T) {
 		expectedMsg    string
 	}{
 		{
-			name:           "create_course_with_invalid_category",
-			constraintName: "courses_category_id_fkey",
-			context:        "create_course",
-			expectedCode:   ErrCodeCategoriesForeignKeyViolation,
-			expectedMsg:    "Cannot create course: The specified category does not exist. Please select a valid category.",
-		},
-		{
-			name:           "update_course_with_invalid_category",
-			constraintName: "courses_category_id_fkey",
-			context:        "update_course",
-			expectedCode:   ErrCodeCategoriesForeignKeyViolation,
-			expectedMsg:    "Cannot update course: The specified category does not exist. Please select a valid category.",
-		},
-		{
 			name:           "create_category_with_invalid_parent",
 			constraintName: "categories_parent_id_fkey",
 			context:        "create_category",
@@ -133,20 +113,7 @@ func TestHandleDuplicateKeyViolation(t *testing.T) {
 		errorMsg     string
 		expectedCode ErrorCode
 		expectedMsg  string
-	}{
-		{
-			name:         "categories_slug_duplicate",
-			errorMsg:     "duplicate key value violates unique constraint \"categories_slug_key\"",
-			expectedCode: ErrCodeCategoriesAlreadyExists,
-			expectedMsg:  "This category already exists.",
-		},
-		{
-			name:         "courses_sku_duplicate",
-			errorMsg:     "duplicate key value violates unique constraint \"unique_course_sku\"",
-			expectedCode: ErrCodeCoursesAlreadyExists,
-			expectedMsg:  "This course already exists.",
-		},
-	}
+	}{}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

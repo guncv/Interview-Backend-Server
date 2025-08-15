@@ -23,7 +23,7 @@ func RespondWithError(ctx *gin.Context, err error) {
 		// Convert validation errors to a proper error response
 		validationError := app_error.NewWithCustomMessage(
 			err,
-			app_error.ErrCodeReviewsInvalidRequest,
+			app_error.ErrCodeAuthInvalidRequest,
 			"Validation failed: "+formatValidationErrors(validationErr),
 		)
 		ctx.JSON(http.StatusBadRequest, validationError)
@@ -34,7 +34,7 @@ func RespondWithError(ctx *gin.Context, err error) {
 	if strings.Contains(err.Error(), "Field validation for") {
 		validationError := app_error.NewWithCustomMessage(
 			err,
-			app_error.ErrCodeReviewsInvalidRequest,
+			app_error.ErrCodeAuthInvalidRequest,
 			"Validation failed: "+err.Error(),
 		)
 		ctx.JSON(http.StatusBadRequest, validationError)
