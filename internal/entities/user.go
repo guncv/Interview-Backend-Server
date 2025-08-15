@@ -60,10 +60,15 @@ type SignInServiceResponse struct {
 }
 
 type TokenRequest struct {
-	UserID         string             `json:"user_id"`
-	OrganizationID string             `json:"organization_id"`
-	Role           constants.UserRole `json:"role"`
-	Duration       time.Duration      `json:"duration"`
+	UserID   string             `json:"user_id"`
+	Role     constants.UserRole `json:"role"`
+	Duration time.Duration      `json:"duration"`
+}
+
+type VerifyEmailTokenRequest struct {
+	UserID   string        `json:"user_id"`
+	Email    string        `json:"email"`
+	Duration time.Duration `json:"duration"`
 }
 
 type CookieRequest struct {

@@ -32,7 +32,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() *entities.TokenRequest
-		verify func(t *testing.T, got *TokenPayload, gotErr error)
+		verify func(t *testing.T, got *SignInTokenPayload, gotErr error)
 	}{
 		{
 			name: "CreateAndVerifyToken_OK",
@@ -43,7 +43,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: time.Minute * 10,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Equal(t, got.UserID, "user-123")
 				assert.Equal(t, got.Role, constants.UserRole("user"))
 				assert.WithinDuration(t, got.IssuedAt, time.Now(), time.Second)
@@ -60,7 +60,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: time.Minute * -10,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // check the correct error
@@ -75,7 +75,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: 0,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // Assuming same error for invalid case
@@ -106,14 +106,14 @@ func TestVerifyTokens(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() string
-		verify func(t *testing.T, got *TokenPayload, gotErr error)
+		verify func(t *testing.T, got *SignInTokenPayload, gotErr error)
 	}{
 		{
 			name: "VerifyToken_InvalidToken",
 			input: func() string {
 				return "invalid_token"
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
@@ -131,7 +131,7 @@ func TestVerifyTokens(t *testing.T) {
 				assert.NotNil(t, token)
 				return token
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
@@ -161,7 +161,7 @@ func TestRenewAccessToken(t *testing.T) {
 	testCases := []struct {
 		name   string
 		setup  func() (JwtToken, *mockRepos.MockSessionRepository, string)
-		verify func(t *testing.T, token string, payload *TokenPayload, err error)
+		verify func(t *testing.T, token string, payload *SignInTokenPayload, err error)
 	}{
 		{
 			name: "RenewAccessToken_Success",
@@ -198,7 +198,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -215,7 +215,7 @@ func TestRenewAccessToken(t *testing.T) {
 				svc := NewJwtToken(cfg, lgr, mockRepo)
 				return svc, mockRepo, "invalid_token"
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -239,7 +239,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -273,7 +273,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -308,7 +308,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -343,7 +343,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -377,7 +377,7 @@ func TestRenewAccessToken(t *testing.T) {
 
 				return svc, mockRepo, refreshToken
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Empty(t, token)
 				assert.Nil(t, payload)
@@ -415,7 +415,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.TokenRequest
-		verify func(t *testing.T, token string, payload *TokenPayload, err error)
+		verify func(t *testing.T, token string, payload *SignInTokenPayload, err error)
 	}{
 		{
 			name: "CreateToken_EmptyUserID",
@@ -424,7 +424,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("user"),
 				Duration: time.Minute * 10,
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err) // Should still create token with empty UserID
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -438,7 +438,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("user"),
 				Duration: 0,
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -453,7 +453,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("admin"),
 				Duration: time.Hour * 24 * 365, // 1 year
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -486,14 +486,14 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() string
-		verify func(t *testing.T, payload *TokenPayload, err error)
+		verify func(t *testing.T, payload *SignInTokenPayload, err error)
 	}{
 		{
 			name: "VerifyToken_EmptyToken",
 			input: func() string {
 				return ""
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
@@ -504,7 +504,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 			input: func() string {
 				return "this.is.not.a.valid.jwt.token"
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
@@ -529,7 +529,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 				assert.NoError(t, err)
 				return token
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
