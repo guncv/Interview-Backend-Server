@@ -6,12 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
 type Cookies interface {
-	SetCookie(ctx *gin.Context, req *entities.SignInServiceResponse) (*entities.SignInResponse, error)
 	SetRefreshTokenCookie(c *gin.Context, token string, duration time.Duration, domain string, isRejectHTTP bool)
 }
 
@@ -24,23 +22,23 @@ func NewCookies(config *config.Config, log *log.Logger) Cookies {
 	return &cookies{config: config, log: log}
 }
 
-func (c *cookies) SetCookie(ctx *gin.Context, req *entities.SignInServiceResponse) (*entities.SignInResponse, error) {
-	c.log.InfoWithID(ctx, "[Utils: SetCookie] Called")
+// func (c *cookies) SetCookie(ctx *gin.Context, req *entities.SignInServiceResponse) (*entities.SignInResponse, error) {
+// 	c.log.InfoWithID(ctx, "[Utils: SetCookie] Called")
 
-	c.SetRefreshTokenCookie(ctx, req.RefreshToken,
-		c.config.AuthConfig.RefreshTokenDuration,
-		c.config.AuthConfig.CookieDomain,
-		c.config.AuthConfig.CookieRejectHTTP,
-	)
+// 	c.SetRefreshTokenCookie(ctx, req.RefreshToken,
+// 		c.config.AuthConfig.RefreshTokenDuration,
+// 		c.config.AuthConfig.CookieDomain,
+// 		c.config.AuthConfig.CookieRejectHTTP,
+// 	)
 
-	resp := entities.SignInResponse{
-		ID:             req.ID,
-		AccessToken:    req.AccessToken,
-		IsTempPassword: req.IsTempPassword,
-	}
+// 	resp := entities.SignInResponse{
+// 		ID:             req.ID,
+// 		AccessToken:    req.AccessToken,
+// 		IsTempPassword: req.IsTempPassword,
+// 	}
 
-	return &resp, nil
-}
+// 	return &resp, nil
+// }
 
 func (c *cookies) SetRefreshTokenCookie(ctx *gin.Context, token string, duration time.Duration, domain string, isRejectHTTP bool) {
 	c.log.InfoWithID(ctx, "[Utils: SetRefreshTokenCookie] Called")

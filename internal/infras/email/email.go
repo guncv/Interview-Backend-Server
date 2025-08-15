@@ -105,5 +105,5 @@ func (s *emailSender) buildVerifyEmailBody(code string) string {
 		<p>Use the following verification code to verify your email. The code will expire in %s.</p>
 		<p><strong>Verification Code: %s</strong></p>
 		<p>If you didn't request this, you can safely ignore this email.</p>
-	`, s.config.AuthConfig.VerifyEmailTokenDuration.String(), code)
+	`, s.config.AuthConfig.VerifyEmailTokenDuration, code)
 }

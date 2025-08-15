@@ -45,6 +45,39 @@ func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, 
 	return i, err
 }
 
+const checkIsUserExistsByID = `-- name: CheckIsUserExistsByID :one
+SELECT id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
+WHERE id = $1
+`
+
+func (q *Queries) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error) {
+	row := q.db.QueryRowContext(ctx, checkIsUserExistsByID, id)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Country,
+		&i.City,
+		&i.Address,
+		&i.PostalCode,
+		&i.Gender,
+		&i.DateOfBirth,
+		&i.AvatarUrl,
+		&i.IsAdmin,
+		&i.IsEmailVerified,
+		&i.LastLoginAt,
+		&i.LoginAttemptCount,
+		&i.IsSuspended,
+		&i.LastLoginIp,
+		&i.LastLoginUserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     id,

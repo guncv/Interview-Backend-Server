@@ -4,8 +4,6 @@ package utils
 
 import (
 	gin "github.com/gin-gonic/gin"
-	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-
 	mock "github.com/stretchr/testify/mock"
 
 	time "time"
@@ -22,65 +20,6 @@ type MockCookies_Expecter struct {
 
 func (_m *MockCookies) EXPECT() *MockCookies_Expecter {
 	return &MockCookies_Expecter{mock: &_m.Mock}
-}
-
-// SetCookie provides a mock function with given fields: ctx, req
-func (_m *MockCookies) SetCookie(ctx *gin.Context, req *entities.SignInServiceResponse) (*entities.SignInResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SetCookie")
-	}
-
-	var r0 *entities.SignInResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, *entities.SignInServiceResponse) (*entities.SignInResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(*gin.Context, *entities.SignInServiceResponse) *entities.SignInResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.SignInResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(*gin.Context, *entities.SignInServiceResponse) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockCookies_SetCookie_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetCookie'
-type MockCookies_SetCookie_Call struct {
-	*mock.Call
-}
-
-// SetCookie is a helper method to define mock.On call
-//   - ctx *gin.Context
-//   - req *entities.SignInServiceResponse
-func (_e *MockCookies_Expecter) SetCookie(ctx interface{}, req interface{}) *MockCookies_SetCookie_Call {
-	return &MockCookies_SetCookie_Call{Call: _e.mock.On("SetCookie", ctx, req)}
-}
-
-func (_c *MockCookies_SetCookie_Call) Run(run func(ctx *gin.Context, req *entities.SignInServiceResponse)) *MockCookies_SetCookie_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*gin.Context), args[1].(*entities.SignInServiceResponse))
-	})
-	return _c
-}
-
-func (_c *MockCookies_SetCookie_Call) Return(_a0 *entities.SignInResponse, _a1 error) *MockCookies_SetCookie_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockCookies_SetCookie_Call) RunAndReturn(run func(*gin.Context, *entities.SignInServiceResponse) (*entities.SignInResponse, error)) *MockCookies_SetCookie_Call {
-	_c.Call.Return(run)
-	return _c
 }
 
 // SetRefreshTokenCookie provides a mock function with given fields: c, token, duration, domain, isRejectHTTP

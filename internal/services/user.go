@@ -21,6 +21,7 @@ import (
 type UserService interface {
 	HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error)
 	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
+	VerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
 }
 
 type userService struct {
@@ -141,10 +142,13 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 				return nil, err
 			}
 
-			return &entities.SignUpUserResponse{
+			result := entities.SignUpUserResponse{
 				TokenId: verifyEmailToken,
-			}, nil
+			}
+
+			return &result, nil
 		}
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error checking if email exists", "error", err)
 		return nil, err
 	}
 
@@ -215,7 +219,48 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 		return nil, err
 	}
 
-	return &entities.SignUpUserResponse{
+	result := entities.SignUpUserResponse{
 		TokenId: verifyEmailToken,
-	}, nil
+	}
+
+	return &result, nil
+}
+
+func (s *userService) VerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
+	s.log.InfoWithID(ctx, "[Service: VerifyEmail] Called")
+
+	payload, err := s.jwtToken.VerifyVerifyEmailToken(ctx, req.Token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying token", "error", err)
+		return err
+	}
+
+	code, err := s.redisClient.Get(ctx, req.Token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
+		return err
+	}
+
+	if code != req.Code {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying token", "error", errors.New("invalid code"))
+		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidRequest)
+	}
+
+	user, err := s.userRepository.CheckIsUserExistsByID(ctx, payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error checking if email exists", "error", err)
+		return err
+	}
+
+	if user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error", "error", errors.New("this email already verified"))
+		return app_error.New(errors.New("this email already verified"), app_error.ErrCodeAuthUserAlreadyExists)
+	}
+
+	if err = s.userRepository.VerifyEmail(ctx, user.ID.String()); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying email", "error", err)
+		return err
+	}
+
+	return nil
 }

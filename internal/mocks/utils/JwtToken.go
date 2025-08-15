@@ -27,7 +27,7 @@ func (_m *MockJwtToken) EXPECT() *MockJwtToken_Expecter {
 }
 
 // CreateToken provides a mock function with given fields: ctx, req
-func (_m *MockJwtToken) CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *utils.TokenPayload, error) {
+func (_m *MockJwtToken) CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *utils.SignInTokenPayload, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
@@ -35,9 +35,9 @@ func (_m *MockJwtToken) CreateToken(ctx context.Context, req *entities.TokenRequ
 	}
 
 	var r0 string
-	var r1 *utils.TokenPayload
+	var r1 *utils.SignInTokenPayload
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.TokenRequest) (string, *utils.TokenPayload, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.TokenRequest) (string, *utils.SignInTokenPayload, error)); ok {
 		return rf(ctx, req)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *entities.TokenRequest) string); ok {
@@ -46,11 +46,11 @@ func (_m *MockJwtToken) CreateToken(ctx context.Context, req *entities.TokenRequ
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.TokenRequest) *utils.TokenPayload); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.TokenRequest) *utils.SignInTokenPayload); ok {
 		r1 = rf(ctx, req)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*utils.TokenPayload)
+			r1 = ret.Get(1).(*utils.SignInTokenPayload)
 		}
 	}
 
@@ -82,12 +82,78 @@ func (_c *MockJwtToken_CreateToken_Call) Run(run func(ctx context.Context, req *
 	return _c
 }
 
-func (_c *MockJwtToken_CreateToken_Call) Return(_a0 string, _a1 *utils.TokenPayload, _a2 error) *MockJwtToken_CreateToken_Call {
+func (_c *MockJwtToken_CreateToken_Call) Return(_a0 string, _a1 *utils.SignInTokenPayload, _a2 error) *MockJwtToken_CreateToken_Call {
 	_c.Call.Return(_a0, _a1, _a2)
 	return _c
 }
 
-func (_c *MockJwtToken_CreateToken_Call) RunAndReturn(run func(context.Context, *entities.TokenRequest) (string, *utils.TokenPayload, error)) *MockJwtToken_CreateToken_Call {
+func (_c *MockJwtToken_CreateToken_Call) RunAndReturn(run func(context.Context, *entities.TokenRequest) (string, *utils.SignInTokenPayload, error)) *MockJwtToken_CreateToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateVerifyEmailToken provides a mock function with given fields: ctx, req
+func (_m *MockJwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *utils.VerifyEmailTokenPayload, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateVerifyEmailToken")
+	}
+
+	var r0 string
+	var r1 *utils.VerifyEmailTokenPayload
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.VerifyEmailTokenRequest) (string, *utils.VerifyEmailTokenPayload, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.VerifyEmailTokenRequest) string); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.VerifyEmailTokenRequest) *utils.VerifyEmailTokenPayload); ok {
+		r1 = rf(ctx, req)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*utils.VerifyEmailTokenPayload)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, *entities.VerifyEmailTokenRequest) error); ok {
+		r2 = rf(ctx, req)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MockJwtToken_CreateVerifyEmailToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateVerifyEmailToken'
+type MockJwtToken_CreateVerifyEmailToken_Call struct {
+	*mock.Call
+}
+
+// CreateVerifyEmailToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.VerifyEmailTokenRequest
+func (_e *MockJwtToken_Expecter) CreateVerifyEmailToken(ctx interface{}, req interface{}) *MockJwtToken_CreateVerifyEmailToken_Call {
+	return &MockJwtToken_CreateVerifyEmailToken_Call{Call: _e.mock.On("CreateVerifyEmailToken", ctx, req)}
+}
+
+func (_c *MockJwtToken_CreateVerifyEmailToken_Call) Run(run func(ctx context.Context, req *entities.VerifyEmailTokenRequest)) *MockJwtToken_CreateVerifyEmailToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.VerifyEmailTokenRequest))
+	})
+	return _c
+}
+
+func (_c *MockJwtToken_CreateVerifyEmailToken_Call) Return(_a0 string, _a1 *utils.VerifyEmailTokenPayload, _a2 error) *MockJwtToken_CreateVerifyEmailToken_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MockJwtToken_CreateVerifyEmailToken_Call) RunAndReturn(run func(context.Context, *entities.VerifyEmailTokenRequest) (string, *utils.VerifyEmailTokenPayload, error)) *MockJwtToken_CreateVerifyEmailToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -188,7 +254,7 @@ func (_c *MockJwtToken_IsTokenMatch_Call) RunAndReturn(run func(context.Context,
 }
 
 // RenewAccessToken provides a mock function with given fields: ctx, token
-func (_m *MockJwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *utils.TokenPayload, error) {
+func (_m *MockJwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *utils.SignInTokenPayload, error) {
 	ret := _m.Called(ctx, token)
 
 	if len(ret) == 0 {
@@ -196,9 +262,9 @@ func (_m *MockJwtToken) RenewAccessToken(ctx *gin.Context, token string) (string
 	}
 
 	var r0 string
-	var r1 *utils.TokenPayload
+	var r1 *utils.SignInTokenPayload
 	var r2 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, string) (string, *utils.TokenPayload, error)); ok {
+	if rf, ok := ret.Get(0).(func(*gin.Context, string) (string, *utils.SignInTokenPayload, error)); ok {
 		return rf(ctx, token)
 	}
 	if rf, ok := ret.Get(0).(func(*gin.Context, string) string); ok {
@@ -207,11 +273,11 @@ func (_m *MockJwtToken) RenewAccessToken(ctx *gin.Context, token string) (string
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(*gin.Context, string) *utils.TokenPayload); ok {
+	if rf, ok := ret.Get(1).(func(*gin.Context, string) *utils.SignInTokenPayload); ok {
 		r1 = rf(ctx, token)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*utils.TokenPayload)
+			r1 = ret.Get(1).(*utils.SignInTokenPayload)
 		}
 	}
 
@@ -243,34 +309,34 @@ func (_c *MockJwtToken_RenewAccessToken_Call) Run(run func(ctx *gin.Context, tok
 	return _c
 }
 
-func (_c *MockJwtToken_RenewAccessToken_Call) Return(_a0 string, _a1 *utils.TokenPayload, _a2 error) *MockJwtToken_RenewAccessToken_Call {
+func (_c *MockJwtToken_RenewAccessToken_Call) Return(_a0 string, _a1 *utils.SignInTokenPayload, _a2 error) *MockJwtToken_RenewAccessToken_Call {
 	_c.Call.Return(_a0, _a1, _a2)
 	return _c
 }
 
-func (_c *MockJwtToken_RenewAccessToken_Call) RunAndReturn(run func(*gin.Context, string) (string, *utils.TokenPayload, error)) *MockJwtToken_RenewAccessToken_Call {
+func (_c *MockJwtToken_RenewAccessToken_Call) RunAndReturn(run func(*gin.Context, string) (string, *utils.SignInTokenPayload, error)) *MockJwtToken_RenewAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // VerifyToken provides a mock function with given fields: ctx, token
-func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string) (*utils.TokenPayload, error) {
+func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string) (*utils.SignInTokenPayload, error) {
 	ret := _m.Called(ctx, token)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VerifyToken")
 	}
 
-	var r0 *utils.TokenPayload
+	var r0 *utils.SignInTokenPayload
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*utils.TokenPayload, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*utils.SignInTokenPayload, error)); ok {
 		return rf(ctx, token)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *utils.TokenPayload); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *utils.SignInTokenPayload); ok {
 		r0 = rf(ctx, token)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*utils.TokenPayload)
+			r0 = ret.Get(0).(*utils.SignInTokenPayload)
 		}
 	}
 
@@ -302,12 +368,71 @@ func (_c *MockJwtToken_VerifyToken_Call) Run(run func(ctx context.Context, token
 	return _c
 }
 
-func (_c *MockJwtToken_VerifyToken_Call) Return(_a0 *utils.TokenPayload, _a1 error) *MockJwtToken_VerifyToken_Call {
+func (_c *MockJwtToken_VerifyToken_Call) Return(_a0 *utils.SignInTokenPayload, _a1 error) *MockJwtToken_VerifyToken_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockJwtToken_VerifyToken_Call) RunAndReturn(run func(context.Context, string) (*utils.TokenPayload, error)) *MockJwtToken_VerifyToken_Call {
+func (_c *MockJwtToken_VerifyToken_Call) RunAndReturn(run func(context.Context, string) (*utils.SignInTokenPayload, error)) *MockJwtToken_VerifyToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// VerifyVerifyEmailToken provides a mock function with given fields: ctx, token
+func (_m *MockJwtToken) VerifyVerifyEmailToken(ctx context.Context, token string) (*utils.VerifyEmailTokenPayload, error) {
+	ret := _m.Called(ctx, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyVerifyEmailToken")
+	}
+
+	var r0 *utils.VerifyEmailTokenPayload
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*utils.VerifyEmailTokenPayload, error)); ok {
+		return rf(ctx, token)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *utils.VerifyEmailTokenPayload); ok {
+		r0 = rf(ctx, token)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*utils.VerifyEmailTokenPayload)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, token)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockJwtToken_VerifyVerifyEmailToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyVerifyEmailToken'
+type MockJwtToken_VerifyVerifyEmailToken_Call struct {
+	*mock.Call
+}
+
+// VerifyVerifyEmailToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+func (_e *MockJwtToken_Expecter) VerifyVerifyEmailToken(ctx interface{}, token interface{}) *MockJwtToken_VerifyVerifyEmailToken_Call {
+	return &MockJwtToken_VerifyVerifyEmailToken_Call{Call: _e.mock.On("VerifyVerifyEmailToken", ctx, token)}
+}
+
+func (_c *MockJwtToken_VerifyVerifyEmailToken_Call) Run(run func(ctx context.Context, token string)) *MockJwtToken_VerifyVerifyEmailToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockJwtToken_VerifyVerifyEmailToken_Call) Return(_a0 *utils.VerifyEmailTokenPayload, _a1 error) *MockJwtToken_VerifyVerifyEmailToken_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockJwtToken_VerifyVerifyEmailToken_Call) RunAndReturn(run func(context.Context, string) (*utils.VerifyEmailTokenPayload, error)) *MockJwtToken_VerifyVerifyEmailToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

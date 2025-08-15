@@ -37,5 +37,6 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 
 	{
 		userRoutes.GET("/health", userHandler.HealthCheck)
+		userRoutes.POST("/sign-up", userHandler.SignUpUser)
 	}
 }

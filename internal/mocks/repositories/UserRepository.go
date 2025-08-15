@@ -81,6 +81,65 @@ func (_c *MockUserRepository_CheckIsEmailExists_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// CheckIsUserExistsByID provides a mock function with given fields: ctx, id
+func (_m *MockUserRepository) CheckIsUserExistsByID(ctx context.Context, id string) (*db.Users, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckIsUserExistsByID")
+	}
+
+	var r0 *db.Users
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*db.Users, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *db.Users); ok {
+		r0 = rf(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Users)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserRepository_CheckIsUserExistsByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckIsUserExistsByID'
+type MockUserRepository_CheckIsUserExistsByID_Call struct {
+	*mock.Call
+}
+
+// CheckIsUserExistsByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+func (_e *MockUserRepository_Expecter) CheckIsUserExistsByID(ctx interface{}, id interface{}) *MockUserRepository_CheckIsUserExistsByID_Call {
+	return &MockUserRepository_CheckIsUserExistsByID_Call{Call: _e.mock.On("CheckIsUserExistsByID", ctx, id)}
+}
+
+func (_c *MockUserRepository_CheckIsUserExistsByID_Call) Run(run func(ctx context.Context, id string)) *MockUserRepository_CheckIsUserExistsByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_CheckIsUserExistsByID_Call) Return(_a0 *db.Users, _a1 error) *MockUserRepository_CheckIsUserExistsByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserRepository_CheckIsUserExistsByID_Call) RunAndReturn(run func(context.Context, string) (*db.Users, error)) *MockUserRepository_CheckIsUserExistsByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUser provides a mock function with given fields: ctx, req
 func (_m *MockUserRepository) CreateUser(ctx context.Context, req *db.CreateUserParams) (*db.Users, error) {
 	ret := _m.Called(ctx, req)

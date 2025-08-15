@@ -33,6 +33,10 @@ RETURNING *;
 SELECT * FROM users
 WHERE email = $1;
 
+-- name: CheckIsUserExistsByID :one
+SELECT * FROM users
+WHERE id = $1;
+
 -- name: VerifyEmail :execrows
 UPDATE users
 SET is_email_verified = TRUE,

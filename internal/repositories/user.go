@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 
@@ -12,6 +14,7 @@ import (
 
 type UserRepository interface {
 	HealthCheck(ctx context.Context) (string, error)
+	CheckIsUserExistsByID(ctx context.Context, id string) (*db.Users, error)
 	CheckIsEmailExists(ctx context.Context, email string) (*db.Users, error)
 	CreateUser(ctx context.Context, req *db.CreateUserParams) (*db.Users, error)
 	UpdateUser(ctx context.Context, req *db.UpdateUserParams) (*db.Users, error)
@@ -46,11 +49,27 @@ func (r *userRepository) CreateUser(ctx context.Context, req *db.CreateUserParam
 	return &user, nil
 }
 
+func (r *userRepository) CheckIsUserExistsByID(ctx context.Context, id string) (*db.Users, error) {
+
+	user, err := r.db.CheckIsUserExistsByID(ctx, uuid.MustParse(id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
+		}
+		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	return &user, nil
+}
+
 func (r *userRepository) CheckIsEmailExists(ctx context.Context, email string) (*db.Users, error) {
 	r.log.InfoWithID(ctx, "[Repository: CheckIsEmailExists] Called")
 
 	user, err := r.db.CheckIsEmailExists(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
@@ -62,6 +81,9 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 
 	user, err := r.db.UpdateUser(ctx, *req)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
@@ -71,9 +93,13 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 func (r *userRepository) VerifyEmail(ctx context.Context, userID string) error {
 	r.log.InfoWithID(ctx, "[Repository: VerifyEmail] Called")
 
-	_, err := r.db.VerifyEmail(ctx, uuid.MustParse(userID))
+	rowsAffected, err := r.db.VerifyEmail(ctx, uuid.MustParse(userID))
 	if err != nil {
 		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if rowsAffected == 0 {
+		return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
 	}
 
 	return nil

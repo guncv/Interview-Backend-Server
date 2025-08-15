@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
+	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
