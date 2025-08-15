@@ -3,30 +3,30 @@ version: "3.9"
 services:
   postgres:
     image: postgres:12-alpine
-    container_name: onyx-db
+    container_name: interview-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: onyx
+      POSTGRES_DB: interview
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
     ports:
       - "5432:5432"
     networks:
-      - onyx-network
+      - interview-network
 
   redis:
     image: redis:alpine
-    container_name: onyx-redis
+    container_name: interview-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6380"
     networks:
-      - onyx-network
+      - interview-network
 
-  onyx-backend-server:
-    container_name: onyx-server
+  interview-backend-server:
+    container_name: interview-backend-server
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -36,18 +36,18 @@ services:
     volumes:
       - ./:/usr/src/app
     networks:
-      - onyx-network
+      - interview-network
     depends_on:
       - postgres
       - redis
     environment:
       ENV: dev
-      DB_SOURCE: postgresql://user:password@postgres:5432/onyx?sslmode=disable
+      DB_SOURCE: postgresql://user:password@postgres:5432/interview?sslmode=disable
     entrypoint: ["/app/migration.sh", "postgres:5432", "--"]
     command: ["/app/main"]
 
 networks:
-  onyx-network:
+  interview-network:
     external: true
 
 
