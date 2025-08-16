@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -21,7 +23,8 @@ import (
 type UserService interface {
 	HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error)
 	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
-	VerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
+	SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
+	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
 }
 
 type userService struct {
@@ -115,7 +118,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 			verifyEmailReq := &entities.VerifyEmailTokenRequest{
 				UserID:   resp.ID.String(),
-				Code:     code,
+				Email:    req.Email,
 				Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
 			}
 
@@ -126,7 +129,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 			}
 
 			if err = s.redisClient.Set(ctx, database.RedisPayload{
-				Key:   verifyEmailToken,
+				Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
 				Value: code,
 				TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
 			}); err != nil {
@@ -188,11 +191,9 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 	code := s.generator.GenerateRandomString(ctx, 6)
 
-	s.log.InfoWithID(ctx, "[Service: SignUpUser] Code", code)
-
 	verifyEmailReq := &entities.VerifyEmailTokenRequest{
 		UserID:   resp.ID.String(),
-		Code:     code,
+		Email:    req.Email,
 		Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
 	}
 
@@ -203,11 +204,20 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 	}
 
 	if err = s.redisClient.Set(ctx, database.RedisPayload{
-		Key:   verifyEmailToken,
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
 		Value: code,
 		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, verifyEmailToken),
+		Value: "0",
+		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting attempt", "error", err)
 		return nil, err
 	}
 
@@ -226,7 +236,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 	return &result, nil
 }
 
-func (s *userService) VerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
+func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
 	s.log.InfoWithID(ctx, "[Service: VerifyEmail] Called")
 
 	payload, err := s.jwtToken.VerifyVerifyEmailToken(ctx, req.Token)
@@ -235,14 +245,29 @@ func (s *userService) VerifyEmail(ctx context.Context, req *entities.VerifyEmail
 		return err
 	}
 
-	code, err := s.redisClient.Get(ctx, req.Token)
+	code, err := s.redisClient.Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token))
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
 		return err
 	}
 
 	if code != req.Code {
-		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying token", "error", errors.New("invalid code"))
+		newAttempts, err := s.redisClient.Increment(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token))
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] INCR attempts failed", "error", err)
+			return err
+		}
+
+		if newAttempts >= int64(constants.MaxAttemptVerifyEmail) {
+			if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token), fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+				s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cleanup after max attempts failed", "error", err)
+			}
+
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Max attempts reached")
+			return app_error.New(errors.New("max attempt reached"), app_error.ErrCodeAuthInvalidRequest)
+		}
+
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid code", "attempt", newAttempts)
 		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidRequest)
 	}
 
@@ -262,5 +287,66 @@ func (s *userService) VerifyEmail(ctx context.Context, req *entities.VerifyEmail
 		return err
 	}
 
+	if err = s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cannot delete verify email token", "error", err)
+		return err
+	}
+
+	if err = s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cannot delete attempt", "error", err)
+	}
+
 	return nil
+}
+
+func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: ResetVerifyEmailCode] Called")
+
+	code := s.generator.GenerateRandomString(ctx, 6)
+
+	if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ResetVerifyEmailCode] Cannot delete verify email token", "error", err)
+	}
+
+	if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ResetVerifyEmailCode] Cannot delete attempt", "error", err)
+	}
+
+	newToken, payload, err := s.jwtToken.RenewVerifyEmailToken(ctx, req.Token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error verifying token", "error", err)
+		return nil, err
+	}
+
+	if err := s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, newToken),
+		Value: code,
+		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting verify email token", "error", err)
+		return nil, err
+	}
+
+	if err := s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, newToken),
+		Value: "0",
+		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting attempt", "error", err)
+		return nil, err
+	}
+
+	if err := s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+		EmailReceiver: payload.Email,
+		Code:          code,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error publishing task send verify email", "error", err)
+		return nil, err
+	}
+
+	result := entities.ResetVerifyEmailCodeResponse{
+		TokenId: newToken,
+	}
+
+	return &result, nil
 }

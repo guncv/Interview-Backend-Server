@@ -319,6 +319,72 @@ func (_c *MockJwtToken_RenewAccessToken_Call) RunAndReturn(run func(*gin.Context
 	return _c
 }
 
+// RenewVerifyEmailToken provides a mock function with given fields: ctx, oldToken
+func (_m *MockJwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *utils.VerifyEmailTokenPayload, error) {
+	ret := _m.Called(ctx, oldToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RenewVerifyEmailToken")
+	}
+
+	var r0 string
+	var r1 *utils.VerifyEmailTokenPayload
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, *utils.VerifyEmailTokenPayload, error)); ok {
+		return rf(ctx, oldToken)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = rf(ctx, oldToken)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) *utils.VerifyEmailTokenPayload); ok {
+		r1 = rf(ctx, oldToken)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*utils.VerifyEmailTokenPayload)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = rf(ctx, oldToken)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MockJwtToken_RenewVerifyEmailToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RenewVerifyEmailToken'
+type MockJwtToken_RenewVerifyEmailToken_Call struct {
+	*mock.Call
+}
+
+// RenewVerifyEmailToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - oldToken string
+func (_e *MockJwtToken_Expecter) RenewVerifyEmailToken(ctx interface{}, oldToken interface{}) *MockJwtToken_RenewVerifyEmailToken_Call {
+	return &MockJwtToken_RenewVerifyEmailToken_Call{Call: _e.mock.On("RenewVerifyEmailToken", ctx, oldToken)}
+}
+
+func (_c *MockJwtToken_RenewVerifyEmailToken_Call) Run(run func(ctx context.Context, oldToken string)) *MockJwtToken_RenewVerifyEmailToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockJwtToken_RenewVerifyEmailToken_Call) Return(_a0 string, _a1 *utils.VerifyEmailTokenPayload, _a2 error) *MockJwtToken_RenewVerifyEmailToken_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MockJwtToken_RenewVerifyEmailToken_Call) RunAndReturn(run func(context.Context, string) (string, *utils.VerifyEmailTokenPayload, error)) *MockJwtToken_RenewVerifyEmailToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // VerifyToken provides a mock function with given fields: ctx, token
 func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string) (*utils.SignInTokenPayload, error) {
 	ret := _m.Called(ctx, token)

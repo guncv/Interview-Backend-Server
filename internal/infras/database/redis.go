@@ -14,6 +14,7 @@ type RedisClient interface {
 	Set(ctx context.Context, payload RedisPayload) error
 	Get(ctx context.Context, key string) (string, error)
 	Delete(ctx context.Context, keys ...string) error
+	Increment(ctx context.Context, key string) (int64, error)
 	Exists(ctx context.Context, key string) (bool, error)
 	Expire(ctx context.Context, key string, duration time.Duration) error
 	HSet(ctx context.Context, key string, values ...interface{}) error
@@ -86,6 +87,16 @@ func (r *redisClient) Delete(ctx context.Context, keys ...string) error {
 	}
 
 	return nil
+}
+
+func (r *redisClient) Increment(ctx context.Context, key string) (int64, error) {
+	r.log.InfoWithID(ctx, "[Redis Client: Incr] Called")
+	n, err := r.client.Incr(ctx, key).Result()
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Redis Client: Incr] Error", err)
+		return 0, err
+	}
+	return n, nil
 }
 
 func (r *redisClient) Exists(ctx context.Context, key string) (bool, error) {

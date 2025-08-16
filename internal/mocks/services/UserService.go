@@ -78,6 +78,112 @@ func (_c *MockUserService_HealthCheck_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ResetVerifyEmailCode provides a mock function with given fields: ctx, req
+func (_m *MockUserService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetVerifyEmailCode")
+	}
+
+	var r0 *entities.ResetVerifyEmailCodeResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) *entities.ResetVerifyEmailCodeResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ResetVerifyEmailCodeResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_ResetVerifyEmailCode_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetVerifyEmailCode'
+type MockUserService_ResetVerifyEmailCode_Call struct {
+	*mock.Call
+}
+
+// ResetVerifyEmailCode is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ResetVerifyEmailCodeRequest
+func (_e *MockUserService_Expecter) ResetVerifyEmailCode(ctx interface{}, req interface{}) *MockUserService_ResetVerifyEmailCode_Call {
+	return &MockUserService_ResetVerifyEmailCode_Call{Call: _e.mock.On("ResetVerifyEmailCode", ctx, req)}
+}
+
+func (_c *MockUserService_ResetVerifyEmailCode_Call) Run(run func(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest)) *MockUserService_ResetVerifyEmailCode_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ResetVerifyEmailCodeRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_ResetVerifyEmailCode_Call) Return(_a0 *entities.ResetVerifyEmailCodeResponse, _a1 error) *MockUserService_ResetVerifyEmailCode_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_ResetVerifyEmailCode_Call) RunAndReturn(run func(context.Context, *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)) *MockUserService_ResetVerifyEmailCode_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendVerifyEmail provides a mock function with given fields: ctx, req
+func (_m *MockUserService) SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendVerifyEmail")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.VerifyEmailRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserService_SendVerifyEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendVerifyEmail'
+type MockUserService_SendVerifyEmail_Call struct {
+	*mock.Call
+}
+
+// SendVerifyEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.VerifyEmailRequest
+func (_e *MockUserService_Expecter) SendVerifyEmail(ctx interface{}, req interface{}) *MockUserService_SendVerifyEmail_Call {
+	return &MockUserService_SendVerifyEmail_Call{Call: _e.mock.On("SendVerifyEmail", ctx, req)}
+}
+
+func (_c *MockUserService_SendVerifyEmail_Call) Run(run func(ctx context.Context, req *entities.VerifyEmailRequest)) *MockUserService_SendVerifyEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.VerifyEmailRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_SendVerifyEmail_Call) Return(_a0 error) *MockUserService_SendVerifyEmail_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserService_SendVerifyEmail_Call) RunAndReturn(run func(context.Context, *entities.VerifyEmailRequest) error) *MockUserService_SendVerifyEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SignUpUser provides a mock function with given fields: ctx, req
 func (_m *MockUserService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
 	ret := _m.Called(ctx, req)

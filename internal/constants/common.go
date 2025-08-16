@@ -59,6 +59,13 @@ var (
 	ErrSectionContentInvalidRequest = errors.New("section content invalid request")
 )
 
+// Redis Prefix Constants
+const (
+	RedisPrefixVerifyEmail        = "auth:verify_email:code:"
+	RedisAttemptPrefixVerifyEmail = "auth:verify_email:attempt:"
+	MaxAttemptVerifyEmail         = 3
+)
+
 // Email Constants
 var (
 	TaskSendResetPasswordEmail = "task:send_reset_password_email"

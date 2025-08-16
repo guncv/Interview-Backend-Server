@@ -32,6 +32,14 @@ type VerifyEmailRequest struct {
 	Code  string `json:"code" validate:"required,min=6,max=6"`
 }
 
+type ResetVerifyEmailCodeRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type ResetVerifyEmailCodeResponse struct {
+	TokenId string `json:"token_id"`
+}
+
 type TokenRequest struct {
 	UserID   string             `json:"user_id"`
 	Role     constants.UserRole `json:"role"`
@@ -40,7 +48,7 @@ type TokenRequest struct {
 
 type VerifyEmailTokenRequest struct {
 	UserID   string        `json:"user_id"`
-	Code     string        `json:"code"`
+	Email    string        `json:"email"`
 	Duration time.Duration `json:"duration"`
 }
 

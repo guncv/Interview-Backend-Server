@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -739,6 +740,103 @@ func TestIsTokenMatch(t *testing.T) {
 			token1, token2 := tC.input()
 			got := svc.IsTokenMatch(ctx, token1, token2)
 			tC.verify(t, got)
+		})
+	}
+}
+
+func TestRenewVerifyEmailToken(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	cfg := &config.Config{
+		AuthConfig: config.AuthConfig{
+			JwtSecretKey:             "test_secret",
+			VerifyEmailTokenDuration: time.Minute * 10,
+		},
+	}
+
+	ctx := context.Background()
+	svc := NewJwtToken(cfg, lgr, nil)
+
+	testCases := []struct {
+		name   string
+		input  func() string
+		verify func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error)
+	}{
+		{
+			name: "RenewVerifyEmailToken_ValidExpiredToken",
+			input: func() string {
+				// Create a token that's already expired by setting past expiration time
+				req := &entities.VerifyEmailTokenRequest{
+					UserID:   "user-123",
+					Email:    "test@example.com",
+					Duration: time.Minute * 10, // Normal duration
+				}
+				_, payload, err := svc.CreateVerifyEmailToken(ctx, req)
+				assert.NoError(t, err)
+
+				// Manually set the token to be expired by setting ExpiredAt to past
+				payload.ExpiredAt = time.Now().Add(-time.Minute * 10) // 10 minutes ago
+
+				// Create a new token with the expired payload using the same secret
+				expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+				signedToken, err := expiredToken.SignedString([]byte(cfg.AuthConfig.JwtSecretKey))
+				assert.NoError(t, err)
+				return signedToken
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, newToken)
+				assert.NotNil(t, payload)
+				assert.Equal(t, "user-123", payload.UserID)
+				assert.Equal(t, "test@example.com", payload.Email)
+				// New token should have extended expiration time
+				expectedExpiry := time.Now().Add(time.Minute * 10)
+				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
+			},
+		},
+		{
+			name: "RenewVerifyEmailToken_ValidNonExpiredToken",
+			input: func() string {
+				// Create a token that's still valid
+				req := &entities.VerifyEmailTokenRequest{
+					UserID:   "user-456",
+					Email:    "valid@example.com",
+					Duration: time.Minute * 10, // Valid token
+				}
+				token, _, err := svc.CreateVerifyEmailToken(ctx, req)
+				assert.NoError(t, err)
+				return token
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, newToken)
+				assert.NotNil(t, payload)
+				assert.Equal(t, "user-456", payload.UserID)
+				assert.Equal(t, "valid@example.com", payload.Email)
+				// New token should have extended expiration time
+				expectedExpiry := time.Now().Add(time.Minute * 10)
+				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
+			},
+		},
+		{
+			name: "RenewVerifyEmailToken_InvalidToken",
+			input: func() string {
+				return "invalid_token_string"
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.Error(t, err)
+				assert.Empty(t, newToken)
+				assert.Nil(t, payload)
+				// Should return invalid token error
+				assert.Contains(t, err.Error(), "token is invalid")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			oldToken := tC.input()
+			newToken, payload, err := svc.RenewVerifyEmailToken(ctx, oldToken)
+			tC.verify(t, newToken, payload, err)
 		})
 	}
 }

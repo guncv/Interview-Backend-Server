@@ -9,6 +9,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -26,6 +27,7 @@ type JwtToken interface {
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
 	RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error)
+	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
 }
 
 type jwtToken struct {
@@ -212,4 +214,57 @@ func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string,
 	}
 
 	return accessToken, refreshPayload, nil
+}
+
+func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {
+	maker.logger.InfoWithID(ctx, "[Utils: JWT] Renewing verify email token", "oldToken", oldToken)
+
+	keyFunc := func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
+			return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+		}
+		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
+	}
+
+	token, err := jwt.Parse(oldToken, keyFunc)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error parsing token", "error", err)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	// Extract payload from parsed token
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token claims type", "error", constants.ErrInvalidToken)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	payload := &VerifyEmailTokenPayload{}
+	if idStr, ok := claims["id"].(string); ok {
+		if id, err := uuid.Parse(idStr); err == nil {
+			payload.ID = id
+		}
+	}
+	if userID, ok := claims["user_id"].(string); ok {
+		payload.UserID = userID
+	}
+	if email, ok := claims["email"].(string); ok {
+		payload.Email = email
+	}
+	if issuedAt, ok := claims["issued_at"].(float64); ok {
+		payload.IssuedAt = time.Unix(int64(issuedAt), 0)
+	}
+	if expiredAt, ok := claims["expires_at"].(float64); ok {
+		payload.ExpiredAt = time.Unix(int64(expiredAt), 0)
+	}
+
+	payload.ExpiredAt = time.Now().Add(maker.config.AuthConfig.VerifyEmailTokenDuration)
+
+	newToken, err := maker.createJWTToken(ctx, payload)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return newToken, payload, nil
 }
