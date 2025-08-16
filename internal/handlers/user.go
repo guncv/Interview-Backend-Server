@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -175,5 +176,50 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: RefreshToken] Called")
+
+	cookie, err := c.Request.Cookie(string(constants.RefreshTokenCookieKey))
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: RefreshToken] Error getting refresh token from cookie", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	res, err := h.userService.RefreshToken(ctx, &entities.RefreshTokenRequest{
+		RefreshToken: cookie.Value,
+	})
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: RefreshToken] Error refreshing token", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *UserHandler) SignOut(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: SignOut] Called")
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignOut] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	err = h.userService.SignOut(ctx)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignOut] Error signing out", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	h.cookies.ClearRefreshTokenCookie(c)
 	c.JSON(http.StatusNoContent, nil)
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -26,7 +25,6 @@ type JwtToken interface {
 	VerifyToken(ctx context.Context, token string) (*SignInTokenPayload, error)
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
-	RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error)
 	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
 }
 
@@ -181,39 +179,6 @@ func (maker *jwtToken) validateSession(ctx context.Context, session db.Sessions,
 	}
 
 	return nil
-}
-
-func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Renewing access token", "token", token)
-
-	refreshPayload, err := maker.VerifyToken(ctx, token)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error verifying token", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	session, err := maker.sessionRepository.GetSessionByID(ctx, refreshPayload.ID.String())
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error getting session", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if err := maker.validateSession(ctx, session, refreshPayload, token); err != nil {
-		return "", nil, err
-	}
-
-	tokenRequest := &entities.TokenRequest{
-		UserID:   session.UserID.String(),
-		Role:     refreshPayload.Role,
-		Duration: maker.config.AuthConfig.AccessTokenDuration,
-	}
-
-	accessToken, _, err := maker.CreateToken(ctx, tokenRequest)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return accessToken, refreshPayload, nil
 }
 
 func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {

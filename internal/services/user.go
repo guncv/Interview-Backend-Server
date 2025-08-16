@@ -30,6 +30,8 @@ type UserService interface {
 	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
 	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
 	ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error
+	RefreshToken(ctx context.Context, req *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error)
+	SignOut(ctx context.Context) error
 }
 
 type userService struct {
@@ -404,7 +406,7 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 		Duration: s.config.AuthConfig.RefreshTokenDuration,
 	}
 
-	refreshToken, _, err := s.jwtToken.CreateToken(ctx, refreshTokenRequest)
+	refreshToken, refreshPayload, err := s.jwtToken.CreateToken(ctx, refreshTokenRequest)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error creating refresh token", err)
 		return nil, err
@@ -417,7 +419,7 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 		LastLoginAt:      time.Now(),
 		UserAgent:        ctx.Value(constants.UserAgentKey).(string),
 		IpAddress:        ctx.Value(constants.ClientIPKey).(string),
-		SessionID:        s.generator.GenerateUUID(ctx),
+		SessionID:        refreshPayload.ID,
 		UserID:           user.ID,
 		UpdatedAt:        time.Now(),
 		RefreshTokenHash: refreshTokenHash,
@@ -563,6 +565,60 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 
 	if err := s.redisClient.Delete(ctx, hashedToken); err != nil {
 		s.log.WarnWithID(ctx, "[Service: ResetUserPassword] Error deleting reset token", err)
+	}
+
+	return nil
+}
+
+func (s *userService) RefreshToken(ctx context.Context, req *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: RefreshToken] Called")
+
+	refreshPayload, err := s.jwtToken.VerifyToken(ctx, req.RefreshToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error verifying token", err)
+		return nil, err
+	}
+
+	session, err := s.sessionRepo.GetSessionByID(ctx, refreshPayload.ID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error getting session", err)
+		return nil, err
+	}
+
+	if session.IsRevoked.Bool {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session is revoked", errors.New("session is revoked"))
+		return nil, app_error.New(errors.New("session is revoked"), app_error.ErrCodeAuthInvalidToken)
+	}
+
+	tokenRequest := &entities.TokenRequest{
+		UserID:   session.UserID.String(),
+		Role:     refreshPayload.Role,
+		Duration: s.config.AuthConfig.AccessTokenDuration,
+	}
+
+	accessToken, _, err := s.jwtToken.CreateToken(ctx, tokenRequest)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error creating access token", err)
+		return nil, err
+	}
+
+	return &entities.RefreshTokenResponse{
+		AccessToken: accessToken,
+	}, nil
+}
+
+func (s *userService) SignOut(ctx context.Context) error {
+	s.log.InfoWithID(ctx, "[Service: SignOut] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignOut] Error getting auth context", err)
+		return app_error.New(err, app_error.ErrCodeAuthInvalidHeader)
+	}
+
+	if err := s.sessionRepo.RevokeSessionByID(ctx, authCtx.Payload.ID); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignOut] Error revoking session", err)
+		return err
 	}
 
 	return nil

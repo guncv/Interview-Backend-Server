@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -13,6 +14,7 @@ import (
 type Cookies interface {
 	SetCookie(ctx *gin.Context, req *entities.SignInUserByEmailAndPasswordResponse) error
 	SetRefreshTokenCookie(c *gin.Context, token string, duration time.Duration, domain string, isRejectHTTP bool)
+	ClearRefreshTokenCookie(c *gin.Context)
 }
 
 type cookies struct {
@@ -40,7 +42,7 @@ func (c *cookies) SetRefreshTokenCookie(ctx *gin.Context, token string, duration
 	c.log.InfoWithID(ctx, "[Utils: SetRefreshTokenCookie] Called")
 
 	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:     "refresh_token",
+		Name:     string(constants.RefreshTokenCookieKey),
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
@@ -48,5 +50,20 @@ func (c *cookies) SetRefreshTokenCookie(ctx *gin.Context, token string, duration
 		SameSite: http.SameSiteLaxMode,
 		Domain:   domain,
 		Expires:  time.Now().Add(duration),
+	})
+}
+
+func (c *cookies) ClearRefreshTokenCookie(ctx *gin.Context) {
+	c.log.InfoWithID(ctx, "[Utils: ClearRefreshTokenCookie] Called")
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     string(constants.RefreshTokenCookieKey),
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   !c.config.AuthConfig.CookieRejectHTTP,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   c.config.AuthConfig.CookieDomain,
+		Expires:  time.Now().Add(-time.Hour * 24),
 	})
 }
