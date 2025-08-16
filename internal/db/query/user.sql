@@ -50,3 +50,9 @@ SET last_login_at = $2,
     last_login_user_agent = $4,
     updated_at = $5
 WHERE email = $1;
+
+-- name: ResetUserPassword :execrows
+UPDATE users
+SET password_hash = $2,
+    updated_at = $3
+WHERE id = $1;

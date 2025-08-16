@@ -15,7 +15,8 @@ SELECT * FROM reset_tokens
 WHERE token_hash = $1
 LIMIT 1;
 
--- name: UpdateResetTokenUsed :exec
+-- name: UpdateResetTokenUsed :execrows
 UPDATE reset_tokens
-SET used = true, used_at = now()
+SET used = true,
+    used_at = $2
 WHERE token_hash = $1;

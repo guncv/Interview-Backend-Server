@@ -20,6 +20,7 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, req *db.UpdateUserParams) (*db.Users, error)
 	VerifyEmail(ctx context.Context, userID string) error
 	SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error
+	ResetUserPasswordAndUpdateResetTokenTx(ctx context.Context, req *ResetUserPasswordTxModel) error
 }
 
 type userRepository struct {
@@ -150,6 +151,52 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Transaction failed", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	return nil
+}
+
+func (r *userRepository) ResetUserPasswordAndUpdateResetTokenTx(ctx context.Context, req *ResetUserPasswordTxModel) error {
+	r.log.InfoWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Called")
+
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+
+		rowAffected, err := q.ResetUserPassword(ctx, db.ResetUserPasswordParams{
+			ID:           uuid.MustParse(req.UserID),
+			PasswordHash: req.PasswordHash,
+			UpdatedAt:    sql.NullTime{Time: req.UpdatedAt, Valid: true},
+		})
+		if err != nil {
+			r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Error resetting user password", err)
+			return app_error.HandleDatabaseError(err)
+		}
+
+		if rowAffected == 0 {
+			r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] User not found", err)
+			return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
+		}
+
+		resetTokenReq := db.UpdateResetTokenUsedParams{
+			TokenHash: req.ResetToken,
+			UsedAt:    sql.NullTime{Time: req.UpdatedAt, Valid: true},
+		}
+
+		rowAffected, err = q.UpdateResetTokenUsed(ctx, resetTokenReq)
+		if err != nil {
+			r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Error updating reset token used", err)
+			return app_error.HandleDatabaseError(err)
+		}
+
+		if rowAffected == 0 {
+			r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Reset token not found", err)
+			return app_error.New(errors.New("reset token not found"), app_error.ErrCodeAuthResetTokenNotFound)
+		}
+
+		return nil
+	})
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Transaction failed", err)
 		return app_error.HandleDatabaseError(err)
 	}
 

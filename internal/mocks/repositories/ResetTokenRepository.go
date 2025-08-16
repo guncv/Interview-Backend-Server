@@ -126,53 +126,6 @@ func (_c *MockResetTokenRepository_GetResetToken_Call) RunAndReturn(run func(con
 	return _c
 }
 
-// UpdateResetTokenUsed provides a mock function with given fields: ctx, token
-func (_m *MockResetTokenRepository) UpdateResetTokenUsed(ctx context.Context, token string) error {
-	ret := _m.Called(ctx, token)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateResetTokenUsed")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, token)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockResetTokenRepository_UpdateResetTokenUsed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateResetTokenUsed'
-type MockResetTokenRepository_UpdateResetTokenUsed_Call struct {
-	*mock.Call
-}
-
-// UpdateResetTokenUsed is a helper method to define mock.On call
-//   - ctx context.Context
-//   - token string
-func (_e *MockResetTokenRepository_Expecter) UpdateResetTokenUsed(ctx interface{}, token interface{}) *MockResetTokenRepository_UpdateResetTokenUsed_Call {
-	return &MockResetTokenRepository_UpdateResetTokenUsed_Call{Call: _e.mock.On("UpdateResetTokenUsed", ctx, token)}
-}
-
-func (_c *MockResetTokenRepository_UpdateResetTokenUsed_Call) Run(run func(ctx context.Context, token string)) *MockResetTokenRepository_UpdateResetTokenUsed_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockResetTokenRepository_UpdateResetTokenUsed_Call) Return(_a0 error) *MockResetTokenRepository_UpdateResetTokenUsed_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockResetTokenRepository_UpdateResetTokenUsed_Call) RunAndReturn(run func(context.Context, string) error) *MockResetTokenRepository_UpdateResetTokenUsed_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // NewMockResetTokenRepository creates a new instance of MockResetTokenRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockResetTokenRepository(t interface {

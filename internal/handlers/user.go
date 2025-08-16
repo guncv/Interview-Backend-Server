@@ -157,3 +157,23 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
+func (h *UserHandler) ResetUserPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: ResetUserPassword] Called")
+
+	req := &entities.ResetUserPasswordRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "ResetUserPassword"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	err := h.userService.ResetUserPassword(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ResetUserPassword] Error resetting user password", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}

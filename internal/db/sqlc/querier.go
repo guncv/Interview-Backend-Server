@@ -18,9 +18,10 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
+	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
-	UpdateResetTokenUsed(ctx context.Context, tokenHash string) error
+	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }

@@ -29,6 +29,7 @@ type UserService interface {
 	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
 	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
 	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
+	ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error
 }
 
 type userService struct {
@@ -491,6 +492,77 @@ func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPa
 	if err := s.redisTaskPublisher.PublishTaskSendResetPasswordEmail(ctx, emailPayload, opts...); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error sending reset password email", err)
 		return err
+	}
+
+	s.log.InfoWithID(ctx, "[Service: ForgotPassword] forgot password successfully ", token)
+
+	return nil
+}
+
+func (s *userService) ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error {
+	s.log.InfoWithID(ctx, "[Service: ResetUserPassword] Called")
+
+	hashedToken := s.jwtToken.HashTokenSHA256(ctx, req.Token)
+
+	userID, err := s.redisClient.Get(ctx, hashedToken)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			s.log.WarnWithID(ctx, "[Service: ResetUserPassword] Redis Miss, fallback to DB")
+		} else {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Unexpected Redis failure", err)
+		}
+
+		resetToken, err := s.resetTokenRepo.GetResetToken(ctx, hashedToken)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error checking if reset token exists", err)
+			return err
+		}
+
+		if resetToken.Used {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Reset token already used", errors.New("reset token already used"))
+			return app_error.New(errors.New("reset token already used"), app_error.ErrCodeAuthResetTokenUsed)
+		}
+
+		if resetToken.ExpiresAt.Before(time.Now()) {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Reset token expired", errors.New("reset token expired"))
+			return app_error.New(errors.New("reset token expired"), app_error.ErrCodeAuthResetTokenExpired)
+		}
+
+		userID = resetToken.UserID.String()
+	}
+
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error checking if user exists", err)
+		return err
+	}
+
+	if err = s.password.CheckPassword(ctx, req.NewPassword, user.PasswordHash); err == nil {
+		error := errors.New("password is the same as the old password")
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Password is the same as the old password", app_error.New(error, app_error.ErrCodeAuthPasswordSameAsOld))
+		return app_error.New(error, app_error.ErrCodeAuthPasswordSameAsOld)
+	}
+
+	newHashedPassword, err := s.password.HashPassword(ctx, req.NewPassword)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error hashing password", err)
+		return err
+	}
+
+	resetUserReq := &repositories.ResetUserPasswordTxModel{
+		UserID:       userID,
+		PasswordHash: newHashedPassword,
+		ResetToken:   hashedToken,
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.userRepo.ResetUserPasswordAndUpdateResetTokenTx(ctx, resetUserReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error resetting user password", err)
+		return err
+	}
+
+	if err := s.redisClient.Delete(ctx, hashedToken); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ResetUserPassword] Error deleting reset token", err)
 	}
 
 	return nil

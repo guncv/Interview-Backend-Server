@@ -18,3 +18,10 @@ type SignInUserByEmailAndPasswordTxModel struct {
 	LastActive       time.Time
 	ExpiresAt        time.Time
 }
+
+type ResetUserPasswordTxModel struct {
+	UserID       string
+	PasswordHash string
+	ResetToken   string
+	UpdatedAt    time.Time
+}

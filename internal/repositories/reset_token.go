@@ -13,7 +13,6 @@ import (
 type ResetTokenRepository interface {
 	CreateResetToken(ctx context.Context, req *db.CreateResetTokenParams) error
 	GetResetToken(ctx context.Context, token string) (db.ResetTokens, error)
-	UpdateResetTokenUsed(ctx context.Context, token string) error
 }
 
 type resetTokenRepository struct {
@@ -53,19 +52,4 @@ func (r *resetTokenRepository) GetResetToken(ctx context.Context, token string) 
 	}
 
 	return resetToken, nil
-}
-
-func (r *resetTokenRepository) UpdateResetTokenUsed(ctx context.Context, token string) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateResetTokenUsed] Called")
-
-	if err := r.db.UpdateResetTokenUsed(ctx, token); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			r.log.ErrorWithID(ctx, "[Repository: UpdateResetTokenUsed] Reset token not found", err)
-			return app_error.New(err, app_error.ErrCodeAuthResetTokenNotFound)
-		}
-		r.log.ErrorWithID(ctx, "[Repository: UpdateResetTokenUsed] Error updating reset token", err)
-		return app_error.HandleDatabaseError(err)
-	}
-
-	return nil
 }

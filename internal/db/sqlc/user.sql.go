@@ -149,6 +149,27 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, 
 	return i, err
 }
 
+const resetUserPassword = `-- name: ResetUserPassword :execrows
+UPDATE users
+SET password_hash = $2,
+    updated_at = $3
+WHERE id = $1
+`
+
+type ResetUserPasswordParams struct {
+	ID           uuid.UUID    `json:"id"`
+	PasswordHash string       `json:"password_hash"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
+}
+
+func (q *Queries) ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, resetUserPassword, arg.ID, arg.PasswordHash, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const signInUserByEmailAndPassword = `-- name: SignInUserByEmailAndPassword :execrows
 UPDATE users
 SET last_login_at = $2,
