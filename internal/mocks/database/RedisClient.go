@@ -484,6 +484,63 @@ func (_c *MockRedisClient_HSet_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
+// Increment provides a mock function with given fields: ctx, key
+func (_m *MockRedisClient) Increment(ctx context.Context, key string) (int64, error) {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Increment")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int64, error)); ok {
+		return rf(ctx, key)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRedisClient_Increment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Increment'
+type MockRedisClient_Increment_Call struct {
+	*mock.Call
+}
+
+// Increment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockRedisClient_Expecter) Increment(ctx interface{}, key interface{}) *MockRedisClient_Increment_Call {
+	return &MockRedisClient_Increment_Call{Call: _e.mock.On("Increment", ctx, key)}
+}
+
+func (_c *MockRedisClient_Increment_Call) Run(run func(ctx context.Context, key string)) *MockRedisClient_Increment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRedisClient_Increment_Call) Return(_a0 int64, _a1 error) *MockRedisClient_Increment_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRedisClient_Increment_Call) RunAndReturn(run func(context.Context, string) (int64, error)) *MockRedisClient_Increment_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Set provides a mock function with given fields: ctx, payload
 func (_m *MockRedisClient) Set(ctx context.Context, payload database.RedisPayload) error {
 	ret := _m.Called(ctx, payload)

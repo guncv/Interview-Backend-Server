@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -146,6 +147,37 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, 
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const signInUserByEmailAndPassword = `-- name: SignInUserByEmailAndPassword :execrows
+UPDATE users
+SET last_login_at = $2,
+    last_login_ip = $3,
+    last_login_user_agent = $4,
+    updated_at = $5
+WHERE email = $1
+`
+
+type SignInUserByEmailAndPasswordParams struct {
+	Email              string         `json:"email"`
+	LastLoginAt        sql.NullTime   `json:"last_login_at"`
+	LastLoginIp        sql.NullString `json:"last_login_ip"`
+	LastLoginUserAgent sql.NullString `json:"last_login_user_agent"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+}
+
+func (q *Queries) SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, signInUserByEmailAndPassword,
+		arg.Email,
+		arg.LastLoginAt,
+		arg.LastLoginIp,
+		arg.LastLoginUserAgent,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUser = `-- name: UpdateUser :one

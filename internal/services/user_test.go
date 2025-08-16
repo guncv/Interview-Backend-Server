@@ -63,7 +63,7 @@ func TestUserService_HealthCheck(t *testing.T) {
 			mockUserRepo := tC.setup()
 			defer mockUserRepo.AssertExpectations(t)
 
-			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			got, gotErr := svc.HealthCheck(ctx)
 
 			tC.verify(t, got, gotErr)

@@ -42,3 +42,11 @@ UPDATE users
 SET is_email_verified = TRUE,
     updated_at = now()
 WHERE id = $1;
+
+-- name: SignInUserByEmailAndPassword :execrows
+UPDATE users
+SET last_login_at = $2,
+    last_login_ip = $3,
+    last_login_user_agent = $4,
+    updated_at = $5
+WHERE email = $1;

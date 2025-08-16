@@ -71,3 +71,69 @@ func (h *UserHandler) SignUpUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: SendVerifyEmail] Called")
+
+	req := &entities.VerifyEmailRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "SendVerifyEmail"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	err := h.userService.SendVerifyEmail(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SendVerifyEmail] Error send verify email", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: ResetVerifyEmailCode] Called")
+
+	req := &entities.ResetVerifyEmailCodeRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "ResetVerifyEmailCode"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.userService.ResetVerifyEmailCode(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ResetVerifyEmailCode] Error reset verify email code", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Called")
+
+	req := &entities.SignInUserByEmailAndPasswordRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "SignInUserByEmailAndPassword"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	res, err := h.userService.SignInUserByEmailAndPassword(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error logging in user", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	if err = h.cookies.SetCookie(c, res); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error setting cookie", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}

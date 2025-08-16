@@ -256,12 +256,6 @@ func handleNotFoundWithContext(err error, context string) *AppError {
 	switch strings.ToLower(context) {
 	case "user":
 		return New(err, ErrCodeAuthUserNotFound)
-	case "session":
-		return New(err, ErrCodeAuthSessionNotFound)
-	case "user_role", "userrole", "role":
-		return New(err, ErrCodeAuthUserRoleNotFound)
-	case "organization", "org":
-		return New(err, ErrCodeAuthOrganizationNotFound)
 	case "reset_token", "resettoken", "token":
 		return New(err, ErrCodeAuthResetTokenNotFound)
 	default:
@@ -749,25 +743,6 @@ func handleDuplicateKeyViolation(err error) *AppError {
 		return New(err, ErrCodeAuthUserAlreadyExists)
 	}
 
-	// Organization related unique constraints
-	if strings.Contains(errorStr, "organizations") && strings.Contains(errorStr, "name") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-	if strings.Contains(errorStr, "organizations_name_key") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-	if strings.Contains(errorStr, "organizations_slug_key") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-
-	// User role related unique constraints
-	if strings.Contains(errorStr, "user_roles") {
-		return New(err, ErrCodeAuthUserRoleAlreadyExists)
-	}
-	if strings.Contains(errorStr, "user_roles_user_id_role_key") {
-		return New(err, ErrCodeAuthUserRoleAlreadyExists)
-	}
-
 	// Reset token related unique constraints
 	if strings.Contains(errorStr, "reset_tokens_token_hash_key") {
 		return New(err, ErrCodeAuthResetTokenUsed)
@@ -793,12 +768,6 @@ func handleCheckConstraintViolation(pqErr *pq.Error) *AppError {
 
 	// Handle specific check constraints
 	switch constraintName {
-	case "user_roles_role_check":
-		return NewWithCustomMessage(pqErr, ErrCodeAuthInvalidRole, "Role must be either 'admin', 'mentor', or 'student'.")
-	case "room_participants_role_check":
-		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Role must be either 'mentor' or 'user'.")
-	case "organizations_status_check":
-		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Organization status must be either 'active' or 'inactive'.")
 	case "users_status_check":
 		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "User status must be either 'active' or 'inactive'.")
 	case "sessions_status_check":

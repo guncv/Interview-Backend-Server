@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -25,24 +27,27 @@ type UserService interface {
 	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
 	SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
 	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
+	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
 }
 
 type userService struct {
-	log                  *log.Logger
-	userRepository       repositories.UserRepository
-	jwtToken             utils.JwtToken
-	config               *config.Config
-	db                   db.Store
-	authContext          middleware.AuthContext
-	resetTokenRepository repositories.ResetTokenRepository
-	redisClient          database.RedisClient
-	redisTaskPublisher   queue.RedisTaskPublisher
-	password             utils.Password
-	generator            utils.Generator
+	log                *log.Logger
+	userRepo           repositories.UserRepository
+	sessionRepo        repositories.SessionRepository
+	jwtToken           utils.JwtToken
+	config             *config.Config
+	db                 db.Store
+	authContext        middleware.AuthContext
+	resetTokenRepo     repositories.ResetTokenRepository
+	redisClient        database.RedisClient
+	redisTaskPublisher queue.RedisTaskPublisher
+	password           utils.Password
+	generator          utils.Generator
 }
 
 func NewUserService(l *log.Logger,
 	r repositories.UserRepository,
+	s repositories.SessionRepository,
 	jt utils.JwtToken,
 	db db.Store,
 	config *config.Config,
@@ -54,24 +59,25 @@ func NewUserService(l *log.Logger,
 	generator utils.Generator,
 ) UserService {
 	return &userService{
-		log:                  l,
-		userRepository:       r,
-		jwtToken:             jt,
-		db:                   db,
-		config:               config,
-		authContext:          authContext,
-		resetTokenRepository: resetTokenRepository,
-		redisClient:          redisClient,
-		redisTaskPublisher:   redisTaskPublisher,
-		password:             password,
-		generator:            generator,
+		log:                l,
+		userRepo:           r,
+		sessionRepo:        s,
+		jwtToken:           jt,
+		db:                 db,
+		config:             config,
+		authContext:        authContext,
+		resetTokenRepo:     resetTokenRepository,
+		redisClient:        redisClient,
+		redisTaskPublisher: redisTaskPublisher,
+		password:           password,
+		generator:          generator,
 	}
 }
 
 func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error) {
 	s.log.InfoWithID(ctx, "[Service: HealthCheck] Called")
 
-	res, err := s.userRepository.HealthCheck(ctx)
+	res, err := s.userRepo.HealthCheck(ctx)
 	if err != nil {
 		return entities.HealthCheckResponse{}, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
@@ -86,7 +92,7 @@ func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResp
 func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
 	s.log.InfoWithID(ctx, "[Service: SignUpUser] Called")
 
-	user, err := s.userRepository.CheckIsEmailExists(ctx, req.Email)
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			hashedPassword, err := s.password.HashPassword(ctx, req.Password)
@@ -108,7 +114,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 				DateOfBirth:  req.DateOfBirth,
 			}
 
-			resp, err := s.userRepository.CreateUser(ctx, createUserReq)
+			resp, err := s.userRepo.CreateUser(ctx, createUserReq)
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
 				return nil, err
@@ -179,7 +185,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 		DateOfBirth:  req.DateOfBirth,
 	}
 
-	resp, err := s.userRepository.UpdateUser(ctx, updateUserReq)
+	resp, err := s.userRepo.UpdateUser(ctx, updateUserReq)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
@@ -247,6 +253,10 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 
 	code, err := s.redisClient.Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token))
 	if err != nil {
+		if err == redis.Nil {
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
+			return app_error.New(errors.New("invalid verify email token"), app_error.ErrCodeAuthInvalidVerifyEmailToken)
+		}
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
 		return err
 	}
@@ -264,14 +274,14 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 			}
 
 			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Max attempts reached")
-			return app_error.New(errors.New("max attempt reached"), app_error.ErrCodeAuthInvalidRequest)
+			return app_error.New(errors.New("max attempt reached"), app_error.ErrCodeAuthMaxAttemptVerifyEmail)
 		}
 
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid code", "attempt", newAttempts)
-		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidRequest)
+		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidVerifyEmailCode)
 	}
 
-	user, err := s.userRepository.CheckIsUserExistsByID(ctx, payload.UserID)
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, payload.UserID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error checking if email exists", "error", err)
 		return err
@@ -282,7 +292,7 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 		return app_error.New(errors.New("this email already verified"), app_error.ErrCodeAuthUserAlreadyExists)
 	}
 
-	if err = s.userRepository.VerifyEmail(ctx, user.ID.String()); err != nil {
+	if err = s.userRepo.VerifyEmail(ctx, user.ID.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying email", "error", err)
 		return err
 	}
@@ -349,4 +359,79 @@ func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.Re
 	}
 
 	return &result, nil
+}
+
+func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: SignIn] Called")
+
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error checking if email exists", err)
+			return nil, app_error.New(errors.New("this email or password is incorrect"), app_error.ErrCodeAuthInvalidPassword)
+		}
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error checking if email exists", err)
+		return nil, err
+	}
+
+	if !user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error", "error", errors.New("this email is not verified"))
+		return nil, app_error.New(errors.New("this email or password is incorrect"), app_error.ErrCodeAuthInvalidPassword)
+	}
+
+	if err = s.password.CheckPassword(ctx, req.Password, user.PasswordHash); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Password is incorrect", err)
+		return nil, err
+	}
+
+	accessTokenRequest := &entities.TokenRequest{
+		UserID:   user.ID.String(),
+		Role:     constants.UserRoleUser,
+		Duration: s.config.AuthConfig.AccessTokenDuration,
+	}
+
+	accessToken, _, err := s.jwtToken.CreateToken(ctx, accessTokenRequest)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error creating access token", err)
+		return nil, err
+	}
+
+	refreshTokenRequest := &entities.TokenRequest{
+		UserID:   user.ID.String(),
+		Role:     constants.UserRoleUser,
+		Duration: s.config.AuthConfig.RefreshTokenDuration,
+	}
+
+	refreshToken, _, err := s.jwtToken.CreateToken(ctx, refreshTokenRequest)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error creating refresh token", err)
+		return nil, err
+	}
+
+	refreshTokenHash := s.jwtToken.HashTokenSHA256(ctx, refreshToken)
+
+	txModel := &repositories.SignInUserByEmailAndPasswordTxModel{
+		Email:            req.Email,
+		LastLoginAt:      time.Now(),
+		UserAgent:        ctx.Value(constants.UserAgentKey).(string),
+		IpAddress:        ctx.Value(constants.ClientIPKey).(string),
+		SessionID:        s.generator.GenerateUUID(ctx),
+		UserID:           user.ID,
+		UpdatedAt:        time.Now(),
+		RefreshTokenHash: refreshTokenHash,
+		LastActive:       time.Now().Add(s.config.AuthConfig.RefreshTokenDuration),
+		ExpiresAt:        time.Now().Add(s.config.AuthConfig.RefreshTokenDuration),
+	}
+
+	if err = s.userRepo.SignInUserByEmailAndPasswordTx(ctx, txModel); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error signing in user", err)
+		return nil, err
+	}
+
+	resp := entities.SignInUserByEmailAndPasswordResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	return &resp, nil
 }

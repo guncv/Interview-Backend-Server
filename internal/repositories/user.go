@@ -19,6 +19,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, req *db.CreateUserParams) (*db.Users, error)
 	UpdateUser(ctx context.Context, req *db.UpdateUserParams) (*db.Users, error)
 	VerifyEmail(ctx context.Context, userID string) error
+	SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error
 }
 
 type userRepository struct {
@@ -100,6 +101,56 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID string) error {
 
 	if rowsAffected == 0 {
 		return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
+	}
+
+	return nil
+}
+
+func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error {
+	r.log.InfoWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Called")
+
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+		userReq := db.SignInUserByEmailAndPasswordParams{
+			Email:              req.Email,
+			LastLoginAt:        sql.NullTime{Time: req.LastLoginAt, Valid: true},
+			LastLoginIp:        sql.NullString{String: req.IpAddress, Valid: true},
+			LastLoginUserAgent: sql.NullString{String: req.UserAgent, Valid: true},
+			UpdatedAt:          sql.NullTime{Time: req.UpdatedAt, Valid: true},
+		}
+
+		rowAffected, err := q.SignInUserByEmailAndPassword(ctx, userReq)
+		if err != nil {
+			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Error signing in user", err)
+			return app_error.HandleDatabaseError(err)
+		}
+
+		if rowAffected == 0 {
+			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] User not found", err)
+			return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
+		}
+
+		sessionReq := db.CreateSessionParams{
+			ID:               req.SessionID,
+			UserID:           req.UserID,
+			RefreshTokenHash: req.RefreshTokenHash,
+			UserAgent:        req.UserAgent,
+			IpAddress:        req.IpAddress,
+			LastActive:       sql.NullTime{Time: req.LastActive, Valid: true},
+			ExpiresAt:        sql.NullTime{Time: req.ExpiresAt, Valid: true},
+		}
+
+		_, err = q.CreateSession(ctx, sessionReq)
+		if err != nil {
+			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Error creating session", err)
+			return app_error.HandleDatabaseError(err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Transaction failed", err)
+		return app_error.HandleDatabaseError(err)
 	}
 
 	return nil

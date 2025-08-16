@@ -184,6 +184,65 @@ func (_c *MockUserService_SendVerifyEmail_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// SignInUserByEmailAndPassword provides a mock function with given fields: ctx, req
+func (_m *MockUserService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SignInUserByEmailAndPassword")
+	}
+
+	var r0 *entities.SignInUserByEmailAndPasswordResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInUserByEmailAndPasswordRequest) *entities.SignInUserByEmailAndPasswordResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.SignInUserByEmailAndPasswordResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.SignInUserByEmailAndPasswordRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_SignInUserByEmailAndPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignInUserByEmailAndPassword'
+type MockUserService_SignInUserByEmailAndPassword_Call struct {
+	*mock.Call
+}
+
+// SignInUserByEmailAndPassword is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.SignInUserByEmailAndPasswordRequest
+func (_e *MockUserService_Expecter) SignInUserByEmailAndPassword(ctx interface{}, req interface{}) *MockUserService_SignInUserByEmailAndPassword_Call {
+	return &MockUserService_SignInUserByEmailAndPassword_Call{Call: _e.mock.On("SignInUserByEmailAndPassword", ctx, req)}
+}
+
+func (_c *MockUserService_SignInUserByEmailAndPassword_Call) Run(run func(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest)) *MockUserService_SignInUserByEmailAndPassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.SignInUserByEmailAndPasswordRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_SignInUserByEmailAndPassword_Call) Return(_a0 *entities.SignInUserByEmailAndPasswordResponse, _a1 error) *MockUserService_SignInUserByEmailAndPassword_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_SignInUserByEmailAndPassword_Call) RunAndReturn(run func(context.Context, *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)) *MockUserService_SignInUserByEmailAndPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SignUpUser provides a mock function with given fields: ctx, req
 func (_m *MockUserService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
 	ret := _m.Called(ctx, req)

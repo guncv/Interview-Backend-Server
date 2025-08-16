@@ -19,6 +19,7 @@ type Querier interface {
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
+	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, tokenHash string) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
