@@ -14,7 +14,7 @@ import (
 )
 
 const checkIsEmailExists = `-- name: CheckIsEmailExists :one
-SELECT id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
+SELECT id, email, password_hash, full_name, country, city, address, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
 WHERE email = $1
 `
 
@@ -29,7 +29,6 @@ func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, 
 		&i.Country,
 		&i.City,
 		&i.Address,
-		&i.PostalCode,
 		&i.Gender,
 		&i.DateOfBirth,
 		&i.AvatarUrl,
@@ -47,7 +46,7 @@ func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, 
 }
 
 const checkIsUserExistsByID = `-- name: CheckIsUserExistsByID :one
-SELECT id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
+SELECT id, email, password_hash, full_name, country, city, address, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
 WHERE id = $1
 `
 
@@ -62,7 +61,6 @@ func (q *Queries) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (User
 		&i.Country,
 		&i.City,
 		&i.Address,
-		&i.PostalCode,
 		&i.Gender,
 		&i.DateOfBirth,
 		&i.AvatarUrl,
@@ -88,13 +86,12 @@ INSERT INTO users (
     country,
     city,
     address,
-    postal_code,
     gender,
     date_of_birth
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
+RETURNING id, email, password_hash, full_name, country, city, address, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -105,7 +102,6 @@ type CreateUserParams struct {
 	Country      string    `json:"country"`
 	City         string    `json:"city"`
 	Address      string    `json:"address"`
-	PostalCode   string    `json:"postal_code"`
 	Gender       string    `json:"gender"`
 	DateOfBirth  time.Time `json:"date_of_birth"`
 }
@@ -119,7 +115,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, 
 		arg.Country,
 		arg.City,
 		arg.Address,
-		arg.PostalCode,
 		arg.Gender,
 		arg.DateOfBirth,
 	)
@@ -132,7 +127,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, 
 		&i.Country,
 		&i.City,
 		&i.Address,
-		&i.PostalCode,
 		&i.Gender,
 		&i.DateOfBirth,
 		&i.AvatarUrl,
@@ -209,11 +203,10 @@ SET email = $2,
     country = $5,
     city = $6,
     address = $7,
-    postal_code = $8,
-    gender = $9,
-    date_of_birth = $10
+    gender = $8,
+    date_of_birth = $9
 WHERE id = $1
-RETURNING id, email, password_hash, full_name, country, city, address, postal_code, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
+RETURNING id, email, password_hash, full_name, country, city, address, gender, date_of_birth, avatar_url, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -224,7 +217,6 @@ type UpdateUserParams struct {
 	Country      string    `json:"country"`
 	City         string    `json:"city"`
 	Address      string    `json:"address"`
-	PostalCode   string    `json:"postal_code"`
 	Gender       string    `json:"gender"`
 	DateOfBirth  time.Time `json:"date_of_birth"`
 }
@@ -238,7 +230,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, 
 		arg.Country,
 		arg.City,
 		arg.Address,
-		arg.PostalCode,
 		arg.Gender,
 		arg.DateOfBirth,
 	)
@@ -251,7 +242,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, 
 		&i.Country,
 		&i.City,
 		&i.Address,
-		&i.PostalCode,
 		&i.Gender,
 		&i.DateOfBirth,
 		&i.AvatarUrl,

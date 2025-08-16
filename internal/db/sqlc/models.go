@@ -53,7 +53,6 @@ type Users struct {
 	Country            string         `json:"country"`
 	City               string         `json:"city"`
 	Address            string         `json:"address"`
-	PostalCode         string         `json:"postal_code"`
 	Gender             string         `json:"gender"`
 	DateOfBirth        time.Time      `json:"date_of_birth"`
 	AvatarUrl          sql.NullString `json:"avatar_url"`

@@ -7,11 +7,10 @@ INSERT INTO users (
     country,
     city,
     address,
-    postal_code,
     gender,
     date_of_birth
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 RETURNING *;
 
@@ -23,9 +22,8 @@ SET email = $2,
     country = $5,
     city = $6,
     address = $7,
-    postal_code = $8,
-    gender = $9,
-    date_of_birth = $10
+    gender = $8,
+    date_of_birth = $9
 WHERE id = $1
 RETURNING *;
 

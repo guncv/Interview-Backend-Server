@@ -113,7 +113,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 				Country:      req.Country,
 				City:         req.City,
 				Address:      req.Address,
-				PostalCode:   req.PostalCode,
 				Gender:       req.Gender,
 				DateOfBirth:  req.DateOfBirth,
 			}
@@ -184,7 +183,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 		Country:      req.Country,
 		City:         req.City,
 		Address:      req.Address,
-		PostalCode:   req.PostalCode,
 		Gender:       req.Gender,
 		DateOfBirth:  req.DateOfBirth,
 	}
