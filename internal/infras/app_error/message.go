@@ -11,8 +11,12 @@ const (
 	ErrMessageGeneralConstraintViolation ErrorMessage = "The data violates database constraints."
 
 	// Auth
-	ErrMessageAuthInvalidToken            ErrorMessage = "Your session is invalid. Please log in again."
-	ErrMessageAuthExpiredToken            ErrorMessage = "Your session has expired. Please log in again."
+	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."
+	ErrMessageAuthExpiredToken            ErrorMessage = "Your token has expired. Please log in again."
+	ErrMessageAuthInvalidAccessToken      ErrorMessage = "Your access token is invalid. Please log in again."
+	ErrMessageAuthExpiredAccessToken      ErrorMessage = "Your access token has expired. Please log in again."
+	ErrMessageAuthInvalidRefreshToken     ErrorMessage = "Your refresh token is invalid. Please log in again."
+	ErrMessageAuthExpiredRefreshToken     ErrorMessage = "Your refresh token has expired. Please log in again."
 	ErrMessageAuthInvalidPassword         ErrorMessage = "Incorrect email or password. Please try again."
 	ErrMessageAuthUserAlreadyExists       ErrorMessage = "This email is already registered. Try logging in instead."
 	ErrMessageAuthUserNotFound            ErrorMessage = "We couldn't find your account. Please sign up to continue."

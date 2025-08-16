@@ -587,7 +587,7 @@ func (s *userService) RefreshToken(ctx context.Context, req *entities.RefreshTok
 
 	if session.IsRevoked.Bool {
 		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session is revoked", errors.New("session is revoked"))
-		return nil, app_error.New(errors.New("session is revoked"), app_error.ErrCodeAuthInvalidToken)
+		return nil, app_error.New(errors.New("session is revoked"), app_error.ErrCodeAuthInvalidRefreshToken)
 	}
 
 	tokenRequest := &entities.TokenRequest{

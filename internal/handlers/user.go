@@ -7,6 +7,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
@@ -186,7 +187,7 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 	cookie, err := c.Request.Cookie(string(constants.RefreshTokenCookieKey))
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: RefreshToken] Error getting refresh token from cookie", err)
-		utils.RespondWithError(c, err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRefreshToken))
 		return
 	}
 

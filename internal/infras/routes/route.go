@@ -34,6 +34,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 
 func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMiddleware middleware.AuthMiddleware) {
 	userRoutes := eg.Group("/auth")
+	userMiddleRoutes := eg.Group("/auth").Use(authMiddleware.AuthMiddleware())
 
 	{
 		userRoutes.GET("/health", userHandler.HealthCheck)
@@ -44,6 +45,6 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 		userRoutes.POST("/forgot-password", userHandler.ForgotPassword)
 		userRoutes.POST("/reset-password", userHandler.ResetUserPassword)
 		userRoutes.POST("/refresh-token", userHandler.RefreshToken)
-		userRoutes.POST("/sign-out", userHandler.SignOut)
+		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
 	}
 }

@@ -60,7 +60,7 @@ func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, c
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
-			return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+			return nil, errors.New("invalid token method")
 		}
 		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
 	}
