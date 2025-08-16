@@ -14,7 +14,6 @@ type SignUpUserRequest struct {
 	Email       string    `json:"email" validate:"required,email,max=100"`
 	Password    string    `json:"password" validate:"required,min=8,max=100"`
 	FullName    string    `json:"full_name" validate:"required,min=2,max=50"`
-	PhoneNumber string    `json:"phone_number" validate:"required,min=10,max=20"`
 	Country     string    `json:"country" validate:"required,min=2,max=50"`
 	City        string    `json:"city" validate:"required,min=2,max=50"`
 	Address     string    `json:"address" validate:"required,min=5,max=200"`
