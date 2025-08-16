@@ -67,3 +67,7 @@ type CookieRequest struct {
 	Duration     time.Duration `json:"duration"`
 	Domain       string        `json:"domain"`
 }
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email,max=100"`
+}

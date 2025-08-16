@@ -22,6 +22,53 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
+// ForgotPassword provides a mock function with given fields: ctx, req
+func (_m *MockUserService) ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ForgotPassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ForgotPasswordRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserService_ForgotPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForgotPassword'
+type MockUserService_ForgotPassword_Call struct {
+	*mock.Call
+}
+
+// ForgotPassword is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ForgotPasswordRequest
+func (_e *MockUserService_Expecter) ForgotPassword(ctx interface{}, req interface{}) *MockUserService_ForgotPassword_Call {
+	return &MockUserService_ForgotPassword_Call{Call: _e.mock.On("ForgotPassword", ctx, req)}
+}
+
+func (_c *MockUserService_ForgotPassword_Call) Run(run func(ctx context.Context, req *entities.ForgotPasswordRequest)) *MockUserService_ForgotPassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ForgotPasswordRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_ForgotPassword_Call) Return(_a0 error) *MockUserService_ForgotPassword_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserService_ForgotPassword_Call) RunAndReturn(run func(context.Context, *entities.ForgotPasswordRequest) error) *MockUserService_ForgotPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // HealthCheck provides a mock function with given fields: ctx
 func (_m *MockUserService) HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error) {
 	ret := _m.Called(ctx)

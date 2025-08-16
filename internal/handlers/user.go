@@ -137,3 +137,23 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+func (h *UserHandler) ForgotPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: ForgotPassword] Called")
+
+	req := &entities.ForgotPasswordRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "ForgotPassword"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	err := h.userService.ForgotPassword(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ForgotPassword] Error forgot password", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}

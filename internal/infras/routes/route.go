@@ -41,5 +41,6 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 		userRoutes.POST("/verify-email", userHandler.SendVerifyEmail)
 		userRoutes.POST("/reset-verify-email", userHandler.ResetVerifyEmailCode)
 		userRoutes.POST("/sign-in", userHandler.SignInUserByEmailAndPassword)
+		userRoutes.POST("/forgot-password", userHandler.ForgotPassword)
 	}
 }

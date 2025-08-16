@@ -28,6 +28,7 @@ const (
 	ErrCodeAuthMaxAttemptVerifyEmail   ErrorCode = "ONX0214"
 	ErrCodeAuthInvalidPassword         ErrorCode = "ONX0215"
 	ErrCodeAuthSessionNotFound         ErrorCode = "ONX0216"
+	ErrCodeAuthEmailNotVerified        ErrorCode = "ONX0217"
 )
 
 func (c ErrorCode) Message() string {

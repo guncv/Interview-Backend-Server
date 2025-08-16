@@ -24,6 +24,7 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeAuthInvalidVerifyEmailToken: ErrHttpCodeBadRequest,
 	ErrCodeAuthMaxAttemptVerifyEmail:   ErrHttpCodeBadRequest,
 	ErrCodeAuthSessionNotFound:         ErrHttpCodeNotFound,
+	ErrCodeAuthEmailNotVerified:        ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -50,4 +51,5 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeAuthInvalidVerifyEmailToken: ErrMessageAuthInvalidVerifyEmailToken,
 	ErrCodeAuthMaxAttemptVerifyEmail:   ErrMessageAuthMaxAttemptVerifyEmail,
 	ErrCodeAuthSessionNotFound:         ErrMessageAuthSessionNotFound,
+	ErrCodeAuthEmailNotVerified:        ErrMessageAuthEmailNotVerified,
 }

@@ -26,4 +26,5 @@ const (
 	ErrMessageAuthInvalidVerifyEmailCode  ErrorMessage = "The verification code is invalid. Please try again."
 	ErrMessageAuthInvalidVerifyEmailToken ErrorMessage = "The verification email link is invalid. Please request a new one."
 	ErrMessageAuthMaxAttemptVerifyEmail   ErrorMessage = "You have reached the maximum number of attempts. Please resend the new code."
+	ErrMessageAuthEmailNotVerified        ErrorMessage = "This email is not verified. Please verify your email to continue."
 )

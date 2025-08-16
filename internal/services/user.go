@@ -28,6 +28,7 @@ type UserService interface {
 	SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
 	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
 	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
+	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
 }
 
 type userService struct {
@@ -434,4 +435,63 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 	}
 
 	return &resp, nil
+}
+
+func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error {
+	s.log.InfoWithID(ctx, "[Service: ForgotPassword] Called")
+
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error checking if user exists", err)
+			return app_error.New(errors.New("this email is not registered"), app_error.ErrCodeAuthUserNotFound)
+		}
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error checking if user exists", err)
+		return err
+	}
+
+	if !user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error", "error", errors.New("this email is not verified"))
+		return app_error.New(errors.New("this email is not verified"), app_error.ErrCodeAuthEmailNotVerified)
+	}
+
+	token := s.generator.GenerateUUID(ctx).String()
+	hashedToken := s.jwtToken.HashTokenSHA256(ctx, token)
+
+	resetTokenRequest := &db.CreateResetTokenParams{
+		ID:        s.generator.GenerateUUID(ctx),
+		UserID:    user.ID,
+		TokenHash: hashedToken,
+		ExpiresAt: time.Now().Add(s.config.AuthConfig.ResetPasswordTokenDuration),
+		IpAddress: sql.NullString{String: ctx.Value(constants.ClientIPKey).(string), Valid: true},
+		UserAgent: sql.NullString{String: ctx.Value(constants.UserAgentKey).(string), Valid: true},
+	}
+
+	if err := s.resetTokenRepo.CreateResetToken(ctx, resetTokenRequest); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error creating reset token", err)
+		return err
+	}
+
+	redisPayload := database.RedisPayload{
+		Key:   hashedToken,
+		Value: user.ID.String(),
+		TTL:   s.config.AuthConfig.ResetPasswordTokenDuration,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ForgotPassword] Error setting reset password token", err)
+	}
+
+	emailPayload := &email.ResetPasswordEmailPayload{
+		EmailReceiver: req.Email,
+		Token:         token,
+	}
+
+	opts := s.redisTaskPublisher.DefineTaskOptions(constants.TaskSendResetPasswordEmail)
+	if err := s.redisTaskPublisher.PublishTaskSendResetPasswordEmail(ctx, emailPayload, opts...); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error sending reset password email", err)
+		return err
+	}
+
+	return nil
 }
