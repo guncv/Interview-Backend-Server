@@ -31,20 +31,21 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
-	Host             string        `mapstructure:"REDIS_HOST"`
-	Port             string        `mapstructure:"REDIS_PORT"`
-	Password         string        `mapstructure:"REDIS_PASSWORD"`
-	ResetPasswordTTL time.Duration `mapstructure:"REDIS_RESET_PASSWORD_TTL"`
-	DBTemp           int           `mapstructure:"REDIS_DB_TEMP"`
-	DBQueue          int           `mapstructure:"REDIS_DB_QUEUE"`
+	Host     string `mapstructure:"REDIS_HOST"`
+	Port     string `mapstructure:"REDIS_PORT"`
+	Password string `mapstructure:"REDIS_PASSWORD"`
+	DBTemp   int    `mapstructure:"REDIS_DB_TEMP"`
+	DBQueue  int    `mapstructure:"REDIS_DB_QUEUE"`
 }
 
 type AuthConfig struct {
-	JwtSecretKey         string        `mapstructure:"JWT_SECRET_KEY"`
-	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
-	CookieDomain         string        `mapstructure:"COOKIE_DOMAIN"`
-	CookieRejectHTTP     bool          `mapstructure:"COOKIE_REJECT_HTTP"`
+	JwtSecretKey               string        `mapstructure:"JWT_SECRET_KEY"`
+	AccessTokenDuration        time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	ResetPasswordTokenDuration time.Duration `mapstructure:"RESET_PASSWORD_TOKEN_DURATION"`
+	VerifyEmailTokenDuration   time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
+	CookieDomain               string        `mapstructure:"COOKIE_DOMAIN"`
+	CookieRejectHTTP           bool          `mapstructure:"COOKIE_REJECT_HTTP"`
 }
 
 type EmailConfig struct {

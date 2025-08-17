@@ -6,10 +6,13 @@ CREATE TABLE users (
     email VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(100) NOT NULL,
 
-    name VARCHAR(100) NOT NULL,
-    avatar_url VARCHAR(256),
-    is_email_verified BOOLEAN DEFAULT FALSE,
+    full_name VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    gender VARCHAR(10) CHECK (gender IN ('male', 'female', 'other')) NOT NULL,
+    date_of_birth DATE CHECK (date_of_birth < CURRENT_DATE) NOT NULL,
 
+    is_admin BOOLEAN DEFAULT FALSE,
+    is_email_verified BOOLEAN DEFAULT FALSE,
     last_login_at TIMESTAMP,
     login_attempt_count INT DEFAULT 0,
     is_suspended BOOLEAN DEFAULT FALSE,

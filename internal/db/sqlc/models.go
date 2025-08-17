@@ -23,20 +23,6 @@ type ResetTokens struct {
 	UserAgent   sql.NullString `json:"user_agent"`
 }
 
-type SecurityAlerts struct {
-	ID          uuid.UUID      `json:"id"`
-	UserID      uuid.NullUUID  `json:"user_id"`
-	Type        string         `json:"type"`
-	Severity    sql.NullString `json:"severity"`
-	Message     sql.NullString `json:"message"`
-	IsResolved  sql.NullBool   `json:"is_resolved"`
-	ReviewedBy  uuid.NullUUID  `json:"reviewed_by"`
-	ReviewedAt  sql.NullTime   `json:"reviewed_at"`
-	TriggeredAt sql.NullTime   `json:"triggered_at"`
-	IpAddress   sql.NullString `json:"ip_address"`
-	UserAgent   sql.NullString `json:"user_agent"`
-}
-
 type Sessions struct {
 	ID               uuid.UUID    `json:"id"`
 	UserID           uuid.UUID    `json:"user_id"`
@@ -63,11 +49,11 @@ type Users struct {
 	ID                 uuid.UUID      `json:"id"`
 	Email              string         `json:"email"`
 	PasswordHash       string         `json:"password_hash"`
-	IsTempPassword     sql.NullBool   `json:"is_temp_password"`
-	OauthProvider      sql.NullString `json:"oauth_provider"`
-	OauthProviderID    sql.NullString `json:"oauth_provider_id"`
-	Name               string         `json:"name"`
-	AvatarUrl          sql.NullString `json:"avatar_url"`
+	FullName           string         `json:"full_name"`
+	Country            string         `json:"country"`
+	Gender             string         `json:"gender"`
+	DateOfBirth        time.Time      `json:"date_of_birth"`
+	IsAdmin            sql.NullBool   `json:"is_admin"`
 	IsEmailVerified    sql.NullBool   `json:"is_email_verified"`
 	LastLoginAt        sql.NullTime   `json:"last_login_at"`
 	LoginAttemptCount  sql.NullInt32  `json:"login_attempt_count"`

@@ -1,60 +1,72 @@
 package services
 
-// func TestUserService_HealthCheck(t *testing.T) {
-// 	lgr := log.Initialize(constants.TestAppEnv)
-// 	ctx := context.Background()
-// 	mockErr := errors.New("error")
+import (
+	"context"
+	"errors"
+	"testing"
 
-// 	okResponse := entities.HealthCheckResponse{
-// 		Status: "ok",
-// 	}
-// 	testCases := []struct {
-// 		name   string
-// 		setup  func() *repositories.MockUserRepository
-// 		verify func(t *testing.T, got entities.HealthCheckResponse, gotErr error)
-// 	}{
-// 		{
-// 			name: "OK",
-// 			setup: func() *repositories.MockUserRepository {
-// 				mockUserRepo := new(repositories.MockUserRepository)
-// 				mockUserRepo.EXPECT().
-// 					HealthCheck(ctx).
-// 					Return("ok", nil)
+	"github.com/stretchr/testify/assert"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
+)
 
-// 				return mockUserRepo
-// 			},
-// 			verify: func(t *testing.T, got entities.HealthCheckResponse, gotErr error) {
-// 				assert.Equal(t, okResponse, got)
-// 				assert.NoError(t, gotErr)
-// 			},
-// 		},
-// 		{
-// 			name: "Error",
-// 			setup: func() *repositories.MockUserRepository {
-// 				mockUserRepo := new(repositories.MockUserRepository)
-// 				mockUserRepo.EXPECT().
-// 					HealthCheck(ctx).
-// 					Return("", mockErr)
+func TestUserService_HealthCheck(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	mockErr := errors.New("error")
 
-// 				return mockUserRepo
-// 			},
-// 			verify: func(t *testing.T, got entities.HealthCheckResponse, gotErr error) {
-// 				assert.Equal(t, entities.HealthCheckResponse{}, got)
-// 				assert.Error(t, gotErr)
-// 				assert.ErrorIs(t, gotErr, mockErr)
-// 			},
-// 		},
-// 	}
+	okResponse := entities.HealthCheckResponse{
+		Status: "ok",
+	}
+	testCases := []struct {
+		name   string
+		setup  func() *repositories.MockUserRepository
+		verify func(t *testing.T, got entities.HealthCheckResponse, gotErr error)
+	}{
+		{
+			name: "OK",
+			setup: func() *repositories.MockUserRepository {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockUserRepo.EXPECT().
+					HealthCheck(ctx).
+					Return("ok", nil)
 
-// 	for _, tC := range testCases {
-// 		t.Run(tC.name, func(t *testing.T) {
-// 			mockUserRepo := tC.setup()
-// 			defer mockUserRepo.AssertExpectations(t)
+				return mockUserRepo
+			},
+			verify: func(t *testing.T, got entities.HealthCheckResponse, gotErr error) {
+				assert.Equal(t, okResponse, got)
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error",
+			setup: func() *repositories.MockUserRepository {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockUserRepo.EXPECT().
+					HealthCheck(ctx).
+					Return("", mockErr)
 
-// 			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-// 			got, gotErr := svc.HealthCheck(ctx)
+				return mockUserRepo
+			},
+			verify: func(t *testing.T, got entities.HealthCheckResponse, gotErr error) {
+				assert.Equal(t, entities.HealthCheckResponse{}, got)
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+	}
 
-// 			tC.verify(t, got, gotErr)
-// 		})
-// 	}
-// }
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo := tC.setup()
+			defer mockUserRepo.AssertExpectations(t)
+
+			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			got, gotErr := svc.HealthCheck(ctx)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}

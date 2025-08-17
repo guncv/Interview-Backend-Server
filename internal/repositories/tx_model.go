@@ -1,26 +1,27 @@
 package repositories
 
-type AdminCreateUserTxModel struct {
-	Email          string
-	Password       string
-	Name           string
-	OrganizationID string
-	Role           string
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type SignInUserByEmailAndPasswordTxModel struct {
+	Email            string
+	LastLoginAt      time.Time
+	SessionID        uuid.UUID
+	UpdatedAt        time.Time
+	UserID           uuid.UUID
+	UserAgent        string
+	IpAddress        string
+	RefreshTokenHash string
+	LastActive       time.Time
+	ExpiresAt        time.Time
 }
 
 type ResetUserPasswordTxModel struct {
 	UserID       string
 	PasswordHash string
 	ResetToken   string
-}
-
-type AdminUpdateCourseTxModel struct {
-	CourseId     string
-	Sku          string
-	Title        string
-	Description  string
-	Language     string
-	CategoryID   string
-	ThumbnailUrl string
-	UpdatedBy    string
+	UpdatedAt    time.Time
 }

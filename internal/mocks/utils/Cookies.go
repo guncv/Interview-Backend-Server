@@ -25,33 +25,21 @@ func (_m *MockCookies) EXPECT() *MockCookies_Expecter {
 }
 
 // SetCookie provides a mock function with given fields: ctx, req
-func (_m *MockCookies) SetCookie(ctx *gin.Context, req *entities.SignInServiceResponse) (*entities.SignInResponse, error) {
+func (_m *MockCookies) SetCookie(ctx *gin.Context, req *entities.SignInUserByEmailAndPasswordResponse) error {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetCookie")
 	}
 
-	var r0 *entities.SignInResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, *entities.SignInServiceResponse) (*entities.SignInResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(*gin.Context, *entities.SignInServiceResponse) *entities.SignInResponse); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*gin.Context, *entities.SignInUserByEmailAndPasswordResponse) error); ok {
 		r0 = rf(ctx, req)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.SignInResponse)
-		}
+		r0 = ret.Error(0)
 	}
 
-	if rf, ok := ret.Get(1).(func(*gin.Context, *entities.SignInServiceResponse) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // MockCookies_SetCookie_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetCookie'
@@ -61,24 +49,24 @@ type MockCookies_SetCookie_Call struct {
 
 // SetCookie is a helper method to define mock.On call
 //   - ctx *gin.Context
-//   - req *entities.SignInServiceResponse
+//   - req *entities.SignInUserByEmailAndPasswordResponse
 func (_e *MockCookies_Expecter) SetCookie(ctx interface{}, req interface{}) *MockCookies_SetCookie_Call {
 	return &MockCookies_SetCookie_Call{Call: _e.mock.On("SetCookie", ctx, req)}
 }
 
-func (_c *MockCookies_SetCookie_Call) Run(run func(ctx *gin.Context, req *entities.SignInServiceResponse)) *MockCookies_SetCookie_Call {
+func (_c *MockCookies_SetCookie_Call) Run(run func(ctx *gin.Context, req *entities.SignInUserByEmailAndPasswordResponse)) *MockCookies_SetCookie_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*gin.Context), args[1].(*entities.SignInServiceResponse))
+		run(args[0].(*gin.Context), args[1].(*entities.SignInUserByEmailAndPasswordResponse))
 	})
 	return _c
 }
 
-func (_c *MockCookies_SetCookie_Call) Return(_a0 *entities.SignInResponse, _a1 error) *MockCookies_SetCookie_Call {
-	_c.Call.Return(_a0, _a1)
+func (_c *MockCookies_SetCookie_Call) Return(_a0 error) *MockCookies_SetCookie_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockCookies_SetCookie_Call) RunAndReturn(run func(*gin.Context, *entities.SignInServiceResponse) (*entities.SignInResponse, error)) *MockCookies_SetCookie_Call {
+func (_c *MockCookies_SetCookie_Call) RunAndReturn(run func(*gin.Context, *entities.SignInUserByEmailAndPasswordResponse) error) *MockCookies_SetCookie_Call {
 	_c.Call.Return(run)
 	return _c
 }

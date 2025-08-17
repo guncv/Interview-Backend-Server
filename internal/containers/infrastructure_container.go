@@ -33,7 +33,11 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(utils.NewTokenPayload); err != nil {
+	if err := c.Container.Provide(utils.NewSignInTokenPayload); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(utils.NewVerifyEmailTokenPayload); err != nil {
 		c.Error = err
 	}
 

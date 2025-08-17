@@ -13,7 +13,7 @@ import (
 func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 	e.Use(middleware.InjectRequestMetadata())
 	e.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Active-Role"},
 		ExposeHeaders:    []string{"Content-Length", "Authorization", "Access-Control-Expose-Headers", "X-New-Access-Token"},
@@ -33,9 +33,18 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 }
 
 func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMiddleware middleware.AuthMiddleware) {
-	userRoutes := eg.Group("/user")
+	userRoutes := eg.Group("/auth")
+	userMiddleRoutes := eg.Group("/auth").Use(authMiddleware.AuthMiddleware())
 
 	{
 		userRoutes.GET("/health", userHandler.HealthCheck)
+		userRoutes.POST("/sign-up", userHandler.SignUpUser)
+		userRoutes.POST("/verify-email", userHandler.SendVerifyEmail)
+		userRoutes.POST("/reset-verify-email", userHandler.ResetVerifyEmailCode)
+		userRoutes.POST("/sign-in", userHandler.SignInUserByEmailAndPassword)
+		userRoutes.POST("/forgot-password", userHandler.ForgotPassword)
+		userRoutes.POST("/reset-password", userHandler.ResetUserPassword)
+		userRoutes.POST("/refresh-token", userHandler.RefreshToken)
+		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
 	}
 }

@@ -9,10 +9,6 @@ func (c *Container) RepositoryProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(repositories.NewUserRoleRepository); err != nil {
-		c.Error = err
-	}
-
 	if err := c.Container.Provide(repositories.NewResetTokenRepository); err != nil {
 		c.Error = err
 	}
@@ -20,5 +16,4 @@ func (c *Container) RepositoryProvider() {
 	if err := c.Container.Provide(repositories.NewSessionRepository); err != nil {
 		c.Error = err
 	}
-
 }

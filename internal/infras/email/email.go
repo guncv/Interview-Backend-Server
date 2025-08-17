@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gopkg.in/gomail.v2"
@@ -12,6 +13,7 @@ import (
 
 type EmailSender interface {
 	SendResetPasswordEmail(ctx context.Context, payload *ResetPasswordEmailPayload) error
+	SendVerifyEmail(ctx context.Context, payload *VerifyEmailPayload) error
 }
 
 type emailSender struct {
@@ -24,6 +26,11 @@ type ResetPasswordEmailPayload struct {
 	Token         string
 }
 
+type VerifyEmailPayload struct {
+	EmailReceiver string
+	Code          string
+}
+
 func NewEmailSender(config *config.Config, log *log.Logger) EmailSender {
 	return &emailSender{
 		config: config,
@@ -32,28 +39,71 @@ func NewEmailSender(config *config.Config, log *log.Logger) EmailSender {
 }
 
 func (s *emailSender) SendResetPasswordEmail(ctx context.Context, payload *ResetPasswordEmailPayload) error {
-	s.log.InfoWithID(ctx, "[Email: SendResetPasswordEmail] Called")
-	subject := "Reset your password"
+	s.log.InfoWithID(ctx, "[Email: SendResetPasswordEmail] Sending reset password email", nil)
 
 	resetLink := fmt.Sprintf("%s?token=%s", s.config.EmailConfig.ResetPasswordURL, payload.Token)
-	body := fmt.Sprintf(`
-		<h2>Reset your password</h2>
-		<p>Click the link below to reset your password. The link will expire in 15 minutes.</p>
-		<p><a href="%s">%s</a></p>
-		<p>If you didn’t request this, you can safely ignore this email.</p>
-	`, resetLink, resetLink)
+	body := s.buildResetPasswordEmailBody(resetLink)
 
+	if err := s.sendEmail(ctx, payload.EmailReceiver, constants.SubjectResetPassword, body); err != nil {
+		s.log.ErrorWithID(ctx, "[Email: SendResetPasswordEmail] Failed to send email", err)
+		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	s.log.InfoWithID(ctx, "[Email: SendResetPasswordEmail] Successfully sent reset password email", nil)
+	return nil
+}
+
+func (s *emailSender) SendVerifyEmail(ctx context.Context, payload *VerifyEmailPayload) error {
+	s.log.InfoWithID(ctx, "[Email: SendVerifyEmail] Sending verify email", nil)
+
+	body := s.buildVerifyEmailBody(payload.Code)
+
+	if err := s.sendEmail(ctx, payload.EmailReceiver, constants.SubjectVerifyEmail, body); err != nil {
+		s.log.ErrorWithID(ctx, "[Email: SendVerifyEmail] Failed to send email", err)
+		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	s.log.InfoWithID(ctx, "[Email: SendVerifyEmail] Successfully sent verify email", nil)
+	return nil
+}
+
+func (s *emailSender) sendEmail(ctx context.Context, to, subject, body string) error {
+	s.log.InfoWithID(ctx, "[Email: SendEmail] Sending email", nil)
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", s.config.EmailConfig.From)
-	msg.SetHeader("To", payload.EmailReceiver)
+	msg.SetHeader("To", to)
 	msg.SetHeader("Subject", subject)
 	msg.SetBody("text/html", body)
 
-	d := gomail.NewDialer(s.config.EmailConfig.Host, s.config.EmailConfig.Port, s.config.EmailConfig.Username, s.config.EmailConfig.Password)
-	if err := d.DialAndSend(msg); err != nil {
-		s.log.ErrorWithID(ctx, "[Email: SendResetPasswordEmail] Error sending email", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	dialer := gomail.NewDialer(
+		s.config.EmailConfig.Host,
+		s.config.EmailConfig.Port,
+		s.config.EmailConfig.Username,
+		s.config.EmailConfig.Password,
+	)
+
+	if err := dialer.DialAndSend(msg); err != nil {
+		s.log.ErrorWithID(ctx, "[Email: SendEmail] Failed to send email", err)
+		return fmt.Errorf("failed to send email via SMTP: %w", err)
 	}
 
 	return nil
+}
+
+func (s *emailSender) buildResetPasswordEmailBody(resetLink string) string {
+	return fmt.Sprintf(`
+		<h2>Reset your password</h2>
+		<p>Click the link below to reset your password. The link will expire in %s.</p>
+		<p><a href="%s">Reset Password</a></p>
+		<p>If you didn't request this, you can safely ignore this email.</p>
+	`, s.config.AuthConfig.ResetPasswordTokenDuration.String(), resetLink)
+}
+
+func (s *emailSender) buildVerifyEmailBody(code string) string {
+	return fmt.Sprintf(`
+		<h2>Verify your email</h2>
+		<p>Use the following verification code to verify your email. The code will expire in %s.</p>
+		<p><strong>Verification Code: %s</strong></p>
+		<p>If you didn't request this, you can safely ignore this email.</p>
+	`, s.config.AuthConfig.VerifyEmailTokenDuration, code)
 }

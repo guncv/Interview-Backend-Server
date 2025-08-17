@@ -112,9 +112,6 @@ func HandleForeignKeyViolation(err error) *AppError {
 		constraintName := pqErr.Constraint
 		customMessage := getForeignKeyErrorMessage(constraintName)
 		if customMessage != "" {
-			if constraintName == "courses_category_id_fkey" {
-				return NewWithCustomMessage(err, ErrCodeCategoriesForeignKeyViolation, customMessage)
-			}
 			return NewWithCustomMessage(err, ErrCodeGeneralConstraintViolation, customMessage)
 		}
 	}
@@ -122,9 +119,6 @@ func HandleForeignKeyViolation(err error) *AppError {
 	errorStr := err.Error()
 	customMessage := parseConstraintFromErrorMessage(errorStr)
 	if customMessage != "" {
-		if strings.Contains(errorStr, "courses_category_id_fkey") {
-			return NewWithCustomMessage(err, ErrCodeCategoriesForeignKeyViolation, customMessage)
-		}
 		return NewWithCustomMessage(err, ErrCodeGeneralConstraintViolation, customMessage)
 	}
 
@@ -174,12 +168,6 @@ func handleForeignKeyViolationWithContext(err error, context string) *AppError {
 		customMessage := getForeignKeyErrorMessageWithContext(constraintName, context)
 		if customMessage != "" {
 			// Use specific error code for category foreign key violations
-			if constraintName == "courses_category_id_fkey" {
-				return NewWithCustomMessage(err, ErrCodeCategoriesForeignKeyViolation, customMessage)
-			}
-			if constraintName == "courses_sku_key" {
-				return NewWithCustomMessage(err, ErrCodeCoursesAlreadyExists, customMessage)
-			}
 			return NewWithCustomMessage(err, ErrCodeGeneralConstraintViolation, customMessage)
 		}
 	}
@@ -188,12 +176,6 @@ func handleForeignKeyViolationWithContext(err error, context string) *AppError {
 	customMessage := parseConstraintFromErrorMessageWithContext(errorStr, context)
 	if customMessage != "" {
 		// Use specific error code for category foreign key violations
-		if strings.Contains(errorStr, "courses_category_id_fkey") {
-			return NewWithCustomMessage(err, ErrCodeCategoriesForeignKeyViolation, customMessage)
-		}
-		if strings.Contains(errorStr, "courses_sku_key") {
-			return NewWithCustomMessage(err, ErrCodeCoursesAlreadyExists, customMessage)
-		}
 		return NewWithCustomMessage(err, ErrCodeGeneralConstraintViolation, customMessage)
 	}
 
@@ -274,24 +256,8 @@ func handleNotFoundWithContext(err error, context string) *AppError {
 	switch strings.ToLower(context) {
 	case "user":
 		return New(err, ErrCodeAuthUserNotFound)
-	case "session":
-		return New(err, ErrCodeAuthSessionNotFound)
-	case "user_role", "userrole", "role":
-		return New(err, ErrCodeAuthUserRoleNotFound)
-	case "organization", "org":
-		return New(err, ErrCodeAuthOrganizationNotFound)
 	case "reset_token", "resettoken", "token":
 		return New(err, ErrCodeAuthResetTokenNotFound)
-	case "category":
-		return New(err, ErrCodeCategoriesNotFound)
-	case "organization_course":
-		return New(err, ErrCodeOrganizationCourseNotFound)
-	case "course":
-		return New(err, ErrCodeCoursesNotFound)
-	case "review":
-		return New(err, ErrCodeReviewsNotFound)
-	case "course_section":
-		return New(err, ErrCodeCourseSectionNotFound)
 	default:
 		return New(err, ErrCodeGeneralResourceNotFound)
 	}
@@ -553,100 +519,12 @@ func getForeignKeyErrorMessage(constraintName string) string {
 	case "security_alerts_user_id_fkey":
 		return "The specified user does not exist."
 
-	// Course related foreign keys
-	case "courses_category_id_fkey":
-		return "The specified category does not exist. Please select a valid category."
-	case "courses_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "courses_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "courses_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Category related foreign keys
-	case "categories_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "categories_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "categories_parent_id_fkey":
-		return "The specified parent category does not exist."
-	case "categories_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Organization course related foreign keys
-	case "organization_courses_organization_id_fkey":
-		return "The specified organization does not exist."
-	case "organization_courses_course_id_fkey":
-		return "The specified course does not exist."
-	case "organization_courses_give_permission_by_fkey":
-		return "The specified user (permission granter) does not exist."
-
-	// Lecture related foreign keys
-	case "lectures_course_id_fkey":
-		return "The specified course does not exist."
-	case "lectures_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "lectures_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "lectures_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Lecture section related foreign keys
-	case "lecture_sections_lecture_id_fkey":
-		return "The specified lecture does not exist."
-	case "lecture_sections_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "lecture_sections_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "lecture_sections_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Section content related foreign keys
-	case "section_contents_section_id_fkey":
-		return "The specified lecture section does not exist."
-	case "section_contents_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "section_contents_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "section_contents_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Review related foreign keys
-	case "reviews_user_id_fkey":
-		return "The specified user does not exist."
-	case "reviews_organization_id_fkey":
-		return "The specified organization does not exist."
-	case "reviews_target_id_fkey":
-		return "The specified target (course or system) does not exist."
-
-	// Room related foreign keys
-	case "rooms_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "rooms_updated_by_fkey":
-		return "The specified user (updater) does not exist."
-	case "rooms_organization_id_fkey":
-		return "The specified organization does not exist."
-
 	// Room participant related foreign keys
 	case "room_participants_room_id_fkey":
 		return "The specified room does not exist."
 	case "room_participants_user_id_fkey":
 		return "The specified user does not exist."
 	case "room_participants_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// Video record related foreign keys
-	case "video_records_room_id_fkey":
-		return "The specified room does not exist."
-	case "video_records_created_by_fkey":
-		return "The specified user (creator) does not exist."
-	case "video_records_organization_id_fkey":
-		return "The specified organization does not exist."
-
-	// OAuth user related foreign keys
-	case "oauth_users_user_id_fkey":
-		return "The specified user does not exist."
-	case "oauth_users_organization_id_fkey":
 		return "The specified organization does not exist."
 
 	default:
@@ -711,20 +589,6 @@ func parseConstraintFromErrorMessage(errorMsg string) string {
 	}
 	if strings.Contains(errorMsg, "security_alerts_user_id_fkey") {
 		return "The specified user does not exist."
-	}
-
-	// Course related foreign keys
-	if strings.Contains(errorMsg, "courses_category_id_fkey") {
-		return "The specified category does not exist. Please select a valid category."
-	}
-	if strings.Contains(errorMsg, "courses_created_by_fkey") {
-		return "The specified user (creator) does not exist."
-	}
-	if strings.Contains(errorMsg, "courses_updated_by_fkey") {
-		return "The specified user (updater) does not exist."
-	}
-	if strings.Contains(errorMsg, "courses_organization_id_fkey") {
-		return "The specified organization does not exist."
 	}
 
 	// Category related foreign keys
@@ -879,80 +743,6 @@ func handleDuplicateKeyViolation(err error) *AppError {
 		return New(err, ErrCodeAuthUserAlreadyExists)
 	}
 
-	// Organization related unique constraints
-	if strings.Contains(errorStr, "organizations") && strings.Contains(errorStr, "name") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-	if strings.Contains(errorStr, "organizations_name_key") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-	if strings.Contains(errorStr, "organizations_slug_key") {
-		return New(err, ErrCodeAuthOrganizationAlreadyExists)
-	}
-
-	// User role related unique constraints
-	if strings.Contains(errorStr, "user_roles") {
-		return New(err, ErrCodeAuthUserRoleAlreadyExists)
-	}
-	if strings.Contains(errorStr, "user_roles_user_id_role_key") {
-		return New(err, ErrCodeAuthUserRoleAlreadyExists)
-	}
-
-	// Category related unique constraints
-	if strings.Contains(errorStr, "categories") && strings.Contains(errorStr, "slug") {
-		return New(err, ErrCodeCategoriesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "categories_slug_key") {
-		return New(err, ErrCodeCategoriesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "categories_name_key") {
-		return New(err, ErrCodeCategoriesAlreadyExists)
-	}
-
-	// Course related unique constraints
-	if strings.Contains(errorStr, "unique_organization_course") {
-		return New(err, ErrCodeOrganizationCourseAlreadyExists)
-	}
-	if strings.Contains(errorStr, "unique_course_sku") {
-		return New(err, ErrCodeCoursesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "courses") && strings.Contains(errorStr, "sku") {
-		return New(err, ErrCodeCoursesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "courses_sku_key") {
-		return New(err, ErrCodeCoursesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "courses_title_key") {
-		return New(err, ErrCodeCoursesAlreadyExists)
-	}
-	if strings.Contains(errorStr, "courses_slug_key") {
-		return New(err, ErrCodeCoursesAlreadyExists)
-	}
-
-	// Review related unique constraints
-	if strings.Contains(errorStr, "reviews_user_id_target_type_target_id_key") {
-		return New(err, ErrCodeReviewsAlreadyExists)
-	}
-
-	// Course section related unique constraints
-	if strings.Contains(errorStr, "course_sections") && strings.Contains(errorStr, "title") {
-		return New(err, ErrCodeCourseSectionAlreadyExists)
-	}
-	if strings.Contains(errorStr, "course_sections_title_key") {
-		return New(err, ErrCodeCourseSectionAlreadyExists)
-	}
-	if strings.Contains(errorStr, "course_sections_sku_key") {
-		return New(err, ErrCodeCourseSectionAlreadyExists)
-	}
-
-	// Section content related unique constraints
-	if strings.Contains(errorStr, "section_contents_title_key") {
-		return New(err, ErrCodeSectionContentsAlreadyExists)
-	}
-	if strings.Contains(errorStr, "section_contents_sku_key") {
-		return New(err, ErrCodeSectionContentsAlreadyExists)
-	}
-
 	// Reset token related unique constraints
 	if strings.Contains(errorStr, "reset_tokens_token_hash_key") {
 		return New(err, ErrCodeAuthResetTokenUsed)
@@ -978,32 +768,12 @@ func handleCheckConstraintViolation(pqErr *pq.Error) *AppError {
 
 	// Handle specific check constraints
 	switch constraintName {
-	case "reviews_rating_check":
-		return NewWithCustomMessage(pqErr, ErrCodeReviewsInvalidRating, "Rating must be between 1 and 5.")
-	case "reviews_target_type_check":
-		return NewWithCustomMessage(pqErr, ErrCodeReviewsInvalidTarget, "Target type must be either 'course' or 'system'.")
-	case "reviews_role_check":
-		return NewWithCustomMessage(pqErr, ErrCodeAuthInvalidRole, "Role must be either 'trainee', 'mentor', or 'admin'.")
-	case "user_roles_role_check":
-		return NewWithCustomMessage(pqErr, ErrCodeAuthInvalidRole, "Role must be either 'admin', 'mentor', or 'student'.")
-	case "room_participants_role_check":
-		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Role must be either 'mentor' or 'user'.")
-	case "courses_status_check":
-		return NewWithCustomMessage(pqErr, ErrCodeCoursesInvalidRequest, "Course status must be either 'draft', 'published', or 'archived'.")
-	case "organizations_status_check":
-		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Organization status must be either 'active' or 'inactive'.")
 	case "users_status_check":
 		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "User status must be either 'active' or 'inactive'.")
 	case "sessions_status_check":
 		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Session status must be either 'active' or 'expired'.")
 	case "reset_tokens_status_check":
 		return NewWithCustomMessage(pqErr, ErrCodeGeneralConstraintViolation, "Reset token status must be either 'active', 'used', or 'expired'.")
-	case "categories_status_check":
-		return NewWithCustomMessage(pqErr, ErrCodeCategoriesInvalidRequest, "Category status must be either 'active' or 'inactive'.")
-	case "organization_courses_status_check":
-		return NewWithCustomMessage(pqErr, ErrCodeOrganizationCourseInvalidRequest, "Organization course status must be either 'active' or 'inactive'.")
-	case "section_contents_type_check":
-		return NewWithCustomMessage(pqErr, ErrCodeSectionContentsInvalidType, "Content type must be either 'video', 'quiz', or 'pdf'.")
 	default:
 		// Generic check constraint violation
 		if detail != "" {

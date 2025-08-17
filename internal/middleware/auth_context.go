@@ -21,7 +21,7 @@ type authContext struct {
 }
 
 type AuthPayload struct {
-	Payload     *utils.TokenPayload
+	Payload     *utils.SignInTokenPayload
 	AccessToken string
 }
 
@@ -39,7 +39,7 @@ func (a *authContext) ExtractAuthContext(ctx *gin.Context) (context.Context, err
 		return ctx.Request.Context(), app_error.New(errors.New("auth payload not found"), app_error.ErrCodeAuthInvalidHeader)
 	}
 
-	payload, ok := rawPayload.(*utils.TokenPayload)
+	payload, ok := rawPayload.(*utils.SignInTokenPayload)
 	if !ok {
 		a.log.ErrorWithID(ctx.Request.Context(), "[Middleware: ExtractAuthContext] Invalid auth payload format")
 		return ctx.Request.Context(), app_error.New(errors.New("invalid auth payload format"), app_error.ErrCodeAuthInvalidHeader)

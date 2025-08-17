@@ -20,40 +20,36 @@ func TestNewTokenPayload(t *testing.T) {
 		{
 			name: "Valid token request",
 			request: &entities.TokenRequest{
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				Duration:       24 * time.Hour,
+				UserID:   "user123",
+				Role:     constants.UserRoleAdmin,
+				Duration: 24 * time.Hour,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Valid token request with different role",
 			request: &entities.TokenRequest{
-				UserID:         "user789",
-				OrganizationID: "org101",
-				Role:           constants.UserRoleMentor,
-				Duration:       12 * time.Hour,
+				UserID:   "user789",
+				Role:     constants.UserRoleUser,
+				Duration: 12 * time.Hour,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Valid token request with zero duration",
 			request: &entities.TokenRequest{
-				UserID:         "user456",
-				OrganizationID: "org789",
-				Role:           constants.UserRoleTrainee,
-				Duration:       0,
+				UserID:   "user456",
+				Role:     constants.UserRoleUser,
+				Duration: 0,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Valid token request with negative duration",
 			request: &entities.TokenRequest{
-				UserID:         "user999",
-				OrganizationID: "org999",
-				Role:           constants.UserRoleAdmin,
-				Duration:       -1 * time.Hour,
+				UserID:   "user999",
+				Role:     constants.UserRoleAdmin,
+				Duration: -1 * time.Hour,
 			},
 			wantErr: false,
 		},
@@ -61,7 +57,7 @@ func TestNewTokenPayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			payload, err := NewTokenPayload(tt.request)
+			payload, err := NewSignInTokenPayload(tt.request)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -72,7 +68,6 @@ func TestNewTokenPayload(t *testing.T) {
 			assert.NotNil(t, payload)
 			assert.NotEqual(t, uuid.Nil, payload.ID)
 			assert.Equal(t, tt.request.UserID, payload.UserID)
-			assert.Equal(t, tt.request.OrganizationID, payload.OrganizationID)
 			assert.Equal(t, tt.request.Role, payload.Role)
 
 			// Check that IssuedAt is recent (within 1 second)
@@ -90,42 +85,39 @@ func TestTokenPayload_Valid(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		payload *TokenPayload
+		payload *SignInTokenPayload
 		wantErr bool
 	}{
 		{
 			name: "Valid token - not expired",
-			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-1 * time.Hour),
-				ExpiredAt:      now.Add(1 * time.Hour),
+			payload: &SignInTokenPayload{
+				ID:        uuid.New(),
+				IssuedAt:  now.Add(-1 * time.Hour),
+				ExpiredAt: now.Add(1 * time.Hour),
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Expired token",
-			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-2 * time.Hour),
-				ExpiredAt:      now.Add(-1 * time.Hour),
+			payload: &SignInTokenPayload{
+				ID:        uuid.New(),
+				IssuedAt:  now.Add(-2 * time.Hour),
+				ExpiredAt: now.Add(-1 * time.Hour),
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
 			},
 			wantErr: true,
 		},
 		{
 			name: "Token expiring now",
-			payload: &TokenPayload{
-				ID:             uuid.New(),
-				UserID:         "user123",
-				OrganizationID: "org456",
-				Role:           constants.UserRoleAdmin,
-				IssuedAt:       now.Add(-1 * time.Hour),
-				ExpiredAt:      now,
+			payload: &SignInTokenPayload{
+				ID:        uuid.New(),
+				IssuedAt:  now.Add(-1 * time.Hour),
+				ExpiredAt: now,
+				UserID:    "user123",
+				Role:      constants.UserRoleAdmin,
 			},
 			wantErr: true,
 		},

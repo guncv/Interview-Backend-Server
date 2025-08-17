@@ -23,6 +23,53 @@ func (_m *MockGenerator) EXPECT() *MockGenerator_Expecter {
 	return &MockGenerator_Expecter{mock: &_m.Mock}
 }
 
+// GenerateRandomString provides a mock function with given fields: ctx, length
+func (_m *MockGenerator) GenerateRandomString(ctx context.Context, length int) string {
+	ret := _m.Called(ctx, length)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GenerateRandomString")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(context.Context, int) string); ok {
+		r0 = rf(ctx, length)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// MockGenerator_GenerateRandomString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GenerateRandomString'
+type MockGenerator_GenerateRandomString_Call struct {
+	*mock.Call
+}
+
+// GenerateRandomString is a helper method to define mock.On call
+//   - ctx context.Context
+//   - length int
+func (_e *MockGenerator_Expecter) GenerateRandomString(ctx interface{}, length interface{}) *MockGenerator_GenerateRandomString_Call {
+	return &MockGenerator_GenerateRandomString_Call{Call: _e.mock.On("GenerateRandomString", ctx, length)}
+}
+
+func (_c *MockGenerator_GenerateRandomString_Call) Run(run func(ctx context.Context, length int)) *MockGenerator_GenerateRandomString_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockGenerator_GenerateRandomString_Call) Return(_a0 string) *MockGenerator_GenerateRandomString_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGenerator_GenerateRandomString_Call) RunAndReturn(run func(context.Context, int) string) *MockGenerator_GenerateRandomString_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GenerateUUID provides a mock function with given fields: ctx
 func (_m *MockGenerator) GenerateUUID(ctx context.Context) uuid.UUID {
 	ret := _m.Called(ctx)

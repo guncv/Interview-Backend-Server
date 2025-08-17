@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"math/rand"
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -9,6 +10,7 @@ import (
 
 type Generator interface {
 	GenerateUUID(ctx context.Context) uuid.UUID
+	GenerateRandomString(ctx context.Context, length int) string
 }
 
 type generator struct {
@@ -26,4 +28,17 @@ func (g *generator) GenerateUUID(ctx context.Context) uuid.UUID {
 	uuid := uuid.New()
 
 	return uuid
+}
+
+func (g *generator) GenerateRandomString(ctx context.Context, length int) string {
+	g.log.InfoWithID(ctx, "[Utils: GenerateRandomString] Called")
+
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return string(b)
 }

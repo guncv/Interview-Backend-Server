@@ -134,6 +134,68 @@ func (_c *MockRedisTaskPublisher_PublishTaskSendResetPasswordEmail_Call) RunAndR
 	return _c
 }
 
+// PublishTaskSendVerifyEmail provides a mock function with given fields: ctx, payload, opts
+func (_m *MockRedisTaskPublisher) PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, payload)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PublishTaskSendVerifyEmail")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *email.VerifyEmailPayload, ...asynq.Option) error); ok {
+		r0 = rf(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskSendVerifyEmail'
+type MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call struct {
+	*mock.Call
+}
+
+// PublishTaskSendVerifyEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload *email.VerifyEmailPayload
+//   - opts ...asynq.Option
+func (_e *MockRedisTaskPublisher_Expecter) PublishTaskSendVerifyEmail(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call {
+	return &MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call{Call: _e.mock.On("PublishTaskSendVerifyEmail",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call) Run(run func(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]asynq.Option, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(asynq.Option)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*email.VerifyEmailPayload), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call) RunAndReturn(run func(context.Context, *email.VerifyEmailPayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockRedisTaskPublisher creates a new instance of MockRedisTaskPublisher. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockRedisTaskPublisher(t interface {

@@ -70,13 +70,22 @@ func (q *Queries) GetResetToken(ctx context.Context, tokenHash string) (ResetTok
 	return i, err
 }
 
-const updateResetTokenUsed = `-- name: UpdateResetTokenUsed :exec
+const updateResetTokenUsed = `-- name: UpdateResetTokenUsed :execrows
 UPDATE reset_tokens
-SET used = true, used_at = now()
+SET used = true,
+    used_at = $2
 WHERE token_hash = $1
 `
 
-func (q *Queries) UpdateResetTokenUsed(ctx context.Context, tokenHash string) error {
-	_, err := q.db.ExecContext(ctx, updateResetTokenUsed, tokenHash)
-	return err
+type UpdateResetTokenUsedParams struct {
+	TokenHash string       `json:"token_hash"`
+	UsedAt    sql.NullTime `json:"used_at"`
+}
+
+func (q *Queries) UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateResetTokenUsed, arg.TokenHash, arg.UsedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

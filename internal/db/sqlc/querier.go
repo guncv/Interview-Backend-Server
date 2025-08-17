@@ -11,18 +11,19 @@ import (
 )
 
 type Querier interface {
-	AdminCreateUser(ctx context.Context, arg AdminCreateUserParams) (Users, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
-	CheckIsUserIDExists(ctx context.Context, id uuid.UUID) (Users, error)
+	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
-	CreateUserRole(ctx context.Context, arg CreateUserRoleParams) error
+	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
-	IsUserHasRole(ctx context.Context, arg IsUserHasRoleParams) (UserRoles, error)
-	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) error
+	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
-	UpdateResetTokenUsed(ctx context.Context, tokenHash string) error
+	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
+	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
+	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

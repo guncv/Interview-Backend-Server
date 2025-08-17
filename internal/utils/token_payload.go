@@ -8,34 +8,65 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 )
 
-type TokenPayload struct {
-	ID             uuid.UUID          `json:"id"`
-	UserID         string             `json:"user_id"`
-	OrganizationID string             `json:"organization_id"`
-	Role           constants.UserRole `json:"role"`
-	IssuedAt       time.Time          `json:"issued_at"`
-	ExpiredAt      time.Time          `json:"expires_at"`
+type SignInTokenPayload struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    string             `json:"user_id"`
+	Role      constants.UserRole `json:"role"`
+	IssuedAt  time.Time          `json:"issued_at"`
+	ExpiredAt time.Time          `json:"expires_at"`
 }
 
-func NewTokenPayload(req *entities.TokenRequest) (*TokenPayload, error) {
+type VerifyEmailTokenPayload struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    string    `json:"user_id"`
+	Email     string    `json:"email"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiredAt time.Time `json:"expires_at"`
+}
+
+func NewSignInTokenPayload(req *entities.TokenRequest) (*SignInTokenPayload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
 
-	payload := &TokenPayload{
-		ID:             tokenID,
-		UserID:         req.UserID,
-		OrganizationID: req.OrganizationID,
-		Role:           req.Role,
-		IssuedAt:       time.Now(),
-		ExpiredAt:      time.Now().Add(req.Duration),
+	payload := &SignInTokenPayload{
+		ID:        tokenID,
+		UserID:    req.UserID,
+		Role:      req.Role,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(req.Duration),
 	}
 
 	return payload, nil
 }
 
-func (payload *TokenPayload) Valid() error {
+func NewVerifyEmailTokenPayload(req *entities.VerifyEmailTokenRequest) (*VerifyEmailTokenPayload, error) {
+	tokenID, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
+	payload := &VerifyEmailTokenPayload{
+		ID:        tokenID,
+		UserID:    req.UserID,
+		Email:     req.Email,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(req.Duration),
+	}
+
+	return payload, nil
+}
+
+func (payload *SignInTokenPayload) Valid() error {
+	if time.Now().After(payload.ExpiredAt) {
+		return constants.ErrExpiredToken
+	}
+
+	return nil
+}
+
+func (payload *VerifyEmailTokenPayload) Valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return constants.ErrExpiredToken
 	}

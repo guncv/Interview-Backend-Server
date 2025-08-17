@@ -60,40 +60,14 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken)
 		if err != nil {
 			var appErr *app_error.AppError
-			if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
-				m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Access token expired")
-
-				// Debug: Log all cookies
-				allCookies := ctx.Request.Cookies()
-				m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] All cookies", "cookies", allCookies)
-
-				cookie, err := ctx.Request.Cookie("refresh_token")
-				if err != nil {
-					m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Get refresh token error", err)
-					ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
-					return
-				}
-
-				m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renewing access token", "refreshToken", cookie.Value)
-				refreshToken := cookie.Value
-				accessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
-				if err != nil {
-					m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renew access token error", err)
-					ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
-					return
-				}
-				ctx.Set(string(constants.AuthorizationPayloadKey), payload)
-				ctx.Set(string(constants.NewAccessTokenKey), accessToken)
-
-				// Set X-Access-Token header for client to use in subsequent requests
-				ctx.Header(string(constants.XAccessTokenHeaderKey), accessToken)
-
-				ctx.Next()
+			if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredAccessToken {
+				m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Error", err)
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthExpiredAccessToken))
 				return
 			}
 
-			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify access token error", err)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthInvalidToken))
+			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify access token error", errors.New("invalid access token"))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(errors.New("invalid access token"), app_error.ErrCodeAuthInvalidAccessToken))
 			return
 		}
 

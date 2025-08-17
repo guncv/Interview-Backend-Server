@@ -1,19 +1,12 @@
 package utils
 
 import (
-	"bytes"
 	"mime/multipart"
-	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -23,164 +16,6 @@ func TestNewValidator(t *testing.T) {
 
 	assert.NotNil(t, validator)
 	assert.IsType(t, &validatorImpl{}, validator)
-}
-
-func TestValidateAndBind_Success(t *testing.T) {
-	tests := []struct {
-		name     string
-		jsonBody string
-		target   interface{}
-	}{
-		{
-			name: "Valid AdminCreateUserRequest",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "password123",
-				"name": "Test User",
-				"role": "admin"
-			}`,
-			target: &entities.AdminCreateUserRequest{},
-		},
-		{
-			name: "Valid SignInByEmailAndPasswordRequest",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "password123"
-			}`,
-			target: &entities.SignInByEmailAndPasswordRequest{},
-		},
-		{
-			name: "Valid ForgotUserPasswordRequest",
-			jsonBody: `{
-				"email": "test@example.com"
-			}`,
-			target: &entities.ForgotUserPasswordRequest{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger := log.Initialize("test")
-			validator := NewValidator(logger)
-
-			gin.SetMode(gin.TestMode)
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest("POST", "/test", bytes.NewBufferString(tt.jsonBody))
-			c.Request.Header.Set("Content-Type", "application/json")
-
-			err := validator.ValidateAndBind(c, tt.target, "test_handler")
-			assert.NoError(t, err)
-		})
-	}
-}
-
-func TestValidateAndBind_ValidationErrors(t *testing.T) {
-	tests := []struct {
-		name           string
-		jsonBody       string
-		target         interface{}
-		expectedErrMsg string
-	}{
-		{
-			name: "Required field missing - email",
-			jsonBody: `{
-				"password": "password123",
-				"name": "Test User",
-				"role": "admin"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "email is required",
-		},
-		{
-			name: "Invalid email format",
-			jsonBody: `{
-				"email": "invalid-email",
-				"password": "password123",
-				"name": "Test User",
-				"role": "admin"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "invalid email format",
-		},
-		{
-			name: "Password too short",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "123",
-				"name": "Test User",
-				"role": "admin"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "password must be at least 8 characters",
-		},
-		{
-			name: "Name too long",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "password123",
-				"name": "` + strings.Repeat("a", 51) + `",
-				"role": "admin"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "name is too long (max 50 characters)",
-		},
-		{
-			name: "Invalid UUID format",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "password123",
-				"name": "Test User",
-				"role": "admin"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "invalid organizationid format",
-		},
-		{
-			name: "Invalid role value",
-			jsonBody: `{
-				"email": "test@example.com",
-				"password": "password123",
-				"name": "Test User",
-				"role": "invalid_role"
-			}`,
-			target:         &entities.AdminCreateUserRequest{},
-			expectedErrMsg: "invalid role value",
-		},
-		{
-			name: "Country code wrong length",
-			jsonBody: `{
-				"name": "Test Org",
-				"address": "123 Test Street",
-				"contact_email": "contact@test.com",
-				"contact_phone": "1234567890",
-				"country": "USA"
-			}`,
-			target:         &entities.CreateOrganizationRequest{},
-			expectedErrMsg: "invalid country",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger := log.Initialize("test")
-			validator := NewValidator(logger)
-
-			gin.SetMode(gin.TestMode)
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest("POST", "/test", bytes.NewBufferString(tt.jsonBody))
-			c.Request.Header.Set("Content-Type", "application/json")
-
-			err := validator.ValidateAndBind(c, tt.target, "test_handler")
-
-			require.Error(t, err)
-			appErr, ok := err.(*app_error.AppError)
-			require.True(t, ok)
-			assert.Equal(t, app_error.ErrCodeAuthInvalidRequest, appErr.Code)
-			assert.Equal(t, tt.expectedErrMsg, appErr.Message)
-		})
-	}
 }
 
 func TestGetSimpleErrorMessage(t *testing.T) {

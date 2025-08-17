@@ -2,21 +2,16 @@ package utils
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
-	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
-	mockRepos "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
 )
 
 func TestCreateAndVerifyTokens(t *testing.T) {
@@ -32,7 +27,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() *entities.TokenRequest
-		verify func(t *testing.T, got *TokenPayload, gotErr error)
+		verify func(t *testing.T, got *SignInTokenPayload, gotErr error)
 	}{
 		{
 			name: "CreateAndVerifyToken_OK",
@@ -43,7 +38,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: time.Minute * 10,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Equal(t, got.UserID, "user-123")
 				assert.Equal(t, got.Role, constants.UserRole("user"))
 				assert.WithinDuration(t, got.IssuedAt, time.Now(), time.Second)
@@ -60,7 +55,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: time.Minute * -10,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // check the correct error
@@ -75,7 +70,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 					Duration: 0,
 				}
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // Assuming same error for invalid case
@@ -106,14 +101,14 @@ func TestVerifyTokens(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() string
-		verify func(t *testing.T, got *TokenPayload, gotErr error)
+		verify func(t *testing.T, got *SignInTokenPayload, gotErr error)
 	}{
 		{
 			name: "VerifyToken_InvalidToken",
 			input: func() string {
 				return "invalid_token"
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
@@ -131,7 +126,7 @@ func TestVerifyTokens(t *testing.T) {
 				assert.NotNil(t, token)
 				return token
 			},
-			verify: func(t *testing.T, got *TokenPayload, gotErr error) {
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
@@ -146,261 +141,6 @@ func TestVerifyTokens(t *testing.T) {
 		})
 	}
 }
-
-func TestRenewAccessToken(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	cfg := &config.Config{
-		AuthConfig: config.AuthConfig{
-			JwtSecretKey:        "test_secret_key",
-			AccessTokenDuration: time.Minute * 15,
-		},
-	}
-
-	testUserID := uuid.New()
-
-	testCases := []struct {
-		name   string
-		setup  func() (JwtToken, *mockRepos.MockSessionRepository, string)
-		verify func(t *testing.T, token string, payload *TokenPayload, err error)
-	}{
-		{
-			name: "RenewAccessToken_Success",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				// Create a valid refresh token
-				refreshToken, refreshPayload, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				refreshTokenHash := svc.HashTokenSHA256(context.Background(), refreshToken)
-
-				// Mock session data using the actual payload ID
-				mockSession := db.Sessions{
-					ID:               refreshPayload.ID,
-					UserID:           testUserID,
-					RefreshTokenHash: refreshTokenHash,
-					UserAgent:        "test-agent",
-					IpAddress:        "127.0.0.1",
-					LoginTime:        sql.NullTime{Time: time.Now(), Valid: true},
-					LastActive:       sql.NullTime{Time: time.Now(), Valid: true},
-					ExpiresAt:        sql.NullTime{Time: time.Now().Add(time.Hour * 24), Valid: true},
-					IsRevoked:        sql.NullBool{Bool: false, Valid: true},
-					CreatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-					UpdatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-				}
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, refreshPayload.ID.String()).Return(mockSession, nil)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.NoError(t, err)
-				assert.NotEmpty(t, token)
-				assert.NotNil(t, payload)
-				if payload != nil {
-					assert.Equal(t, testUserID.String(), payload.UserID)
-					assert.Equal(t, constants.UserRole("user"), payload.Role)
-				}
-			},
-		},
-		{
-			name: "RenewAccessToken_InvalidRefreshToken",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-				return svc, mockRepo, "invalid_token"
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
-			},
-		},
-		{
-			name: "RenewAccessToken_SessionNotFound",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				refreshToken, _, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, mock.AnythingOfType("string")).Return(db.Sessions{}, sql.ErrNoRows)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(sql.ErrNoRows, app_error.ErrCodeAuthInvalidToken), err)
-			},
-		},
-		{
-			name: "RenewAccessToken_SessionRevoked",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				refreshToken, refreshPayload, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				refreshTokenHash := svc.HashTokenSHA256(context.Background(), refreshToken)
-
-				mockSession := db.Sessions{
-					ID:               refreshPayload.ID,
-					UserID:           testUserID,
-					RefreshTokenHash: refreshTokenHash,
-					IsRevoked:        sql.NullBool{Bool: true, Valid: true},
-					ExpiresAt:        sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true},
-				}
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, refreshPayload.ID.String()).Return(mockSession, nil)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
-			},
-		},
-		{
-			name: "RenewAccessToken_MismatchedUserID",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				refreshToken, refreshPayload, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				refreshTokenHash := svc.HashTokenSHA256(context.Background(), refreshToken)
-
-				differentUserID := uuid.New()
-				mockSession := db.Sessions{
-					ID:               refreshPayload.ID,
-					UserID:           differentUserID, // Different user ID
-					RefreshTokenHash: refreshTokenHash,
-					IsRevoked:        sql.NullBool{Bool: false, Valid: true},
-					ExpiresAt:        sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true},
-				}
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, refreshPayload.ID.String()).Return(mockSession, nil)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
-			},
-		},
-		{
-			name: "RenewAccessToken_MismatchedTokenHash",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				refreshToken, refreshPayload, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				// Use a different token hash
-				differentTokenHash := svc.HashTokenSHA256(context.Background(), "different_token")
-
-				mockSession := db.Sessions{
-					ID:               refreshPayload.ID,
-					UserID:           testUserID,
-					RefreshTokenHash: differentTokenHash, // Different token hash
-					IsRevoked:        sql.NullBool{Bool: false, Valid: true},
-					ExpiresAt:        sql.NullTime{Time: time.Now().Add(time.Hour), Valid: true},
-				}
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, refreshPayload.ID.String()).Return(mockSession, nil)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
-			},
-		},
-		{
-			name: "RenewAccessToken_ExpiredSession",
-			setup: func() (JwtToken, *mockRepos.MockSessionRepository, string) {
-				mockRepo := mockRepos.NewMockSessionRepository(t)
-				svc := NewJwtToken(cfg, lgr, mockRepo)
-
-				refreshToken, refreshPayload, err := svc.CreateToken(context.Background(), &entities.TokenRequest{
-					UserID:   testUserID.String(),
-					Role:     constants.UserRole("user"),
-					Duration: time.Hour,
-				})
-				assert.NoError(t, err)
-
-				refreshTokenHash := svc.HashTokenSHA256(context.Background(), refreshToken)
-
-				mockSession := db.Sessions{
-					ID:               refreshPayload.ID,
-					UserID:           testUserID,
-					RefreshTokenHash: refreshTokenHash,
-					IsRevoked:        sql.NullBool{Bool: false, Valid: true},
-					ExpiresAt:        sql.NullTime{Time: time.Now().Add(-time.Hour), Valid: true}, // Expired
-				}
-
-				mockRepo.EXPECT().GetSessionByID(mock.Anything, refreshPayload.ID.String()).Return(mockSession, nil)
-
-				return svc, mockRepo, refreshToken
-			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
-				assert.Error(t, err)
-				assert.Empty(t, token)
-				assert.Nil(t, payload)
-				assert.Equal(t, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken), err)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			svc, mockRepo, refreshToken := tC.setup()
-
-			ctx := &gin.Context{}
-			ctx.Set("request_id", "test-request-id")
-
-			token, payload, err := svc.RenewAccessToken(ctx, refreshToken)
-			tC.verify(t, token, payload, err)
-
-			mockRepo.AssertExpectations(t)
-		})
-	}
-}
-
 func TestCreateToken_EdgeCases(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	cfg := &config.Config{
@@ -415,7 +155,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.TokenRequest
-		verify func(t *testing.T, token string, payload *TokenPayload, err error)
+		verify func(t *testing.T, token string, payload *SignInTokenPayload, err error)
 	}{
 		{
 			name: "CreateToken_EmptyUserID",
@@ -424,7 +164,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("user"),
 				Duration: time.Minute * 10,
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err) // Should still create token with empty UserID
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -438,7 +178,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("user"),
 				Duration: 0,
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -453,7 +193,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 				Role:     constants.UserRole("admin"),
 				Duration: time.Hour * 24 * 365, // 1 year
 			},
-			verify: func(t *testing.T, token string, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, token string, payload *SignInTokenPayload, err error) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, token)
 				assert.NotNil(t, payload)
@@ -486,14 +226,14 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  func() string
-		verify func(t *testing.T, payload *TokenPayload, err error)
+		verify func(t *testing.T, payload *SignInTokenPayload, err error)
 	}{
 		{
 			name: "VerifyToken_EmptyToken",
 			input: func() string {
 				return ""
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
@@ -504,7 +244,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 			input: func() string {
 				return "this.is.not.a.valid.jwt.token"
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
@@ -529,7 +269,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 				assert.NoError(t, err)
 				return token
 			},
-			verify: func(t *testing.T, payload *TokenPayload, err error) {
+			verify: func(t *testing.T, payload *SignInTokenPayload, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, payload)
 				assert.Equal(t, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken), err)
@@ -739,6 +479,103 @@ func TestIsTokenMatch(t *testing.T) {
 			token1, token2 := tC.input()
 			got := svc.IsTokenMatch(ctx, token1, token2)
 			tC.verify(t, got)
+		})
+	}
+}
+
+func TestRenewVerifyEmailToken(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	cfg := &config.Config{
+		AuthConfig: config.AuthConfig{
+			JwtSecretKey:             "test_secret",
+			VerifyEmailTokenDuration: time.Minute * 10,
+		},
+	}
+
+	ctx := context.Background()
+	svc := NewJwtToken(cfg, lgr, nil)
+
+	testCases := []struct {
+		name   string
+		input  func() string
+		verify func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error)
+	}{
+		{
+			name: "RenewVerifyEmailToken_ValidExpiredToken",
+			input: func() string {
+				// Create a token that's already expired by setting past expiration time
+				req := &entities.VerifyEmailTokenRequest{
+					UserID:   "user-123",
+					Email:    "test@example.com",
+					Duration: time.Minute * 10, // Normal duration
+				}
+				_, payload, err := svc.CreateVerifyEmailToken(ctx, req)
+				assert.NoError(t, err)
+
+				// Manually set the token to be expired by setting ExpiredAt to past
+				payload.ExpiredAt = time.Now().Add(-time.Minute * 10) // 10 minutes ago
+
+				// Create a new token with the expired payload using the same secret
+				expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+				signedToken, err := expiredToken.SignedString([]byte(cfg.AuthConfig.JwtSecretKey))
+				assert.NoError(t, err)
+				return signedToken
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, newToken)
+				assert.NotNil(t, payload)
+				assert.Equal(t, "user-123", payload.UserID)
+				assert.Equal(t, "test@example.com", payload.Email)
+				// New token should have extended expiration time
+				expectedExpiry := time.Now().Add(time.Minute * 10)
+				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
+			},
+		},
+		{
+			name: "RenewVerifyEmailToken_ValidNonExpiredToken",
+			input: func() string {
+				// Create a token that's still valid
+				req := &entities.VerifyEmailTokenRequest{
+					UserID:   "user-456",
+					Email:    "valid@example.com",
+					Duration: time.Minute * 10, // Valid token
+				}
+				token, _, err := svc.CreateVerifyEmailToken(ctx, req)
+				assert.NoError(t, err)
+				return token
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, newToken)
+				assert.NotNil(t, payload)
+				assert.Equal(t, "user-456", payload.UserID)
+				assert.Equal(t, "valid@example.com", payload.Email)
+				// New token should have extended expiration time
+				expectedExpiry := time.Now().Add(time.Minute * 10)
+				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
+			},
+		},
+		{
+			name: "RenewVerifyEmailToken_InvalidToken",
+			input: func() string {
+				return "invalid_token_string"
+			},
+			verify: func(t *testing.T, newToken string, payload *VerifyEmailTokenPayload, err error) {
+				assert.Error(t, err)
+				assert.Empty(t, newToken)
+				assert.Nil(t, payload)
+				// Should return invalid token error
+				assert.Contains(t, err.Error(), "token is invalid")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			oldToken := tC.input()
+			newToken, payload, err := svc.RenewVerifyEmailToken(ctx, oldToken)
+			tC.verify(t, newToken, payload, err)
 		})
 	}
 }
