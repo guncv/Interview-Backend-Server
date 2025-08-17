@@ -125,6 +125,112 @@ func (_c *MockUserService_HealthCheck_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// RefreshToken provides a mock function with given fields: ctx, req
+func (_m *MockUserService) RefreshToken(ctx context.Context, req *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RefreshToken")
+	}
+
+	var r0 *entities.RefreshTokenResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.RefreshTokenRequest) *entities.RefreshTokenResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.RefreshTokenResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.RefreshTokenRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_RefreshToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RefreshToken'
+type MockUserService_RefreshToken_Call struct {
+	*mock.Call
+}
+
+// RefreshToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.RefreshTokenRequest
+func (_e *MockUserService_Expecter) RefreshToken(ctx interface{}, req interface{}) *MockUserService_RefreshToken_Call {
+	return &MockUserService_RefreshToken_Call{Call: _e.mock.On("RefreshToken", ctx, req)}
+}
+
+func (_c *MockUserService_RefreshToken_Call) Run(run func(ctx context.Context, req *entities.RefreshTokenRequest)) *MockUserService_RefreshToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.RefreshTokenRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_RefreshToken_Call) Return(_a0 *entities.RefreshTokenResponse, _a1 error) *MockUserService_RefreshToken_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_RefreshToken_Call) RunAndReturn(run func(context.Context, *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error)) *MockUserService_RefreshToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ResetUserPassword provides a mock function with given fields: ctx, req
+func (_m *MockUserService) ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetUserPassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetUserPasswordRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserService_ResetUserPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetUserPassword'
+type MockUserService_ResetUserPassword_Call struct {
+	*mock.Call
+}
+
+// ResetUserPassword is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ResetUserPasswordRequest
+func (_e *MockUserService_Expecter) ResetUserPassword(ctx interface{}, req interface{}) *MockUserService_ResetUserPassword_Call {
+	return &MockUserService_ResetUserPassword_Call{Call: _e.mock.On("ResetUserPassword", ctx, req)}
+}
+
+func (_c *MockUserService_ResetUserPassword_Call) Run(run func(ctx context.Context, req *entities.ResetUserPasswordRequest)) *MockUserService_ResetUserPassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ResetUserPasswordRequest))
+	})
+	return _c
+}
+
+func (_c *MockUserService_ResetUserPassword_Call) Return(_a0 error) *MockUserService_ResetUserPassword_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserService_ResetUserPassword_Call) RunAndReturn(run func(context.Context, *entities.ResetUserPasswordRequest) error) *MockUserService_ResetUserPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ResetVerifyEmailCode provides a mock function with given fields: ctx, req
 func (_m *MockUserService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
 	ret := _m.Called(ctx, req)
@@ -286,6 +392,52 @@ func (_c *MockUserService_SignInUserByEmailAndPassword_Call) Return(_a0 *entitie
 }
 
 func (_c *MockUserService_SignInUserByEmailAndPassword_Call) RunAndReturn(run func(context.Context, *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)) *MockUserService_SignInUserByEmailAndPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SignOut provides a mock function with given fields: ctx
+func (_m *MockUserService) SignOut(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SignOut")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserService_SignOut_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignOut'
+type MockUserService_SignOut_Call struct {
+	*mock.Call
+}
+
+// SignOut is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockUserService_Expecter) SignOut(ctx interface{}) *MockUserService_SignOut_Call {
+	return &MockUserService_SignOut_Call{Call: _e.mock.On("SignOut", ctx)}
+}
+
+func (_c *MockUserService_SignOut_Call) Run(run func(ctx context.Context)) *MockUserService_SignOut_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockUserService_SignOut_Call) Return(_a0 error) *MockUserService_SignOut_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserService_SignOut_Call) RunAndReturn(run func(context.Context) error) *MockUserService_SignOut_Call {
 	_c.Call.Return(run)
 	return _c
 }

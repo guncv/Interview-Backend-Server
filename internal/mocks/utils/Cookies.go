@@ -24,6 +24,39 @@ func (_m *MockCookies) EXPECT() *MockCookies_Expecter {
 	return &MockCookies_Expecter{mock: &_m.Mock}
 }
 
+// ClearRefreshTokenCookie provides a mock function with given fields: c
+func (_m *MockCookies) ClearRefreshTokenCookie(c *gin.Context) {
+	_m.Called(c)
+}
+
+// MockCookies_ClearRefreshTokenCookie_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ClearRefreshTokenCookie'
+type MockCookies_ClearRefreshTokenCookie_Call struct {
+	*mock.Call
+}
+
+// ClearRefreshTokenCookie is a helper method to define mock.On call
+//   - c *gin.Context
+func (_e *MockCookies_Expecter) ClearRefreshTokenCookie(c interface{}) *MockCookies_ClearRefreshTokenCookie_Call {
+	return &MockCookies_ClearRefreshTokenCookie_Call{Call: _e.mock.On("ClearRefreshTokenCookie", c)}
+}
+
+func (_c *MockCookies_ClearRefreshTokenCookie_Call) Run(run func(c *gin.Context)) *MockCookies_ClearRefreshTokenCookie_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*gin.Context))
+	})
+	return _c
+}
+
+func (_c *MockCookies_ClearRefreshTokenCookie_Call) Return() *MockCookies_ClearRefreshTokenCookie_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCookies_ClearRefreshTokenCookie_Call) RunAndReturn(run func(*gin.Context)) *MockCookies_ClearRefreshTokenCookie_Call {
+	_c.Run(run)
+	return _c
+}
+
 // SetCookie provides a mock function with given fields: ctx, req
 func (_m *MockCookies) SetCookie(ctx *gin.Context, req *entities.SignInUserByEmailAndPasswordResponse) error {
 	ret := _m.Called(ctx, req)

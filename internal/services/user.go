@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -499,6 +500,10 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 	s.log.InfoWithID(ctx, "[Service: ResetUserPassword] Called")
 
 	hashedToken := s.jwtToken.HashTokenSHA256(ctx, req.Token)
+	if hashedToken == "" {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error hashing token", errors.New("failed to hash token"))
+		return errors.New("failed to hash token")
+	}
 
 	userID, err := s.redisClient.Get(ctx, hashedToken)
 	if err != nil {
@@ -558,7 +563,8 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 	}
 
 	if err := s.redisClient.Delete(ctx, hashedToken); err != nil {
-		s.log.WarnWithID(ctx, "[Service: ResetUserPassword] Error deleting reset token", err)
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error deleting reset token", err)
+		return err
 	}
 
 	return nil
@@ -573,6 +579,11 @@ func (s *userService) RefreshToken(ctx context.Context, req *entities.RefreshTok
 		return nil, err
 	}
 
+	if refreshPayload.ID == uuid.Nil || refreshPayload.UserID == "" || refreshPayload.Role == "" {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Invalid token payload", errors.New("invalid token payload"))
+		return nil, app_error.New(errors.New("invalid token payload"), app_error.ErrCodeAuthInvalidToken)
+	}
+
 	session, err := s.sessionRepo.GetSessionByID(ctx, refreshPayload.ID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error getting session", err)
@@ -582,6 +593,11 @@ func (s *userService) RefreshToken(ctx context.Context, req *entities.RefreshTok
 	if session.IsRevoked.Bool {
 		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session is revoked", errors.New("session is revoked"))
 		return nil, app_error.New(errors.New("session is revoked"), app_error.ErrCodeAuthInvalidRefreshToken)
+	}
+
+	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
+		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session expired", errors.New("session expired"))
+		return nil, app_error.New(errors.New("session expired"), app_error.ErrCodeAuthExpiredToken)
 	}
 
 	tokenRequest := &entities.TokenRequest{
@@ -608,6 +624,12 @@ func (s *userService) SignOut(ctx context.Context) error {
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignOut] Error getting auth context", err)
 		return app_error.New(err, app_error.ErrCodeAuthInvalidHeader)
+	}
+
+	// Validate auth payload
+	if authCtx == nil || authCtx.Payload == nil || authCtx.Payload.ID == uuid.Nil {
+		s.log.ErrorWithID(ctx, "[Service: SignOut] Invalid auth payload", errors.New("invalid auth payload"))
+		return app_error.New(errors.New("invalid auth payload"), app_error.ErrCodeAuthInvalidToken)
 	}
 
 	if err := s.sessionRepo.RevokeSessionByID(ctx, authCtx.Payload.ID); err != nil {
