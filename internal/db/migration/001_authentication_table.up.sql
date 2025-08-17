@@ -8,11 +8,8 @@ CREATE TABLE users (
 
     full_name VARCHAR(100) NOT NULL,
     country VARCHAR(100) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    address VARCHAR(200) NOT NULL,
     gender VARCHAR(10) CHECK (gender IN ('male', 'female', 'other')) NOT NULL,
     date_of_birth DATE CHECK (date_of_birth < CURRENT_DATE) NOT NULL,
-    avatar_url TEXT,
 
     is_admin BOOLEAN DEFAULT FALSE,
     is_email_verified BOOLEAN DEFAULT FALSE,

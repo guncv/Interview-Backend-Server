@@ -111,8 +111,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 				PasswordHash: hashedPassword,
 				FullName:     req.FullName,
 				Country:      req.Country,
-				City:         req.City,
-				Address:      req.Address,
 				Gender:       req.Gender,
 				DateOfBirth:  req.DateOfBirth,
 			}
@@ -181,8 +179,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 		PasswordHash: newHashedPassword,
 		FullName:     req.FullName,
 		Country:      req.Country,
-		City:         req.City,
-		Address:      req.Address,
 		Gender:       req.Gender,
 		DateOfBirth:  req.DateOfBirth,
 	}

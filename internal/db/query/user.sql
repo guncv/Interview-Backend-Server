@@ -5,12 +5,10 @@ INSERT INTO users (
     password_hash,
     full_name,
     country,
-    city,
-    address,
     gender,
     date_of_birth
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING *;
 
@@ -20,10 +18,8 @@ SET email = $2,
     password_hash = $3,
     full_name = $4,
     country = $5,
-    city = $6,
-    address = $7,
-    gender = $8,
-    date_of_birth = $9
+    gender = $6,
+    date_of_birth = $7
 WHERE id = $1
 RETURNING *;
 

@@ -51,11 +51,8 @@ type Users struct {
 	PasswordHash       string         `json:"password_hash"`
 	FullName           string         `json:"full_name"`
 	Country            string         `json:"country"`
-	City               string         `json:"city"`
-	Address            string         `json:"address"`
 	Gender             string         `json:"gender"`
 	DateOfBirth        time.Time      `json:"date_of_birth"`
-	AvatarUrl          sql.NullString `json:"avatar_url"`
 	IsAdmin            sql.NullBool   `json:"is_admin"`
 	IsEmailVerified    sql.NullBool   `json:"is_email_verified"`
 	LastLoginAt        sql.NullTime   `json:"last_login_at"`
