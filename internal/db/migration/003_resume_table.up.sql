@@ -18,5 +18,6 @@ CREATE UNIQUE INDEX uniq_default_resume_per_user
     ON resumes(user_id)
     WHERE is_default;
 
-CREATE UNIQUE INDEX uniq_resume_per_user
-    ON resumes(user_id)
+CREATE INDEX idx_resumes_user_updated_at
+    ON resumes (user_id, updated_at DESC)
+    WHERE is_default = FALSE;

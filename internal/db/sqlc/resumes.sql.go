@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -82,11 +83,24 @@ func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID
 }
 
 const listResumeByUserID = `-- name: ListResumeByUserID :many
-SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes
+WHERE user_id = $1
+    AND is_default = FALSE
+    AND (
+            updated_at < $2
+            OR $2 IS NULL
+        )
+ORDER BY updated_at DESC
+LIMIT 10
 `
 
-func (q *Queries) ListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {
-	rows, err := q.db.QueryContext(ctx, listResumeByUserID, userID)
+type ListResumeByUserIDParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (q *Queries) ListResumeByUserID(ctx context.Context, arg ListResumeByUserIDParams) ([]Resumes, error) {
+	rows, err := q.db.QueryContext(ctx, listResumeByUserID, arg.UserID, arg.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
