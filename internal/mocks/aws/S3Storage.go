@@ -82,9 +82,9 @@ func (_c *MockS3Storage_GeneratePresignedURL_Call) RunAndReturn(run func(context
 	return _c
 }
 
-// UploadFile provides a mock function with given fields: ctx, file, key
-func (_m *MockS3Storage) UploadFile(ctx context.Context, file *multipart.FileHeader, key string) (string, error) {
-	ret := _m.Called(ctx, file, key)
+// UploadFile provides a mock function with given fields: ctx, file, key, userID
+func (_m *MockS3Storage) UploadFile(ctx context.Context, file *multipart.FileHeader, key string, userID string) (string, error) {
+	ret := _m.Called(ctx, file, key, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadFile")
@@ -92,17 +92,17 @@ func (_m *MockS3Storage) UploadFile(ctx context.Context, file *multipart.FileHea
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *multipart.FileHeader, string) (string, error)); ok {
-		return rf(ctx, file, key)
+	if rf, ok := ret.Get(0).(func(context.Context, *multipart.FileHeader, string, string) (string, error)); ok {
+		return rf(ctx, file, key, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *multipart.FileHeader, string) string); ok {
-		r0 = rf(ctx, file, key)
+	if rf, ok := ret.Get(0).(func(context.Context, *multipart.FileHeader, string, string) string); ok {
+		r0 = rf(ctx, file, key, userID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *multipart.FileHeader, string) error); ok {
-		r1 = rf(ctx, file, key)
+	if rf, ok := ret.Get(1).(func(context.Context, *multipart.FileHeader, string, string) error); ok {
+		r1 = rf(ctx, file, key, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -119,13 +119,14 @@ type MockS3Storage_UploadFile_Call struct {
 //   - ctx context.Context
 //   - file *multipart.FileHeader
 //   - key string
-func (_e *MockS3Storage_Expecter) UploadFile(ctx interface{}, file interface{}, key interface{}) *MockS3Storage_UploadFile_Call {
-	return &MockS3Storage_UploadFile_Call{Call: _e.mock.On("UploadFile", ctx, file, key)}
+//   - userID string
+func (_e *MockS3Storage_Expecter) UploadFile(ctx interface{}, file interface{}, key interface{}, userID interface{}) *MockS3Storage_UploadFile_Call {
+	return &MockS3Storage_UploadFile_Call{Call: _e.mock.On("UploadFile", ctx, file, key, userID)}
 }
 
-func (_c *MockS3Storage_UploadFile_Call) Run(run func(ctx context.Context, file *multipart.FileHeader, key string)) *MockS3Storage_UploadFile_Call {
+func (_c *MockS3Storage_UploadFile_Call) Run(run func(ctx context.Context, file *multipart.FileHeader, key string, userID string)) *MockS3Storage_UploadFile_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*multipart.FileHeader), args[2].(string))
+		run(args[0].(context.Context), args[1].(*multipart.FileHeader), args[2].(string), args[3].(string))
 	})
 	return _c
 }
@@ -135,7 +136,7 @@ func (_c *MockS3Storage_UploadFile_Call) Return(_a0 string, _a1 error) *MockS3St
 	return _c
 }
 
-func (_c *MockS3Storage_UploadFile_Call) RunAndReturn(run func(context.Context, *multipart.FileHeader, string) (string, error)) *MockS3Storage_UploadFile_Call {
+func (_c *MockS3Storage_UploadFile_Call) RunAndReturn(run func(context.Context, *multipart.FileHeader, string, string) (string, error)) *MockS3Storage_UploadFile_Call {
 	_c.Call.Return(run)
 	return _c
 }
