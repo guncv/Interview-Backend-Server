@@ -15,7 +15,11 @@ type CreateResumeWithRequirementsRequest struct {
 	Language        string                `form:"language" binding:"required"`
 }
 
-type GetListResumeResponse struct {
+type ListResumeRequest struct {
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+type ListResumeResponse struct {
 	DefaultResume GetListResumeByIdResponse   `json:"default_resume"`
 	Resumes       []GetListResumeByIdResponse `json:"resumes"`
 }

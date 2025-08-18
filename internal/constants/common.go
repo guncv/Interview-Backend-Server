@@ -63,7 +63,7 @@ var (
 const (
 	RedisPrefixVerifyEmail        = "auth:verify_email:code:"
 	RedisAttemptPrefixVerifyEmail = "auth:verify_email:attempt:"
-	RedisPrefixResumeList         = "resume:list"
+	RedisPrefixDefaultResume      = "resume:default"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour

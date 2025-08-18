@@ -62,6 +62,12 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
 
+	var req entities.ListResumeRequest
+	if err := h.validator.ValidateAndBind(c, &req, "ListResume"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
 	ctx, err := h.authContext.ExtractAuthContext(c)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: ListResume] Error getting auth context", err)
@@ -69,7 +75,7 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.resumeService.ListResume(ctx)
+	resp, err := h.resumeService.ListResume(ctx, &req)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: ListResume] Error getting resume list", err)
 		utils.RespondWithError(c, err)
