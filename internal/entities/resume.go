@@ -28,3 +28,7 @@ type GetListResumeByIdResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type SwitchDefaultResumeRequest struct {
+	ResumeID string `json:"resume_id" binding:"required"`
+}

@@ -78,3 +78,30 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: SwitchDefaultResume] Called")
+
+	var req entities.SwitchDefaultResumeRequest
+	if err := h.validator.ValidateAndBind(c, &req, "SwitchDefaultResume"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SwitchDefaultResume] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	err = h.resumeService.SwitchDefaultResume(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SwitchDefaultResume] Error switching default resume", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}

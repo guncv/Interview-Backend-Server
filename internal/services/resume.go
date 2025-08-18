@@ -24,6 +24,7 @@ import (
 type ResumeService interface {
 	CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) error
 	ListResume(ctx context.Context) (*entities.GetListResumeResponse, error)
+	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
 }
 
 type resumeService struct {
@@ -184,4 +185,38 @@ func (s *resumeService) ListResume(ctx context.Context) (*entities.GetListResume
 	}
 
 	return &resp, nil
+}
+
+func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error {
+	s.log.InfoWithID(ctx, "[Service: SwitchDefaultResume] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error getting auth context", err)
+		return err
+	}
+
+	defaultResume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error getting default resume", err)
+		return err
+	}
+
+	if defaultResume.ID == uuid.MustParse(req.ResumeID) {
+		s.log.InfoWithID(ctx, "[Service: SwitchDefaultResume] Default resume is already the selected resume")
+		return nil
+	}
+
+	if err := s.resumeRepo.SwitchDefaultResume(ctx, defaultResume.ID, uuid.MustParse(req.ResumeID)); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error switching default resume", err)
+		return err
+	}
+
+	if err := s.queue.PublishTaskDeleteRedis(ctx, &database.RedisDeletePayload{
+		Keys: []string{constants.RedisPrefixResumeList + ":" + authCtx.Payload.UserID},
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error publishing delete redis task", err)
+	}
+
+	return nil
 }
