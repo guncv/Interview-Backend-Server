@@ -57,3 +57,24 @@ func (h *ResumeHandler) CreateResume(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, nil)
 }
+
+func (h *ResumeHandler) ListResume(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListResume] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.resumeService.ListResume(ctx)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListResume] Error getting resume list", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

@@ -56,5 +56,6 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 
 	{
 		resumeMiddleRoutes.POST("", resumeHandler.CreateResume)
+		resumeMiddleRoutes.GET("", resumeHandler.ListResume)
 	}
 }

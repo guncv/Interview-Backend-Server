@@ -2,14 +2,18 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -19,7 +23,7 @@ import (
 
 type ResumeService interface {
 	CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) error
-	// GetListResume(ctx context.Context) (*entities.GetListResumeResponse, error)
+	ListResume(ctx context.Context) (*entities.GetListResumeResponse, error)
 }
 
 type resumeService struct {
@@ -29,6 +33,7 @@ type resumeService struct {
 	s3Storage   aws.S3Storage
 	validator   utils.Validator
 	queue       queue.RedisTaskPublisher
+	redisClient database.RedisClient
 }
 
 func NewResumeService(
@@ -38,6 +43,7 @@ func NewResumeService(
 	s3Storage aws.S3Storage,
 	validator utils.Validator,
 	queue queue.RedisTaskPublisher,
+	redisClient database.RedisClient,
 ) ResumeService {
 	return &resumeService{
 		log:         l,
@@ -46,6 +52,7 @@ func NewResumeService(
 		s3Storage:   s3Storage,
 		validator:   validator,
 		queue:       queue,
+		redisClient: redisClient,
 	}
 }
 
@@ -98,51 +105,83 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 		return err
 	}
 
+	if err := s.queue.PublishTaskDeleteRedis(ctx, &database.RedisDeletePayload{
+		Keys: []string{constants.RedisPrefixResumeList + ":" + authCtx.Payload.UserID},
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error publishing delete redis task", err)
+	}
+
 	return nil
 }
 
-// func (s *resumeService) GetListResume(ctx context.Context) (*entities.GetListResumeResponse, error) {
-// 	s.log.InfoWithID(ctx, "[Service: GetListResume] Called")
+func (s *resumeService) ListResume(ctx context.Context) (*entities.GetListResumeResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: GetListResume] Called")
 
-// 	authCtx, err := s.authContext.GetAuthContext(ctx)
-// 	if err != nil {
-// 		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting auth context", err)
-// 		return nil, err
-// 	}
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting auth context", err)
+		return nil, err
+	}
 
-// 	resumeList, err := s.resumeRepo.GetListResumeByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
-// 	if err != nil {
-// 		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting resume list", err)
-// 		return nil, err
-// 	}
+	resp := entities.GetListResumeResponse{
+		DefaultResume: entities.GetListResumeByIdResponse{},
+		Resumes:       []entities.GetListResumeByIdResponse{},
+	}
 
-// 	resp := entities.GetListResumeResponse{
-// 		DefaultResume: entities.GetListResumeByIdResponse{},
-// 		Resumes:       []entities.GetListResumeByIdResponse{},
-// 	}
+	redisKey := fmt.Sprintf("%s:%s", constants.RedisPrefixResumeList, authCtx.Payload.UserID)
+	redisValue, err := s.redisClient.Get(ctx, redisKey)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			s.log.InfoWithID(ctx, "[Service: GetListResume] Redis key not found, getting resume list from database")
 
-// 	for _, resume := range resumeList {
+			resumeList, err := s.resumeRepo.GetListResumeByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting resume list", err)
+				return nil, err
+			}
 
-// 		if resume.IsDefault {
-// 			resp.DefaultResume = entities.GetListResumeByIdResponse{
-// 				ID:        resume.ID.String(),
-// 				FileName:  resume.FileName,
-// 				MimeType:  resume.MimeType,
-// 				ByteSize:  resume.ByteSize,
-// 				CreatedAt: resume.CreatedAt,
-// 				UpdatedAt: resume.UpdatedAt,
-// 			}
-// 		} else {
-// 			resp.Resumes = append(resp.Resumes, entities.GetListResumeByIdResponse{
-// 				ID:        resume.ID.String(),
-// 				FileName:  resume.FileName,
-// 				MimeType:  resume.MimeType,
-// 				ByteSize:  resume.ByteSize,
-// 				CreatedAt: resume.CreatedAt,
-// 				UpdatedAt: resume.UpdatedAt,
-// 			})
-// 		}
-// 	}
+			for _, resume := range resumeList {
+				if resume.IsDefault {
+					resp.DefaultResume = entities.GetListResumeByIdResponse{
+						ID:        resume.ID.String(),
+						FileName:  resume.FileName,
+						MimeType:  resume.MimeType,
+						ByteSize:  resume.ByteSize,
+						CreatedAt: resume.CreatedAt,
+						UpdatedAt: resume.UpdatedAt,
+					}
+				} else {
+					resp.Resumes = append(resp.Resumes, entities.GetListResumeByIdResponse{
+						ID:        resume.ID.String(),
+						FileName:  resume.FileName,
+						MimeType:  resume.MimeType,
+						ByteSize:  resume.ByteSize,
+						CreatedAt: resume.CreatedAt,
+						UpdatedAt: resume.UpdatedAt,
+					})
+				}
+			}
 
-// 	return &resp, nil
-// }
+			redisKey := fmt.Sprintf("%s:%s", constants.RedisPrefixResumeList, authCtx.Payload.UserID)
+			if err := s.queue.PublishTaskSetRedis(ctx, &database.RedisPayload{
+				Key:   redisKey,
+				Value: resp,
+				TTL:   constants.RedisTTLDefault,
+			}); err != nil {
+				s.log.ErrorWithID(ctx, "[Service: GetListResume] Error publishing set redis task", err)
+			}
+
+			return &resp, nil
+		}
+
+		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting resume list", err)
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(redisValue), &resp); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error unmarshalling resume list", err)
+		return nil, err
+	}
+
+	return &resp, nil
+}
