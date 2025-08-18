@@ -31,4 +31,9 @@ const (
 	ErrMessageAuthInvalidVerifyEmailToken ErrorMessage = "The verification email link is invalid. Please request a new one."
 	ErrMessageAuthMaxAttemptVerifyEmail   ErrorMessage = "You have reached the maximum number of attempts. Please resend the new code."
 	ErrMessageAuthEmailNotVerified        ErrorMessage = "This email is not verified. Please verify your email to continue."
+
+	// Resume
+	ErrMessageResumeInvalidFileSize        ErrorMessage = "The file size is too large. Please try again with a smaller file."
+	ErrMessageResumeInvalidFileContentType ErrorMessage = "The file type is not supported. Please try again with a supported file type."
+	ErrMessageResumeUploadFailed           ErrorMessage = "Failed to upload the file. Please try again."
 )

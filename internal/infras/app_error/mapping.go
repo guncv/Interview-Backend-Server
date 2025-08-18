@@ -29,6 +29,11 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeAuthMaxAttemptVerifyEmail:   ErrHttpCodeBadRequest,
 	ErrCodeAuthSessionNotFound:         ErrHttpCodeNotFound,
 	ErrCodeAuthEmailNotVerified:        ErrHttpCodeBadRequest,
+
+	// Resume
+	ErrCodeResumeInvalidFileSize:        ErrHttpCodeBadRequest,
+	ErrCodeResumeInvalidFileContentType: ErrHttpCodeBadRequest,
+	ErrCodeResumeUploadFailed:           ErrHttpCodeInternalServerError,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -60,4 +65,9 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeAuthMaxAttemptVerifyEmail:   ErrMessageAuthMaxAttemptVerifyEmail,
 	ErrCodeAuthSessionNotFound:         ErrMessageAuthSessionNotFound,
 	ErrCodeAuthEmailNotVerified:        ErrMessageAuthEmailNotVerified,
+
+	// Resume
+	ErrCodeResumeInvalidFileSize:        ErrMessageResumeInvalidFileSize,
+	ErrCodeResumeInvalidFileContentType: ErrMessageResumeInvalidFileContentType,
+	ErrCodeResumeUploadFailed:           ErrMessageResumeUploadFailed,
 }

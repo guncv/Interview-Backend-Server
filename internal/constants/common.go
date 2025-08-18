@@ -130,5 +130,13 @@ const (
 
 // S3 Constants
 const (
-	S3CourseThumbnailKey = "course/thumbnail"
+	S3ResumeKey = "resumes"
+)
+
+// Resume Constants
+var (
+	ResumeAllowContentTypes = []string{
+		"application/pdf",
+	}
+	ResumeMaxFileSize = 5 * 1024 * 1024 // 5MB
 )
