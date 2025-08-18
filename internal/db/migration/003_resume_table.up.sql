@@ -1,0 +1,23 @@
+CREATE TABLE resumes (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    file_name    TEXT NOT NULL,
+    
+    storage_key  TEXT NOT NULL,
+    mime_type    VARCHAR(100) NOT NULL DEFAULT 'application/pdf'
+                CHECK (mime_type = 'application/pdf'),
+    byte_size    INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 5 * 1024 * 1024),
+
+    parsed_json  JSONB NOT NULL,
+    raw_text     TEXT,
+    summary_text TEXT,
+    is_default   BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at   TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMP NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMP
+);
+
+CREATE UNIQUE INDEX uniq_default_resume_per_user
+    ON resumes(user_id)
+    WHERE is_default;

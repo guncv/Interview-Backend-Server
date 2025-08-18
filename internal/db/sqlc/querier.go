@@ -14,13 +14,18 @@ type Querier interface {
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
+	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
+	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
+	GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
+	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
+	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
