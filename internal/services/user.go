@@ -303,6 +303,7 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 
 	if err = s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
 		s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cannot delete attempt", "error", err)
+		return err
 	}
 
 	return nil
@@ -626,7 +627,6 @@ func (s *userService) SignOut(ctx context.Context) error {
 		return app_error.New(err, app_error.ErrCodeAuthInvalidHeader)
 	}
 
-	// Validate auth payload
 	if authCtx == nil || authCtx.Payload == nil || authCtx.Payload.ID == uuid.Nil {
 		s.log.ErrorWithID(ctx, "[Service: SignOut] Invalid auth payload", errors.New("invalid auth payload"))
 		return app_error.New(errors.New("invalid auth payload"), app_error.ErrCodeAuthInvalidToken)
