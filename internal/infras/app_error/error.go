@@ -759,7 +759,7 @@ func handleDuplicateKeyViolation(err error) *AppError {
 	}
 
 	if strings.Contains(errorStr, "resumes_user_id_key") {
-		return New(err, ErrCodeAuthUserAlreadyExists)
+		return New(err, ErrCodeResumeAlreadyExists)
 	}
 
 	// Default fallback

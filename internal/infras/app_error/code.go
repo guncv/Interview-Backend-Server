@@ -38,6 +38,7 @@ const (
 	ErrCodeResumeInvalidFileSize        ErrorCode = "ONX0300"
 	ErrCodeResumeInvalidFileContentType ErrorCode = "ONX0301"
 	ErrCodeResumeUploadFailed           ErrorCode = "ONX0302"
+	ErrCodeResumeAlreadyExists          ErrorCode = "ONX0303"
 )
 
 func (c ErrorCode) Message() string {

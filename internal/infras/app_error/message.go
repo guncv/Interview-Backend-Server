@@ -36,4 +36,5 @@ const (
 	ErrMessageResumeInvalidFileSize        ErrorMessage = "The file size is too large. Please try again with a smaller file."
 	ErrMessageResumeInvalidFileContentType ErrorMessage = "The file type is not supported. Please try again with a supported file type."
 	ErrMessageResumeUploadFailed           ErrorMessage = "Failed to upload the file. Please try again."
+	ErrMessageResumeAlreadyExists          ErrorMessage = "You already have a resume. Please switch to the existing resume or create a new one."
 )
