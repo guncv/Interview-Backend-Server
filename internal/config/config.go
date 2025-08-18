@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	AppConfig      AppConfig      `mapstructure:"AppConfig"`
-	DatabaseConfig DatabaseConfig `mapstructure:"DatabaseConfig"`
-	RedisConfig    RedisConfig    `mapstructure:"RedisConfig"`
-	AuthConfig     AuthConfig     `mapstructure:"AuthConfig"`
-	EmailConfig    EmailConfig    `mapstructure:"EmailConfig"`
-	AWSConfig      AWSConfig      `mapstructure:"AWSConfig"`
+	AppConfig            AppConfig            `mapstructure:"AppConfig"`
+	DatabaseConfig       DatabaseConfig       `mapstructure:"DatabaseConfig"`
+	RedisConfig          RedisConfig          `mapstructure:"RedisConfig"`
+	AuthConfig           AuthConfig           `mapstructure:"AuthConfig"`
+	EmailConfig          EmailConfig          `mapstructure:"EmailConfig"`
+	AWSConfig            AWSConfig            `mapstructure:"AWSConfig"`
+	InterviewAgentConfig InterviewAgentConfig `mapstructure:"InterviewAgentConfig"`
 }
 
 type AppConfig struct {
@@ -60,9 +61,13 @@ type EmailConfig struct {
 type AWSConfig struct {
 	Region             string        `mapstructure:"AWS_REGION"`
 	S3Bucket           string        `mapstructure:"AWS_S3_BUCKET"`
-	AccessKey          string        `mapstructure:"AWS_ACCESS_KEY"`
-	SecretKey          string        `mapstructure:"AWS_SECRET_ACCESS_KEY"`
+	S3AccessKey        string        `mapstructure:"AWS_S3_ACCESS_KEY"`
+	S3SecretAccessKey  string        `mapstructure:"AWS_S3_SECRET_ACCESS_KEY"`
 	PresignedURLExpiry time.Duration `mapstructure:"AWS_S3_PRESIGNED_URL_EXPIRY"`
+}
+
+type InterviewAgentConfig struct {
+	InterviewAgentURL string `mapstructure:"INTERVIEW_AGENT_URL"`
 }
 
 func LoadConfig() (*Config, error) {

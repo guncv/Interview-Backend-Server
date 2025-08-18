@@ -9,6 +9,8 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -16,6 +18,9 @@ import (
 type RedisTaskPublisher interface {
 	PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error
 	PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error
+	PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error
+	PublishTaskSetRedis(ctx context.Context, payload *database.RedisPayload, opts ...asynq.Option) error
+	PublishTaskDeleteRedis(ctx context.Context, payload *database.RedisDeletePayload, opts ...asynq.Option) error
 	DefineTaskOptions(taskName string) []asynq.Option
 }
 
@@ -78,6 +83,66 @@ func (p *redisTaskPublisher) PublishTaskSendVerifyEmail(ctx context.Context, pay
 	return nil
 }
 
+func (p *redisTaskPublisher) PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteFile] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteFile] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskDeleteFile, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteFile] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteFile] Enqueued task", info)
+	return nil
+}
+
+func (p *redisTaskPublisher) PublishTaskSetRedis(ctx context.Context, payload *database.RedisPayload, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskSetRedis] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSetRedis] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskSetRedis, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSetRedis] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskSetRedis] Enqueued task", info)
+	return nil
+}
+
+func (p *redisTaskPublisher) PublishTaskDeleteRedis(ctx context.Context, payload *database.RedisDeletePayload, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteRedis] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteRedis] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskDeleteRedis, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteRedis] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteRedis] Enqueued task", info)
+	return nil
+}
+
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
 	case constants.TaskSendResetPasswordEmail:
@@ -86,6 +151,21 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.Queue(constants.QueueCritical),
 		}
 	case constants.TaskSendVerifyEmail:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
+		}
+	case constants.TaskDeleteFile:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
+		}
+	case constants.TaskSetRedis:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
+		}
+	case constants.TaskDeleteRedis:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueDefault),

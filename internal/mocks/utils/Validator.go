@@ -3,8 +3,12 @@
 package utils
 
 import (
+	context "context"
+
 	gin "github.com/gin-gonic/gin"
 	mock "github.com/stretchr/testify/mock"
+
+	multipart "mime/multipart"
 
 	validator "github.com/go-playground/validator/v10"
 )
@@ -65,6 +69,53 @@ func (_c *MockValidator_GetValidate_Call) Return(_a0 *validator.Validate) *MockV
 }
 
 func (_c *MockValidator_GetValidate_Call) RunAndReturn(run func() *validator.Validate) *MockValidator_GetValidate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsAllowedResumeContentType provides a mock function with given fields: ctx, fileHeader
+func (_m *MockValidator) IsAllowedResumeContentType(ctx context.Context, fileHeader *multipart.FileHeader) bool {
+	ret := _m.Called(ctx, fileHeader)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsAllowedResumeContentType")
+	}
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, *multipart.FileHeader) bool); ok {
+		r0 = rf(ctx, fileHeader)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// MockValidator_IsAllowedResumeContentType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsAllowedResumeContentType'
+type MockValidator_IsAllowedResumeContentType_Call struct {
+	*mock.Call
+}
+
+// IsAllowedResumeContentType is a helper method to define mock.On call
+//   - ctx context.Context
+//   - fileHeader *multipart.FileHeader
+func (_e *MockValidator_Expecter) IsAllowedResumeContentType(ctx interface{}, fileHeader interface{}) *MockValidator_IsAllowedResumeContentType_Call {
+	return &MockValidator_IsAllowedResumeContentType_Call{Call: _e.mock.On("IsAllowedResumeContentType", ctx, fileHeader)}
+}
+
+func (_c *MockValidator_IsAllowedResumeContentType_Call) Run(run func(ctx context.Context, fileHeader *multipart.FileHeader)) *MockValidator_IsAllowedResumeContentType_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*multipart.FileHeader))
+	})
+	return _c
+}
+
+func (_c *MockValidator_IsAllowedResumeContentType_Call) Return(_a0 bool) *MockValidator_IsAllowedResumeContentType_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockValidator_IsAllowedResumeContentType_Call) RunAndReturn(run func(context.Context, *multipart.FileHeader) bool) *MockValidator_IsAllowedResumeContentType_Call {
 	_c.Call.Return(run)
 	return _c
 }

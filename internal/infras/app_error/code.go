@@ -33,6 +33,11 @@ const (
 	ErrCodeAuthInvalidPassword         ErrorCode = "ONX0217"
 	ErrCodeAuthSessionNotFound         ErrorCode = "ONX0218"
 	ErrCodeAuthEmailNotVerified        ErrorCode = "ONX0219"
+
+	// Resume
+	ErrCodeResumeInvalidFileSize        ErrorCode = "ONX0300"
+	ErrCodeResumeInvalidFileContentType ErrorCode = "ONX0301"
+	ErrCodeResumeUploadFailed           ErrorCode = "ONX0302"
 )
 
 func (c ErrorCode) Message() string {

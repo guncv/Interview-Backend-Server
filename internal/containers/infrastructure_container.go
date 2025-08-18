@@ -85,11 +85,11 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(email.NewRedisTaskConsumer); err != nil {
+	if err := c.Container.Provide(queue.NewRedisTaskConsumer); err != nil {
 		c.Error = err
 	}
 
-	if err := c.Container.Invoke(func(consumer email.RedisTaskConsumer) {
+	if err := c.Container.Invoke(func(consumer queue.RedisTaskConsumer) {
 		if err := consumer.Start(context.Background()); err != nil {
 			panic(err)
 		}

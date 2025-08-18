@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"mime/multipart"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -15,6 +17,7 @@ import (
 type Validator interface {
 	ValidateAndBind(c *gin.Context, req interface{}, handlerName string) error
 	GetValidate() *validator.Validate
+	IsAllowedResumeContentType(ctx context.Context, fileHeader *multipart.FileHeader) bool
 }
 
 type validatorImpl struct {
@@ -200,4 +203,21 @@ func getSimpleErrorMessage(err validator.FieldError) string {
 	default:
 		return fmt.Sprintf("invalid %s", strings.ToLower(field))
 	}
+}
+
+func (v *validatorImpl) IsAllowedResumeContentType(ctx context.Context, fileHeader *multipart.FileHeader) bool {
+	contentType := fileHeader.Header.Get("Content-Type")
+	if contentType == "" {
+		v.log.ErrorWithID(ctx, "[Validator: isAllowedResumeContentType] Content type is empty")
+		return false
+	}
+	for _, allowed := range constants.ResumeAllowContentTypes {
+		if contentType == allowed {
+			v.log.InfoWithID(ctx, fmt.Sprintf("[Validator: isAllowedResumeContentType] Content type %s is allowed", contentType))
+			return true
+		}
+	}
+
+	v.log.ErrorWithID(ctx, fmt.Sprintf("[Validator: isAllowedResumeContentType] Content type %s is not allowed", contentType))
+	return false
 }

@@ -24,9 +24,11 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 	if err := c.Invoke(func(
 		userHandler *handlers.UserHandler,
 		authMiddleware middleware.AuthMiddleware,
+		resumeHandler *handlers.ResumeHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
+		resumeRoutes(api_v1, resumeHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -46,5 +48,15 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 		userRoutes.POST("/reset-password", userHandler.ResetUserPassword)
 		userRoutes.POST("/refresh-token", userHandler.RefreshToken)
 		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
+	}
+}
+
+func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, authMiddleware middleware.AuthMiddleware) {
+	resumeMiddleRoutes := eg.Group("/resumes").Use(authMiddleware.AuthMiddleware())
+
+	{
+		resumeMiddleRoutes.POST("", resumeHandler.CreateResume)
+		resumeMiddleRoutes.GET("", resumeHandler.ListResume)
+		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 	}
 }

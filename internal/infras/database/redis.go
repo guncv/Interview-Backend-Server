@@ -34,6 +34,9 @@ type RedisPayload struct {
 	Value interface{}
 	TTL   time.Duration
 }
+type RedisDeletePayload struct {
+	Keys []string
+}
 
 func NewRedisClient(cfg *config.Config, logger *log.Logger) RedisClient {
 	rdb := redis.NewClient(&redis.Options{
