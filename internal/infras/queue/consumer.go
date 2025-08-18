@@ -1,4 +1,4 @@
-package email
+package queue
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -21,13 +22,13 @@ type RedisTaskConsumer interface {
 type redisTaskConsumer struct {
 	server      *asynq.Server
 	log         *log.Logger
-	emailSender EmailSender
+	emailSender email.EmailSender
 }
 
 func NewRedisTaskConsumer(
 	cfg *config.Config,
 	log *log.Logger,
-	emailSender EmailSender,
+	emailSender email.EmailSender,
 ) RedisTaskConsumer {
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%s", cfg.RedisConfig.Host, cfg.RedisConfig.Port),
@@ -71,7 +72,7 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Processing reset password email task")
 
-	var payload ResetPasswordEmailPayload
+	var payload email.ResetPasswordEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Failed to unmarshal payload", err)
 		return app_error.New(fmt.Errorf("invalid reset password email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
@@ -89,7 +90,7 @@ func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Contex
 func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Processing verify email task")
 
-	var payload VerifyEmailPayload
+	var payload email.VerifyEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Failed to unmarshal payload", err)
 		return app_error.New(fmt.Errorf("invalid verify email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
