@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -32,26 +30,20 @@ INSERT INTO resumes (
     storage_key,
     mime_type,
     byte_size,
-    parsed_json,
-    raw_text,
-    summary_text,
     is_default
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7
 )
 `
 
 type CreateResumeParams struct {
-	ID          uuid.UUID       `json:"id"`
-	UserID      uuid.UUID       `json:"user_id"`
-	FileName    string          `json:"file_name"`
-	StorageKey  string          `json:"storage_key"`
-	MimeType    string          `json:"mime_type"`
-	ByteSize    int32           `json:"byte_size"`
-	ParsedJson  json.RawMessage `json:"parsed_json"`
-	RawText     sql.NullString  `json:"raw_text"`
-	SummaryText sql.NullString  `json:"summary_text"`
-	IsDefault   bool            `json:"is_default"`
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	FileName   string    `json:"file_name"`
+	StorageKey string    `json:"storage_key"`
+	MimeType   string    `json:"mime_type"`
+	ByteSize   int32     `json:"byte_size"`
+	IsDefault  bool      `json:"is_default"`
 }
 
 func (q *Queries) CreateResume(ctx context.Context, arg CreateResumeParams) error {
@@ -62,16 +54,13 @@ func (q *Queries) CreateResume(ctx context.Context, arg CreateResumeParams) erro
 		arg.StorageKey,
 		arg.MimeType,
 		arg.ByteSize,
-		arg.ParsedJson,
-		arg.RawText,
-		arg.SummaryText,
 		arg.IsDefault,
 	)
 	return err
 }
 
 const getDefaultResumeByUserID = `-- name: GetDefaultResumeByUserID :one
-SELECT id, user_id, file_name, storage_key, mime_type, byte_size, parsed_json, raw_text, summary_text, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 AND is_default = TRUE
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 AND is_default = TRUE
 `
 
 func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error) {
@@ -84,9 +73,6 @@ func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID
 		&i.StorageKey,
 		&i.MimeType,
 		&i.ByteSize,
-		&i.ParsedJson,
-		&i.RawText,
-		&i.SummaryText,
 		&i.IsDefault,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -96,7 +82,7 @@ func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID
 }
 
 const getListResumeByUserID = `-- name: GetListResumeByUserID :many
-SELECT id, user_id, file_name, storage_key, mime_type, byte_size, parsed_json, raw_text, summary_text, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {
@@ -115,9 +101,6 @@ func (q *Queries) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) (
 			&i.StorageKey,
 			&i.MimeType,
 			&i.ByteSize,
-			&i.ParsedJson,
-			&i.RawText,
-			&i.SummaryText,
 			&i.IsDefault,
 			&i.CreatedAt,
 			&i.UpdatedAt,

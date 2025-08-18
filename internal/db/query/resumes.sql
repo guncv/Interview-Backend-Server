@@ -6,12 +6,9 @@ INSERT INTO resumes (
     storage_key,
     mime_type,
     byte_size,
-    parsed_json,
-    raw_text,
-    summary_text,
     is_default
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: GetListResumeByUserID :many

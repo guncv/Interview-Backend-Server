@@ -7,10 +7,6 @@ CREATE TABLE resumes (
     mime_type    VARCHAR(100) NOT NULL DEFAULT 'application/pdf'
                 CHECK (mime_type = 'application/pdf'),
     byte_size    INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 5 * 1024 * 1024),
-
-    parsed_json  JSONB NOT NULL,
-    raw_text     TEXT,
-    summary_text TEXT,
     is_default   BOOLEAN NOT NULL DEFAULT FALSE,
 
     created_at   TIMESTAMP NOT NULL DEFAULT now(),

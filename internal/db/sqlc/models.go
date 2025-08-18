@@ -6,7 +6,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,19 +24,16 @@ type ResetTokens struct {
 }
 
 type Resumes struct {
-	ID          uuid.UUID       `json:"id"`
-	UserID      uuid.UUID       `json:"user_id"`
-	FileName    string          `json:"file_name"`
-	StorageKey  string          `json:"storage_key"`
-	MimeType    string          `json:"mime_type"`
-	ByteSize    int32           `json:"byte_size"`
-	ParsedJson  json.RawMessage `json:"parsed_json"`
-	RawText     sql.NullString  `json:"raw_text"`
-	SummaryText sql.NullString  `json:"summary_text"`
-	IsDefault   bool            `json:"is_default"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	DeletedAt   sql.NullTime    `json:"deleted_at"`
+	ID         uuid.UUID    `json:"id"`
+	UserID     uuid.UUID    `json:"user_id"`
+	FileName   string       `json:"file_name"`
+	StorageKey string       `json:"storage_key"`
+	MimeType   string       `json:"mime_type"`
+	ByteSize   int32        `json:"byte_size"`
+	IsDefault  bool         `json:"is_default"`
+	CreatedAt  time.Time    `json:"created_at"`
+	UpdatedAt  time.Time    `json:"updated_at"`
+	DeletedAt  sql.NullTime `json:"deleted_at"`
 }
 
 type Sessions struct {
