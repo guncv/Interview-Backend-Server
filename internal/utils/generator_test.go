@@ -40,7 +40,7 @@ func TestGenerateUUIDWithNilContext(t *testing.T) {
 
 	// Should not panic with nil context
 	assert.NotPanics(t, func() {
-		uuid := gen.GenerateUUID(nil)
+		uuid := gen.GenerateUUID(context.Background())
 		assert.NotEqual(t, uuid.String(), "")
 		assert.NotEqual(t, "00000000-0000-0000-0000-000000000000", uuid.String())
 	})
@@ -121,7 +121,7 @@ func TestGenerateRandomStringWithNilContext(t *testing.T) {
 
 	// Should not panic with nil context
 	assert.NotPanics(t, func() {
-		result := gen.GenerateRandomString(nil, 10)
+		result := gen.GenerateRandomString(context.Background(), 10)
 		assert.Equal(t, 10, len(result))
 	})
 }

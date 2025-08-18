@@ -43,8 +43,11 @@ func RespondWithError(ctx *gin.Context, err error) {
 
 	// Default case - internal server error
 	// Convert error to a map to ensure proper JSON serialization
-	errorResponse := map[string]string{
-		"error": err.Error(),
+	type errorResponseKey string
+	const errorKey errorResponseKey = "error"
+
+	errorResponse := map[errorResponseKey]string{
+		errorKey: err.Error(),
 	}
 	ctx.JSON(http.StatusInternalServerError, errorResponse)
 }

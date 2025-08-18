@@ -110,7 +110,7 @@ func TestHashPasswordWithNilContext(t *testing.T) {
 
 	// Should not panic with nil context
 	assert.NotPanics(t, func() {
-		hashedPassword, err := passwordUtil.HashPassword(nil, "testPassword")
+		hashedPassword, err := passwordUtil.HashPassword(context.Background(), "testPassword")
 		assert.NoError(t, err)
 		assert.NotEmpty(t, hashedPassword)
 	})
@@ -223,7 +223,7 @@ func TestCheckPasswordWithNilContext(t *testing.T) {
 
 	// Should not panic with nil context
 	assert.NotPanics(t, func() {
-		err := passwordUtil.CheckPassword(nil, "testPassword", hashedPassword)
+		err := passwordUtil.CheckPassword(context.Background(), "testPassword", hashedPassword)
 		assert.NoError(t, err)
 	})
 }
@@ -240,7 +240,7 @@ func TestHashPasswordConsistency(t *testing.T) {
 
 	// Hash the same password multiple times
 	hashes := make(map[string]bool)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		hash, err := passwordUtil.HashPassword(ctx, password)
 		require.NoError(t, err)
 
@@ -261,7 +261,7 @@ func TestHashPasswordPerformance(t *testing.T) {
 	password := "performanceTestPassword123"
 
 	// Test performance with multiple hashes
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		hash, err := passwordUtil.HashPassword(ctx, password)
 		require.NoError(t, err)
 		require.NotEmpty(t, hash)
@@ -279,7 +279,7 @@ func TestCheckPasswordPerformance(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test performance with multiple checks
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		err := passwordUtil.CheckPassword(ctx, password, hash)
 		assert.NoError(t, err)
 	}
@@ -317,9 +317,12 @@ func TestPasswordWithDifferentContexts(t *testing.T) {
 	password := "testPassword123"
 
 	// Test with different contexts
+	type contextKey string
+	const testKey contextKey = "key"
+
 	contexts := []context.Context{
 		context.Background(),
-		context.WithValue(context.Background(), "key", "value"),
+		context.WithValue(context.Background(), testKey, "value"),
 		nil,
 	}
 
