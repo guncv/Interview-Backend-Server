@@ -15,7 +15,10 @@ INSERT INTO resumes (
 );
 
 -- name: GetListResumeByUserID :many
-SELECT * FROM resumes WHERE user_id = $1;
+SELECT * FROM resumes WHERE user_id = $1 ORDER BY created_at DESC;
+
+-- name: CheckIsDefaultResumeExistsByUserID :one
+SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = TRUE);
 
 -- name: GetDefaultResumeByUserID :one
 SELECT * FROM resumes WHERE user_id = $1 AND is_default = TRUE;

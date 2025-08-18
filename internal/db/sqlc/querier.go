@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error

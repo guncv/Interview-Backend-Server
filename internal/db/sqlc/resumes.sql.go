@@ -13,6 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkIsDefaultResumeExistsByUserID = `-- name: CheckIsDefaultResumeExistsByUserID :one
+SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = TRUE)
+`
+
+func (q *Queries) CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkIsDefaultResumeExistsByUserID, userID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createResume = `-- name: CreateResume :exec
 INSERT INTO resumes (
     id,
@@ -85,7 +96,7 @@ func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID
 }
 
 const getListResumeByUserID = `-- name: GetListResumeByUserID :many
-SELECT id, user_id, file_name, storage_key, mime_type, byte_size, parsed_json, raw_text, summary_text, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, parsed_json, raw_text, summary_text, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {

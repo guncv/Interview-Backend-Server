@@ -21,3 +21,6 @@ CREATE TABLE resumes (
 CREATE UNIQUE INDEX uniq_default_resume_per_user
     ON resumes(user_id)
     WHERE is_default;
+
+CREATE UNIQUE INDEX uniq_resume_per_user
+    ON resumes(user_id)
