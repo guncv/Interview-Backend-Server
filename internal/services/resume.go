@@ -135,7 +135,7 @@ func (s *resumeService) ListResume(ctx context.Context) (*entities.GetListResume
 		if errors.Is(err, redis.Nil) {
 			s.log.InfoWithID(ctx, "[Service: GetListResume] Redis key not found, getting resume list from database")
 
-			resumeList, err := s.resumeRepo.GetListResumeByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
+			resumeList, err := s.resumeRepo.ListResumeByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting resume list", err)
 				return nil, err

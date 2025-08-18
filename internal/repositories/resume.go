@@ -19,7 +19,7 @@ import (
 
 type ResumeReposity interface {
 	CreateResume(ctx context.Context, req *db.CreateResumeParams) error
-	GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error)
+	ListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
@@ -51,12 +51,12 @@ func (r *resumeRepository) CreateResume(ctx context.Context, req *db.CreateResum
 	return nil
 }
 
-func (r *resumeRepository) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetListResumeByUserID] Called")
+func (r *resumeRepository) ListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserID] Called")
 
-	resumes, err := r.db.GetListResumeByUserID(ctx, userID)
+	resumes, err := r.db.ListResumeByUserID(ctx, userID)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetListResumeByUserID] Error getting list resume", err)
+		r.log.ErrorWithID(ctx, "[Repository: ListResumeByUserID] Error getting list resume", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 

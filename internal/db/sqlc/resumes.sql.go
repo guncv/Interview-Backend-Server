@@ -81,12 +81,12 @@ func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID
 	return i, err
 }
 
-const getListResumeByUserID = `-- name: GetListResumeByUserID :many
+const listResumeByUserID = `-- name: ListResumeByUserID :many
 SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {
-	rows, err := q.db.QueryContext(ctx, getListResumeByUserID, userID)
+func (q *Queries) ListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {
+	rows, err := q.db.QueryContext(ctx, listResumeByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
