@@ -42,7 +42,14 @@ func RespondWithError(ctx *gin.Context, err error) {
 	}
 
 	// Default case - internal server error
-	ctx.JSON(http.StatusInternalServerError, err)
+	// Convert error to a map to ensure proper JSON serialization
+	type errorResponseKey string
+	const errorKey errorResponseKey = "error"
+
+	errorResponse := map[errorResponseKey]string{
+		errorKey: err.Error(),
+	}
+	ctx.JSON(http.StatusInternalServerError, errorResponse)
 }
 
 func formatValidationErrors(errors validator.ValidationErrors) string {

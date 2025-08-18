@@ -5,10 +5,8 @@ package utils
 import (
 	context "context"
 
-	gin "github.com/gin-gonic/gin"
-	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-
 	mock "github.com/stretchr/testify/mock"
+	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 
 	utils "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
@@ -249,72 +247,6 @@ func (_c *MockJwtToken_IsTokenMatch_Call) Return(_a0 bool) *MockJwtToken_IsToken
 }
 
 func (_c *MockJwtToken_IsTokenMatch_Call) RunAndReturn(run func(context.Context, string, string) bool) *MockJwtToken_IsTokenMatch_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RenewAccessToken provides a mock function with given fields: ctx, token
-func (_m *MockJwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *utils.SignInTokenPayload, error) {
-	ret := _m.Called(ctx, token)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RenewAccessToken")
-	}
-
-	var r0 string
-	var r1 *utils.SignInTokenPayload
-	var r2 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, string) (string, *utils.SignInTokenPayload, error)); ok {
-		return rf(ctx, token)
-	}
-	if rf, ok := ret.Get(0).(func(*gin.Context, string) string); ok {
-		r0 = rf(ctx, token)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	if rf, ok := ret.Get(1).(func(*gin.Context, string) *utils.SignInTokenPayload); ok {
-		r1 = rf(ctx, token)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*utils.SignInTokenPayload)
-		}
-	}
-
-	if rf, ok := ret.Get(2).(func(*gin.Context, string) error); ok {
-		r2 = rf(ctx, token)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
-// MockJwtToken_RenewAccessToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RenewAccessToken'
-type MockJwtToken_RenewAccessToken_Call struct {
-	*mock.Call
-}
-
-// RenewAccessToken is a helper method to define mock.On call
-//   - ctx *gin.Context
-//   - token string
-func (_e *MockJwtToken_Expecter) RenewAccessToken(ctx interface{}, token interface{}) *MockJwtToken_RenewAccessToken_Call {
-	return &MockJwtToken_RenewAccessToken_Call{Call: _e.mock.On("RenewAccessToken", ctx, token)}
-}
-
-func (_c *MockJwtToken_RenewAccessToken_Call) Run(run func(ctx *gin.Context, token string)) *MockJwtToken_RenewAccessToken_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*gin.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockJwtToken_RenewAccessToken_Call) Return(_a0 string, _a1 *utils.SignInTokenPayload, _a2 error) *MockJwtToken_RenewAccessToken_Call {
-	_c.Call.Return(_a0, _a1, _a2)
-	return _c
-}
-
-func (_c *MockJwtToken_RenewAccessToken_Call) RunAndReturn(run func(*gin.Context, string) (string, *utils.SignInTokenPayload, error)) *MockJwtToken_RenewAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
