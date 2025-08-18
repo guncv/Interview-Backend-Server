@@ -63,7 +63,10 @@ var (
 const (
 	RedisPrefixVerifyEmail        = "auth:verify_email:code:"
 	RedisAttemptPrefixVerifyEmail = "auth:verify_email:attempt:"
-	MaxAttemptVerifyEmail         = 3
+	RedisPrefixResumeList         = "resume:list"
+
+	MaxAttemptVerifyEmail = 3
+	RedisTTLDefault       = 1 * time.Hour
 )
 
 // Queue Constants
@@ -71,6 +74,8 @@ var (
 	TaskSendResetPasswordEmail = "task:send_reset_password_email"
 	TaskSendVerifyEmail        = "task:send_verify_email"
 	TaskDeleteFile             = "task:delete_file"
+	TaskSetRedis               = "task:set_redis"
+	TaskDeleteRedis            = "task:delete_redis"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"

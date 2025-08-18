@@ -70,6 +70,53 @@ func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteFile_Call) RunAndReturn(run fun
 	return _c
 }
 
+// ConsumeTaskDeleteRedis provides a mock function with given fields: ctx, task
+func (_m *MockRedisTaskConsumer) ConsumeTaskDeleteRedis(ctx context.Context, task *asynq.Task) error {
+	ret := _m.Called(ctx, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConsumeTaskDeleteRedis")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
+		r0 = rf(ctx, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskDeleteRedis'
+type MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call struct {
+	*mock.Call
+}
+
+// ConsumeTaskDeleteRedis is a helper method to define mock.On call
+//   - ctx context.Context
+//   - task *asynq.Task
+func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskDeleteRedis(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call {
+	return &MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call{Call: _e.mock.On("ConsumeTaskDeleteRedis", ctx, task)}
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*asynq.Task))
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskDeleteRedis_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ConsumeTaskSendResetPasswordEmail provides a mock function with given fields: ctx, task
 func (_m *MockRedisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
 	ret := _m.Called(ctx, task)
@@ -160,6 +207,53 @@ func (_c *MockRedisTaskConsumer_ConsumeTaskSendVerifyEmail_Call) Return(_a0 erro
 }
 
 func (_c *MockRedisTaskConsumer_ConsumeTaskSendVerifyEmail_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskSendVerifyEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ConsumeTaskSetRedis provides a mock function with given fields: ctx, task
+func (_m *MockRedisTaskConsumer) ConsumeTaskSetRedis(ctx context.Context, task *asynq.Task) error {
+	ret := _m.Called(ctx, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConsumeTaskSetRedis")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
+		r0 = rf(ctx, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskConsumer_ConsumeTaskSetRedis_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskSetRedis'
+type MockRedisTaskConsumer_ConsumeTaskSetRedis_Call struct {
+	*mock.Call
+}
+
+// ConsumeTaskSetRedis is a helper method to define mock.On call
+//   - ctx context.Context
+//   - task *asynq.Task
+func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskSetRedis(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call {
+	return &MockRedisTaskConsumer_ConsumeTaskSetRedis_Call{Call: _e.mock.On("ConsumeTaskSetRedis", ctx, task)}
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*asynq.Task))
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskSetRedis_Call {
 	_c.Call.Return(run)
 	return _c
 }
