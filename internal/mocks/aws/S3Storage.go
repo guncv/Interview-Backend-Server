@@ -24,6 +24,53 @@ func (_m *MockS3Storage) EXPECT() *MockS3Storage_Expecter {
 	return &MockS3Storage_Expecter{mock: &_m.Mock}
 }
 
+// DeleteFile provides a mock function with given fields: ctx, key
+func (_m *MockS3Storage) DeleteFile(ctx context.Context, key string) error {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteFile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockS3Storage_DeleteFile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteFile'
+type MockS3Storage_DeleteFile_Call struct {
+	*mock.Call
+}
+
+// DeleteFile is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockS3Storage_Expecter) DeleteFile(ctx interface{}, key interface{}) *MockS3Storage_DeleteFile_Call {
+	return &MockS3Storage_DeleteFile_Call{Call: _e.mock.On("DeleteFile", ctx, key)}
+}
+
+func (_c *MockS3Storage_DeleteFile_Call) Run(run func(ctx context.Context, key string)) *MockS3Storage_DeleteFile_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockS3Storage_DeleteFile_Call) Return(_a0 error) *MockS3Storage_DeleteFile_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockS3Storage_DeleteFile_Call) RunAndReturn(run func(context.Context, string) error) *MockS3Storage_DeleteFile_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GeneratePresignedURL provides a mock function with given fields: ctx, key, expiry
 func (_m *MockS3Storage) GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
 	ret := _m.Called(ctx, key, expiry)
