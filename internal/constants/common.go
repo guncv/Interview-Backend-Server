@@ -66,22 +66,27 @@ const (
 	MaxAttemptVerifyEmail         = 3
 )
 
-// Email Constants
+// Queue Constants
 var (
 	TaskSendResetPasswordEmail = "task:send_reset_password_email"
 	TaskSendVerifyEmail        = "task:send_verify_email"
-	QueueCritical              = "critical"
-	QueueDefault               = "default"
-	MaxRetry                   = 10
+	TaskDeleteFile             = "task:delete_file"
 
-	OptionResetPasswordEmail = "option_reset_password_email"
-
-	SubjectResetPassword = "Reset your password"
-	SubjectVerifyEmail   = "Verify your email"
+	QueueCritical = "critical"
+	QueueDefault  = "default"
+	MaxRetry      = 10
 
 	CriticalQueueConcurrency = 10
 	DefaultQueueConcurrency  = 5
 	DefaultConcurrency       = 10
+)
+
+// Email Constants
+var (
+	OptionResetPasswordEmail = "option_reset_password_email"
+
+	SubjectResetPassword = "Reset your password"
+	SubjectVerifyEmail   = "Verify your email"
 )
 
 // Test Env

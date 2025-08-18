@@ -9,6 +9,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -17,18 +18,21 @@ type RedisTaskConsumer interface {
 	Start(ctx context.Context) error
 	ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
+	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
 	server      *asynq.Server
 	log         *log.Logger
 	emailSender email.EmailSender
+	s3Storage   aws.S3Storage
 }
 
 func NewRedisTaskConsumer(
 	cfg *config.Config,
 	log *log.Logger,
 	emailSender email.EmailSender,
+	s3Storage aws.S3Storage,
 ) RedisTaskConsumer {
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%s", cfg.RedisConfig.Host, cfg.RedisConfig.Port),
@@ -52,6 +56,7 @@ func NewRedisTaskConsumer(
 		server:      server,
 		log:         log,
 		emailSender: emailSender,
+		s3Storage:   s3Storage,
 	}
 }
 
@@ -60,6 +65,7 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(constants.TaskSendResetPasswordEmail, c.ConsumeTaskSendResetPasswordEmail)
 	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
+	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 
 	if err := c.server.Start(mux); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
@@ -102,5 +108,23 @@ func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task
 	}
 
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Successfully sent verify email", nil)
+	return nil
+}
+
+func (c *redisTaskConsumer) ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error {
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Processing delete file task")
+
+	var payload aws.DeleteFilePayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskDeleteFile] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid delete file payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.s3Storage.DeleteFile(ctx, payload.Key); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskDeleteFile] Failed to delete file", err)
+		return app_error.New(fmt.Errorf("failed to delete file: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Successfully deleted file", nil)
 	return nil
 }

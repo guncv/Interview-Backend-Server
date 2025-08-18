@@ -21,6 +21,11 @@ import (
 type S3Storage interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, key string, userID string) (string, error)
 	GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error)
+	DeleteFile(ctx context.Context, key string) error
+}
+
+type DeleteFilePayload struct {
+	Key string
 }
 
 type s3Storage struct {
@@ -101,4 +106,20 @@ func (s *s3Storage) GeneratePresignedURL(ctx context.Context, key string, expiry
 	}
 
 	return req.URL, nil
+}
+
+func (s *s3Storage) DeleteFile(ctx context.Context, key string) error {
+	s.log.InfoWithID(ctx, "[S3: DeleteFile] Deleting file Called: ", key)
+
+	_, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.cfp.AWSConfig.S3Bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[S3: DeleteFile] Failed", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	return nil
 }

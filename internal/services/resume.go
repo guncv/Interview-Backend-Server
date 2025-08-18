@@ -11,6 +11,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -27,6 +28,7 @@ type resumeService struct {
 	authContext middleware.AuthContext
 	s3Storage   aws.S3Storage
 	validator   utils.Validator
+	queue       queue.RedisTaskPublisher
 }
 
 func NewResumeService(
@@ -35,6 +37,7 @@ func NewResumeService(
 	authContext middleware.AuthContext,
 	s3Storage aws.S3Storage,
 	validator utils.Validator,
+	queue queue.RedisTaskPublisher,
 ) ResumeService {
 	return &resumeService{
 		log:         l,
@@ -42,6 +45,7 @@ func NewResumeService(
 		authContext: authContext,
 		s3Storage:   s3Storage,
 		validator:   validator,
+		queue:       queue,
 	}
 }
 
@@ -86,6 +90,10 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 	}
 
 	if err := s.resumeRepo.CreateResume(ctx, resumeReq); err != nil {
+		if err := s.queue.PublishTaskDeleteFile(ctx, &aws.DeleteFilePayload{Key: storageKey}); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CreateResume] Error publishing delete file task", err)
+		}
+
 		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error creating resume", err)
 		return err
 	}
