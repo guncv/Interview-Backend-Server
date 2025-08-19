@@ -19,8 +19,8 @@ CREATE TABLE users (
     last_login_ip VARCHAR(45),
     last_login_user_agent VARCHAR(256),
 
-    created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -31,12 +31,12 @@ CREATE TABLE sessions (
     refresh_token_hash VARCHAR(100) NOT NULL,
     user_agent VARCHAR(256) NOT NULL,
     ip_address VARCHAR(45) NOT NULL,
-    login_time TIMESTAMP DEFAULT now(),
-    last_active TIMESTAMP,
-    expires_at TIMESTAMP,
+    login_time TIMESTAMPTZ DEFAULT now(),
+    last_active TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
     is_revoked BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
@@ -46,8 +46,8 @@ CREATE TABLE user_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'admin')),
-    assigned_at TIMESTAMP DEFAULT now(),
-    deleted_at TIMESTAMP,
+    assigned_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
     UNIQUE(user_id, role)
 );
 

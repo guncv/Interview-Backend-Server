@@ -25,12 +25,12 @@ type ListResumeResponse struct {
 }
 
 type GetListResumeByIdResponse struct {
-	ID        string    `json:"id"`
-	FileName  string    `json:"file_name"`
-	MimeType  string    `json:"mime_type"`
-	ByteSize  int32     `json:"byte_size"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string `json:"id"`
+	FileName  string `json:"file_name"`
+	MimeType  string `json:"mime_type"`
+	ByteSize  int32  `json:"byte_size"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type SwitchDefaultResumeRequest struct {
@@ -42,11 +42,11 @@ type GetResumeByIDRequest struct {
 }
 
 type GetResumeByIDResponse struct {
-	ID        string    `json:"id"`
-	FileName  string    `json:"file_name"`
-	MimeType  string    `json:"mime_type"`
-	ByteSize  int32     `json:"byte_size"`
-	FileUrl   string    `json:"file_url"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string `json:"id"`
+	FileName  string `json:"file_name"`
+	MimeType  string `json:"mime_type"`
+	ByteSize  int32  `json:"byte_size"`
+	FileUrl   string `json:"file_url"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
