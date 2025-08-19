@@ -22,6 +22,8 @@ type Querier interface {
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	ListResumeByUserID(ctx context.Context, arg ListResumeByUserIDParams) ([]Resumes, error)
+	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
+	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error

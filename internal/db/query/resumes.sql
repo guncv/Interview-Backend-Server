@@ -16,12 +16,25 @@ SELECT * FROM resumes
 WHERE user_id = $1
     AND is_default = FALSE
     AND (
-            updated_at < $2
-            OR $2 IS NULL
+            $2::timestamp IS NULL OR updated_at < $2::timestamp
         )
 ORDER BY updated_at DESC
 LIMIT 10;
 
+-- name: ListResumeByUserIDFirstPage :many
+SELECT * FROM resumes
+WHERE user_id = $1
+    AND is_default = FALSE
+ORDER BY updated_at DESC
+LIMIT 10;
+
+-- name: ListResumeByUserIDPaginated :many
+SELECT * FROM resumes
+WHERE user_id = $1
+    AND is_default = FALSE
+    AND updated_at < $2
+ORDER BY updated_at DESC
+LIMIT 10;
 
 -- name: CheckIsDefaultResumeExistsByUserID :one
 SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = TRUE);

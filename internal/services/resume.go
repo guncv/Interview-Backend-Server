@@ -36,6 +36,7 @@ type resumeService struct {
 	validator   utils.Validator
 	queue       queue.RedisTaskPublisher
 	redisClient database.RedisClient
+	generator   utils.Generator
 }
 
 func NewResumeService(
@@ -46,6 +47,7 @@ func NewResumeService(
 	validator utils.Validator,
 	queue queue.RedisTaskPublisher,
 	redisClient database.RedisClient,
+	generator utils.Generator,
 ) ResumeService {
 	return &resumeService{
 		log:         l,
@@ -55,6 +57,7 @@ func NewResumeService(
 		validator:   validator,
 		queue:       queue,
 		redisClient: redisClient,
+		generator:   generator,
 	}
 }
 
@@ -90,6 +93,7 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 	}
 
 	resumeReq := &db.CreateResumeParams{
+		ID:         s.generator.GenerateUUID(ctx),
 		UserID:     uuid.MustParse(authCtx.Payload.UserID),
 		StorageKey: storageKey,
 		FileName:   req.File.Filename,
@@ -111,11 +115,11 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 }
 
 func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: GetListResume] Called")
+	s.log.InfoWithID(ctx, "[Service: tListResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting auth context", err)
+		s.log.ErrorWithID(ctx, "[Service: ListResume] Error getting auth context", err)
 		return nil, err
 	}
 	userID := uuid.MustParse(authCtx.Payload.UserID)
@@ -125,29 +129,36 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 		resumeList    []db.Resumes
 	)
 
+	var updatedAt time.Time
+	if req.UpdatedAt != nil {
+		updatedAt = *req.UpdatedAt
+	} else {
+		updatedAt = time.Time{}
+	}
+
 	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())
 	cacheValue, err := s.redisClient.Get(ctx, defaultResumeKey)
 
 	if err == nil {
 		if err := json.Unmarshal([]byte(cacheValue), &defaultResume); err != nil {
-			s.log.WarnWithID(ctx, "[Service: GetListResume] Redis hit but failed to unmarshal, falling back", err)
+			s.log.WarnWithID(ctx, "[Service: ListResume] Redis hit but failed to unmarshal, falling back", err)
 			goto FetchBoth
 		}
 
-		s.log.InfoWithID(ctx, "[Service: GetListResume] Redis hit for default resume, fetching only resume list")
+		s.log.InfoWithID(ctx, "[Service: ListResume] Redis hit for default resume, fetching only resume list")
 		resumeList, err = s.resumeRepo.ListResumeByUserID(ctx, &db.ListResumeByUserIDParams{
 			UserID:    userID,
-			UpdatedAt: *req.UpdatedAt,
+			UpdatedAt: updatedAt,
 		})
 		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: GetListResume] Error getting resume list", err)
+			s.log.ErrorWithID(ctx, "[Service: ListResume] Error getting resume list", err)
 			return nil, err
 		}
 	} else if errors.Is(err, redis.Nil) {
-		s.log.InfoWithID(ctx, "[Service: GetListResume] Default resume not in Redis, fetching both concurrently")
+		s.log.InfoWithID(ctx, "[Service: ListResume] Default resume not in Redis, fetching both concurrently")
 		goto FetchBoth
 	} else {
-		s.log.ErrorWithID(ctx, "[Service: GetListResume] Redis error", err)
+		s.log.ErrorWithID(ctx, "[Service: ListResume] Redis error", err)
 		return nil, err
 	}
 
@@ -162,7 +173,7 @@ FetchBoth:
 		go func() {
 			list, err := s.resumeRepo.ListResumeByUserID(ctx, &db.ListResumeByUserIDParams{
 				UserID:    userID,
-				UpdatedAt: *req.UpdatedAt,
+				UpdatedAt: updatedAt,
 			})
 			if err != nil {
 				errorChan <- err
@@ -184,7 +195,7 @@ FetchBoth:
 		for completed < 2 {
 			select {
 			case err := <-errorChan:
-				s.log.ErrorWithID(ctx, "[Service: GetListResume] Error in concurrent fetch", err)
+				s.log.ErrorWithID(ctx, "[Service: ListResume] Error in concurrent fetch", err)
 				return nil, err
 			case list := <-resumeListChan:
 				resumeList = list
@@ -193,21 +204,21 @@ FetchBoth:
 				defaultResume = resume
 				completed++
 			case <-ctx.Done():
-				s.log.ErrorWithID(ctx, "[Service: GetListResume] Context canceled", ctx.Err())
+				s.log.ErrorWithID(ctx, "[Service: ListResume] Context canceled", ctx.Err())
 				return nil, ctx.Err()
 			}
 		}
 
 		raw, err := json.Marshal(defaultResume)
 		if err != nil {
-			s.log.WarnWithID(ctx, "[Service: GetListResume] Error marshalling default resume", err)
+			s.log.WarnWithID(ctx, "[Service: ListResume] Error marshalling default resume", err)
 		} else {
 			if err := s.redisClient.Set(ctx, database.RedisPayload{
 				Key:   defaultResumeKey,
 				Value: string(raw),
 				TTL:   24 * time.Hour,
 			}); err != nil {
-				s.log.ErrorWithID(ctx, "[Service: GetListResume] Error caching default resume in Redis", err)
+				s.log.ErrorWithID(ctx, "[Service: ListResume] Error caching default resume in Redis", err)
 			}
 		}
 	}

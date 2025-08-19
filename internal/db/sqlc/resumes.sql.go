@@ -87,20 +87,109 @@ SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, cr
 WHERE user_id = $1
     AND is_default = FALSE
     AND (
-            updated_at < $2
-            OR $2 IS NULL
+            $2::timestamp IS NULL OR updated_at < $2::timestamp
         )
 ORDER BY updated_at DESC
 LIMIT 10
 `
 
 type ListResumeByUserIDParams struct {
+	UserID  uuid.UUID `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+}
+
+func (q *Queries) ListResumeByUserID(ctx context.Context, arg ListResumeByUserIDParams) ([]Resumes, error) {
+	rows, err := q.db.QueryContext(ctx, listResumeByUserID, arg.UserID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Resumes{}
+	for rows.Next() {
+		var i Resumes
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.FileName,
+			&i.StorageKey,
+			&i.MimeType,
+			&i.ByteSize,
+			&i.IsDefault,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listResumeByUserIDFirstPage = `-- name: ListResumeByUserIDFirstPage :many
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes
+WHERE user_id = $1
+    AND is_default = FALSE
+ORDER BY updated_at DESC
+LIMIT 10
+`
+
+func (q *Queries) ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error) {
+	rows, err := q.db.QueryContext(ctx, listResumeByUserIDFirstPage, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Resumes{}
+	for rows.Next() {
+		var i Resumes
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.FileName,
+			&i.StorageKey,
+			&i.MimeType,
+			&i.ByteSize,
+			&i.IsDefault,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listResumeByUserIDPaginated = `-- name: ListResumeByUserIDPaginated :many
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes
+WHERE user_id = $1
+    AND is_default = FALSE
+    AND updated_at < $2
+ORDER BY updated_at DESC
+LIMIT 10
+`
+
+type ListResumeByUserIDPaginatedParams struct {
 	UserID    uuid.UUID `json:"user_id"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (q *Queries) ListResumeByUserID(ctx context.Context, arg ListResumeByUserIDParams) ([]Resumes, error) {
-	rows, err := q.db.QueryContext(ctx, listResumeByUserID, arg.UserID, arg.UpdatedAt)
+func (q *Queries) ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error) {
+	rows, err := q.db.QueryContext(ctx, listResumeByUserIDPaginated, arg.UserID, arg.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
