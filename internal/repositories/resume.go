@@ -19,8 +19,10 @@ import (
 
 type ResumeReposity interface {
 	CreateResume(ctx context.Context, req *db.CreateResumeParams) error
-	ListResumeByUserID(ctx context.Context, req *db.ListResumeByUserIDParams) ([]db.Resumes, error)
+	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error)
+	ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
+	GetResumeByID(ctx context.Context, id uuid.UUID) (db.Resumes, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
 	GetResumeJsonWithSummaryData(ctx context.Context, req *GetResumeJsonWithSummaryDataReq) (*GetResumeJsonWithSummaryDataResponse, error)
@@ -51,12 +53,24 @@ func (r *resumeRepository) CreateResume(ctx context.Context, req *db.CreateResum
 	return nil
 }
 
-func (r *resumeRepository) ListResumeByUserID(ctx context.Context, req *db.ListResumeByUserIDParams) ([]db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserID] Called")
+func (r *resumeRepository) ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserIDFirstPage] Called")
 
-	resumes, err := r.db.ListResumeByUserID(ctx, *req)
+	resumes, err := r.db.ListResumeByUserIDFirstPage(ctx, userID)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: ListResumeByUserID] Error getting list resume", err)
+		r.log.ErrorWithID(ctx, "[Repository: ListResumeByUserIDFirstPage] Error getting list resume", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resumes, nil
+}
+
+func (r *resumeRepository) ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserIDPaginated] Called")
+
+	resumes, err := r.db.ListResumeByUserIDPaginated(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListResumeByUserIDPaginated] Error getting list resume", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 
@@ -73,6 +87,17 @@ func (r *resumeRepository) CheckIsDefaultResumeExistsByUserID(ctx context.Contex
 	}
 
 	return exists, nil
+}
+
+func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (db.Resumes, error) {
+
+	resume, err := r.db.GetResumeByID(ctx, id)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetResumeByID] Error getting resume", err)
+		return db.Resumes{}, app_error.HandleDatabaseError(err)
+	}
+
+	return resume, nil
 }
 
 func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {

@@ -115,7 +115,7 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 }
 
 func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: tListResume] Called")
+	s.log.InfoWithID(ctx, "[Service: ListResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -129,13 +129,6 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 		resumeList    []db.Resumes
 	)
 
-	var updatedAt time.Time
-	if req.UpdatedAt != nil {
-		updatedAt = *req.UpdatedAt
-	} else {
-		updatedAt = time.Time{}
-	}
-
 	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())
 	cacheValue, err := s.redisClient.Get(ctx, defaultResumeKey)
 
@@ -146,10 +139,15 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 		}
 
 		s.log.InfoWithID(ctx, "[Service: ListResume] Redis hit for default resume, fetching only resume list")
-		resumeList, err = s.resumeRepo.ListResumeByUserID(ctx, &db.ListResumeByUserIDParams{
-			UserID:    userID,
-			UpdatedAt: updatedAt,
-		})
+
+		if req.UpdatedAt != nil {
+			resumeList, err = s.resumeRepo.ListResumeByUserIDPaginated(ctx, &db.ListResumeByUserIDPaginatedParams{
+				UserID:    userID,
+				UpdatedAt: *req.UpdatedAt,
+			})
+		} else {
+			resumeList, err = s.resumeRepo.ListResumeByUserIDFirstPage(ctx, userID)
+		}
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: ListResume] Error getting resume list", err)
 			return nil, err
@@ -171,10 +169,17 @@ FetchBoth:
 		errorChan := make(chan error, 2)
 
 		go func() {
-			list, err := s.resumeRepo.ListResumeByUserID(ctx, &db.ListResumeByUserIDParams{
-				UserID:    userID,
-				UpdatedAt: updatedAt,
-			})
+			var list []db.Resumes
+			var err error
+
+			if req.UpdatedAt != nil {
+				list, err = s.resumeRepo.ListResumeByUserIDPaginated(ctx, &db.ListResumeByUserIDPaginatedParams{
+					UserID:    userID,
+					UpdatedAt: *req.UpdatedAt,
+				})
+			} else {
+				list, err = s.resumeRepo.ListResumeByUserIDFirstPage(ctx, userID)
+			}
 			if err != nil {
 				errorChan <- err
 				return
@@ -297,7 +302,7 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	if err := s.queue.PublishTaskDeleteRedis(ctx, &database.RedisDeletePayload{
 		Keys: []string{constants.RedisPrefixDefaultResume + ":" + authCtx.Payload.UserID},
 	}); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error publishing delete redis task", err)
+		s.log.WarnWithID(ctx, "[Service: SwitchDefaultResume] Error publishing delete redis task", err)
 	}
 
 	return nil
