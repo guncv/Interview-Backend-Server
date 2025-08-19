@@ -69,6 +69,171 @@ func (_c *MockResumeService_CreateResumeWithRequirements_Call) RunAndReturn(run 
 	return _c
 }
 
+// GetResumeByID provides a mock function with given fields: ctx, req
+func (_m *MockResumeService) GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetResumeByID")
+	}
+
+	var r0 *entities.GetResumeByIDResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetResumeByIDRequest) *entities.GetResumeByIDResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GetResumeByIDResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.GetResumeByIDRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockResumeService_GetResumeByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResumeByID'
+type MockResumeService_GetResumeByID_Call struct {
+	*mock.Call
+}
+
+// GetResumeByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.GetResumeByIDRequest
+func (_e *MockResumeService_Expecter) GetResumeByID(ctx interface{}, req interface{}) *MockResumeService_GetResumeByID_Call {
+	return &MockResumeService_GetResumeByID_Call{Call: _e.mock.On("GetResumeByID", ctx, req)}
+}
+
+func (_c *MockResumeService_GetResumeByID_Call) Run(run func(ctx context.Context, req *entities.GetResumeByIDRequest)) *MockResumeService_GetResumeByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.GetResumeByIDRequest))
+	})
+	return _c
+}
+
+func (_c *MockResumeService_GetResumeByID_Call) Return(_a0 *entities.GetResumeByIDResponse, _a1 error) *MockResumeService_GetResumeByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockResumeService_GetResumeByID_Call) RunAndReturn(run func(context.Context, *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)) *MockResumeService_GetResumeByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListResume provides a mock function with given fields: ctx, req
+func (_m *MockResumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListResume")
+	}
+
+	var r0 *entities.ListResumeResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListResumeRequest) (*entities.ListResumeResponse, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListResumeRequest) *entities.ListResumeResponse); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ListResumeResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.ListResumeRequest) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockResumeService_ListResume_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListResume'
+type MockResumeService_ListResume_Call struct {
+	*mock.Call
+}
+
+// ListResume is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ListResumeRequest
+func (_e *MockResumeService_Expecter) ListResume(ctx interface{}, req interface{}) *MockResumeService_ListResume_Call {
+	return &MockResumeService_ListResume_Call{Call: _e.mock.On("ListResume", ctx, req)}
+}
+
+func (_c *MockResumeService_ListResume_Call) Run(run func(ctx context.Context, req *entities.ListResumeRequest)) *MockResumeService_ListResume_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ListResumeRequest))
+	})
+	return _c
+}
+
+func (_c *MockResumeService_ListResume_Call) Return(_a0 *entities.ListResumeResponse, _a1 error) *MockResumeService_ListResume_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockResumeService_ListResume_Call) RunAndReturn(run func(context.Context, *entities.ListResumeRequest) (*entities.ListResumeResponse, error)) *MockResumeService_ListResume_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SwitchDefaultResume provides a mock function with given fields: ctx, req
+func (_m *MockResumeService) SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SwitchDefaultResume")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.SwitchDefaultResumeRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockResumeService_SwitchDefaultResume_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwitchDefaultResume'
+type MockResumeService_SwitchDefaultResume_Call struct {
+	*mock.Call
+}
+
+// SwitchDefaultResume is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.SwitchDefaultResumeRequest
+func (_e *MockResumeService_Expecter) SwitchDefaultResume(ctx interface{}, req interface{}) *MockResumeService_SwitchDefaultResume_Call {
+	return &MockResumeService_SwitchDefaultResume_Call{Call: _e.mock.On("SwitchDefaultResume", ctx, req)}
+}
+
+func (_c *MockResumeService_SwitchDefaultResume_Call) Run(run func(ctx context.Context, req *entities.SwitchDefaultResumeRequest)) *MockResumeService_SwitchDefaultResume_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.SwitchDefaultResumeRequest))
+	})
+	return _c
+}
+
+func (_c *MockResumeService_SwitchDefaultResume_Call) Return(_a0 error) *MockResumeService_SwitchDefaultResume_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockResumeService_SwitchDefaultResume_Call) RunAndReturn(run func(context.Context, *entities.SwitchDefaultResumeRequest) error) *MockResumeService_SwitchDefaultResume_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockResumeService creates a new instance of MockResumeService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockResumeService(t interface {

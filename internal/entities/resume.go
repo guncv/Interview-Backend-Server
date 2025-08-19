@@ -15,20 +15,38 @@ type CreateResumeWithRequirementsRequest struct {
 	Language        string                `form:"language" binding:"required"`
 }
 
-type GetListResumeResponse struct {
+type ListResumeRequest struct {
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+type ListResumeResponse struct {
 	DefaultResume GetListResumeByIdResponse   `json:"default_resume"`
 	Resumes       []GetListResumeByIdResponse `json:"resumes"`
 }
 
 type GetListResumeByIdResponse struct {
-	ID        string    `json:"id"`
-	FileName  string    `json:"file_name"`
-	MimeType  string    `json:"mime_type"`
-	ByteSize  int32     `json:"byte_size"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string `json:"id"`
+	FileName  string `json:"file_name"`
+	MimeType  string `json:"mime_type"`
+	ByteSize  int32  `json:"byte_size"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type SwitchDefaultResumeRequest struct {
 	ResumeID string `json:"resume_id" binding:"required"`
+}
+
+type GetResumeByIDRequest struct {
+	ResumeID string `json:"resume_id" binding:"required"`
+}
+
+type GetResumeByIDResponse struct {
+	ID        string `json:"id"`
+	FileName  string `json:"file_name"`
+	MimeType  string `json:"mime_type"`
+	ByteSize  int32  `json:"byte_size"`
+	FileUrl   string `json:"file_url"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }

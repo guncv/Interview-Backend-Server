@@ -34,6 +34,10 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeResumeInvalidFileSize:        ErrHttpCodeBadRequest,
 	ErrCodeResumeInvalidFileContentType: ErrHttpCodeBadRequest,
 	ErrCodeResumeUploadFailed:           ErrHttpCodeInternalServerError,
+	ErrCodeResumeAlreadyExists:          ErrHttpCodeBadRequest,
+	ErrCodeResumeNotFound:               ErrHttpCodeNotFound,
+	ErrCodeResumeInvalidID:              ErrHttpCodeBadRequest,
+	ErrCodeResumeInvalidRequest:         ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -70,4 +74,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeResumeInvalidFileSize:        ErrMessageResumeInvalidFileSize,
 	ErrCodeResumeInvalidFileContentType: ErrMessageResumeInvalidFileContentType,
 	ErrCodeResumeUploadFailed:           ErrMessageResumeUploadFailed,
+	ErrCodeResumeAlreadyExists:          ErrMessageResumeAlreadyExists,
+	ErrCodeResumeNotFound:               ErrMessageResumeNotFound,
+	ErrCodeResumeInvalidID:              ErrMessageResumeInvalidID,
+	ErrCodeResumeInvalidRequest:         ErrMessageResumeInvalidRequest,
 }

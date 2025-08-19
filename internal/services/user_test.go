@@ -1641,7 +1641,7 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				// Note: The service only logs a warning when the second Redis delete fails
 				// and returns nil (no error), so we expect no error here
-				assert.Error(t, gotErr)
+				assert.NoError(t, gotErr)
 			},
 		},
 		{

@@ -85,6 +85,10 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
+	if err := c.Container.Provide(aws.NewS3Storage); err != nil {
+		c.Error = err
+	}
+
 	if err := c.Container.Provide(queue.NewRedisTaskConsumer); err != nil {
 		c.Error = err
 	}
@@ -106,10 +110,6 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(utils.NewCookies); err != nil {
-		c.Error = err
-	}
-
-	if err := c.Container.Provide(aws.NewS3Storage); err != nil {
 		c.Error = err
 	}
 }

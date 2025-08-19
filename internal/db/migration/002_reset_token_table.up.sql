@@ -3,9 +3,9 @@ CREATE TABLE reset_tokens (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash VARCHAR(100) NOT NULL,
     used BOOLEAN NOT NULL DEFAULT false,
-    requested_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    used_at TIMESTAMP WITH TIME ZONE,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    requested_at TIMESTAMPTZ DEFAULT now(),
+    used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ NOT NULL,
     ip_address VARCHAR(45),
     user_agent VARCHAR(256),
     UNIQUE(token_hash)
