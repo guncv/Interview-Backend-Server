@@ -187,29 +187,29 @@ func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) RunAndReturn(run fun
 	return _c
 }
 
-// GetListResumeByUserID provides a mock function with given fields: ctx, userID
-func (_m *MockResumeReposity) GetListResumeByUserID(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
-	ret := _m.Called(ctx, userID)
+// GetResumeByID provides a mock function with given fields: ctx, id
+func (_m *MockResumeReposity) GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error) {
+	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetListResumeByUserID")
+		panic("no return value specified for GetResumeByID")
 	}
 
-	var r0 []db.Resumes
+	var r0 *db.Resumes
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.Resumes, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.Resumes, error)); ok {
+		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.Resumes); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.Resumes); ok {
+		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]db.Resumes)
+			r0 = ret.Get(0).(*db.Resumes)
 		}
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, userID)
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -217,31 +217,31 @@ func (_m *MockResumeReposity) GetListResumeByUserID(ctx context.Context, userID 
 	return r0, r1
 }
 
-// MockResumeReposity_GetListResumeByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetListResumeByUserID'
-type MockResumeReposity_GetListResumeByUserID_Call struct {
+// MockResumeReposity_GetResumeByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResumeByID'
+type MockResumeReposity_GetResumeByID_Call struct {
 	*mock.Call
 }
 
-// GetListResumeByUserID is a helper method to define mock.On call
+// GetResumeByID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - userID uuid.UUID
-func (_e *MockResumeReposity_Expecter) GetListResumeByUserID(ctx interface{}, userID interface{}) *MockResumeReposity_GetListResumeByUserID_Call {
-	return &MockResumeReposity_GetListResumeByUserID_Call{Call: _e.mock.On("GetListResumeByUserID", ctx, userID)}
+//   - id uuid.UUID
+func (_e *MockResumeReposity_Expecter) GetResumeByID(ctx interface{}, id interface{}) *MockResumeReposity_GetResumeByID_Call {
+	return &MockResumeReposity_GetResumeByID_Call{Call: _e.mock.On("GetResumeByID", ctx, id)}
 }
 
-func (_c *MockResumeReposity_GetListResumeByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *MockResumeReposity_GetListResumeByUserID_Call {
+func (_c *MockResumeReposity_GetResumeByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockResumeReposity_GetResumeByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockResumeReposity_GetListResumeByUserID_Call) Return(_a0 []db.Resumes, _a1 error) *MockResumeReposity_GetListResumeByUserID_Call {
+func (_c *MockResumeReposity_GetResumeByID_Call) Return(_a0 *db.Resumes, _a1 error) *MockResumeReposity_GetResumeByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockResumeReposity_GetListResumeByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.Resumes, error)) *MockResumeReposity_GetListResumeByUserID_Call {
+func (_c *MockResumeReposity_GetResumeByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.Resumes, error)) *MockResumeReposity_GetResumeByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -301,6 +301,124 @@ func (_c *MockResumeReposity_GetResumeJsonWithSummaryData_Call) Return(_a0 *repo
 }
 
 func (_c *MockResumeReposity_GetResumeJsonWithSummaryData_Call) RunAndReturn(run func(context.Context, *repositories.GetResumeJsonWithSummaryDataReq) (*repositories.GetResumeJsonWithSummaryDataResponse, error)) *MockResumeReposity_GetResumeJsonWithSummaryData_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListResumeByUserIDFirstPage provides a mock function with given fields: ctx, userID
+func (_m *MockResumeReposity) ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListResumeByUserIDFirstPage")
+	}
+
+	var r0 []db.Resumes
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.Resumes, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.Resumes); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.Resumes)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockResumeReposity_ListResumeByUserIDFirstPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListResumeByUserIDFirstPage'
+type MockResumeReposity_ListResumeByUserIDFirstPage_Call struct {
+	*mock.Call
+}
+
+// ListResumeByUserIDFirstPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+func (_e *MockResumeReposity_Expecter) ListResumeByUserIDFirstPage(ctx interface{}, userID interface{}) *MockResumeReposity_ListResumeByUserIDFirstPage_Call {
+	return &MockResumeReposity_ListResumeByUserIDFirstPage_Call{Call: _e.mock.On("ListResumeByUserIDFirstPage", ctx, userID)}
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDFirstPage_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *MockResumeReposity_ListResumeByUserIDFirstPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDFirstPage_Call) Return(_a0 []db.Resumes, _a1 error) *MockResumeReposity_ListResumeByUserIDFirstPage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDFirstPage_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.Resumes, error)) *MockResumeReposity_ListResumeByUserIDFirstPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListResumeByUserIDPaginated provides a mock function with given fields: ctx, req
+func (_m *MockResumeReposity) ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListResumeByUserIDPaginated")
+	}
+
+	var r0 []db.Resumes
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListResumeByUserIDPaginatedParams) []db.Resumes); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.Resumes)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.ListResumeByUserIDPaginatedParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockResumeReposity_ListResumeByUserIDPaginated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListResumeByUserIDPaginated'
+type MockResumeReposity_ListResumeByUserIDPaginated_Call struct {
+	*mock.Call
+}
+
+// ListResumeByUserIDPaginated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.ListResumeByUserIDPaginatedParams
+func (_e *MockResumeReposity_Expecter) ListResumeByUserIDPaginated(ctx interface{}, req interface{}) *MockResumeReposity_ListResumeByUserIDPaginated_Call {
+	return &MockResumeReposity_ListResumeByUserIDPaginated_Call{Call: _e.mock.On("ListResumeByUserIDPaginated", ctx, req)}
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDPaginated_Call) Run(run func(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams)) *MockResumeReposity_ListResumeByUserIDPaginated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.ListResumeByUserIDPaginatedParams))
+	})
+	return _c
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDPaginated_Call) Return(_a0 []db.Resumes, _a1 error) *MockResumeReposity_ListResumeByUserIDPaginated_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockResumeReposity_ListResumeByUserIDPaginated_Call) RunAndReturn(run func(context.Context, *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)) *MockResumeReposity_ListResumeByUserIDPaginated_Call {
 	_c.Call.Return(run)
 	return _c
 }
