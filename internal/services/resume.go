@@ -76,6 +76,11 @@ func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *e
 		return app_error.New(errors.New("invalid file type"), app_error.ErrCodeResumeInvalidFileContentType)
 	}
 
+	if req.File.Size <= 0 {
+		s.log.ErrorWithID(ctx, "[Service: CreateResume] Invalid file size", errors.New("file size must be greater than 0"))
+		return app_error.New(errors.New("file size must be greater than 0"), app_error.ErrCodeResumeInvalidFileSize)
+	}
+
 	if req.File.Size > int64(constants.ResumeMaxFileSize) {
 		s.log.ErrorWithID(ctx, "[Service: CreateResume] File size is too large", errors.New("file size is too large"))
 		return app_error.New(errors.New("file size is too large"), app_error.ErrCodeResumeInvalidFileSize)
@@ -312,7 +317,13 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error) {
 	s.log.InfoWithID(ctx, "[Service: GetResumeByID] Called")
 
-	resume, err := s.resumeRepo.GetResumeByID(ctx, uuid.MustParse(req.ResumeID))
+	resumeID, err := uuid.Parse(req.ResumeID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetResumeByID] Invalid UUID format", err)
+		return nil, app_error.New(err, app_error.ErrCodeResumeInvalidID)
+	}
+
+	resume, err := s.resumeRepo.GetResumeByID(ctx, resumeID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: GetResumeByID] Error getting resume", err)
 		return nil, err
