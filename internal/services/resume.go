@@ -26,6 +26,7 @@ type ResumeService interface {
 	CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) error
 	ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error)
 	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
+	GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)
 }
 
 type resumeService struct {
@@ -306,4 +307,32 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	}
 
 	return nil
+}
+
+func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: GetResumeByID] Called")
+
+	resume, err := s.resumeRepo.GetResumeByID(ctx, uuid.MustParse(req.ResumeID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetResumeByID] Error getting resume", err)
+		return nil, err
+	}
+
+	fileUrl, err := s.s3Storage.GeneratePresignedURL(ctx, resume.StorageKey, constants.S3PresignedURLTTL)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetResumeByID] Error getting file URL", err)
+		return nil, err
+	}
+
+	resp := entities.GetResumeByIDResponse{
+		ID:        resume.ID.String(),
+		FileName:  resume.FileName,
+		MimeType:  resume.MimeType,
+		ByteSize:  resume.ByteSize,
+		FileUrl:   fileUrl,
+		CreatedAt: resume.CreatedAt,
+		UpdatedAt: resume.UpdatedAt,
+	}
+
+	return &resp, nil
 }

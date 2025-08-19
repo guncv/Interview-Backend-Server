@@ -39,6 +39,9 @@ const (
 	ErrCodeResumeInvalidFileContentType ErrorCode = "ONX0301"
 	ErrCodeResumeUploadFailed           ErrorCode = "ONX0302"
 	ErrCodeResumeAlreadyExists          ErrorCode = "ONX0303"
+	ErrCodeResumeNotFound               ErrorCode = "ONX0304"
+	ErrCodeResumeInvalidID              ErrorCode = "ONX0305"
+	ErrCodeResumeInvalidRequest         ErrorCode = "ONX0306"
 )
 
 func (c ErrorCode) Message() string {

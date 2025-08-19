@@ -3,6 +3,7 @@ package repositories
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,7 +23,7 @@ type ResumeReposity interface {
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
-	GetResumeByID(ctx context.Context, id uuid.UUID) (db.Resumes, error)
+	GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
 	GetResumeJsonWithSummaryData(ctx context.Context, req *GetResumeJsonWithSummaryDataReq) (*GetResumeJsonWithSummaryDataResponse, error)
@@ -89,15 +90,20 @@ func (r *resumeRepository) CheckIsDefaultResumeExistsByUserID(ctx context.Contex
 	return exists, nil
 }
 
-func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (db.Resumes, error) {
+func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetResumeByID] Called")
 
 	resume, err := r.db.GetResumeByID(ctx, id)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			r.log.ErrorWithID(ctx, "[Repository: GetResumeByID] Resume not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeResumeNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: GetResumeByID] Error getting resume", err)
-		return db.Resumes{}, app_error.HandleDatabaseError(err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return resume, nil
+	return &resume, nil
 }
 
 func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {

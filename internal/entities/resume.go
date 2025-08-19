@@ -36,3 +36,17 @@ type GetListResumeByIdResponse struct {
 type SwitchDefaultResumeRequest struct {
 	ResumeID string `json:"resume_id" binding:"required"`
 }
+
+type GetResumeByIDRequest struct {
+	ResumeID string `json:"resume_id" binding:"required"`
+}
+
+type GetResumeByIDResponse struct {
+	ID        string    `json:"id"`
+	FileName  string    `json:"file_name"`
+	MimeType  string    `json:"mime_type"`
+	ByteSize  int32     `json:"byte_size"`
+	FileUrl   string    `json:"file_url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}

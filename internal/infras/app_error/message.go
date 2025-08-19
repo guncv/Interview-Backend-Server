@@ -37,4 +37,7 @@ const (
 	ErrMessageResumeInvalidFileContentType ErrorMessage = "The file type is not supported. Please try again with a supported file type."
 	ErrMessageResumeUploadFailed           ErrorMessage = "Failed to upload the file. Please try again."
 	ErrMessageResumeAlreadyExists          ErrorMessage = "You already have a resume. Please switch to the existing resume or create a new one."
+	ErrMessageResumeNotFound               ErrorMessage = "The resume was not found. Please try again."
+	ErrMessageResumeInvalidID              ErrorMessage = "The resume ID is invalid. Please try again."
+	ErrMessageResumeInvalidRequest         ErrorMessage = "The request is invalid. Please try again."
 )
