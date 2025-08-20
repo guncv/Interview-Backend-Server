@@ -28,7 +28,6 @@ CREATE TABLE interview_sessions (
     ended_at TIMESTAMPTZ,
     overall_score NUMERIC(5,2),
     summary_md TEXT,
-    metrics JSONB DEFAULT '{}'::jsonb,
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),

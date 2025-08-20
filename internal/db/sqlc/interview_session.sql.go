@@ -10,7 +10,6 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 )
 
 const abortInterviewSession = `-- name: AbortInterviewSession :execrows
@@ -38,17 +37,15 @@ UPDATE interview_sessions
 SET status = 'cancelled',
     ended_at = $2,
     overall_score = $3,
-    summary_md = $4,
-    metrics = $5
+    summary_md = $4
 WHERE id = $1
 `
 
 type CancelInterviewSessionParams struct {
-	ID           uuid.UUID             `json:"id"`
-	EndedAt      sql.NullTime          `json:"ended_at"`
-	OverallScore sql.NullString        `json:"overall_score"`
-	SummaryMd    sql.NullString        `json:"summary_md"`
-	Metrics      pqtype.NullRawMessage `json:"metrics"`
+	ID           uuid.UUID      `json:"id"`
+	EndedAt      sql.NullTime   `json:"ended_at"`
+	OverallScore sql.NullString `json:"overall_score"`
+	SummaryMd    sql.NullString `json:"summary_md"`
 }
 
 func (q *Queries) CancelInterviewSession(ctx context.Context, arg CancelInterviewSessionParams) (int64, error) {
@@ -57,7 +54,6 @@ func (q *Queries) CancelInterviewSession(ctx context.Context, arg CancelIntervie
 		arg.EndedAt,
 		arg.OverallScore,
 		arg.SummaryMd,
-		arg.Metrics,
 	)
 	if err != nil {
 		return 0, err
@@ -107,17 +103,15 @@ UPDATE interview_sessions
 SET status = 'completed',
     ended_at = $2,
     overall_score = $3,
-    summary_md = $4,
-    metrics = $5
+    summary_md = $4
 WHERE id = $1
 `
 
 type FinishInterviewSessionParams struct {
-	ID           uuid.UUID             `json:"id"`
-	EndedAt      sql.NullTime          `json:"ended_at"`
-	OverallScore sql.NullString        `json:"overall_score"`
-	SummaryMd    sql.NullString        `json:"summary_md"`
-	Metrics      pqtype.NullRawMessage `json:"metrics"`
+	ID           uuid.UUID      `json:"id"`
+	EndedAt      sql.NullTime   `json:"ended_at"`
+	OverallScore sql.NullString `json:"overall_score"`
+	SummaryMd    sql.NullString `json:"summary_md"`
 }
 
 func (q *Queries) FinishInterviewSession(ctx context.Context, arg FinishInterviewSessionParams) (int64, error) {
@@ -126,7 +120,6 @@ func (q *Queries) FinishInterviewSession(ctx context.Context, arg FinishIntervie
 		arg.EndedAt,
 		arg.OverallScore,
 		arg.SummaryMd,
-		arg.Metrics,
 	)
 	if err != nil {
 		return 0, err

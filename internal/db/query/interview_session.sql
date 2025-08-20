@@ -16,8 +16,7 @@ UPDATE interview_sessions
 SET status = 'completed',
     ended_at = $2,
     overall_score = $3,
-    summary_md = $4,
-    metrics = $5
+    summary_md = $4
 WHERE id = $1;
 
 -- name: AbortInterviewSession :execrows
@@ -31,6 +30,5 @@ UPDATE interview_sessions
 SET status = 'cancelled',
     ended_at = $2,
     overall_score = $3,
-    summary_md = $4,
-    metrics = $5
+    summary_md = $4
 WHERE id = $1;
