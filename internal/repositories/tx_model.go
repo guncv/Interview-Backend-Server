@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"database/sql"
-	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 )
 
 type SignInUserByEmailAndPasswordTxModel struct {
@@ -36,7 +36,7 @@ type GetResumeJsonWithSummaryDataReq struct {
 	JobRequirements string
 	InterviewType   string
 	Language        string
-	ResumeFile      *multipart.FileHeader
+	ResumeFile      *aws.CustomFileHeader
 }
 
 type GetResumeJsonWithSummaryDataResponse struct {

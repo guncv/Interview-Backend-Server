@@ -22,6 +22,65 @@ func (_m *MockInterviewSessionService) EXPECT() *MockInterviewSessionService_Exp
 	return &MockInterviewSessionService_Expecter{mock: &_m.Mock}
 }
 
+// CreateInterviewSessionWithExistingResume provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateInterviewSessionWithExistingResume")
+	}
+
+	var r0 *entities.CreateInterviewSessionWithExistingResumeResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateInterviewSessionWithExistingResumeReq) *entities.CreateInterviewSessionWithExistingResumeResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.CreateInterviewSessionWithExistingResumeResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.CreateInterviewSessionWithExistingResumeReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInterviewSessionWithExistingResume'
+type MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call struct {
+	*mock.Call
+}
+
+// CreateInterviewSessionWithExistingResume is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.CreateInterviewSessionWithExistingResumeReq
+func (_e *MockInterviewSessionService_Expecter) CreateInterviewSessionWithExistingResume(ctx interface{}, req interface{}) *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call {
+	return &MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call{Call: _e.mock.On("CreateInterviewSessionWithExistingResume", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call) Run(run func(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq)) *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.CreateInterviewSessionWithExistingResumeReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call) Return(_a0 *entities.CreateInterviewSessionWithExistingResumeResp, _a1 error) *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call) RunAndReturn(run func(context.Context, *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)) *MockInterviewSessionService_CreateInterviewSessionWithExistingResume_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateInterviewSessionWithNewResume provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error) {
 	ret := _m.Called(ctx, req)

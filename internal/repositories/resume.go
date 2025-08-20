@@ -213,7 +213,7 @@ func (r *resumeRepository) GetResumeJsonWithSummaryData(ctx context.Context, req
 
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] HTTP request failed", err)

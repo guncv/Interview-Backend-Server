@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
@@ -86,25 +88,50 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	)
 
 	g.Go(func() error {
-		createResumeReq := &entities.CreateResumeWithRequirementsRequest{
-			File:            req.File,
-			Position:        req.Position,
-			Company:         req.Company,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-		}
-		resp, err := s.resumeService.CreateResumeWithRequirements(gctx, createResumeReq)
+		key, err := s.s3Storage.UploadFile(gctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
 		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error creating resume with requirements", err)
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
 			return err
 		}
-		createdResp = resp
+
+		isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(gctx, uuid.MustParse(authCtx.Payload.UserID))
+		if err != nil {
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error checking if default resume exists", err)
+			return err
+		}
+
+		createResumeAndJobRequirementReq := &repositories.CreateResumeAndJobRequirementReq{
+			ResumeID:   s.generator.GenerateUUID(gctx),
+			UserID:     uuid.MustParse(authCtx.Payload.UserID),
+			FileName:   req.File.Filename,
+			StorageKey: key,
+			MimeType:   req.File.Header.Get("Content-Type"),
+			ByteSize:   int32(req.File.Size),
+			IsDefault:  !isDefaultResume,
+
+			JobRequirementID: s.generator.GenerateUUID(gctx),
+			Position:         req.Position,
+			CompanyName:      req.Company,
+			WorkType:         req.WorkType,
+			JobRequirements:  req.JobRequirements,
+			InterviewType:    req.InterviewType,
+			Language:         req.Language,
+		}
+
+		if err := s.resumeRepo.CreateResumeAndJobRequirement(gctx, createResumeAndJobRequirementReq); err != nil {
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error creating resume and job requirement", err)
+			return err
+		}
+		createdResp = &entities.CreateResumeAndJobRequirementResp{
+			ResumeID:         createResumeAndJobRequirementReq.ResumeID.String(),
+			JobRequirementID: createResumeAndJobRequirementReq.JobRequirementID.String(),
+		}
 		return nil
 	})
 
 	g.Go(func() error {
+		customFileHeader := s.convertToCustomFileHeader(req.File)
+
 		getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
 			SessionID:       s.generator.GenerateUUID(gctx),
 			Position:        req.Position,
@@ -113,7 +140,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 			JobRequirements: req.JobRequirements,
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
-			ResumeFile:      req.File,
+			ResumeFile:      customFileHeader,
 		}
 		sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(gctx, getSummaryJsonReq)
 		if err != nil {
@@ -284,4 +311,24 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 
 	resp := &entities.CreateInterviewSessionWithExistingResumeResp{SessionToken: token}
 	return resp, nil
+}
+
+func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	fileContent, err := io.ReadAll(file)
+	if err != nil {
+		return nil
+	}
+
+	return aws.NewCustomFileHeader(
+		fileHeader.Filename,
+		fileHeader.Size,
+		fileHeader.Header,
+		fileContent,
+	)
 }

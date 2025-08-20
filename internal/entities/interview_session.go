@@ -24,13 +24,13 @@ type CreateInterviewSessionWithNewResumeResponse struct {
 
 type CreateInterviewSessionWithExistingResumeReq struct {
 	ResumeID        string    `json:"resume_id" binding:"required"`
-	Position        string    `form:"position" binding:"required"`
-	Company         string    `form:"company" binding:"required"`
-	WorkType        string    `form:"work_type" binding:"required"`
-	JobRequirements string    `form:"job_requirements" binding:"required"`
-	InterviewType   string    `form:"interview_type" binding:"required"`
-	Language        string    `form:"language" binding:"required"`
-	ConsentAt       time.Time `form:"consent_at" binding:"required"`
+	Position        string    `json:"position" binding:"required"`
+	Company         string    `json:"company" binding:"required"`
+	WorkType        string    `json:"work_type" binding:"required"`
+	JobRequirements string    `json:"job_requirements" binding:"required"`
+	InterviewType   string    `json:"interview_type" binding:"required"`
+	Language        string    `json:"language" binding:"required"`
+	ConsentAt       time.Time `json:"consent_at" binding:"required"`
 }
 
 type CreateInterviewSessionWithExistingResumeResp struct {

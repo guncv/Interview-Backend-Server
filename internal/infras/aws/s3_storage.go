@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -19,11 +20,59 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
+type CustomFileHeader struct {
+	Filename    string
+	Size        int64
+	Header      map[string][]string
+	FileContent []byte
+}
+
+func NewCustomFileHeader(filename string, size int64, header map[string][]string, fileContent []byte) *CustomFileHeader {
+	return &CustomFileHeader{
+		Filename:    filename,
+		Size:        size,
+		Header:      header,
+		FileContent: fileContent,
+	}
+}
+
+func (f *CustomFileHeader) Open() (multipart.File, error) {
+	return &CustomFile{
+		content: bytes.NewReader(f.FileContent),
+		header:  f,
+	}, nil
+}
+
+type CustomFile struct {
+	content *bytes.Reader
+	header  *CustomFileHeader
+}
+
+func (f *CustomFile) Read(p []byte) (n int, err error) {
+	return f.content.Read(p)
+}
+
+func (f *CustomFile) Seek(offset int64, whence int) (int64, error) {
+	return f.content.Seek(offset, whence)
+}
+
+func (f *CustomFile) Close() error {
+	return nil
+}
+
+func (f *CustomFile) ReadAt(p []byte, off int64) (n int, err error) {
+	return f.content.ReadAt(p, off)
+}
+
+func (f *CustomFile) WriteTo(w io.Writer) (n int64, err error) {
+	return f.content.WriteTo(w)
+}
+
 type S3Storage interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, key string, userID string) (string, error)
 	GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error)
 	DeleteFile(ctx context.Context, key string) error
-	DownloadFile(ctx context.Context, key string) (*multipart.FileHeader, error)
+	DownloadFile(ctx context.Context, key string) (*CustomFileHeader, error)
 }
 
 type DeleteFilePayload struct {
@@ -126,7 +175,7 @@ func (s *s3Storage) DeleteFile(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *s3Storage) DownloadFile(ctx context.Context, key string) (*multipart.FileHeader, error) {
+func (s *s3Storage) DownloadFile(ctx context.Context, key string) (*CustomFileHeader, error) {
 	s.log.InfoWithID(ctx, "[S3: DownloadFile] Downloading file Called: ", key)
 
 	result, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
@@ -150,17 +199,16 @@ func (s *s3Storage) DownloadFile(ctx context.Context, key string) (*multipart.Fi
 		filename = "downloaded_file"
 	}
 
-	fileHeader := &multipart.FileHeader{
-		Filename: filename,
-		Size:     int64(len(fileContent)),
-		Header:   make(map[string][]string),
-	}
+	fileHeader := NewCustomFileHeader(
+		filename,
+		int64(len(fileContent)),
+		make(map[string][]string),
+		fileContent,
+	)
 
 	if result.ContentType != nil {
-		fileHeader.Header.Set("Content-Type", *result.ContentType)
+		fileHeader.Header["Content-Type"] = []string{*result.ContentType}
 	}
-
-	fileHeader.Header.Set("X-File-Content", string(fileContent))
 
 	return fileHeader, nil
 }

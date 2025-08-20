@@ -4,9 +4,12 @@ package aws
 
 import (
 	context "context"
-	multipart "mime/multipart"
+
+	aws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 
 	mock "github.com/stretchr/testify/mock"
+
+	multipart "mime/multipart"
 
 	time "time"
 )
@@ -72,23 +75,23 @@ func (_c *MockS3Storage_DeleteFile_Call) RunAndReturn(run func(context.Context, 
 }
 
 // DownloadFile provides a mock function with given fields: ctx, key
-func (_m *MockS3Storage) DownloadFile(ctx context.Context, key string) (*multipart.FileHeader, error) {
+func (_m *MockS3Storage) DownloadFile(ctx context.Context, key string) (*aws.CustomFileHeader, error) {
 	ret := _m.Called(ctx, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DownloadFile")
 	}
 
-	var r0 *multipart.FileHeader
+	var r0 *aws.CustomFileHeader
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*multipart.FileHeader, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*aws.CustomFileHeader, error)); ok {
 		return rf(ctx, key)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *multipart.FileHeader); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *aws.CustomFileHeader); ok {
 		r0 = rf(ctx, key)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*multipart.FileHeader)
+			r0 = ret.Get(0).(*aws.CustomFileHeader)
 		}
 	}
 
@@ -120,12 +123,12 @@ func (_c *MockS3Storage_DownloadFile_Call) Run(run func(ctx context.Context, key
 	return _c
 }
 
-func (_c *MockS3Storage_DownloadFile_Call) Return(_a0 *multipart.FileHeader, _a1 error) *MockS3Storage_DownloadFile_Call {
+func (_c *MockS3Storage_DownloadFile_Call) Return(_a0 *aws.CustomFileHeader, _a1 error) *MockS3Storage_DownloadFile_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockS3Storage_DownloadFile_Call) RunAndReturn(run func(context.Context, string) (*multipart.FileHeader, error)) *MockS3Storage_DownloadFile_Call {
+func (_c *MockS3Storage_DownloadFile_Call) RunAndReturn(run func(context.Context, string) (*aws.CustomFileHeader, error)) *MockS3Storage_DownloadFile_Call {
 	_c.Call.Return(run)
 	return _c
 }
