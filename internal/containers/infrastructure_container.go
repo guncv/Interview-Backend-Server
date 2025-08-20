@@ -12,6 +12,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/server"
+	ws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 	"gorm.io/gorm"
@@ -110,6 +111,10 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(utils.NewCookies); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(ws.NewWebSocketClient); err != nil {
 		c.Error = err
 	}
 }

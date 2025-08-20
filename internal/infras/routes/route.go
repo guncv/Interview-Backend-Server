@@ -25,10 +25,12 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 		userHandler *handlers.UserHandler,
 		authMiddleware middleware.AuthMiddleware,
 		resumeHandler *handlers.ResumeHandler,
+		websocketHandler *handlers.WebSocketHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
 		resumeRoutes(api_v1, resumeHandler, authMiddleware)
+		websocketRoutes(api_v1, websocketHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -56,8 +58,15 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 
 	{
 		resumeMiddleRoutes.POST("", resumeHandler.CreateResume)
-		resumeMiddleRoutes.GET("", resumeHandler.ListResume)
 		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 		resumeMiddleRoutes.GET("/:id", resumeHandler.GetResumeByID)
+	}
+}
+
+func websocketRoutes(eg *gin.RouterGroup, websocketHandler *handlers.WebSocketHandler, authMiddleware middleware.AuthMiddleware) {
+	websocketRoutes := eg.Group("/ws").Use(authMiddleware.AuthMiddleware())
+
+	{
+		websocketRoutes.GET("/connect", websocketHandler.HandleWebSocket)
 	}
 }
