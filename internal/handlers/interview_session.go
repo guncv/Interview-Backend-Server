@@ -58,3 +58,30 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Con
 
 	c.JSON(http.StatusCreated, resp)
 }
+
+func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Called")
+
+	var req entities.CreateInterviewSessionWithExistingResumeReq
+	if err := h.validator.ValidateAndBind(c, &req, "CreateInterviewSessionWithExistingResume"); err != nil {
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.interviewSessionService.CreateInterviewSessionWithExistingResume(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Error creating interview session", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, resp)
+}

@@ -13,3 +13,6 @@ INSERT INTO job_requirements (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 );
+
+-- name: DeleteJobRequirement :exec
+DELETE FROM job_requirements WHERE id = $1;

@@ -25,6 +25,7 @@ type Querier interface {
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
+	DeleteJobRequirement(ctx context.Context, id uuid.UUID) error
 	FinishInterviewSession(ctx context.Context, arg FinishInterviewSessionParams) (int64, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)

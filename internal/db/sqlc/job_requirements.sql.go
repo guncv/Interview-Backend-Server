@@ -57,3 +57,12 @@ func (q *Queries) CreateJobRequirement(ctx context.Context, arg CreateJobRequire
 	)
 	return err
 }
+
+const deleteJobRequirement = `-- name: DeleteJobRequirement :exec
+DELETE FROM job_requirements WHERE id = $1
+`
+
+func (q *Queries) DeleteJobRequirement(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteJobRequirement, id)
+	return err
+}

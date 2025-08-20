@@ -69,6 +69,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 
 	{
 		interviewSessionMiddleRoutes.POST("/", interviewSessionHandler.CreateInterviewSessionWithNewResume)
+		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 	}
 }
 

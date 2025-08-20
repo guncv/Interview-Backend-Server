@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
@@ -9,14 +10,17 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
+	"golang.org/x/sync/errgroup"
 )
 
 type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
+	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
 }
 
 type interviewSessionService struct {
@@ -28,6 +32,8 @@ type interviewSessionService struct {
 	interviewSessionRepo repositories.InterviewSessionRepository
 	jwtMaker             utils.JwtToken
 	config               *config.Config
+	s3Storage            aws.S3Storage
+	jobRequirementRepo   repositories.JobRequirementRepository
 }
 
 func NewInterviewSessionService(
@@ -39,6 +45,8 @@ func NewInterviewSessionService(
 	interviewSessionRepo repositories.InterviewSessionRepository,
 	jwtMaker utils.JwtToken,
 	config *config.Config,
+	s3Storage aws.S3Storage,
+	jobRequirementRepo repositories.JobRequirementRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -49,10 +57,15 @@ func NewInterviewSessionService(
 		interviewSessionRepo: interviewSessionRepo,
 		jwtMaker:             jwtMaker,
 		config:               config,
+		s3Storage:            s3Storage,
+		jobRequirementRepo:   jobRequirementRepo,
 	}
 }
 
-func (s *interviewSessionService) CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error) {
+func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
+	ctx context.Context,
+	req *entities.CreateInterviewSessionWithNewResumeRequest,
+) (*entities.CreateInterviewSessionWithNewResumeResponse, error) {
 	s.log.InfoWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
@@ -61,12 +74,17 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(ctx contex
 		return nil, err
 	}
 
-	resumeErrChan := make(chan error, 1)
-	resumeChan := make(chan *entities.CreateResumeAndJobRequirementResp, 1)
-	summaryJsonChan := make(chan *repositories.GetResumeJsonWithSummaryDataResponse, 1)
-	summaryErrChan := make(chan error, 1)
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
 
-	go func() {
+	g, gctx := errgroup.WithContext(ctx)
+
+	var (
+		createdResp *entities.CreateResumeAndJobRequirementResp
+		summaryJson *repositories.GetResumeJsonWithSummaryDataResponse
+	)
+
+	g.Go(func() error {
 		createResumeReq := &entities.CreateResumeWithRequirementsRequest{
 			File:            req.File,
 			Position:        req.Position,
@@ -76,21 +94,18 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(ctx contex
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
 		}
-
-		resp, err := s.resumeService.CreateResumeWithRequirements(ctx, createResumeReq)
+		resp, err := s.resumeService.CreateResumeWithRequirements(gctx, createResumeReq)
 		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating resume", err)
-			resumeErrChan <- err
-			return
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error creating resume with requirements", err)
+			return err
 		}
+		createdResp = resp
+		return nil
+	})
 
-		resumeChan <- resp
-		resumeErrChan <- nil
-	}()
-
-	go func() {
+	g.Go(func() error {
 		getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
-			SessionID:       s.generator.GenerateUUID(ctx),
+			SessionID:       s.generator.GenerateUUID(gctx),
 			Position:        req.Position,
 			Company:         req.Company,
 			WorkType:        req.WorkType,
@@ -99,61 +114,161 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(ctx contex
 			Language:        req.Language,
 			ResumeFile:      req.File,
 		}
-
-		summaryJson, err := s.resumeRepo.GetResumeJsonWithSummaryData(ctx, getSummaryJsonReq)
+		sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(gctx, getSummaryJsonReq)
 		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error getting resume json with summary data", err)
-			summaryErrChan <- err
-			return
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error getting resume json with summary data", err)
+			return err
 		}
-		summaryJsonChan <- summaryJson
-		summaryErrChan <- nil
-	}()
+		summaryJson = sj
+		return nil
+	})
 
-	resumeErr := <-resumeErrChan
-	summaryErr := <-summaryErrChan
-
-	if resumeErr != nil {
-		return nil, resumeErr
-	}
-	if summaryErr != nil {
-		return nil, summaryErr
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
-	summaryJson := <-summaryJsonChan
-	resume := <-resumeChan
-
-	createInterviewSessionReq := &db.CreateInterviewSessionParams{
+	params := &db.CreateInterviewSessionParams{
 		ID:            s.generator.GenerateUUID(ctx),
 		UserID:        uuid.MustParse(authCtx.Payload.UserID),
-		ResumeID:      uuid.MustParse(resume.ResumeID),
-		RequirementID: uuid.MustParse(resume.JobRequirementID),
+		ResumeID:      uuid.MustParse(createdResp.ResumeID),
+		RequirementID: uuid.MustParse(createdResp.JobRequirementID),
 		PromptJson:    pqtype.NullRawMessage{RawMessage: []byte(summaryJson.ParsedJson), Valid: true},
 		Status:        constants.StatusPending,
 		Modality:      constants.ModalityVoiceChat,
 		ConsentAt:     req.ConsentAt,
 	}
 
-	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionReq); err != nil {
+	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, params); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session", err)
 		return nil, err
 	}
 
+	tokenReq := &entities.CreateInterviewSessionTokenReq{
+		SessionID: params.ID,
+		UserID:    authCtx.Payload.UserID,
+		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	}
+	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, tokenReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session token", err)
+		return nil, err
+	}
+
+	return &entities.CreateInterviewSessionWithNewResumeResponse{SessionToken: token}, nil
+}
+
+func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
+	ctx context.Context,
+	req *entities.CreateInterviewSessionWithExistingResumeReq,
+) (*entities.CreateInterviewSessionWithExistingResumeResp, error) {
+	s.log.InfoWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting auth context", err)
+		return nil, err
+	}
+
+	resume, err := s.resumeRepo.GetResumeByID(ctx, uuid.MustParse(req.ResumeID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting resume", err)
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	var (
+		requirementID uuid.UUID
+		summaryJson   *repositories.GetResumeJsonWithSummaryDataResponse
+	)
+
+	g.Go(func() error {
+		id := s.generator.GenerateUUID(gctx)
+		createJobRequirementReq := &db.CreateJobRequirementParams{
+			ID:              id,
+			UserID:          uuid.MustParse(authCtx.Payload.UserID),
+			Position:        req.Position,
+			CompanyName:     req.Company,
+			WorkType:        req.WorkType,
+			JobRequirements: req.JobRequirements,
+			InterviewType:   req.InterviewType,
+			Language:        req.Language,
+		}
+		if err := s.jobRequirementRepo.CreateJobRequirement(gctx, createJobRequirementReq); err != nil {
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating job requirement", err)
+			return err
+		}
+		requirementID = id
+		return nil
+	})
+
+	g.Go(func() error {
+		resumeFile, err := s.s3Storage.DownloadFile(gctx, resume.StorageKey)
+		if err != nil {
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error downloading resume file", err)
+			return err
+		}
+
+		getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
+			SessionID:       s.generator.GenerateUUID(gctx),
+			Position:        req.Position,
+			Company:         req.Company,
+			WorkType:        req.WorkType,
+			JobRequirements: req.JobRequirements,
+			InterviewType:   req.InterviewType,
+			Language:        req.Language,
+			ResumeFile:      resumeFile,
+		}
+
+		sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(gctx, getSummaryJsonReq)
+		if err != nil {
+			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting resume json with summary data", err)
+			return err
+		}
+		summaryJson = sj
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		if requirementID != uuid.Nil {
+			if delErr := s.jobRequirementRepo.DeleteJobRequirement(ctx, requirementID); delErr != nil {
+				s.log.WarnWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Compensation delete job requirement failed", delErr)
+			}
+		}
+		return nil, err
+	}
+
+	createInterviewSessionParams := &db.CreateInterviewSessionParams{
+		ID:            s.generator.GenerateUUID(ctx),
+		UserID:        uuid.MustParse(authCtx.Payload.UserID),
+		ResumeID:      uuid.MustParse(req.ResumeID),
+		RequirementID: requirementID,
+		PromptJson:    pqtype.NullRawMessage{RawMessage: []byte(summaryJson.ParsedJson), Valid: true},
+		Status:        constants.StatusPending,
+		Modality:      constants.ModalityVoiceChat,
+		ConsentAt:     req.ConsentAt,
+	}
+
+	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionParams); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session", err)
+		return nil, err
+	}
+
 	createInterviewSessionTokenReq := &entities.CreateInterviewSessionTokenReq{
-		SessionID: createInterviewSessionReq.ID,
+		SessionID: createInterviewSessionParams.ID,
 		UserID:    authCtx.Payload.UserID,
 		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
 	}
 
 	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, createInterviewSessionTokenReq)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session token", err)
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session token", err)
 		return nil, err
 	}
 
-	resp := &entities.CreateInterviewSessionWithNewResumeResponse{
-		SessionToken: token,
-	}
-
+	resp := &entities.CreateInterviewSessionWithExistingResumeResp{SessionToken: token}
 	return resp, nil
 }
