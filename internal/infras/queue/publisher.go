@@ -8,6 +8,7 @@ import (
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
@@ -21,6 +22,7 @@ type RedisTaskPublisher interface {
 	PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error
 	PublishTaskSetRedis(ctx context.Context, payload *database.RedisPayload, opts ...asynq.Option) error
 	PublishTaskDeleteRedis(ctx context.Context, payload *database.RedisDeletePayload, opts ...asynq.Option) error
+	PublishTaskDeleteJobRequirement(ctx context.Context, payload *entities.DeleteJobRequirementPayload, opts ...asynq.Option) error
 	DefineTaskOptions(taskName string) []asynq.Option
 }
 
@@ -143,6 +145,26 @@ func (p *redisTaskPublisher) PublishTaskDeleteRedis(ctx context.Context, payload
 	return nil
 }
 
+func (p *redisTaskPublisher) PublishTaskDeleteJobRequirement(ctx context.Context, payload *entities.DeleteJobRequirementPayload, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteJobRequirement] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteJobRequirement] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskDeleteJobRequirement, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskDeleteJobRequirement] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskDeleteJobRequirement] Enqueued task", info)
+	return nil
+}
+
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
 	case constants.TaskSendResetPasswordEmail:
@@ -166,6 +188,11 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.Queue(constants.QueueDefault),
 		}
 	case constants.TaskDeleteRedis:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
+		}
+	case constants.TaskDeleteJobRequirement:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueDefault),

@@ -4,9 +4,12 @@ package aws
 
 import (
 	context "context"
-	multipart "mime/multipart"
+
+	aws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 
 	mock "github.com/stretchr/testify/mock"
+
+	multipart "mime/multipart"
 
 	time "time"
 )
@@ -67,6 +70,65 @@ func (_c *MockS3Storage_DeleteFile_Call) Return(_a0 error) *MockS3Storage_Delete
 }
 
 func (_c *MockS3Storage_DeleteFile_Call) RunAndReturn(run func(context.Context, string) error) *MockS3Storage_DeleteFile_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DownloadFile provides a mock function with given fields: ctx, key
+func (_m *MockS3Storage) DownloadFile(ctx context.Context, key string) (*aws.CustomFileHeader, error) {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DownloadFile")
+	}
+
+	var r0 *aws.CustomFileHeader
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*aws.CustomFileHeader, error)); ok {
+		return rf(ctx, key)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *aws.CustomFileHeader); ok {
+		r0 = rf(ctx, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*aws.CustomFileHeader)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockS3Storage_DownloadFile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DownloadFile'
+type MockS3Storage_DownloadFile_Call struct {
+	*mock.Call
+}
+
+// DownloadFile is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockS3Storage_Expecter) DownloadFile(ctx interface{}, key interface{}) *MockS3Storage_DownloadFile_Call {
+	return &MockS3Storage_DownloadFile_Call{Call: _e.mock.On("DownloadFile", ctx, key)}
+}
+
+func (_c *MockS3Storage_DownloadFile_Call) Run(run func(ctx context.Context, key string)) *MockS3Storage_DownloadFile_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockS3Storage_DownloadFile_Call) Return(_a0 *aws.CustomFileHeader, _a1 error) *MockS3Storage_DownloadFile_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockS3Storage_DownloadFile_Call) RunAndReturn(run func(context.Context, string) (*aws.CustomFileHeader, error)) *MockS3Storage_DownloadFile_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -76,10 +76,11 @@ var (
 	TaskDeleteFile             = "task:delete_file"
 	TaskSetRedis               = "task:set_redis"
 	TaskDeleteRedis            = "task:delete_redis"
+	TaskDeleteJobRequirement   = "task:delete_job_requirement"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"
-	MaxRetry      = 10
+	MaxRetry      = 3
 
 	CriticalQueueConcurrency = 10
 	DefaultQueueConcurrency  = 5
@@ -150,4 +151,15 @@ var (
 		"application/pdf",
 	}
 	ResumeMaxFileSize = 5 * 1024 * 1024 // 5MB
+)
+
+// Interview Session Constants
+const (
+	StatusPending   = "pending"
+	StatusOnGoing   = "on_going"
+	StatusCompleted = "completed"
+	StatusAborted   = "aborted"
+	StatusCancelled = "cancelled"
+
+	ModalityVoiceChat = "voice_chat"
 )

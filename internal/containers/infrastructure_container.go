@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/server"
+	ws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 	"gorm.io/gorm"
@@ -94,6 +96,10 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Invoke(func(consumer queue.RedisTaskConsumer) {
+		if err := consumer.CleanupQueue(context.Background()); err != nil {
+			panic(fmt.Sprintf("Failed to cleanup queue: %v", err))
+		}
+
 		if err := consumer.Start(context.Background()); err != nil {
 			panic(err)
 		}
@@ -110,6 +116,10 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(utils.NewCookies); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(ws.NewWebSocketServer); err != nil {
 		c.Error = err
 	}
 }

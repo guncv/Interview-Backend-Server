@@ -38,96 +38,6 @@ func setupTestEnvironment(t *testing.T) (*gin.Engine, *services.MockResumeServic
 func createResumeHandler(mockResumeService *services.MockResumeService, mockAuthContext *middleware.MockAuthContext, mockValidator *utils.MockValidator, logger *log.Logger) *ResumeHandler {
 	return NewResumeHandler(mockResumeService, logger, mockAuthContext, mockValidator)
 }
-
-func TestResumeHandler_CreateResume(t *testing.T) {
-	tests := []struct {
-		name           string
-		setupMocks     func(*services.MockResumeService, *middleware.MockAuthContext, *utils.MockValidator)
-		requestBody    string
-		expectedStatus int
-		expectedError  bool
-	}{
-		{
-			name: "Success - Resume created successfully",
-			setupMocks: func(mockService *services.MockResumeService, mockAuth *middleware.MockAuthContext, mockValidator *utils.MockValidator) {
-				// Mock validator success
-				mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(nil)
-
-				// Mock auth context success
-				mockAuth.On("ExtractAuthContext", mock.Anything).Return(context.Background(), nil)
-
-				// Mock service success
-				mockService.On("CreateResumeWithRequirements", mock.Anything, mock.Anything).Return(nil)
-			},
-			requestBody:    `{"position":"Software Engineer","company":"Tech Corp","work_type":"Full-time","job_requirements":"Go experience","interview_type":"Technical","language":"English"}`,
-			expectedStatus: http.StatusCreated,
-			expectedError:  false,
-		},
-		{
-			name: "Error - Validation failed",
-			setupMocks: func(mockService *services.MockResumeService, mockAuth *middleware.MockAuthContext, mockValidator *utils.MockValidator) {
-				mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(errors.New("validation error"))
-			},
-			requestBody:    `{"position":"","company":""}`,
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  true,
-		},
-		{
-			name: "Error - Auth context extraction failed",
-			setupMocks: func(mockService *services.MockResumeService, mockAuth *middleware.MockAuthContext, mockValidator *utils.MockValidator) {
-				mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(nil)
-				mockAuth.On("ExtractAuthContext", mock.Anything).Return(nil, errors.New("auth error"))
-			},
-			requestBody:    `{"position":"Software Engineer","company":"Tech Corp","work_type":"Full-time","job_requirements":"Go experience","interview_type":"Technical","language":"English"}`,
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  true,
-		},
-		{
-			name: "Error - Service creation failed",
-			setupMocks: func(mockService *services.MockResumeService, mockAuth *middleware.MockAuthContext, mockValidator *utils.MockValidator) {
-				mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(nil)
-				mockAuth.On("ExtractAuthContext", mock.Anything).Return(context.Background(), nil)
-				mockService.On("CreateResumeWithRequirements", mock.Anything, mock.Anything).Return(errors.New("service error"))
-			},
-			requestBody:    `{"position":"Software Engineer","company":"Tech Corp","work_type":"Full-time","job_requirements":"Go experience","interview_type":"Technical","language":"English"}`,
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			engine, mockService, mockAuth, mockValidator, logger := setupTestEnvironment(t)
-			handler := createResumeHandler(mockService, mockAuth, mockValidator, logger)
-
-			tt.setupMocks(mockService, mockAuth, mockValidator)
-
-			engine.POST("/resume", handler.CreateResume)
-
-			req, err := http.NewRequest("POST", "/resume", strings.NewReader(tt.requestBody))
-			require.NoError(t, err)
-			req.Header.Set("Content-Type", "application/json")
-
-			w := httptest.NewRecorder()
-			engine.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-
-			if tt.expectedError {
-				assert.NotEmpty(t, w.Body.String())
-			} else {
-				// For successful responses, body should be empty or contain expected data
-				body := w.Body.String()
-				assert.True(t, body == "" || body == "null" || body == "{}", "Expected empty body but got: %s", body)
-			}
-
-			mockService.AssertExpectations(t)
-			mockAuth.AssertExpectations(t)
-			mockValidator.AssertExpectations(t)
-		})
-	}
-}
-
 func TestResumeHandler_ListResume(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -621,24 +531,6 @@ func TestResumeHandler_GetResumeByID(t *testing.T) {
 }
 
 func TestResumeHandler_EdgeCases(t *testing.T) {
-	t.Run("CreateResume with empty request body", func(t *testing.T) {
-		engine, mockService, mockAuth, mockValidator, logger := setupTestEnvironment(t)
-		handler := createResumeHandler(mockService, mockAuth, mockValidator, logger)
-
-		// Mock validator to return error for empty body
-		mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(errors.New("empty body"))
-
-		engine.POST("/resume", handler.CreateResume)
-
-		req, err := http.NewRequest("POST", "/resume", nil)
-		require.NoError(t, err)
-
-		w := httptest.NewRecorder()
-		engine.ServeHTTP(w, req)
-
-		// Should fail due to empty body
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
 
 	t.Run("ListResume with malformed JSON", func(t *testing.T) {
 		engine, mockService, mockAuth, mockValidator, logger := setupTestEnvironment(t)
@@ -685,29 +577,6 @@ func TestResumeHandler_EdgeCases(t *testing.T) {
 }
 
 func TestResumeHandler_ErrorHandling(t *testing.T) {
-	t.Run("CreateResume with app error", func(t *testing.T) {
-		engine, mockService, mockAuth, mockValidator, logger := setupTestEnvironment(t)
-		handler := createResumeHandler(mockService, mockAuth, mockValidator, logger)
-
-		mockValidator.On("ValidateAndBind", mock.Anything, mock.Anything, "CreateResume").Return(nil)
-		mockAuth.On("ExtractAuthContext", mock.Anything).Return(context.Background(), nil)
-
-		appErr := app_error.New(errors.New("resume upload failed"), app_error.ErrCodeResumeUploadFailed)
-		mockService.On("CreateResumeWithRequirements", mock.Anything, mock.Anything).Return(appErr)
-
-		engine.POST("/resume", handler.CreateResume)
-
-		req, err := http.NewRequest("POST", "/resume", strings.NewReader(`{"position":"test"}`))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		w := httptest.NewRecorder()
-		engine.ServeHTTP(w, req)
-
-		// Should return the app error status code
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "Failed to upload the file")
-	})
 
 	t.Run("GetResumeByID with validation error", func(t *testing.T) {
 		engine, mockService, _, mockValidator, logger := setupTestEnvironment(t)

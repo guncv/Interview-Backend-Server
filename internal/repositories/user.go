@@ -126,8 +126,9 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 		}
 
 		if rowAffected == 0 {
+			err := errors.New("user not found")
 			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] User not found", err)
-			return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
+			return app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
 
 		sessionReq := db.CreateSessionParams{
@@ -173,8 +174,9 @@ func (r *userRepository) ResetUserPasswordAndUpdateResetTokenTx(ctx context.Cont
 		}
 
 		if rowAffected == 0 {
+			err := errors.New("user not found")
 			r.log.ErrorWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] User not found", err)
-			return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
+			return app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
 
 		resetTokenReq := db.UpdateResetTokenUsedParams{

@@ -22,6 +22,7 @@ services:
     restart: unless-stopped
     ports:
       - "6380:6380"
+    command: redis-server --appendonly no --save "" --maxmemory-policy allkeys-lru
     networks:
       - interview-network
 

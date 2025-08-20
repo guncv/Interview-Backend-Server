@@ -13,10 +13,12 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/hibiken/asynq v0.25.1
 	github.com/lib/pq v1.10.9
 	github.com/redis/go-redis/v9 v9.12.1
 	github.com/spf13/viper v1.20.1
+	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/zap v1.27.0

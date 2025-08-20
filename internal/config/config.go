@@ -9,13 +9,13 @@ import (
 )
 
 type Config struct {
-	AppConfig            AppConfig            `mapstructure:"AppConfig"`
-	DatabaseConfig       DatabaseConfig       `mapstructure:"DatabaseConfig"`
-	RedisConfig          RedisConfig          `mapstructure:"RedisConfig"`
-	AuthConfig           AuthConfig           `mapstructure:"AuthConfig"`
-	EmailConfig          EmailConfig          `mapstructure:"EmailConfig"`
-	AWSConfig            AWSConfig            `mapstructure:"AWSConfig"`
-	InterviewAgentConfig InterviewAgentConfig `mapstructure:"InterviewAgentConfig"`
+	AppConfig              AppConfig              `mapstructure:"AppConfig"`
+	DatabaseConfig         DatabaseConfig         `mapstructure:"DatabaseConfig"`
+	RedisConfig            RedisConfig            `mapstructure:"RedisConfig"`
+	AuthConfig             AuthConfig             `mapstructure:"AuthConfig"`
+	EmailConfig            EmailConfig            `mapstructure:"EmailConfig"`
+	AWSConfig              AWSConfig              `mapstructure:"AWSConfig"`
+	InterviewSessionConfig InterviewSessionConfig `mapstructure:"InterviewSessionConfig"`
 }
 
 type AppConfig struct {
@@ -66,8 +66,9 @@ type AWSConfig struct {
 	PresignedURLExpiry time.Duration `mapstructure:"AWS_S3_PRESIGNED_URL_EXPIRY"`
 }
 
-type InterviewAgentConfig struct {
-	InterviewAgentURL string `mapstructure:"INTERVIEW_AGENT_URL"`
+type InterviewSessionConfig struct {
+	InterviewAgentURL             string        `mapstructure:"INTERVIEW_AGENT_URL"`
+	InterviewSessionTokenDuration time.Duration `mapstructure:"INTERVIEW_SESSION_TOKEN_DURATION"`
 }
 
 func LoadConfig() (*Config, error) {

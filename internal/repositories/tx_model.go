@@ -1,10 +1,11 @@
 package repositories
 
 import (
-	"mime/multipart"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 )
 
 type SignInUserByEmailAndPasswordTxModel struct {
@@ -35,11 +36,41 @@ type GetResumeJsonWithSummaryDataReq struct {
 	JobRequirements string
 	InterviewType   string
 	Language        string
-	ResumeFile      *multipart.FileHeader
+	ResumeFile      *aws.CustomFileHeader
 }
 
 type GetResumeJsonWithSummaryDataResponse struct {
-	ParsedJson  string `mapstructure:"parsed_json" json:"parsed_json"`
-	RawText     string `mapstructure:"raw_text" json:"raw_text"`
-	SummaryText string `mapstructure:"summary_text" json:"summary_text"`
+	ParsedJson PromptInfo `mapstructure:"parsed_json" json:"parsed_json"`
+}
+
+type PromptInfo struct {
+	FullName       string   `mapstructure:"full_name" json:"full_name"`
+	Email          string   `mapstructure:"email" json:"email"`
+	Phone          string   `mapstructure:"phone" json:"phone"`
+	Location       string   `mapstructure:"location" json:"location"`
+	Experience     []string `mapstructure:"experience" json:"experience"`
+	Education      []string `mapstructure:"education" json:"education"`
+	Skills         []string `mapstructure:"skills" json:"skills"`
+	Certifications []string `mapstructure:"certifications" json:"certifications"`
+	Language       string   `mapstructure:"language" json:"language"`
+}
+
+type CreateResumeAndJobRequirementReq struct {
+	ResumeID   uuid.UUID
+	UserID     uuid.UUID
+	FileName   string
+	StorageKey string
+	MimeType   string
+	ByteSize   int32
+	IsDefault  bool
+
+	JobRequirementID uuid.UUID
+	Position         string
+	CompanyName      string
+	WorkType         string
+	JobRequirements  string
+	InterviewType    string
+	Language         string
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }

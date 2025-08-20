@@ -36,7 +36,7 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 		name   string
 		input  *entities.CreateResumeWithRequirementsRequest
 		setup  func() (*utils.MockGenerator, *mockMiddleware.MockAuthContext, *utils.MockValidator, *mockS3.MockS3Storage, *mockResume.MockResumeReposity, *queue.MockRedisTaskPublisher)
-		verify func(t *testing.T, gotErr error)
+		verify func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error)
 	}{
 		{
 			name: "Success - First resume (becomes default)",
@@ -92,7 +92,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.NoError(t, gotErr)
 			},
 		},
@@ -150,7 +151,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.NoError(t, gotErr)
 			},
 		},
@@ -183,7 +185,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "auth failed", gotErr.Error())
 			},
@@ -226,7 +229,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				appErr, ok := gotErr.(*app_error.AppError)
 				assert.True(t, ok)
@@ -271,7 +275,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				appErr, ok := gotErr.(*app_error.AppError)
 				assert.True(t, ok)
@@ -320,7 +325,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "database error", gotErr.Error())
 			},
@@ -371,7 +377,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "S3 upload failed", gotErr.Error())
 			},
@@ -434,7 +441,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "database error", gotErr.Error())
 			},
@@ -497,7 +505,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "database error", gotErr.Error())
 			},
@@ -560,7 +569,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				assert.Equal(t, "database error", gotErr.Error())
 			},
@@ -619,7 +629,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.NoError(t, gotErr)
 			},
 		},
@@ -661,7 +672,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				appErr, ok := gotErr.(*app_error.AppError)
 				assert.True(t, ok)
@@ -722,7 +734,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.NoError(t, gotErr)
 			},
 		},
@@ -769,7 +782,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				appErr, ok := gotErr.(*app_error.AppError)
 				assert.True(t, ok)
@@ -814,7 +828,8 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 
 				return mockGenerator, mockAuthContext, mockValidator, mockS3Storage, mockResumeRepository, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.CreateResumeAndJobRequirementResp, gotErr error) {
+				assert.NotNil(t, gotResp)
 				assert.Error(t, gotErr)
 				appErr, ok := gotErr.(*app_error.AppError)
 				assert.True(t, ok)
@@ -848,9 +863,9 @@ func TestResumeService_CreateResumeWithRequirements(t *testing.T) {
 			}()
 
 			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, mockS3Storage, mockValidator, mockRedisTaskPublisher, nil, mockGenerator)
-			gotErr := svc.CreateResumeWithRequirements(ctx, tC.input)
+			got, gotErr := svc.CreateResumeWithRequirements(ctx, tC.input)
 
-			tC.verify(t, gotErr)
+			tC.verify(t, got, gotErr)
 		})
 	}
 }

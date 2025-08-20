@@ -8,28 +8,33 @@ import (
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 )
 
 type RedisTaskConsumer interface {
 	Start(ctx context.Context) error
+	CleanupQueue(ctx context.Context) error
 	ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskSetRedis(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteRedis(ctx context.Context, task *asynq.Task) error
+	ConsumeTaskDeleteJobRequirement(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
-	server      *asynq.Server
-	log         *log.Logger
-	emailSender email.EmailSender
-	s3Storage   aws.S3Storage
-	redisClient database.RedisClient
+	server             *asynq.Server
+	log                *log.Logger
+	emailSender        email.EmailSender
+	s3Storage          aws.S3Storage
+	redisClient        database.RedisClient
+	jobRequirementRepo repositories.JobRequirementRepository
 }
 
 func NewRedisTaskConsumer(
@@ -38,6 +43,7 @@ func NewRedisTaskConsumer(
 	emailSender email.EmailSender,
 	s3Storage aws.S3Storage,
 	redisClient database.RedisClient,
+	jobRequirementRepo repositories.JobRequirementRepository,
 ) RedisTaskConsumer {
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%s", cfg.RedisConfig.Host, cfg.RedisConfig.Port),
@@ -58,11 +64,12 @@ func NewRedisTaskConsumer(
 	})
 
 	return &redisTaskConsumer{
-		server:      server,
-		log:         log,
-		emailSender: emailSender,
-		s3Storage:   s3Storage,
-		redisClient: redisClient,
+		server:             server,
+		log:                log,
+		emailSender:        emailSender,
+		s3Storage:          s3Storage,
+		redisClient:        redisClient,
+		jobRequirementRepo: jobRequirementRepo,
 	}
 }
 
@@ -74,12 +81,28 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 	mux.HandleFunc(constants.TaskSetRedis, c.ConsumeTaskSetRedis)
 	mux.HandleFunc(constants.TaskDeleteRedis, c.ConsumeTaskDeleteRedis)
+	mux.HandleFunc(constants.TaskDeleteJobRequirement, c.ConsumeTaskDeleteJobRequirement)
 
 	if err := c.server.Start(mux); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
 		return fmt.Errorf("failed to start email consumer server: %w", err)
 	}
 
+	return nil
+}
+
+func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
+	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Cleaning up email queue")
+
+	if err := c.redisClient.Delete(ctx, constants.QueueDefault); err != nil {
+		c.log.WarnWithID(ctx, "Failed to cleanup default queue", err)
+	}
+
+	if err := c.redisClient.Delete(ctx, constants.QueueCritical); err != nil {
+		c.log.WarnWithID(ctx, "Failed to cleanup critical queue", err)
+	}
+
+	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Queue cleanup completed")
 	return nil
 }
 
@@ -172,5 +195,23 @@ func (c *redisTaskConsumer) ConsumeTaskDeleteRedis(ctx context.Context, task *as
 	}
 
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteRedis] Successfully deleted redis", nil)
+	return nil
+}
+
+func (c *redisTaskConsumer) ConsumeTaskDeleteJobRequirement(ctx context.Context, task *asynq.Task) error {
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteJobRequirement] Processing delete job requirement task")
+
+	var payload entities.DeleteJobRequirementPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskDeleteJobRequirement] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid delete job requirement payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.jobRequirementRepo.DeleteJobRequirement(ctx, payload.JobRequirementID); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskDeleteJobRequirement] Failed to delete job requirement", err)
+		return app_error.New(fmt.Errorf("failed to delete job requirement: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteJobRequirement] Successfully deleted job requirement", nil)
 	return nil
 }

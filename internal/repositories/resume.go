@@ -27,6 +27,7 @@ type ResumeReposity interface {
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
 	GetResumeJsonWithSummaryData(ctx context.Context, req *GetResumeJsonWithSummaryDataReq) (*GetResumeJsonWithSummaryDataResponse, error)
+	CreateResumeAndJobRequirement(ctx context.Context, req *CreateResumeAndJobRequirementReq) error
 }
 
 type resumeRepository struct {
@@ -203,7 +204,7 @@ func (r *resumeRepository) GetResumeJsonWithSummaryData(ctx context.Context, req
 		return nil, err
 	}
 
-	endpoint := r.cfg.InterviewAgentConfig.InterviewAgentURL + "/api/v1/interview/requirements"
+	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + "/api/v1/interview/requirements"
 	httpReq, err := http.NewRequest("POST", endpoint, &body)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to create HTTP request", err)
@@ -212,7 +213,7 @@ func (r *resumeRepository) GetResumeJsonWithSummaryData(ctx context.Context, req
 
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] HTTP request failed", err)
@@ -241,4 +242,51 @@ func (r *resumeRepository) GetResumeJsonWithSummaryData(ctx context.Context, req
 	}
 
 	return &response, nil
+}
+
+func (r *resumeRepository) CreateResumeAndJobRequirement(ctx context.Context, req *CreateResumeAndJobRequirementReq) error {
+	r.log.InfoWithID(ctx, "[Repository: CreateResumeAndJobRequirement] Called")
+
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+
+		createResumeReq := db.CreateResumeParams{
+			ID:         req.ResumeID,
+			UserID:     req.UserID,
+			FileName:   req.FileName,
+			StorageKey: req.StorageKey,
+			MimeType:   req.MimeType,
+			ByteSize:   req.ByteSize,
+			IsDefault:  req.IsDefault,
+		}
+
+		if err := q.CreateResume(ctx, createResumeReq); err != nil {
+			return app_error.HandleDatabaseError(err)
+		}
+
+		createJobRequirementReq := db.CreateJobRequirementParams{
+			ID:              req.JobRequirementID,
+			UserID:          req.UserID,
+			Position:        req.Position,
+			CompanyName:     req.CompanyName,
+			WorkType:        req.WorkType,
+			JobRequirements: req.JobRequirements,
+			InterviewType:   req.InterviewType,
+			Language:        req.Language,
+			CreatedAt:       sql.NullTime{Time: time.Now(), Valid: true},
+			UpdatedAt:       sql.NullTime{Time: time.Now(), Valid: true},
+		}
+
+		if err := q.CreateJobRequirement(ctx, createJobRequirementReq); err != nil {
+			return app_error.HandleDatabaseError(err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: CreateResumeAndJobRequirement] Error creating resume and job requirement", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	return nil
 }
