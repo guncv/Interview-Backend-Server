@@ -6,9 +6,10 @@ INSERT INTO interview_sessions (
     requirement_id,
     modality,
     status,
-    consent_at
+    consent_at,
+    prompt_json
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 );
 
 -- name: FinishInterviewSession :execrows

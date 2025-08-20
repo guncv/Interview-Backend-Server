@@ -15,15 +15,16 @@ CREATE TABLE job_requirements (
 CREATE TABLE interview_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    resume_id UUID REFERENCES resumes(id) ON DELETE SET NULL,
-    requirement_id UUID REFERENCES job_requirements(id) ON DELETE SET NULL,
+    resume_id UUID NOT NULL REFERENCES resumes(id) ON DELETE CASCADE,
+    requirement_id UUID NOT NULL REFERENCES job_requirements(id) ON DELETE CASCADE,
 
     modality VARCHAR(20) NOT NULL DEFAULT 'voice_chat'
             CHECK (modality IN ('voice_chat')),
-    status VARCHAR(20) NOT NULL DEFAULT 'ongoing'
-            CHECK (status IN ('ongoing','completed','aborted','cancelled')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+            CHECK (status IN ('pending','on_going','completed','aborted','cancelled')),
+    prompt_json JSONB,
 
-    consent_at TIMESTAMPTZ,
+    consent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     started_at TIMESTAMPTZ DEFAULT now(),
     ended_at TIMESTAMPTZ,
     overall_score NUMERIC(5,2),

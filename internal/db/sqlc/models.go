@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type EvaluationCriteria struct {
@@ -58,21 +59,22 @@ type Evaluations struct {
 }
 
 type InterviewSessions struct {
-	ID            uuid.UUID      `json:"id"`
-	UserID        uuid.UUID      `json:"user_id"`
-	ResumeID      uuid.NullUUID  `json:"resume_id"`
-	RequirementID uuid.NullUUID  `json:"requirement_id"`
-	Modality      string         `json:"modality"`
-	Status        string         `json:"status"`
-	ConsentAt     sql.NullTime   `json:"consent_at"`
-	StartedAt     sql.NullTime   `json:"started_at"`
-	EndedAt       sql.NullTime   `json:"ended_at"`
-	OverallScore  sql.NullString `json:"overall_score"`
-	SummaryMd     sql.NullString `json:"summary_md"`
-	CreatedAt     sql.NullTime   `json:"created_at"`
-	UpdatedAt     sql.NullTime   `json:"updated_at"`
-	DeletedAt     sql.NullTime   `json:"deleted_at"`
-	SoftDelete    sql.NullBool   `json:"soft_delete"`
+	ID            uuid.UUID             `json:"id"`
+	UserID        uuid.UUID             `json:"user_id"`
+	ResumeID      uuid.UUID             `json:"resume_id"`
+	RequirementID uuid.UUID             `json:"requirement_id"`
+	Modality      string                `json:"modality"`
+	Status        string                `json:"status"`
+	PromptJson    pqtype.NullRawMessage `json:"prompt_json"`
+	ConsentAt     time.Time             `json:"consent_at"`
+	StartedAt     sql.NullTime          `json:"started_at"`
+	EndedAt       sql.NullTime          `json:"ended_at"`
+	OverallScore  sql.NullString        `json:"overall_score"`
+	SummaryMd     sql.NullString        `json:"summary_md"`
+	CreatedAt     sql.NullTime          `json:"created_at"`
+	UpdatedAt     sql.NullTime          `json:"updated_at"`
+	DeletedAt     sql.NullTime          `json:"deleted_at"`
+	SoftDelete    sql.NullBool          `json:"soft_delete"`
 }
 
 type InterviewTurns struct {
