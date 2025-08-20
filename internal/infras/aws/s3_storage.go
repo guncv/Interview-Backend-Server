@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"path/filepath"
 	"time"
@@ -22,6 +23,7 @@ type S3Storage interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, key string, userID string) (string, error)
 	GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error)
 	DeleteFile(ctx context.Context, key string) error
+	DownloadFile(ctx context.Context, key string) (*multipart.FileHeader, error)
 }
 
 type DeleteFilePayload struct {
@@ -122,4 +124,43 @@ func (s *s3Storage) DeleteFile(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+func (s *s3Storage) DownloadFile(ctx context.Context, key string) (*multipart.FileHeader, error) {
+	s.log.InfoWithID(ctx, "[S3: DownloadFile] Downloading file Called: ", key)
+
+	result, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.cfp.AWSConfig.S3Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[S3: DownloadFile] Failed to get object", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+	defer result.Body.Close()
+
+	fileContent, err := io.ReadAll(result.Body)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[S3: DownloadFile] Failed to read file content", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	filename := filepath.Base(key)
+	if filename == "" || filename == "." {
+		filename = "downloaded_file"
+	}
+
+	fileHeader := &multipart.FileHeader{
+		Filename: filename,
+		Size:     int64(len(fileContent)),
+		Header:   make(map[string][]string),
+	}
+
+	if result.ContentType != nil {
+		fileHeader.Header.Set("Content-Type", *result.ContentType)
+	}
+
+	fileHeader.Header.Set("X-File-Content", string(fileContent))
+
+	return fileHeader, nil
 }
