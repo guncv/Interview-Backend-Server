@@ -151,3 +151,14 @@ var (
 	}
 	ResumeMaxFileSize = 5 * 1024 * 1024 // 5MB
 )
+
+// Interview Session Constants
+const (
+	StatusPending   = "pending"
+	StatusOnGoing   = "on_going"
+	StatusCompleted = "completed"
+	StatusAborted   = "aborted"
+	StatusCancelled = "cancelled"
+
+	ModalityVoiceChat = "voice_chat"
+)

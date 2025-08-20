@@ -26,11 +26,13 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 		authMiddleware middleware.AuthMiddleware,
 		resumeHandler *handlers.ResumeHandler,
 		websocketHandler *handlers.WebSocketHandler,
+		interviewSessionHandler *handlers.InterviewSessionHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
 		resumeRoutes(api_v1, resumeHandler, authMiddleware)
 		websocketRoutes(api_v1, websocketHandler, authMiddleware)
+		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -57,9 +59,16 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 	resumeMiddleRoutes := eg.Group("/resumes").Use(authMiddleware.AuthMiddleware())
 
 	{
-		resumeMiddleRoutes.POST("", resumeHandler.CreateResume)
 		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 		resumeMiddleRoutes.GET("/:id", resumeHandler.GetResumeByID)
+	}
+}
+
+func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.InterviewSessionHandler, authMiddleware middleware.AuthMiddleware) {
+	interviewSessionMiddleRoutes := eg.Group("/sessions").Use(authMiddleware.AuthMiddleware())
+
+	{
+		interviewSessionMiddleRoutes.POST("/", interviewSessionHandler.CreateInterviewSessionWithNewResume)
 	}
 }
 

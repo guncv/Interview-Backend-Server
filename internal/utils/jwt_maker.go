@@ -19,6 +19,8 @@ import (
 )
 
 type JwtToken interface {
+	CreateInterviewSessionToken(ctx context.Context, req *entities.CreateInterviewSessionTokenReq) (string, *InterviewSessionTokenPayload, error)
+	VerifyInterviewSessionToken(ctx context.Context, token string) (*InterviewSessionTokenPayload, error)
 	CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error)
 	VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error)
 	CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error)
@@ -111,6 +113,40 @@ func (maker *jwtToken) VerifyVerifyEmailToken(ctx context.Context, token string)
 	return payload, nil
 }
 
+func (maker *jwtToken) CreateInterviewSessionToken(ctx context.Context, req *entities.CreateInterviewSessionTokenReq) (string, *InterviewSessionTokenPayload, error) {
+	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating interview session token", "req", req)
+
+	payload, err := NewInterviewSessionTokenPayload(&entities.CreateInterviewSessionTokenReq{
+		SessionID: req.SessionID,
+		UserID:    req.UserID,
+		Duration:  req.Duration,
+	})
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating interview session token payload", "error", err)
+		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	token, err := maker.createJWTToken(ctx, payload)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating interview session token", "error", err)
+		return "", nil, err
+	}
+
+	return token, payload, nil
+}
+
+func (maker *jwtToken) VerifyInterviewSessionToken(ctx context.Context, token string) (*InterviewSessionTokenPayload, error) {
+	maker.logger.InfoWithID(ctx, "[Utils: JWT] Verifying interview session token", "token", token)
+
+	payload := &InterviewSessionTokenPayload{}
+	if err := maker.verifyJWTToken(ctx, token, payload); err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error verifying interview session token", "error", err)
+		return nil, err
+	}
+
+	return payload, nil
+}
+
 func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error) {
 	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating sign-in token", "req", req)
 
@@ -122,6 +158,7 @@ func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenReque
 
 	token, err := maker.createJWTToken(ctx, payload)
 	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating sign-in token", "error", err)
 		return "", nil, err
 	}
 
@@ -133,6 +170,7 @@ func (maker *jwtToken) VerifyToken(ctx context.Context, token string) (*SignInTo
 
 	payload := &SignInTokenPayload{}
 	if err := maker.verifyJWTToken(ctx, token, payload); err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error verifying sign-in token", "error", err)
 		return nil, err
 	}
 
@@ -228,6 +266,7 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 
 	newToken, err := maker.createJWTToken(ctx, payload)
 	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
 		return "", nil, err
 	}
 

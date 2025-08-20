@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"mime/multipart"
 	"time"
 
@@ -39,7 +40,25 @@ type GetResumeJsonWithSummaryDataReq struct {
 }
 
 type GetResumeJsonWithSummaryDataResponse struct {
-	ParsedJson  string `mapstructure:"parsed_json" json:"parsed_json"`
-	RawText     string `mapstructure:"raw_text" json:"raw_text"`
-	SummaryText string `mapstructure:"summary_text" json:"summary_text"`
+	ParsedJson string `mapstructure:"parsed_json" json:"parsed_json"`
+}
+
+type CreateResumeAndJobRequirementReq struct {
+	ResumeID   uuid.UUID
+	UserID     uuid.UUID
+	FileName   string
+	StorageKey string
+	MimeType   string
+	ByteSize   int32
+	IsDefault  bool
+
+	JobRequirementID uuid.UUID
+	Position         string
+	CompanyName      string
+	WorkType         string
+	JobRequirements  string
+	InterviewType    string
+	Language         string
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
 }

@@ -8,8 +8,10 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const abortInterviewSession = `-- name: AbortInterviewSession :execrows
@@ -69,20 +71,22 @@ INSERT INTO interview_sessions (
     requirement_id,
     modality,
     status,
-    consent_at
+    consent_at,
+    prompt_json
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
 type CreateInterviewSessionParams struct {
-	ID            uuid.UUID     `json:"id"`
-	UserID        uuid.UUID     `json:"user_id"`
-	ResumeID      uuid.NullUUID `json:"resume_id"`
-	RequirementID uuid.NullUUID `json:"requirement_id"`
-	Modality      string        `json:"modality"`
-	Status        string        `json:"status"`
-	ConsentAt     sql.NullTime  `json:"consent_at"`
+	ID            uuid.UUID             `json:"id"`
+	UserID        uuid.UUID             `json:"user_id"`
+	ResumeID      uuid.UUID             `json:"resume_id"`
+	RequirementID uuid.UUID             `json:"requirement_id"`
+	Modality      string                `json:"modality"`
+	Status        string                `json:"status"`
+	ConsentAt     time.Time             `json:"consent_at"`
+	PromptJson    pqtype.NullRawMessage `json:"prompt_json"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -94,6 +98,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.Modality,
 		arg.Status,
 		arg.ConsentAt,
+		arg.PromptJson,
 	)
 	return err
 }
