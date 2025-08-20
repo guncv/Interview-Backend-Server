@@ -46,3 +46,7 @@ type CreateInterviewSessionTokenReq struct {
 type CreateInterviewSessionTokenResp struct {
 	Token string `json:"token"`
 }
+
+type DeleteJobRequirementPayload struct {
+	JobRequirementID uuid.UUID `json:"job_requirement_id"`
+}

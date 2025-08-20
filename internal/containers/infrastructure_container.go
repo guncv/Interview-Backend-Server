@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -95,6 +96,10 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Invoke(func(consumer queue.RedisTaskConsumer) {
+		if err := consumer.CleanupQueue(context.Background()); err != nil {
+			panic(fmt.Sprintf("Failed to cleanup queue: %v", err))
+		}
+
 		if err := consumer.Start(context.Background()); err != nil {
 			panic(err)
 		}

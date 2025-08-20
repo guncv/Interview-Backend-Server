@@ -15,6 +15,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -37,6 +38,7 @@ type interviewSessionService struct {
 	config               *config.Config
 	s3Storage            aws.S3Storage
 	jobRequirementRepo   repositories.JobRequirementRepository
+	publisher            queue.RedisTaskPublisher
 }
 
 func NewInterviewSessionService(
@@ -50,6 +52,7 @@ func NewInterviewSessionService(
 	config *config.Config,
 	s3Storage aws.S3Storage,
 	jobRequirementRepo repositories.JobRequirementRepository,
+	publisher queue.RedisTaskPublisher,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -62,6 +65,7 @@ func NewInterviewSessionService(
 		config:               config,
 		s3Storage:            s3Storage,
 		jobRequirementRepo:   jobRequirementRepo,
+		publisher:            publisher,
 	}
 }
 
@@ -268,8 +272,12 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 
 	if err := g.Wait(); err != nil {
 		if requirementID != uuid.Nil {
-			if delErr := s.jobRequirementRepo.DeleteJobRequirement(ctx, requirementID); delErr != nil {
-				s.log.WarnWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Compensation delete job requirement failed", delErr)
+			delPayload := &entities.DeleteJobRequirementPayload{
+				JobRequirementID: requirementID,
+			}
+
+			if err := s.publisher.PublishTaskDeleteJobRequirement(ctx, delPayload); err != nil {
+				s.log.WarnWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Compensation delete job requirement failed", err)
 			}
 		}
 		return nil, err

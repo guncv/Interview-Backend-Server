@@ -76,10 +76,11 @@ var (
 	TaskDeleteFile             = "task:delete_file"
 	TaskSetRedis               = "task:set_redis"
 	TaskDeleteRedis            = "task:delete_redis"
+	TaskDeleteJobRequirement   = "task:delete_job_requirement"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"
-	MaxRetry      = 10
+	MaxRetry      = 3
 
 	CriticalQueueConcurrency = 10
 	DefaultQueueConcurrency  = 5
