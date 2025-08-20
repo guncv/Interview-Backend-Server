@@ -6,11 +6,9 @@ INSERT INTO interview_sessions (
     requirement_id,
     modality,
     status,
-    consent_at,
-    created_at,
-    updated_at,
+    consent_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: FinishInterviewSession :execrows
@@ -30,7 +28,7 @@ WHERE id = $1;
 
 -- name: CancelInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'cancelled'
+SET status = 'cancelled',
     ended_at = $2,
     overall_score = $3,
     summary_md = $4,

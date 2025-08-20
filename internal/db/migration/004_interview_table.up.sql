@@ -32,7 +32,8 @@ CREATE TABLE interview_sessions (
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    deleted_at TIMESTAMPTZ
+    deleted_at TIMESTAMPTZ,
+    soft_delete BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE interview_turns (
@@ -56,7 +57,10 @@ CREATE TABLE evaluation_rubrics (
     name VARCHAR(120) NOT NULL,
     description_md TEXT,
     version_label VARCHAR(40),
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    soft_delete BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE evaluation_criteria (
@@ -67,6 +71,9 @@ CREATE TABLE evaluation_criteria (
     description_md TEXT,
     weight NUMERIC(6,3) NOT NULL DEFAULT 1.0,
     max_score NUMERIC(6,2) NOT NULL DEFAULT 5.0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
     UNIQUE(rubric_id, code)
 );
 
@@ -88,7 +95,10 @@ CREATE TABLE evaluations (
     evaluator_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     overall_score NUMERIC(5,2),
     summary_md TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    soft_delete BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE review_comments (
@@ -99,5 +109,8 @@ CREATE TABLE review_comments (
     author_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     category VARCHAR(30) CHECK (category IN ('strength','weakness','improvement','note')),
     body_md TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    soft_delete BOOLEAN DEFAULT FALSE
 );

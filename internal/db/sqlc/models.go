@@ -9,7 +9,101 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
+
+type EvaluationCriteria struct {
+	ID            uuid.UUID      `json:"id"`
+	RubricID      uuid.UUID      `json:"rubric_id"`
+	Code          string         `json:"code"`
+	Name          string         `json:"name"`
+	DescriptionMd sql.NullString `json:"description_md"`
+	Weight        string         `json:"weight"`
+	MaxScore      string         `json:"max_score"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
+	DeletedAt     sql.NullTime   `json:"deleted_at"`
+}
+
+type EvaluationRubrics struct {
+	ID            uuid.UUID      `json:"id"`
+	Name          string         `json:"name"`
+	DescriptionMd sql.NullString `json:"description_md"`
+	VersionLabel  sql.NullString `json:"version_label"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
+	DeletedAt     sql.NullTime   `json:"deleted_at"`
+	SoftDelete    sql.NullBool   `json:"soft_delete"`
+}
+
+type EvaluationScores struct {
+	ID           uuid.UUID      `json:"id"`
+	EvaluationID uuid.UUID      `json:"evaluation_id"`
+	CriterionID  uuid.UUID      `json:"criterion_id"`
+	Score        string         `json:"score"`
+	CommentMd    sql.NullString `json:"comment_md"`
+}
+
+type Evaluations struct {
+	ID              uuid.UUID      `json:"id"`
+	SessionID       uuid.UUID      `json:"session_id"`
+	RubricID        uuid.UUID      `json:"rubric_id"`
+	EvaluatorType   string         `json:"evaluator_type"`
+	EvaluatorUserID uuid.NullUUID  `json:"evaluator_user_id"`
+	OverallScore    sql.NullString `json:"overall_score"`
+	SummaryMd       sql.NullString `json:"summary_md"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+	DeletedAt       sql.NullTime   `json:"deleted_at"`
+	SoftDelete      sql.NullBool   `json:"soft_delete"`
+}
+
+type InterviewSessions struct {
+	ID            uuid.UUID             `json:"id"`
+	UserID        uuid.UUID             `json:"user_id"`
+	ResumeID      uuid.NullUUID         `json:"resume_id"`
+	RequirementID uuid.NullUUID         `json:"requirement_id"`
+	Modality      string                `json:"modality"`
+	Status        string                `json:"status"`
+	ConsentAt     sql.NullTime          `json:"consent_at"`
+	StartedAt     sql.NullTime          `json:"started_at"`
+	EndedAt       sql.NullTime          `json:"ended_at"`
+	OverallScore  sql.NullString        `json:"overall_score"`
+	SummaryMd     sql.NullString        `json:"summary_md"`
+	Metrics       pqtype.NullRawMessage `json:"metrics"`
+	CreatedAt     sql.NullTime          `json:"created_at"`
+	UpdatedAt     sql.NullTime          `json:"updated_at"`
+	DeletedAt     sql.NullTime          `json:"deleted_at"`
+	SoftDelete    sql.NullBool          `json:"soft_delete"`
+}
+
+type InterviewTurns struct {
+	ID             uuid.UUID      `json:"id"`
+	SessionID      uuid.UUID      `json:"session_id"`
+	TurnNo         int32          `json:"turn_no"`
+	Actor          string         `json:"actor"`
+	Content        string         `json:"content"`
+	TranscriptText sql.NullString `json:"transcript_text"`
+	SttConfidence  sql.NullString `json:"stt_confidence"`
+	WasInterrupted sql.NullBool   `json:"was_interrupted"`
+	StartAt        sql.NullTime   `json:"start_at"`
+	EndAt          sql.NullTime   `json:"end_at"`
+	CreatedAt      sql.NullTime   `json:"created_at"`
+}
+
+type JobRequirements struct {
+	ID              uuid.UUID    `json:"id"`
+	UserID          uuid.UUID    `json:"user_id"`
+	Position        string       `json:"position"`
+	CompanyName     string       `json:"company_name"`
+	WorkType        string       `json:"work_type"`
+	JobRequirements string       `json:"job_requirements"`
+	InterviewType   string       `json:"interview_type"`
+	Language        string       `json:"language"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+	DeletedAt       sql.NullTime `json:"deleted_at"`
+}
 
 type ResetTokens struct {
 	ID          uuid.UUID      `json:"id"`
@@ -34,6 +128,20 @@ type Resumes struct {
 	CreatedAt  time.Time    `json:"created_at"`
 	UpdatedAt  time.Time    `json:"updated_at"`
 	DeletedAt  sql.NullTime `json:"deleted_at"`
+}
+
+type ReviewComments struct {
+	ID           uuid.UUID      `json:"id"`
+	SessionID    uuid.UUID      `json:"session_id"`
+	TargetTurnID uuid.NullUUID  `json:"target_turn_id"`
+	AuthorType   string         `json:"author_type"`
+	AuthorUserID uuid.NullUUID  `json:"author_user_id"`
+	Category     sql.NullString `json:"category"`
+	BodyMd       string         `json:"body_md"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	DeletedAt    sql.NullTime   `json:"deleted_at"`
+	SoftDelete   sql.NullBool   `json:"soft_delete"`
 }
 
 type Sessions struct {
