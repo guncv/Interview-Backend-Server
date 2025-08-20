@@ -40,7 +40,19 @@ type GetResumeJsonWithSummaryDataReq struct {
 }
 
 type GetResumeJsonWithSummaryDataResponse struct {
-	ParsedJson string `mapstructure:"parsed_json" json:"parsed_json"`
+	ParsedJson PromptInfo `mapstructure:"parsed_json" json:"parsed_json"`
+}
+
+type PromptInfo struct {
+	FullName       string   `mapstructure:"full_name" json:"full_name"`
+	Email          string   `mapstructure:"email" json:"email"`
+	Phone          string   `mapstructure:"phone" json:"phone"`
+	Location       string   `mapstructure:"location" json:"location"`
+	Experience     []string `mapstructure:"experience" json:"experience"`
+	Education      []string `mapstructure:"education" json:"education"`
+	Skills         []string `mapstructure:"skills" json:"skills"`
+	Certifications []string `mapstructure:"certifications" json:"certifications"`
+	Language       string   `mapstructure:"language" json:"language"`
 }
 
 type CreateResumeAndJobRequirementReq struct {

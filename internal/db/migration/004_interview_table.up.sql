@@ -77,16 +77,6 @@ CREATE TABLE evaluation_criteria (
     UNIQUE(rubric_id, code)
 );
 
-CREATE TABLE evaluation_scores (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    evaluation_id UUID NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
-    criterion_id UUID NOT NULL REFERENCES evaluation_criteria(id) ON DELETE RESTRICT,
-    score NUMERIC(6,2) NOT NULL,
-    comment_md TEXT,
-    
-    UNIQUE(evaluation_id, criterion_id)
-);
-
 CREATE TABLE evaluations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES interview_sessions(id) ON DELETE CASCADE,
@@ -99,6 +89,16 @@ CREATE TABLE evaluations (
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     soft_delete BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE evaluation_scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    evaluation_id UUID NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
+    criterion_id UUID NOT NULL REFERENCES evaluation_criteria(id) ON DELETE RESTRICT,
+    score NUMERIC(6,2) NOT NULL,
+    comment_md TEXT,
+    
+    UNIQUE(evaluation_id, criterion_id)
 );
 
 CREATE TABLE review_comments (

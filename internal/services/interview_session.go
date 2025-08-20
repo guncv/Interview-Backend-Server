@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,7 +75,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -127,12 +128,18 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	promptJsonBytes, err := json.Marshal(summaryJson.ParsedJson)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error marshalling prompt json", err)
+		return nil, err
+	}
+
 	params := &db.CreateInterviewSessionParams{
 		ID:            s.generator.GenerateUUID(ctx),
 		UserID:        uuid.MustParse(authCtx.Payload.UserID),
 		ResumeID:      uuid.MustParse(createdResp.ResumeID),
 		RequirementID: uuid.MustParse(createdResp.JobRequirementID),
-		PromptJson:    pqtype.NullRawMessage{RawMessage: []byte(summaryJson.ParsedJson), Valid: true},
+		PromptJson:    pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:        constants.StatusPending,
 		Modality:      constants.ModalityVoiceChat,
 		ConsentAt:     req.ConsentAt,
@@ -175,7 +182,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	g, gctx := errgroup.WithContext(ctx)
@@ -241,12 +248,18 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
+	promptJsonBytes, err := json.Marshal(summaryJson.ParsedJson)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error marshalling prompt json", err)
+		return nil, err
+	}
+
 	createInterviewSessionParams := &db.CreateInterviewSessionParams{
 		ID:            s.generator.GenerateUUID(ctx),
 		UserID:        uuid.MustParse(authCtx.Payload.UserID),
 		ResumeID:      uuid.MustParse(req.ResumeID),
 		RequirementID: requirementID,
-		PromptJson:    pqtype.NullRawMessage{RawMessage: []byte(summaryJson.ParsedJson), Valid: true},
+		PromptJson:    pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:        constants.StatusPending,
 		Modality:      constants.ModalityVoiceChat,
 		ConsentAt:     req.ConsentAt,
