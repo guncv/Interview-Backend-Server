@@ -13,10 +13,6 @@ func (c *Container) ServiceProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(services.NewWebSocketService); err != nil {
-		c.Error = err
-	}
-
 	if err := c.Container.Provide(services.NewInterviewSessionService); err != nil {
 		c.Error = err
 	}

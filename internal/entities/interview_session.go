@@ -44,3 +44,7 @@ type CreateInterviewSessionTokenResp struct {
 type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
 }
+
+type StartInterviewSessionReq struct {
+	SessionID string `json:"session_id" binding:"required"`
+}

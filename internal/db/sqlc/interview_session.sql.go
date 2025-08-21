@@ -16,47 +16,19 @@ import (
 
 const abortInterviewSession = `-- name: AbortInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'aborted',
-    ended_at = $2
+SET status = $2,
+    ended_at = $3
 WHERE id = $1
 `
 
 type AbortInterviewSessionParams struct {
 	ID      uuid.UUID    `json:"id"`
+	Status  string       `json:"status"`
 	EndedAt sql.NullTime `json:"ended_at"`
 }
 
 func (q *Queries) AbortInterviewSession(ctx context.Context, arg AbortInterviewSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, abortInterviewSession, arg.ID, arg.EndedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const cancelInterviewSession = `-- name: CancelInterviewSession :execrows
-UPDATE interview_sessions
-SET status = 'cancelled',
-    ended_at = $2,
-    overall_score = $3,
-    summary_md = $4
-WHERE id = $1
-`
-
-type CancelInterviewSessionParams struct {
-	ID           uuid.UUID      `json:"id"`
-	EndedAt      sql.NullTime   `json:"ended_at"`
-	OverallScore sql.NullString `json:"overall_score"`
-	SummaryMd    sql.NullString `json:"summary_md"`
-}
-
-func (q *Queries) CancelInterviewSession(ctx context.Context, arg CancelInterviewSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, cancelInterviewSession,
-		arg.ID,
-		arg.EndedAt,
-		arg.OverallScore,
-		arg.SummaryMd,
-	)
+	result, err := q.db.ExecContext(ctx, abortInterviewSession, arg.ID, arg.Status, arg.EndedAt)
 	if err != nil {
 		return 0, err
 	}
@@ -103,29 +75,52 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 	return err
 }
 
-const finishInterviewSession = `-- name: FinishInterviewSession :execrows
+const endInterviewSession = `-- name: EndInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'completed',
-    ended_at = $2,
-    overall_score = $3,
-    summary_md = $4
+SET status = $2,
+    ended_at = $3,
+    overall_score = $4,
+    summary_md = $5
 WHERE id = $1
 `
 
-type FinishInterviewSessionParams struct {
+type EndInterviewSessionParams struct {
 	ID           uuid.UUID      `json:"id"`
+	Status       string         `json:"status"`
 	EndedAt      sql.NullTime   `json:"ended_at"`
 	OverallScore sql.NullString `json:"overall_score"`
 	SummaryMd    sql.NullString `json:"summary_md"`
 }
 
-func (q *Queries) FinishInterviewSession(ctx context.Context, arg FinishInterviewSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, finishInterviewSession,
+func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, endInterviewSession,
 		arg.ID,
+		arg.Status,
 		arg.EndedAt,
 		arg.OverallScore,
 		arg.SummaryMd,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const startInterviewSession = `-- name: StartInterviewSession :execrows
+UPDATE interview_sessions
+SET status = $2,
+    started_at = $3
+WHERE id = $1
+`
+
+type StartInterviewSessionParams struct {
+	ID        uuid.UUID    `json:"id"`
+	Status    string       `json:"status"`
+	StartedAt sql.NullTime `json:"started_at"`
+}
+
+func (q *Queries) StartInterviewSession(ctx context.Context, arg StartInterviewSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, startInterviewSession, arg.ID, arg.Status, arg.StartedAt)
 	if err != nil {
 		return 0, err
 	}
