@@ -38,6 +38,10 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeResumeNotFound:               ErrHttpCodeNotFound,
 	ErrCodeResumeInvalidID:              ErrHttpCodeBadRequest,
 	ErrCodeResumeInvalidRequest:         ErrHttpCodeBadRequest,
+
+	// Session
+	ErrCodeSessionInvalidToken: ErrHttpCodeBadRequest,
+	ErrCodeSessionNotFound:     ErrHttpCodeNotFound,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -78,4 +82,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeResumeNotFound:               ErrMessageResumeNotFound,
 	ErrCodeResumeInvalidID:              ErrMessageResumeInvalidID,
 	ErrCodeResumeInvalidRequest:         ErrMessageResumeInvalidRequest,
+
+	// Session
+	ErrCodeSessionInvalidToken: ErrMessageSessionInvalidToken,
+	ErrCodeSessionNotFound:     ErrMessageSessionNotFound,
 }

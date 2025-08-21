@@ -78,6 +78,6 @@ func websocketRoutes(eg *gin.RouterGroup, websocketHandler *handlers.WebSocketHa
 	websocketRoutes := eg.Group("/ws").Use(authMiddleware.AuthMiddleware())
 
 	{
-		websocketRoutes.GET("/connect", websocketHandler.HandleWebSocket)
+		websocketRoutes.GET("/connect/:id", websocketHandler.OpenWsConnection)
 	}
 }

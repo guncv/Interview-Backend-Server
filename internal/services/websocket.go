@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	ws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -11,7 +14,7 @@ import (
 )
 
 type WebSocketService interface {
-	HandleWebSocket(ctx context.Context, c *gin.Context) (*ws.WebSocketServer, error)
+	OpenWsConnection(ctx context.Context, c *gin.Context, req *entities.OpenWsConnectionRequest) error
 }
 
 type webSocketService struct {
@@ -19,6 +22,7 @@ type webSocketService struct {
 	authContext     middleware.AuthContext
 	generator       utils.Generator
 	webSocketServer *ws.WebSocketServer
+	redisClient     database.RedisClient
 }
 
 func NewWebSocketService(
@@ -26,34 +30,43 @@ func NewWebSocketService(
 	log *log.Logger,
 	generator utils.Generator,
 	webSocketServer *ws.WebSocketServer,
+	redisClient database.RedisClient,
 ) WebSocketService {
 	return &webSocketService{
 		authContext:     authContext,
 		log:             log,
 		generator:       generator,
 		webSocketServer: webSocketServer,
+		redisClient:     redisClient,
 	}
 }
 
-func (s *webSocketService) HandleWebSocket(ctx context.Context, c *gin.Context) (*ws.WebSocketServer, error) {
-	s.log.InfoWithID(ctx, "[Service: HandleWebSocket] Called")
+func (s *webSocketService) OpenWsConnection(ctx context.Context, c *gin.Context, req *entities.OpenWsConnectionRequest) error {
+	s.log.InfoWithID(ctx, "[Service: OpenWsConnection] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: HandleWebSocket] Error getting auth context", err)
-		return nil, err
+		s.log.ErrorWithID(ctx, "[Service: OpenWsConnection] Error getting auth context", err)
+		return err
 	}
 
-	s.webSocketServer.HandleConnection(c.Writer, c.Request, authCtx.Payload.UserID)
+	redisClient, err := s.redisClient.Get(ctx, req.SessionToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: OpenWsConnection] Error getting session token", err)
+		return err
+	}
 
-	// welcomeMsg := ws.Message{
-	// 	Type:      "connection_established",
-	// 	Content:   "WebSocket connection established",
-	// 	UserID:    authCtx.Payload.UserID,
-	// 	Timestamp: time.Now(),
-	// }
+	var sessionPayload entities.RedisSessionToken
+	if err := json.Unmarshal([]byte(redisClient), &sessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: OpenWsConnection] Error unmarshalling session token", err)
+		return err
+	}
 
-	// s.webSocketServer.SendOneToOneMessage(ctx, welcomeMsg)
+	if sessionPayload.UserID != authCtx.Payload.UserID {
+		s.log.ErrorWithID(ctx, "[Service: OpenWsConnection] User ID mismatch", "sessionPayload", sessionPayload, "authCtx", authCtx)
+		return err
+	}
 
-	return s.webSocketServer, nil
+	s.webSocketServer.HandleConnection(c.Writer, c.Request, sessionPayload)
+	return nil
 }

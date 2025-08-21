@@ -40,4 +40,8 @@ const (
 	ErrMessageResumeNotFound               ErrorMessage = "The resume was not found. Please try again."
 	ErrMessageResumeInvalidID              ErrorMessage = "The resume ID is invalid. Please try again."
 	ErrMessageResumeInvalidRequest         ErrorMessage = "The request is invalid. Please try again."
+
+	// Session
+	ErrMessageSessionInvalidToken ErrorMessage = "The session token is invalid. Please try again."
+	ErrMessageSessionNotFound     ErrorMessage = "The session was not found. Please try again."
 )

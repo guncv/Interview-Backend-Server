@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -43,7 +44,7 @@ func NewWebSocketServer(log *log.Logger) *WebSocketServer {
 	}
 }
 
-func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Request, userID string) {
+func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Request, redisSessionToken entities.RedisSessionToken) {
 	s.log.InfoWithID(r.Context(), "[WebSocketServer: HandleConnection] Called")
 	ctx := r.Context()
 
@@ -56,19 +57,23 @@ func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Reques
 	sessionID := uuid.NewString()
 	c := &Client{
 		conn:      conn,
-		userID:    userID,
-		sessionID: sessionID,
+		userID:    redisSessionToken.UserID,
+		sessionID: redisSessionToken.SessionID,
 	}
 
 	s.mu.Lock()
 	s.sessions[sessionID] = c
-	if s.userSessions[userID] == nil {
-		s.userSessions[userID] = map[string]bool{}
+	if s.userSessions[redisSessionToken.UserID] == nil {
+		s.userSessions[redisSessionToken.UserID] = map[string]bool{}
 	}
-	s.userSessions[userID][sessionID] = true
+	s.userSessions[redisSessionToken.UserID][sessionID] = true
 	s.mu.Unlock()
 
-	_ = s.writeJSON(c, map[string]any{"type": "welcome", "session_id": sessionID})
+	successConnection := map[string]any{
+		"type": "connection_established",
+	}
+
+	_ = s.writeJSON(c, successConnection)
 
 	go s.readLoop(ctx, c)
 }
@@ -85,20 +90,18 @@ func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
 		}
 
 		var msg struct {
-			Type      string      `json:"type"`
-			ToSession string      `json:"to_session,omitempty"`
-			ToUser    string      `json:"to_user,omitempty"`
-			Content   interface{} `json:"content"`
+			Type         string      `json:"type"`
+			SessionToken string      `json:"session_token,omitempty"`
+			Content      interface{} `json:"content"`
 		}
+
 		if json.Unmarshal(payload, &msg) != nil {
 			continue
 		}
 
 		switch msg.Type {
 		case "send":
-			s.SendToSession(c.sessionID, msg.ToSession, msg.Content)
-		case "send_user":
-			s.SendToUser(c.sessionID, msg.ToUser, msg.Content)
+			s.SendToSession(c.sessionID, msg.SessionToken, msg.Content)
 		default:
 			_ = s.writeJSON(c, map[string]any{"type": "echo", "content": msg.Content})
 		}
@@ -117,21 +120,6 @@ func (s *WebSocketServer) SendToSession(fromSession, toSession string, content a
 		"type": "message", "from_session": fromSession, "to_session": toSession,
 		"content": content, "ts": time.Now(),
 	})
-}
-
-func (s *WebSocketServer) SendToUser(fromSession, toUser string, content any) error {
-	s.log.InfoWithID(context.Background(), "[WebSocketServer: SendToUser] Called")
-	s.mu.RLock()
-	sessSet := s.userSessions[toUser]
-	s.mu.RUnlock()
-	if len(sessSet) == 0 {
-		return errors.New("receiver user not connected")
-	}
-
-	for sid := range sessSet {
-		_ = s.SendToSession(fromSession, sid, content)
-	}
-	return nil
 }
 
 func (s *WebSocketServer) disconnect(c *Client) {
