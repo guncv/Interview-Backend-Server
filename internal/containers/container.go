@@ -16,8 +16,8 @@ func (c *Container) Configure() {
 
 	c.Container.Provide(config.LoadConfig)
 
-	c.InfrastructureProvider()
 	c.RepositoryProvider()
+	c.InfrastructureProvider()
 	c.ServiceProvider()
 	c.HandlerProvider()
 }

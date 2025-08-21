@@ -140,6 +140,53 @@ func (_c *MockInterviewSessionService_CreateInterviewSessionWithNewResume_Call) 
 	return _c
 }
 
+// StartInterviewSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StartInterviewSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.StartInterviewSessionReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_StartInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StartInterviewSession'
+type MockInterviewSessionService_StartInterviewSession_Call struct {
+	*mock.Call
+}
+
+// StartInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.StartInterviewSessionReq
+func (_e *MockInterviewSessionService_Expecter) StartInterviewSession(ctx interface{}, req interface{}) *MockInterviewSessionService_StartInterviewSession_Call {
+	return &MockInterviewSessionService_StartInterviewSession_Call{Call: _e.mock.On("StartInterviewSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_StartInterviewSession_Call) Run(run func(ctx context.Context, req *entities.StartInterviewSessionReq)) *MockInterviewSessionService_StartInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.StartInterviewSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_StartInterviewSession_Call) Return(_a0 error) *MockInterviewSessionService_StartInterviewSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_StartInterviewSession_Call) RunAndReturn(run func(context.Context, *entities.StartInterviewSessionReq) error) *MockInterviewSessionService_StartInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockInterviewSessionService creates a new instance of MockInterviewSessionService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockInterviewSessionService(t interface {

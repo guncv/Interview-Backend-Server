@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -26,6 +27,7 @@ import (
 type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
+	StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error
 }
 
 type interviewSessionService struct {
@@ -342,6 +344,23 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	return resp, nil
+}
+
+func (s *interviewSessionService) StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error {
+	s.log.InfoWithID(ctx, "[Service: StartInterviewSession] Called")
+
+	dbReq := &db.StartInterviewSessionParams{
+		ID:        uuid.MustParse(req.SessionID),
+		Status:    constants.StatusOnGoing,
+		StartedAt: sql.NullTime{Time: time.Now(), Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.StartInterviewSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: StartInterviewSession] Error starting interview session", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

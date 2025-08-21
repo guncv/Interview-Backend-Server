@@ -11,8 +11,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
 
 type Client struct {
@@ -23,59 +28,101 @@ type Client struct {
 }
 
 type WebSocketServer struct {
-	log          *log.Logger
-	sessions     map[string]*Client
-	userSessions map[string]map[string]bool
-	mu           sync.RWMutex
-	upgrader     websocket.Upgrader
+	log                     *log.Logger
+	sessions                map[string]*Client
+	userSessions            map[string]map[string]bool
+	mu                      sync.RWMutex
+	upgrader                websocket.Upgrader
+	redisClient             database.RedisClient
+	authContext             middleware.AuthContext
+	interviewSessionService services.InterviewSessionService
 }
 
-func NewWebSocketServer(log *log.Logger) *WebSocketServer {
+func NewWebSocketServer(
+	log *log.Logger,
+	redisClient database.RedisClient,
+	authContext middleware.AuthContext,
+	interviewSessionService services.InterviewSessionService,
+) *WebSocketServer {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 	return &WebSocketServer{
-		log:          log,
-		upgrader:     upgrader,
-		sessions:     make(map[string]*Client),
-		userSessions: make(map[string]map[string]bool),
+		log:                     log,
+		upgrader:                upgrader,
+		sessions:                make(map[string]*Client),
+		userSessions:            make(map[string]map[string]bool),
+		authContext:             authContext,
+		interviewSessionService: interviewSessionService,
 	}
 }
 
-func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Request, redisSessionToken entities.RedisSessionToken) {
-	s.log.InfoWithID(r.Context(), "[WebSocketServer: HandleConnection] Called")
-	ctx := r.Context()
+func (s *WebSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting auth context", err)
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	redisSessionToken, err := s.redisClient.Get(ctx, sessionToken.SessionToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
+		return err
+	}
+
+	var sessionPayload entities.RedisSessionToken
+	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error unmarshalling redis session token", err)
+		return err
+	}
+
+	if sessionPayload.UserID != authCtx.Payload.UserID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error upgrading connection", err)
-		return
+		return err
 	}
 
 	sessionID := uuid.NewString()
-	c := &Client{
+	client := &Client{
 		conn:      conn,
-		userID:    redisSessionToken.UserID,
-		sessionID: redisSessionToken.SessionID,
+		userID:    sessionPayload.UserID,
+		sessionID: sessionPayload.SessionID,
 	}
 
 	s.mu.Lock()
-	s.sessions[sessionID] = c
-	if s.userSessions[redisSessionToken.UserID] == nil {
-		s.userSessions[redisSessionToken.UserID] = map[string]bool{}
+	s.sessions[sessionID] = client
+	if s.userSessions[sessionPayload.UserID] == nil {
+		s.userSessions[sessionPayload.UserID] = map[string]bool{}
 	}
-	s.userSessions[redisSessionToken.UserID][sessionID] = true
+	s.userSessions[sessionPayload.UserID][sessionID] = true
 	s.mu.Unlock()
+
+	if err := s.interviewSessionService.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+		SessionID: sessionID,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
+		s.disconnect(client)
+		return err
+	}
 
 	successConnection := map[string]any{
 		"type": "connection_established",
 	}
 
-	_ = s.writeJSON(c, successConnection)
+	_ = s.writeJSON(client, successConnection)
 
-	go s.readLoop(ctx, c)
+	go s.readLoop(ctx, client)
+
+	return nil
 }
 
 func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
