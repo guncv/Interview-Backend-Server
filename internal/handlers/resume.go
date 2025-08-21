@@ -3,6 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -93,7 +95,7 @@ func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	resumeId := c.Param("id")
 	if resumeId == "" {
 		h.log.ErrorWithID(ctx, "[Handler: GetResumeByID] Resume ID is required")
-		utils.RespondWithError(c, app_error.New(nil, app_error.ErrCodeResumeInvalidRequest))
+		utils.RespondWithError(c, app_error.New(errors.New("resume ID is required"), app_error.ErrCodeResumeInvalidRequest))
 		return
 	}
 

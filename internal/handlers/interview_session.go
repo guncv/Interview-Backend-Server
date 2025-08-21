@@ -19,7 +19,7 @@ type InterviewSessionHandler struct {
 	log                     *log.Logger
 	authContext             middleware.AuthContext
 	validator               utils.Validator
-	wsServer                *websocket.WebSocketServer
+	wsServer                websocket.WebSocketServerInterface
 }
 
 func NewInterviewSessionHandler(
@@ -27,7 +27,7 @@ func NewInterviewSessionHandler(
 	log *log.Logger,
 	authContext middleware.AuthContext,
 	validator utils.Validator,
-	wsServer *websocket.WebSocketServer,
+	wsServer websocket.WebSocketServerInterface,
 ) *InterviewSessionHandler {
 	return &InterviewSessionHandler{
 		interviewSessionService: interviewSessionService,
@@ -104,7 +104,7 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 	}
 
 	var req entities.OpenWsConnectionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := h.validator.ValidateAndBind(c, &req, "OpenWsConnection"); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error binding request", err)
 		utils.RespondWithError(c, err)
 		return
@@ -119,7 +119,7 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 
 	if err := h.wsServer.HandleConnection(ctx, c.Writer, c.Request, req); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error handling connection", err)
-		utils.RespondWithError(c, err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRequest))
 		return
 	}
 

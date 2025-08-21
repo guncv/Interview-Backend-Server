@@ -44,3 +44,9 @@ packages:
       filename: "{{.InterfaceName}}.go"
       outpkg: aws
       recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket:
+    config:
+      dir: ./internal/mocks/websocket
+      filename: "{{.InterfaceName}}.go"
+      outpkg: websocket
+      recursive: true
