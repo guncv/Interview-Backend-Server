@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 )
 
@@ -73,4 +74,51 @@ type CreateResumeAndJobRequirementReq struct {
 	Language         string
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
+}
+
+type CreateInterviewSessionTxReq struct {
+	ResumeID   uuid.UUID
+	UserID     uuid.UUID
+	FileName   string
+	StorageKey string
+	MimeType   string
+	ByteSize   int32
+	IsDefault  bool
+
+	JobRequirementID uuid.UUID
+	Position         string
+	CompanyName      string
+	WorkType         string
+	JobRequirements  string
+	InterviewType    string
+	Language         string
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
+
+	SessionID  uuid.UUID
+	PromptJson pqtype.NullRawMessage
+	Status     string
+	Modality   string
+	ConsentAt  time.Time
+}
+
+type CreateInterviewSessionWithExistingResumeTxReq struct {
+	ResumeID uuid.UUID
+	UserID   uuid.UUID
+
+	JobRequirementID uuid.UUID
+	Position         string
+	CompanyName      string
+	WorkType         string
+	JobRequirements  string
+	InterviewType    string
+	Language         string
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
+
+	SessionID  uuid.UUID
+	PromptJson pqtype.NullRawMessage
+	Status     string
+	Modality   string
+	ConsentAt  time.Time
 }

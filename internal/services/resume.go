@@ -25,7 +25,6 @@ import (
 )
 
 type ResumeService interface {
-	CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) (*entities.CreateResumeAndJobRequirementResp, error)
 	ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error)
 	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
 	GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)
@@ -62,79 +61,6 @@ func NewResumeService(
 		redisClient: redisClient,
 		generator:   generator,
 	}
-}
-
-func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) (*entities.CreateResumeAndJobRequirementResp, error) {
-	s.log.InfoWithID(ctx, "[Service: CreateResume] Called")
-
-	authCtx, err := s.authContext.GetAuthContext(ctx)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error getting auth context", err)
-		return nil, err
-	}
-
-	if !s.validator.IsAllowedResumeContentType(ctx, req.File) {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Invalid file type", errors.New("invalid file type"))
-		return nil, app_error.New(errors.New("invalid file type"), app_error.ErrCodeResumeInvalidFileContentType)
-	}
-
-	if req.File.Size <= 0 {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Invalid file size", errors.New("file size must be greater than 0"))
-		return nil, app_error.New(errors.New("file size must be greater than 0"), app_error.ErrCodeResumeInvalidFileSize)
-	}
-
-	if req.File.Size > int64(constants.ResumeMaxFileSize) {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] File size is too large", errors.New("file size is too large"))
-		return nil, app_error.New(errors.New("file size is too large"), app_error.ErrCodeResumeInvalidFileSize)
-	}
-
-	isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error getting default resume", err)
-		return nil, err
-	}
-
-	storageKey, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error uploading file", err)
-		return nil, err
-	}
-
-	resumeReq := &repositories.CreateResumeAndJobRequirementReq{
-		ResumeID:   s.generator.GenerateUUID(ctx),
-		UserID:     uuid.MustParse(authCtx.Payload.UserID),
-		FileName:   req.File.Filename,
-		StorageKey: storageKey,
-		MimeType:   req.File.Header.Get("Content-Type"),
-		ByteSize:   int32(req.File.Size),
-		IsDefault:  !isDefaultResume,
-
-		JobRequirementID: s.generator.GenerateUUID(ctx),
-		Position:         req.Position,
-		CompanyName:      req.Company,
-		WorkType:         req.WorkType,
-		JobRequirements:  req.JobRequirements,
-		InterviewType:    req.InterviewType,
-		Language:         req.Language,
-		CreatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-		UpdatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-	}
-
-	if err := s.resumeRepo.CreateResumeAndJobRequirement(ctx, resumeReq); err != nil {
-		if err := s.queue.PublishTaskDeleteFile(ctx, &aws.DeleteFilePayload{Key: storageKey}); err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateResume] Error publishing delete file task", err)
-		}
-
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error creating resume", err)
-		return nil, err
-	}
-
-	resp := entities.CreateResumeAndJobRequirementResp{
-		ResumeID:         resumeReq.ResumeID.String(),
-		JobRequirementID: resumeReq.JobRequirementID.String(),
-	}
-
-	return &resp, nil
 }
 
 func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
