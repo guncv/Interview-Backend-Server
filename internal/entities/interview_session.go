@@ -37,12 +37,6 @@ type CreateInterviewSessionWithExistingResumeResp struct {
 	SessionToken string `json:"session_token"`
 }
 
-type CreateInterviewSessionTokenReq struct {
-	SessionID uuid.UUID     `json:"session_id"`
-	UserID    string        `json:"user_id"`
-	Duration  time.Duration `json:"duration"`
-}
-
 type CreateInterviewSessionTokenResp struct {
 	Token string `json:"token"`
 }

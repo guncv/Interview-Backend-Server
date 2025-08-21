@@ -54,7 +54,11 @@ func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Reques
 	}
 
 	sessionID := uuid.NewString()
-	c := &Client{conn: conn, userID: userID, sessionID: sessionID}
+	c := &Client{
+		conn:      conn,
+		userID:    userID,
+		sessionID: sessionID,
+	}
 
 	s.mu.Lock()
 	s.sessions[sessionID] = c

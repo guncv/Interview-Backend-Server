@@ -14,6 +14,7 @@ import (
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -39,6 +40,7 @@ type interviewSessionService struct {
 	s3Storage            aws.S3Storage
 	jobRequirementRepo   repositories.JobRequirementRepository
 	publisher            queue.RedisTaskPublisher
+	redisClient          database.RedisClient
 }
 
 func NewInterviewSessionService(
@@ -53,6 +55,7 @@ func NewInterviewSessionService(
 	s3Storage aws.S3Storage,
 	jobRequirementRepo repositories.JobRequirementRepository,
 	publisher queue.RedisTaskPublisher,
+	redisClient database.RedisClient,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -66,6 +69,7 @@ func NewInterviewSessionService(
 		s3Storage:            s3Storage,
 		jobRequirementRepo:   jobRequirementRepo,
 		publisher:            publisher,
+		redisClient:          redisClient,
 	}
 }
 
@@ -181,18 +185,29 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	tokenReq := &entities.CreateInterviewSessionTokenReq{
-		SessionID: params.ID,
-		UserID:    authCtx.Payload.UserID,
-		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	tokenReq := map[string]any{
+		"session_id": params.ID,
+		"user_id":    authCtx.Payload.UserID,
+		"role":       authCtx.Payload.Role,
 	}
-	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, tokenReq)
+
+	redisPayload := database.RedisPayload{
+		Key:   s.generator.GenerateUUID(ctx).String(),
+		Value: tokenReq,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	}
+
+	err = s.redisClient.Set(ctx, redisPayload)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session token", err)
 		return nil, err
 	}
 
-	return &entities.CreateInterviewSessionWithNewResumeResponse{SessionToken: token}, nil
+	resp := &entities.CreateInterviewSessionWithNewResumeResponse{
+		SessionToken: redisPayload.Key,
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
@@ -305,19 +320,27 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
-	createInterviewSessionTokenReq := &entities.CreateInterviewSessionTokenReq{
-		SessionID: createInterviewSessionParams.ID,
-		UserID:    authCtx.Payload.UserID,
-		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	tokenReq := map[string]any{
+		"session_id": createInterviewSessionParams.ID,
+		"user_id":    authCtx.Payload.UserID,
+		"role":       authCtx.Payload.Role,
 	}
 
-	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, createInterviewSessionTokenReq)
-	if err != nil {
+	redisPayload := database.RedisPayload{
+		Key:   s.generator.GenerateUUID(ctx).String(),
+		Value: tokenReq,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session token", err)
 		return nil, err
 	}
 
-	resp := &entities.CreateInterviewSessionWithExistingResumeResp{SessionToken: token}
+	resp := &entities.CreateInterviewSessionWithExistingResumeResp{
+		SessionToken: redisPayload.Key,
+	}
+
 	return resp, nil
 }
 
