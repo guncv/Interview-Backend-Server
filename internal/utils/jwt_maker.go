@@ -23,6 +23,7 @@ type JwtToken interface {
 	VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error)
 	CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error)
 	VerifyToken(ctx context.Context, token string) (*SignInTokenPayload, error)
+	CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error)
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
 	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
@@ -46,7 +47,7 @@ func NewJwtToken(
 	}
 }
 
-func (maker *jwtToken) createJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
+func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(maker.config.AuthConfig.JwtSecretKey))
 	if err != nil {
@@ -65,19 +66,43 @@ func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, c
 		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, claims, keyFunc)
+	parser := jwt.Parser{
+		SkipClaimsValidation: true,
+	}
+
+	token, err := parser.ParseWithClaims(tokenString, claims, keyFunc)
 	if err != nil {
-		if verr, ok := err.(*jwt.ValidationError); ok && errors.Is(verr.Inner, constants.ErrExpiredToken) {
-			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token", "error", constants.ErrExpiredToken)
-			return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
-		}
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token", "error", constants.ErrInvalidToken)
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token signature", "error", constants.ErrInvalidToken)
 		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	if !token.Valid {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token claims", "error", constants.ErrInvalidToken)
-		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	if err := maker.validateClaims(ctx, token.Claims, claims); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (maker *jwtToken) validateClaims(ctx context.Context, rawClaims jwt.Claims, targetClaims jwt.Claims) error {
+	if payload, ok := targetClaims.(interface{ GetExpiredAt() time.Time }); ok {
+		expiredAt := payload.GetExpiredAt()
+		now := time.Now()
+
+		if now.After(expiredAt) {
+			graceWindow := maker.config.AuthConfig.TokenGraceWindow
+			if graceWindow == 0 {
+				graceWindow = time.Minute
+			}
+
+			if time.Since(expiredAt) <= graceWindow {
+				maker.logger.InfoWithID(ctx, "[Utils: JWT] Token expired but within grace window",
+					"expiredAt", expiredAt, "graceWindow", graceWindow)
+			} else {
+				maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token outside grace window",
+					"error", constants.ErrExpiredToken, "expiredAt", expiredAt, "graceWindow", graceWindow)
+				return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
+			}
+		}
 	}
 
 	return nil
@@ -92,7 +117,7 @@ func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities
 		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	token, err := maker.createJWTToken(ctx, payload)
+	token, err := maker.CreateJWTToken(ctx, payload)
 	if err != nil {
 		return "", nil, err
 	}
@@ -120,7 +145,7 @@ func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenReque
 		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	token, err := maker.createJWTToken(ctx, payload)
+	token, err := maker.CreateJWTToken(ctx, payload)
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating sign-in token", "error", err)
 		return "", nil, err
@@ -200,7 +225,6 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	// Extract payload from parsed token
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token claims type", "error", constants.ErrInvalidToken)
@@ -228,7 +252,7 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 
 	payload.ExpiredAt = time.Now().Add(maker.config.AuthConfig.VerifyEmailTokenDuration)
 
-	newToken, err := maker.createJWTToken(ctx, payload)
+	newToken, err := maker.CreateJWTToken(ctx, payload)
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
 		return "", nil, err

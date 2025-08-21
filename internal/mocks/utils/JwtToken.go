@@ -5,8 +5,10 @@ package utils
 import (
 	context "context"
 
-	mock "github.com/stretchr/testify/mock"
+	jwt "github.com/dgrijalva/jwt-go"
 	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+
+	mock "github.com/stretchr/testify/mock"
 
 	utils "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
@@ -22,6 +24,63 @@ type MockJwtToken_Expecter struct {
 
 func (_m *MockJwtToken) EXPECT() *MockJwtToken_Expecter {
 	return &MockJwtToken_Expecter{mock: &_m.Mock}
+}
+
+// CreateJWTToken provides a mock function with given fields: ctx, claims
+func (_m *MockJwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
+	ret := _m.Called(ctx, claims)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateJWTToken")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) (string, error)); ok {
+		return rf(ctx, claims)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) string); ok {
+		r0 = rf(ctx, claims)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, jwt.Claims) error); ok {
+		r1 = rf(ctx, claims)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockJwtToken_CreateJWTToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJWTToken'
+type MockJwtToken_CreateJWTToken_Call struct {
+	*mock.Call
+}
+
+// CreateJWTToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - claims jwt.Claims
+func (_e *MockJwtToken_Expecter) CreateJWTToken(ctx interface{}, claims interface{}) *MockJwtToken_CreateJWTToken_Call {
+	return &MockJwtToken_CreateJWTToken_Call{Call: _e.mock.On("CreateJWTToken", ctx, claims)}
+}
+
+func (_c *MockJwtToken_CreateJWTToken_Call) Run(run func(ctx context.Context, claims jwt.Claims)) *MockJwtToken_CreateJWTToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(jwt.Claims))
+	})
+	return _c
+}
+
+func (_c *MockJwtToken_CreateJWTToken_Call) Return(_a0 string, _a1 error) *MockJwtToken_CreateJWTToken_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockJwtToken_CreateJWTToken_Call) RunAndReturn(run func(context.Context, jwt.Claims) (string, error)) *MockJwtToken_CreateJWTToken_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // CreateToken provides a mock function with given fields: ctx, req

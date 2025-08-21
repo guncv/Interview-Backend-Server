@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -47,6 +49,23 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 			},
 		},
 		{
+			name: "CreateAndVerifyToken_OK",
+			input: func() *entities.TokenRequest {
+				return &entities.TokenRequest{
+					UserID:   "user-123",
+					Role:     "user",
+					Duration: time.Second * -10,
+				}
+			},
+			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
+				assert.Equal(t, got.UserID, "user-123")
+				assert.Equal(t, got.Role, constants.UserRole("user"))
+				assert.WithinDuration(t, got.IssuedAt, time.Now(), time.Second)
+				assert.WithinDuration(t, got.ExpiredAt, time.Now().Add(time.Second*-10), time.Second)
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
 			name: "CreateAndVerifyToken_Expired",
 			input: func() *entities.TokenRequest {
 				return &entities.TokenRequest{
@@ -59,21 +78,6 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 				assert.Nil(t, got)
 				assert.Error(t, gotErr)
 				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // check the correct error
-			},
-		},
-		{
-			name: "CreateAndVerifyToken_Invalid",
-			input: func() *entities.TokenRequest {
-				return &entities.TokenRequest{
-					UserID:   "",
-					Role:     "",
-					Duration: 0,
-				}
-			},
-			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
-				assert.Nil(t, got)
-				assert.Error(t, gotErr)
-				assert.Equal(t, gotErr, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)) // Assuming same error for invalid case
 			},
 		},
 	}
@@ -578,4 +582,135 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 			tC.verify(t, newToken, payload, err)
 		})
 	}
+}
+
+func TestJwtToken_GraceWindow(t *testing.T) {
+	// Setup
+	cfg := &config.Config{
+		AuthConfig: config.AuthConfig{
+			JwtSecretKey:     "test-secret-key",
+			TokenGraceWindow: time.Minute, // 1 minute grace window
+		},
+	}
+
+	logger := log.Initialize(constants.TestAppEnv)
+
+	mockSessionRepo := &mockSessionRepository{}
+
+	jwtMaker := NewJwtToken(cfg, logger, mockSessionRepo)
+	ctx := context.Background()
+
+	t.Run("Token within grace window should be valid", func(t *testing.T) {
+		// Create a valid token first
+		req := &entities.TokenRequest{
+			UserID:   "test-user",
+			Role:     constants.UserRoleUser,
+			Duration: time.Minute, // Valid for 1 minute
+		}
+
+		token, payload, err := jwtMaker.CreateToken(ctx, req)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.NotNil(t, payload)
+
+		payload.ExpiredAt = time.Now().Add(-30 * time.Second)
+		t.Logf("Modified payload expiration: %v", payload.ExpiredAt)
+		newToken, err := jwtMaker.CreateJWTToken(ctx, payload)
+		assert.NoError(t, err)
+		t.Logf("Created new token with expired payload: %s", newToken[:20])
+
+		// Verify the expired token with grace window should work
+		verifiedPayload, err := jwtMaker.VerifyToken(ctx, newToken)
+		if err != nil {
+			t.Logf("Verification failed: %v", err)
+		}
+		assert.NoError(t, err)
+		assert.NotNil(t, verifiedPayload)
+		assert.Equal(t, req.UserID, verifiedPayload.UserID)
+	})
+
+	t.Run("Valid token should work normally", func(t *testing.T) {
+		// Create a valid token
+		req := &entities.TokenRequest{
+			UserID:   "test-user",
+			Role:     constants.UserRoleUser,
+			Duration: time.Minute, // Valid for 1 minute
+		}
+
+		token, payload, err := jwtMaker.CreateToken(ctx, req)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.NotNil(t, payload)
+
+		// Verify the token should work normally
+		verifiedPayload, err := jwtMaker.VerifyToken(ctx, token)
+		assert.NoError(t, err)
+		assert.NotNil(t, verifiedPayload)
+		assert.Equal(t, req.UserID, verifiedPayload.UserID)
+	})
+}
+
+func TestTokenPayload_GraceWindow(t *testing.T) {
+	t.Run("SignInTokenPayload grace window validation", func(t *testing.T) {
+		payload := &SignInTokenPayload{
+			ID:        uuid.New(),
+			UserID:    "test-user",
+			Role:      constants.UserRoleUser,
+			IssuedAt:  time.Now().Add(-2 * time.Minute),
+			ExpiredAt: time.Now().Add(-30 * time.Second), // Expired 30 seconds ago
+		}
+
+		// Should fail with regular validation
+		err := payload.Valid()
+		assert.Error(t, err)
+		assert.Equal(t, constants.ErrExpiredToken, err)
+
+		// Should pass with grace window validation (1 minute grace window)
+		err = payload.ValidWithGraceWindow(time.Minute)
+		assert.NoError(t, err)
+
+		// Should fail with shorter grace window
+		err = payload.ValidWithGraceWindow(10 * time.Second)
+		assert.Error(t, err)
+		assert.Equal(t, constants.ErrExpiredToken, err)
+	})
+
+	t.Run("VerifyEmailTokenPayload grace window validation", func(t *testing.T) {
+		payload := &VerifyEmailTokenPayload{
+			ID:        uuid.New(),
+			UserID:    "test-user",
+			Email:     "test@example.com",
+			IssuedAt:  time.Now().Add(-2 * time.Minute),
+			ExpiredAt: time.Now().Add(-30 * time.Second), // Expired 30 seconds ago
+		}
+
+		// Should fail with regular validation
+		err := payload.Valid()
+		assert.Error(t, err)
+		assert.Equal(t, constants.ErrExpiredToken, err)
+
+		// Should pass with grace window validation (1 minute grace window)
+		err = payload.ValidWithGraceWindow(time.Minute)
+		assert.NoError(t, err)
+
+		// Should fail with shorter grace window
+		err = payload.ValidWithGraceWindow(10 * time.Second)
+		assert.Error(t, err)
+		assert.Equal(t, constants.ErrExpiredToken, err)
+	})
+}
+
+// mockSessionRepository is a simple mock for testing
+type mockSessionRepository struct{}
+
+func (m *mockSessionRepository) CreateSession(ctx context.Context, arg *db.CreateSessionParams) error {
+	return nil
+}
+
+func (m *mockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
+	return db.Sessions{}, nil
+}
+
+func (m *mockSessionRepository) RevokeSessionByID(ctx context.Context, id uuid.UUID) error {
+	return nil
 }

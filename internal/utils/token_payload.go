@@ -66,10 +66,42 @@ func (payload *SignInTokenPayload) Valid() error {
 	return nil
 }
 
+func (payload *SignInTokenPayload) ValidWithGraceWindow(graceWindow time.Duration) error {
+	if graceWindow == 0 {
+		graceWindow = time.Minute
+	}
+
+	if time.Since(payload.ExpiredAt) > graceWindow {
+		return constants.ErrExpiredToken
+	}
+
+	return nil
+}
+
+func (payload *SignInTokenPayload) GetExpiredAt() time.Time {
+	return payload.ExpiredAt
+}
+
 func (payload *VerifyEmailTokenPayload) Valid() error {
 	if time.Now().After(payload.ExpiredAt) {
 		return constants.ErrExpiredToken
 	}
 
 	return nil
+}
+
+func (payload *VerifyEmailTokenPayload) ValidWithGraceWindow(graceWindow time.Duration) error {
+	if graceWindow == 0 {
+		graceWindow = time.Minute
+	}
+
+	if time.Since(payload.ExpiredAt) > graceWindow {
+		return constants.ErrExpiredToken
+	}
+
+	return nil
+}
+
+func (payload *VerifyEmailTokenPayload) GetExpiredAt() time.Time {
+	return payload.ExpiredAt
 }
