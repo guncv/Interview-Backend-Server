@@ -653,10 +653,10 @@ func TestResumeService_ListResume(t *testing.T) {
 					{
 						ID:        uuid.New(),
 						UserID:    userID,
-						FileName:  "default.pdf",
+						FileName:  "resume1.pdf",
 						MimeType:  "application/pdf",
 						ByteSize:  1024,
-						IsDefault: true,
+						IsDefault: false,
 						CreatedAt: time.Now(),
 						UpdatedAt: time.Now(),
 					},

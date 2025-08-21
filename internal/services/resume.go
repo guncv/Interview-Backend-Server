@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -139,7 +138,7 @@ FetchBoth:
 		go func() {
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found") {
+				if errors.Is(err, sql.ErrNoRows) {
 					defaultResumeChan <- db.Resumes{}
 					return
 				}
