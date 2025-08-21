@@ -25,6 +25,11 @@ type ListResumeRequest struct {
 }
 
 type ListResumeResponse struct {
+	Count         int            `json:"count"`
+	ResumeContent *ResumeContent `json:"resume_content"`
+}
+
+type ResumeContent struct {
 	DefaultResume GetListResumeByIdResponse   `json:"default_resume"`
 	Resumes       []GetListResumeByIdResponse `json:"resumes"`
 }

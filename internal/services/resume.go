@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -212,6 +213,10 @@ FetchBoth:
 		go func() {
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found") {
+					defaultResumeChan <- db.Resumes{}
+					return
+				}
 				errorChan <- err
 				return
 			}
@@ -236,43 +241,71 @@ FetchBoth:
 			}
 		}
 
-		raw, err := json.Marshal(defaultResume)
-		if err != nil {
-			s.log.WarnWithID(ctx, "[Service: ListResume] Error marshalling default resume", err)
-		} else {
-			if err := s.redisClient.Set(ctx, database.RedisPayload{
-				Key:   defaultResumeKey,
-				Value: string(raw),
-				TTL:   24 * time.Hour,
-			}); err != nil {
-				s.log.ErrorWithID(ctx, "[Service: ListResume] Error caching default resume in Redis", err)
+		if defaultResume.ID != uuid.Nil {
+			raw, err := json.Marshal(defaultResume)
+			if err != nil {
+				s.log.WarnWithID(ctx, "[Service: ListResume] Error marshalling default resume", err)
+			} else {
+				if err := s.redisClient.Set(ctx, database.RedisPayload{
+					Key:   defaultResumeKey,
+					Value: string(raw),
+					TTL:   24 * time.Hour,
+				}); err != nil {
+					s.log.ErrorWithID(ctx, "[Service: ListResume] Error caching default resume in Redis", err)
+				}
 			}
 		}
 	}
 
 Finalize:
-	resp := entities.ListResumeResponse{
-		DefaultResume: entities.GetListResumeByIdResponse{
+	var defaultResumeResp *entities.GetListResumeByIdResponse
+	count := len(resumeList)
+	if defaultResume.ID != uuid.Nil {
+		count++
+		defaultResumeResp = &entities.GetListResumeByIdResponse{
 			ID:        defaultResume.ID.String(),
 			FileName:  defaultResume.FileName,
 			MimeType:  defaultResume.MimeType,
 			ByteSize:  defaultResume.ByteSize,
 			CreatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.CreatedAt),
 			UpdatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.UpdatedAt),
-		},
-		Resumes: []entities.GetListResumeByIdResponse{},
+		}
+	} else {
+		defaultResumeResp = &entities.GetListResumeByIdResponse{
+			ID:        "",
+			FileName:  "",
+			MimeType:  "",
+			ByteSize:  0,
+			CreatedAt: "",
+			UpdatedAt: "",
+		}
 	}
 
-	for _, resume := range resumeList {
-		if !resume.IsDefault {
-			resp.Resumes = append(resp.Resumes, entities.GetListResumeByIdResponse{
-				ID:        resume.ID.String(),
-				FileName:  resume.FileName,
-				MimeType:  resume.MimeType,
-				ByteSize:  resume.ByteSize,
-				CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
-				UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
-			})
+	var resumeContent *entities.ResumeContent
+	if count > 0 {
+		resumeContent = &entities.ResumeContent{
+			DefaultResume: *defaultResumeResp,
+			Resumes:       []entities.GetListResumeByIdResponse{},
+		}
+	}
+
+	resp := entities.ListResumeResponse{
+		Count:         count,
+		ResumeContent: resumeContent,
+	}
+
+	if resumeContent != nil {
+		for _, resume := range resumeList {
+			if !resume.IsDefault {
+				resp.ResumeContent.Resumes = append(resp.ResumeContent.Resumes, entities.GetListResumeByIdResponse{
+					ID:        resume.ID.String(),
+					FileName:  resume.FileName,
+					MimeType:  resume.MimeType,
+					ByteSize:  resume.ByteSize,
+					CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
+					UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
+				})
+			}
 		}
 	}
 

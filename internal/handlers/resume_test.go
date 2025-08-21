@@ -54,22 +54,24 @@ func TestResumeHandler_ListResume(t *testing.T) {
 				mockAuth.On("ExtractAuthContext", mock.Anything).Return(context.Background(), nil)
 
 				expectedResponse := &entities.ListResumeResponse{
-					DefaultResume: entities.GetListResumeByIdResponse{
-						ID:        "resume-1",
-						FileName:  "resume.pdf",
-						MimeType:  "application/pdf",
-						ByteSize:  1024,
-						CreatedAt: "2023-01-01T00:00:00Z",
-						UpdatedAt: "2023-01-01T00:00:00Z",
-					},
-					Resumes: []entities.GetListResumeByIdResponse{
-						{
-							ID:        "resume-2",
-							FileName:  "resume2.pdf",
+					ResumeContent: &entities.ResumeContent{
+						DefaultResume: entities.GetListResumeByIdResponse{
+							ID:        "resume-1",
+							FileName:  "resume.pdf",
 							MimeType:  "application/pdf",
-							ByteSize:  2048,
-							CreatedAt: "2023-01-02T00:00:00Z",
-							UpdatedAt: "2023-01-02T00:00:00Z",
+							ByteSize:  1024,
+							CreatedAt: "2023-01-01T00:00:00Z",
+							UpdatedAt: "2023-01-01T00:00:00Z",
+						},
+						Resumes: []entities.GetListResumeByIdResponse{
+							{
+								ID:        "resume-2",
+								FileName:  "resume2.pdf",
+								MimeType:  "application/pdf",
+								ByteSize:  2048,
+								CreatedAt: "2023-01-02T00:00:00Z",
+								UpdatedAt: "2023-01-02T00:00:00Z",
+							},
 						},
 					},
 				}
@@ -120,8 +122,10 @@ func TestResumeHandler_ListResume(t *testing.T) {
 				mockAuth.On("ExtractAuthContext", mock.Anything).Return(context.Background(), nil)
 
 				expectedResponse := &entities.ListResumeResponse{
-					DefaultResume: entities.GetListResumeByIdResponse{},
-					Resumes:       []entities.GetListResumeByIdResponse{},
+					ResumeContent: &entities.ResumeContent{
+						DefaultResume: entities.GetListResumeByIdResponse{},
+						Resumes:       []entities.GetListResumeByIdResponse{},
+					},
 				}
 				mockService.On("ListResume", mock.Anything, mock.Anything).Return(expectedResponse, nil)
 			},

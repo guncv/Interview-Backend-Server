@@ -193,9 +193,16 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		"role":       authCtx.Payload.Role,
 	}
 
+	// Convert map to JSON string for Redis storage
+	tokenReqJSON, err := json.Marshal(tokenReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error marshaling token request to JSON", err)
+		return nil, err
+	}
+
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
-		Value: tokenReq,
+		Value: string(tokenReqJSON),
 		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
 	}
 
@@ -328,9 +335,15 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		"role":       authCtx.Payload.Role,
 	}
 
+	tokenReqJSON, err := json.Marshal(tokenReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error marshaling token request to JSON", err)
+		return nil, err
+	}
+
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
-		Value: tokenReq,
+		Value: string(tokenReqJSON),
 		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
 	}
 

@@ -916,8 +916,9 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, 1, gotResp.Count)
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1051,8 +1052,9 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, 1, gotResp.Count)
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1109,8 +1111,8 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1267,8 +1269,8 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1400,8 +1402,8 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1454,8 +1456,8 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 0, len(gotResp.Resumes))
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 0, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 		{
@@ -1523,8 +1525,8 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "default.pdf", gotResp.DefaultResume.FileName)
-				assert.Equal(t, 1, len(gotResp.Resumes))
+				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
+				assert.Equal(t, 1, len(gotResp.ResumeContent.Resumes))
 			},
 		},
 	}
