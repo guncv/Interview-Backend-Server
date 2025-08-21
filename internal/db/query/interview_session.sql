@@ -6,7 +6,7 @@ INSERT INTO interview_sessions (
     requirement_id,
     modality,
     status,
-    consent_at,
+    is_consent,
     prompt_json
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8

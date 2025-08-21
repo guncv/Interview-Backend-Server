@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
@@ -43,7 +42,7 @@ INSERT INTO interview_sessions (
     requirement_id,
     modality,
     status,
-    consent_at,
+    is_consent,
     prompt_json
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
@@ -57,7 +56,7 @@ type CreateInterviewSessionParams struct {
 	RequirementID uuid.UUID             `json:"requirement_id"`
 	Modality      string                `json:"modality"`
 	Status        string                `json:"status"`
-	ConsentAt     time.Time             `json:"consent_at"`
+	IsConsent     bool                  `json:"is_consent"`
 	PromptJson    pqtype.NullRawMessage `json:"prompt_json"`
 }
 
@@ -69,7 +68,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.RequirementID,
 		arg.Modality,
 		arg.Status,
-		arg.ConsentAt,
+		arg.IsConsent,
 		arg.PromptJson,
 	)
 	return err

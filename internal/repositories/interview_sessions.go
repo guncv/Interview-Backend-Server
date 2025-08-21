@@ -87,7 +87,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			PromptJson:    req.PromptJson,
 			Status:        req.Status,
 			Modality:      req.Modality,
-			ConsentAt:     req.ConsentAt,
+			IsConsent:     req.IsConsent,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
@@ -130,7 +130,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(
 			PromptJson:    req.PromptJson,
 			Status:        req.Status,
 			Modality:      req.Modality,
-			ConsentAt:     req.ConsentAt,
+			IsConsent:     req.IsConsent,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
 			return app_error.HandleDatabaseError(err)
