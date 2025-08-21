@@ -12,24 +12,22 @@ INSERT INTO interview_sessions (
     $1, $2, $3, $4, $5, $6, $7, $8
 );
 
--- name: FinishInterviewSession :execrows
+-- name: EndInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'completed',
-    ended_at = $2,
-    overall_score = $3,
-    summary_md = $4
+SET status = $2,
+    ended_at = $3,
+    overall_score = $4,
+    summary_md = $5
 WHERE id = $1;
 
 -- name: AbortInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'aborted',
-    ended_at = $2
+SET status = $2,
+    ended_at = $3
 WHERE id = $1;
 
--- name: CancelInterviewSession :execrows
+-- name: StartInterviewSession :execrows
 UPDATE interview_sessions
-SET status = 'cancelled',
-    ended_at = $2,
-    overall_score = $3,
-    summary_md = $4
+SET status = $2,
+    started_at = $3
 WHERE id = $1;

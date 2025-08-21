@@ -21,7 +21,7 @@ CREATE TABLE interview_sessions (
     modality VARCHAR(20) NOT NULL DEFAULT 'voice_chat'
             CHECK (modality IN ('voice_chat')),
     status VARCHAR(20) NOT NULL DEFAULT 'pending'
-            CHECK (status IN ('pending','on_going','completed','aborted','cancelled')),
+            CHECK (status IN ('pending','on_going','completed','aborted','cancelled','timed_out')),
     prompt_json JSONB,
 
     consent_at TIMESTAMPTZ NOT NULL DEFAULT now(),

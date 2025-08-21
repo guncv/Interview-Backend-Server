@@ -12,7 +12,6 @@ import (
 
 type Querier interface {
 	AbortInterviewSession(ctx context.Context, arg AbortInterviewSessionParams) (int64, error)
-	CancelInterviewSession(ctx context.Context, arg CancelInterviewSessionParams) (int64, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
@@ -26,7 +25,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	DeleteJobRequirement(ctx context.Context, id uuid.UUID) error
-	FinishInterviewSession(ctx context.Context, arg FinishInterviewSessionParams) (int64, error)
+	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
@@ -38,6 +37,7 @@ type Querier interface {
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SetInterruptedTurn(ctx context.Context, arg SetInterruptedTurnParams) (int64, error)
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
+	StartInterviewSession(ctx context.Context, arg StartInterviewSessionParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateEvaluationCriterion(ctx context.Context, arg UpdateEvaluationCriterionParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)

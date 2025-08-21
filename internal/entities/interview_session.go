@@ -37,16 +37,14 @@ type CreateInterviewSessionWithExistingResumeResp struct {
 	SessionToken string `json:"session_token"`
 }
 
-type CreateInterviewSessionTokenReq struct {
-	SessionID uuid.UUID     `json:"session_id"`
-	UserID    string        `json:"user_id"`
-	Duration  time.Duration `json:"duration"`
-}
-
 type CreateInterviewSessionTokenResp struct {
 	Token string `json:"token"`
 }
 
 type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
+}
+
+type StartInterviewSessionReq struct {
+	SessionID string `json:"session_id" binding:"required"`
 }

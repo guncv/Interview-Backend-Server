@@ -11,7 +11,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
 
 type Client struct {
@@ -22,51 +28,101 @@ type Client struct {
 }
 
 type WebSocketServer struct {
-	log          *log.Logger
-	sessions     map[string]*Client
-	userSessions map[string]map[string]bool
-	mu           sync.RWMutex
-	upgrader     websocket.Upgrader
+	log                     *log.Logger
+	sessions                map[string]*Client
+	userSessions            map[string]map[string]bool
+	mu                      sync.RWMutex
+	upgrader                websocket.Upgrader
+	redisClient             database.RedisClient
+	authContext             middleware.AuthContext
+	interviewSessionService services.InterviewSessionService
 }
 
-func NewWebSocketServer(log *log.Logger) *WebSocketServer {
+func NewWebSocketServer(
+	log *log.Logger,
+	redisClient database.RedisClient,
+	authContext middleware.AuthContext,
+	interviewSessionService services.InterviewSessionService,
+) *WebSocketServer {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 	return &WebSocketServer{
-		log:          log,
-		upgrader:     upgrader,
-		sessions:     make(map[string]*Client),
-		userSessions: make(map[string]map[string]bool),
+		log:                     log,
+		upgrader:                upgrader,
+		sessions:                make(map[string]*Client),
+		userSessions:            make(map[string]map[string]bool),
+		authContext:             authContext,
+		interviewSessionService: interviewSessionService,
 	}
 }
 
-func (s *WebSocketServer) HandleConnection(w http.ResponseWriter, r *http.Request, userID string) {
-	s.log.InfoWithID(r.Context(), "[WebSocketServer: HandleConnection] Called")
-	ctx := r.Context()
+func (s *WebSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting auth context", err)
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	redisSessionToken, err := s.redisClient.Get(ctx, sessionToken.SessionToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
+		return err
+	}
+
+	var sessionPayload entities.RedisSessionToken
+	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error unmarshalling redis session token", err)
+		return err
+	}
+
+	if sessionPayload.UserID != authCtx.Payload.UserID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error upgrading connection", err)
-		return
+		return err
 	}
 
 	sessionID := uuid.NewString()
-	c := &Client{conn: conn, userID: userID, sessionID: sessionID}
+	client := &Client{
+		conn:      conn,
+		userID:    sessionPayload.UserID,
+		sessionID: sessionPayload.SessionID,
+	}
 
 	s.mu.Lock()
-	s.sessions[sessionID] = c
-	if s.userSessions[userID] == nil {
-		s.userSessions[userID] = map[string]bool{}
+	s.sessions[sessionID] = client
+	if s.userSessions[sessionPayload.UserID] == nil {
+		s.userSessions[sessionPayload.UserID] = map[string]bool{}
 	}
-	s.userSessions[userID][sessionID] = true
+	s.userSessions[sessionPayload.UserID][sessionID] = true
 	s.mu.Unlock()
 
-	_ = s.writeJSON(c, map[string]any{"type": "welcome", "session_id": sessionID})
+	if err := s.interviewSessionService.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+		SessionID: sessionID,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
+		s.disconnect(client)
+		return err
+	}
 
-	go s.readLoop(ctx, c)
+	successConnection := map[string]any{
+		"type": "connection_established",
+	}
+
+	_ = s.writeJSON(client, successConnection)
+
+	go s.readLoop(ctx, client)
+
+	return nil
 }
 
 func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
@@ -81,20 +137,18 @@ func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
 		}
 
 		var msg struct {
-			Type      string      `json:"type"`
-			ToSession string      `json:"to_session,omitempty"`
-			ToUser    string      `json:"to_user,omitempty"`
-			Content   interface{} `json:"content"`
+			Type         string      `json:"type"`
+			SessionToken string      `json:"session_token,omitempty"`
+			Content      interface{} `json:"content"`
 		}
+
 		if json.Unmarshal(payload, &msg) != nil {
 			continue
 		}
 
 		switch msg.Type {
 		case "send":
-			s.SendToSession(c.sessionID, msg.ToSession, msg.Content)
-		case "send_user":
-			s.SendToUser(c.sessionID, msg.ToUser, msg.Content)
+			s.SendToSession(c.sessionID, msg.SessionToken, msg.Content)
 		default:
 			_ = s.writeJSON(c, map[string]any{"type": "echo", "content": msg.Content})
 		}
@@ -113,21 +167,6 @@ func (s *WebSocketServer) SendToSession(fromSession, toSession string, content a
 		"type": "message", "from_session": fromSession, "to_session": toSession,
 		"content": content, "ts": time.Now(),
 	})
-}
-
-func (s *WebSocketServer) SendToUser(fromSession, toUser string, content any) error {
-	s.log.InfoWithID(context.Background(), "[WebSocketServer: SendToUser] Called")
-	s.mu.RLock()
-	sessSet := s.userSessions[toUser]
-	s.mu.RUnlock()
-	if len(sessSet) == 0 {
-		return errors.New("receiver user not connected")
-	}
-
-	for sid := range sessSet {
-		_ = s.SendToSession(fromSession, sid, content)
-	}
-	return nil
 }
 
 func (s *WebSocketServer) disconnect(c *Client) {

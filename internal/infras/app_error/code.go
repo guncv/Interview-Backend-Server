@@ -42,6 +42,10 @@ const (
 	ErrCodeResumeNotFound               ErrorCode = "ONX0304"
 	ErrCodeResumeInvalidID              ErrorCode = "ONX0305"
 	ErrCodeResumeInvalidRequest         ErrorCode = "ONX0306"
+
+	// Session
+	ErrCodeSessionInvalidToken ErrorCode = "ONX0400"
+	ErrCodeSessionNotFound     ErrorCode = "ONX0401"
 )
 
 func (c ErrorCode) Message() string {

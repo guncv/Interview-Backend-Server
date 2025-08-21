@@ -5,8 +5,10 @@ package utils
 import (
 	context "context"
 
-	mock "github.com/stretchr/testify/mock"
+	jwt "github.com/dgrijalva/jwt-go"
 	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+
+	mock "github.com/stretchr/testify/mock"
 
 	utils "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
@@ -24,68 +26,59 @@ func (_m *MockJwtToken) EXPECT() *MockJwtToken_Expecter {
 	return &MockJwtToken_Expecter{mock: &_m.Mock}
 }
 
-// CreateInterviewSessionToken provides a mock function with given fields: ctx, req
-func (_m *MockJwtToken) CreateInterviewSessionToken(ctx context.Context, req *entities.CreateInterviewSessionTokenReq) (string, *utils.InterviewSessionTokenPayload, error) {
-	ret := _m.Called(ctx, req)
+// CreateJWTToken provides a mock function with given fields: ctx, claims
+func (_m *MockJwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
+	ret := _m.Called(ctx, claims)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateInterviewSessionToken")
+		panic("no return value specified for CreateJWTToken")
 	}
 
 	var r0 string
-	var r1 *utils.InterviewSessionTokenPayload
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateInterviewSessionTokenReq) (string, *utils.InterviewSessionTokenPayload, error)); ok {
-		return rf(ctx, req)
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) (string, error)); ok {
+		return rf(ctx, claims)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateInterviewSessionTokenReq) string); ok {
-		r0 = rf(ctx, req)
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) string); ok {
+		r0 = rf(ctx, claims)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.CreateInterviewSessionTokenReq) *utils.InterviewSessionTokenPayload); ok {
-		r1 = rf(ctx, req)
+	if rf, ok := ret.Get(1).(func(context.Context, jwt.Claims) error); ok {
+		r1 = rf(ctx, claims)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*utils.InterviewSessionTokenPayload)
-		}
+		r1 = ret.Error(1)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, *entities.CreateInterviewSessionTokenReq) error); ok {
-		r2 = rf(ctx, req)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }
 
-// MockJwtToken_CreateInterviewSessionToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInterviewSessionToken'
-type MockJwtToken_CreateInterviewSessionToken_Call struct {
+// MockJwtToken_CreateJWTToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJWTToken'
+type MockJwtToken_CreateJWTToken_Call struct {
 	*mock.Call
 }
 
-// CreateInterviewSessionToken is a helper method to define mock.On call
+// CreateJWTToken is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *entities.CreateInterviewSessionTokenReq
-func (_e *MockJwtToken_Expecter) CreateInterviewSessionToken(ctx interface{}, req interface{}) *MockJwtToken_CreateInterviewSessionToken_Call {
-	return &MockJwtToken_CreateInterviewSessionToken_Call{Call: _e.mock.On("CreateInterviewSessionToken", ctx, req)}
+//   - claims jwt.Claims
+func (_e *MockJwtToken_Expecter) CreateJWTToken(ctx interface{}, claims interface{}) *MockJwtToken_CreateJWTToken_Call {
+	return &MockJwtToken_CreateJWTToken_Call{Call: _e.mock.On("CreateJWTToken", ctx, claims)}
 }
 
-func (_c *MockJwtToken_CreateInterviewSessionToken_Call) Run(run func(ctx context.Context, req *entities.CreateInterviewSessionTokenReq)) *MockJwtToken_CreateInterviewSessionToken_Call {
+func (_c *MockJwtToken_CreateJWTToken_Call) Run(run func(ctx context.Context, claims jwt.Claims)) *MockJwtToken_CreateJWTToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.CreateInterviewSessionTokenReq))
+		run(args[0].(context.Context), args[1].(jwt.Claims))
 	})
 	return _c
 }
 
-func (_c *MockJwtToken_CreateInterviewSessionToken_Call) Return(_a0 string, _a1 *utils.InterviewSessionTokenPayload, _a2 error) *MockJwtToken_CreateInterviewSessionToken_Call {
-	_c.Call.Return(_a0, _a1, _a2)
+func (_c *MockJwtToken_CreateJWTToken_Call) Return(_a0 string, _a1 error) *MockJwtToken_CreateJWTToken_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockJwtToken_CreateInterviewSessionToken_Call) RunAndReturn(run func(context.Context, *entities.CreateInterviewSessionTokenReq) (string, *utils.InterviewSessionTokenPayload, error)) *MockJwtToken_CreateInterviewSessionToken_Call {
+func (_c *MockJwtToken_CreateJWTToken_Call) RunAndReturn(run func(context.Context, jwt.Claims) (string, error)) *MockJwtToken_CreateJWTToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -379,65 +372,6 @@ func (_c *MockJwtToken_RenewVerifyEmailToken_Call) Return(_a0 string, _a1 *utils
 }
 
 func (_c *MockJwtToken_RenewVerifyEmailToken_Call) RunAndReturn(run func(context.Context, string) (string, *utils.VerifyEmailTokenPayload, error)) *MockJwtToken_RenewVerifyEmailToken_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// VerifyInterviewSessionToken provides a mock function with given fields: ctx, token
-func (_m *MockJwtToken) VerifyInterviewSessionToken(ctx context.Context, token string) (*utils.InterviewSessionTokenPayload, error) {
-	ret := _m.Called(ctx, token)
-
-	if len(ret) == 0 {
-		panic("no return value specified for VerifyInterviewSessionToken")
-	}
-
-	var r0 *utils.InterviewSessionTokenPayload
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*utils.InterviewSessionTokenPayload, error)); ok {
-		return rf(ctx, token)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *utils.InterviewSessionTokenPayload); ok {
-		r0 = rf(ctx, token)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*utils.InterviewSessionTokenPayload)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, token)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockJwtToken_VerifyInterviewSessionToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyInterviewSessionToken'
-type MockJwtToken_VerifyInterviewSessionToken_Call struct {
-	*mock.Call
-}
-
-// VerifyInterviewSessionToken is a helper method to define mock.On call
-//   - ctx context.Context
-//   - token string
-func (_e *MockJwtToken_Expecter) VerifyInterviewSessionToken(ctx interface{}, token interface{}) *MockJwtToken_VerifyInterviewSessionToken_Call {
-	return &MockJwtToken_VerifyInterviewSessionToken_Call{Call: _e.mock.On("VerifyInterviewSessionToken", ctx, token)}
-}
-
-func (_c *MockJwtToken_VerifyInterviewSessionToken_Call) Run(run func(ctx context.Context, token string)) *MockJwtToken_VerifyInterviewSessionToken_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockJwtToken_VerifyInterviewSessionToken_Call) Return(_a0 *utils.InterviewSessionTokenPayload, _a1 error) *MockJwtToken_VerifyInterviewSessionToken_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockJwtToken_VerifyInterviewSessionToken_Call) RunAndReturn(run func(context.Context, string) (*utils.InterviewSessionTokenPayload, error)) *MockJwtToken_VerifyInterviewSessionToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

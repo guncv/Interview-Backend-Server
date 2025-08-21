@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -14,17 +15,18 @@ import (
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
-	"golang.org/x/sync/errgroup"
 )
 
 type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
+	StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error
 }
 
 type interviewSessionService struct {
@@ -39,6 +41,7 @@ type interviewSessionService struct {
 	s3Storage            aws.S3Storage
 	jobRequirementRepo   repositories.JobRequirementRepository
 	publisher            queue.RedisTaskPublisher
+	redisClient          database.RedisClient
 }
 
 func NewInterviewSessionService(
@@ -53,6 +56,7 @@ func NewInterviewSessionService(
 	s3Storage aws.S3Storage,
 	jobRequirementRepo repositories.JobRequirementRepository,
 	publisher queue.RedisTaskPublisher,
+	redisClient database.RedisClient,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -66,6 +70,7 @@ func NewInterviewSessionService(
 		s3Storage:            s3Storage,
 		jobRequirementRepo:   jobRequirementRepo,
 		publisher:            publisher,
+		redisClient:          redisClient,
 	}
 }
 
@@ -81,81 +86,34 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
+	customFileHeader := s.convertToCustomFileHeader(req.File)
 
-	g, gctx := errgroup.WithContext(ctx)
+	getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
+		SessionID:       s.generator.GenerateUUID(ctx),
+		Position:        req.Position,
+		Company:         req.Company,
+		WorkType:        req.WorkType,
+		JobRequirements: req.JobRequirements,
+		InterviewType:   req.InterviewType,
+		Language:        req.Language,
+		ResumeFile:      customFileHeader,
+	}
 
-	var (
-		createdResp *entities.CreateResumeAndJobRequirementResp
-		summaryJson *repositories.GetResumeJsonWithSummaryDataResponse
-	)
+	summaryJson, err := s.resumeRepo.GetResumeJsonWithSummaryData(ctx, getSummaryJsonReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error getting resume json with summary data", err)
+		return nil, err
+	}
 
-	g.Go(func() error {
-		key, err := s.s3Storage.UploadFile(gctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
-		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
-			return err
-		}
+	key, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
+		return nil, err
+	}
 
-		isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(gctx, uuid.MustParse(authCtx.Payload.UserID))
-		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error checking if default resume exists", err)
-			return err
-		}
-
-		createResumeAndJobRequirementReq := &repositories.CreateResumeAndJobRequirementReq{
-			ResumeID:   s.generator.GenerateUUID(gctx),
-			UserID:     uuid.MustParse(authCtx.Payload.UserID),
-			FileName:   req.File.Filename,
-			StorageKey: key,
-			MimeType:   req.File.Header.Get("Content-Type"),
-			ByteSize:   int32(req.File.Size),
-			IsDefault:  !isDefaultResume,
-
-			JobRequirementID: s.generator.GenerateUUID(gctx),
-			Position:         req.Position,
-			CompanyName:      req.Company,
-			WorkType:         req.WorkType,
-			JobRequirements:  req.JobRequirements,
-			InterviewType:    req.InterviewType,
-			Language:         req.Language,
-		}
-
-		if err := s.resumeRepo.CreateResumeAndJobRequirement(gctx, createResumeAndJobRequirementReq); err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error creating resume and job requirement", err)
-			return err
-		}
-		createdResp = &entities.CreateResumeAndJobRequirementResp{
-			ResumeID:         createResumeAndJobRequirementReq.ResumeID.String(),
-			JobRequirementID: createResumeAndJobRequirementReq.JobRequirementID.String(),
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		customFileHeader := s.convertToCustomFileHeader(req.File)
-
-		getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
-			SessionID:       s.generator.GenerateUUID(gctx),
-			Position:        req.Position,
-			Company:         req.Company,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-			ResumeFile:      customFileHeader,
-		}
-		sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(gctx, getSummaryJsonReq)
-		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithNewResume] Error getting resume json with summary data", err)
-			return err
-		}
-		summaryJson = sj
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
+	isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error checking if default resume exists", err)
 		return nil, err
 	}
 
@@ -165,34 +123,74 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	params := &db.CreateInterviewSessionParams{
-		ID:            s.generator.GenerateUUID(ctx),
-		UserID:        uuid.MustParse(authCtx.Payload.UserID),
-		ResumeID:      uuid.MustParse(createdResp.ResumeID),
-		RequirementID: uuid.MustParse(createdResp.JobRequirementID),
-		PromptJson:    pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
-		Status:        constants.StatusPending,
-		Modality:      constants.ModalityVoiceChat,
-		ConsentAt:     req.ConsentAt,
+	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
+		ResumeID:   s.generator.GenerateUUID(ctx),
+		UserID:     uuid.MustParse(authCtx.Payload.UserID),
+		FileName:   req.File.Filename,
+		StorageKey: key,
+		MimeType:   req.File.Header.Get("Content-Type"),
+		ByteSize:   int32(req.File.Size),
+		IsDefault:  !isDefaultResume,
+
+		JobRequirementID: s.generator.GenerateUUID(ctx),
+		Position:         req.Position,
+		CompanyName:      req.Company,
+		WorkType:         req.WorkType,
+		JobRequirements:  req.JobRequirements,
+		InterviewType:    req.InterviewType,
+		Language:         req.Language,
+
+		SessionID:  s.generator.GenerateUUID(ctx),
+		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
+		Status:     constants.StatusPending,
+		Modality:   constants.ModalityVoiceChat,
+		ConsentAt:  req.ConsentAt,
+		CreatedAt:  sql.NullTime{Time: time.Now(), Valid: true},
+		UpdatedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 	}
 
-	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, params); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session", err)
+	if err := s.interviewSessionRepo.CreateInterviewSessionWithNewResumeTx(ctx, createResumeAndJobRequirementReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
+
+		deleteFilePayload := &aws.DeleteFilePayload{
+			Key: createResumeAndJobRequirementReq.StorageKey,
+		}
+
+		if err := s.publisher.PublishTaskDeleteFile(ctx, deleteFilePayload); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error deleting resume file", err)
+		}
 		return nil, err
 	}
 
-	tokenReq := &entities.CreateInterviewSessionTokenReq{
-		SessionID: params.ID,
-		UserID:    authCtx.Payload.UserID,
-		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	tokenReq := map[string]any{
+		"session_id": createResumeAndJobRequirementReq.SessionID,
+		"user_id":    authCtx.Payload.UserID,
+		"role":       authCtx.Payload.Role,
 	}
-	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, tokenReq)
+
+	tokenReqJSON, err := json.Marshal(tokenReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error marshaling token request to JSON", err)
+		return nil, err
+	}
+
+	redisPayload := database.RedisPayload{
+		Key:   s.generator.GenerateUUID(ctx).String(),
+		Value: string(tokenReqJSON),
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	}
+
+	err = s.redisClient.Set(ctx, redisPayload)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error creating interview session token", err)
 		return nil, err
 	}
 
-	return &entities.CreateInterviewSessionWithNewResumeResponse{SessionToken: token}, nil
+	resp := &entities.CreateInterviewSessionWithNewResumeResponse{
+		SessionToken: redisPayload.Key,
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
@@ -213,112 +211,106 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-
-	g, gctx := errgroup.WithContext(ctx)
-
-	var (
-		requirementID uuid.UUID
-		summaryJson   *repositories.GetResumeJsonWithSummaryDataResponse
-	)
-
-	g.Go(func() error {
-		id := s.generator.GenerateUUID(gctx)
-		createJobRequirementReq := &db.CreateJobRequirementParams{
-			ID:              id,
-			UserID:          uuid.MustParse(authCtx.Payload.UserID),
-			Position:        req.Position,
-			CompanyName:     req.Company,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-		}
-		if err := s.jobRequirementRepo.CreateJobRequirement(gctx, createJobRequirementReq); err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating job requirement", err)
-			return err
-		}
-		requirementID = id
-		return nil
-	})
-
-	g.Go(func() error {
-		resumeFile, err := s.s3Storage.DownloadFile(gctx, resume.StorageKey)
-		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error downloading resume file", err)
-			return err
-		}
-
-		getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
-			SessionID:       s.generator.GenerateUUID(gctx),
-			Position:        req.Position,
-			Company:         req.Company,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-			ResumeFile:      resumeFile,
-		}
-
-		sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(gctx, getSummaryJsonReq)
-		if err != nil {
-			s.log.ErrorWithID(gctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting resume json with summary data", err)
-			return err
-		}
-		summaryJson = sj
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		if requirementID != uuid.Nil {
-			delPayload := &entities.DeleteJobRequirementPayload{
-				JobRequirementID: requirementID,
-			}
-
-			if err := s.publisher.PublishTaskDeleteJobRequirement(ctx, delPayload); err != nil {
-				s.log.WarnWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Compensation delete job requirement failed", err)
-			}
-		}
+	resumeFile, err := s.s3Storage.DownloadFile(ctx, resume.StorageKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error downloading resume file", err)
 		return nil, err
 	}
 
-	promptJsonBytes, err := json.Marshal(summaryJson.ParsedJson)
+	getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
+		SessionID:       s.generator.GenerateUUID(ctx),
+		Position:        req.Position,
+		Company:         req.Company,
+		WorkType:        req.WorkType,
+		JobRequirements: req.JobRequirements,
+		InterviewType:   req.InterviewType,
+		Language:        req.Language,
+		ResumeFile:      resumeFile,
+	}
+
+	sj, err := s.resumeRepo.GetResumeJsonWithSummaryData(ctx, getSummaryJsonReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting resume json with summary data", err)
+		return nil, err
+	}
+
+	promptJsonBytes, err := json.Marshal(sj.ParsedJson)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error marshalling prompt json", err)
 		return nil, err
 	}
 
-	createInterviewSessionParams := &db.CreateInterviewSessionParams{
-		ID:            s.generator.GenerateUUID(ctx),
-		UserID:        uuid.MustParse(authCtx.Payload.UserID),
-		ResumeID:      uuid.MustParse(req.ResumeID),
-		RequirementID: requirementID,
-		PromptJson:    pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
-		Status:        constants.StatusPending,
-		Modality:      constants.ModalityVoiceChat,
-		ConsentAt:     req.ConsentAt,
+	createInterviewSessionWithExistingResumeReq := &repositories.CreateInterviewSessionWithExistingResumeTxReq{
+		ResumeID: uuid.MustParse(req.ResumeID),
+		UserID:   uuid.MustParse(authCtx.Payload.UserID),
+
+		JobRequirementID: s.generator.GenerateUUID(ctx),
+		Position:         req.Position,
+		CompanyName:      req.Company,
+		WorkType:         req.WorkType,
+		JobRequirements:  req.JobRequirements,
+		InterviewType:    req.InterviewType,
+		Language:         req.Language,
+		CreatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+		UpdatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+
+		SessionID:  s.generator.GenerateUUID(ctx),
+		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
+		Status:     constants.StatusPending,
+		Modality:   constants.ModalityVoiceChat,
+		ConsentAt:  req.ConsentAt,
 	}
 
-	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionParams); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session", err)
+	if err := s.interviewSessionRepo.CreateInterviewSessionWithExistingResumeTx(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
 		return nil, err
 	}
 
-	createInterviewSessionTokenReq := &entities.CreateInterviewSessionTokenReq{
-		SessionID: createInterviewSessionParams.ID,
-		UserID:    authCtx.Payload.UserID,
-		Duration:  s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	tokenReq := map[string]any{
+		"session_id": createInterviewSessionWithExistingResumeReq.SessionID,
+		"user_id":    authCtx.Payload.UserID,
+		"role":       authCtx.Payload.Role,
 	}
 
-	token, _, err := s.jwtMaker.CreateInterviewSessionToken(ctx, createInterviewSessionTokenReq)
+	tokenReqJSON, err := json.Marshal(tokenReq)
 	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error marshaling token request to JSON", err)
+		return nil, err
+	}
+
+	redisPayload := database.RedisPayload{
+		Key:   s.generator.GenerateUUID(ctx).String(),
+		Value: string(tokenReqJSON),
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error creating interview session token", err)
 		return nil, err
 	}
 
-	resp := &entities.CreateInterviewSessionWithExistingResumeResp{SessionToken: token}
+	resp := &entities.CreateInterviewSessionWithExistingResumeResp{
+		SessionToken: redisPayload.Key,
+	}
+
 	return resp, nil
+}
+
+func (s *interviewSessionService) StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error {
+	s.log.InfoWithID(ctx, "[Service: StartInterviewSession] Called")
+
+	dbReq := &db.StartInterviewSessionParams{
+		ID:        uuid.MustParse(req.SessionID),
+		Status:    constants.StatusOnGoing,
+		StartedAt: sql.NullTime{Time: time.Now(), Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.StartInterviewSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: StartInterviewSession] Error starting interview session", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

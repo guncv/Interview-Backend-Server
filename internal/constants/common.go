@@ -160,6 +160,7 @@ const (
 	StatusCompleted = "completed"
 	StatusAborted   = "aborted"
 	StatusCancelled = "cancelled"
+	StatusTimedOut  = "timed_out"
 
 	ModalityVoiceChat = "voice_chat"
 )

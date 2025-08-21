@@ -4,8 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -16,6 +19,7 @@ type InterviewSessionHandler struct {
 	log                     *log.Logger
 	authContext             middleware.AuthContext
 	validator               utils.Validator
+	wsServer                *websocket.WebSocketServer
 }
 
 func NewInterviewSessionHandler(
@@ -23,12 +27,14 @@ func NewInterviewSessionHandler(
 	log *log.Logger,
 	authContext middleware.AuthContext,
 	validator utils.Validator,
+	wsServer *websocket.WebSocketServer,
 ) *InterviewSessionHandler {
 	return &InterviewSessionHandler{
 		interviewSessionService: interviewSessionService,
 		log:                     log,
 		authContext:             authContext,
 		validator:               validator,
+		wsServer:                wsServer,
 	}
 }
 
@@ -84,4 +90,38 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gi
 	}
 
 	c.JSON(http.StatusCreated, resp)
+}
+
+func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: OpenWsConnection] Called")
+
+	sessionToken := c.Param("id")
+	if sessionToken == "" {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Session token is required")
+		utils.RespondWithError(c, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken))
+		return
+	}
+
+	var req entities.OpenWsConnectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error binding request", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	if err := h.wsServer.HandleConnection(ctx, c.Writer, c.Request, req); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error handling connection", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +25,6 @@ import (
 )
 
 type ResumeService interface {
-	CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) (*entities.CreateResumeAndJobRequirementResp, error)
 	ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error)
 	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
 	GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)
@@ -61,79 +61,6 @@ func NewResumeService(
 		redisClient: redisClient,
 		generator:   generator,
 	}
-}
-
-func (s *resumeService) CreateResumeWithRequirements(ctx context.Context, req *entities.CreateResumeWithRequirementsRequest) (*entities.CreateResumeAndJobRequirementResp, error) {
-	s.log.InfoWithID(ctx, "[Service: CreateResume] Called")
-
-	authCtx, err := s.authContext.GetAuthContext(ctx)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error getting auth context", err)
-		return nil, err
-	}
-
-	if !s.validator.IsAllowedResumeContentType(ctx, req.File) {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Invalid file type", errors.New("invalid file type"))
-		return nil, app_error.New(errors.New("invalid file type"), app_error.ErrCodeResumeInvalidFileContentType)
-	}
-
-	if req.File.Size <= 0 {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Invalid file size", errors.New("file size must be greater than 0"))
-		return nil, app_error.New(errors.New("file size must be greater than 0"), app_error.ErrCodeResumeInvalidFileSize)
-	}
-
-	if req.File.Size > int64(constants.ResumeMaxFileSize) {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] File size is too large", errors.New("file size is too large"))
-		return nil, app_error.New(errors.New("file size is too large"), app_error.ErrCodeResumeInvalidFileSize)
-	}
-
-	isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error getting default resume", err)
-		return nil, err
-	}
-
-	storageKey, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error uploading file", err)
-		return nil, err
-	}
-
-	resumeReq := &repositories.CreateResumeAndJobRequirementReq{
-		ResumeID:   s.generator.GenerateUUID(ctx),
-		UserID:     uuid.MustParse(authCtx.Payload.UserID),
-		FileName:   req.File.Filename,
-		StorageKey: storageKey,
-		MimeType:   req.File.Header.Get("Content-Type"),
-		ByteSize:   int32(req.File.Size),
-		IsDefault:  !isDefaultResume,
-
-		JobRequirementID: s.generator.GenerateUUID(ctx),
-		Position:         req.Position,
-		CompanyName:      req.Company,
-		WorkType:         req.WorkType,
-		JobRequirements:  req.JobRequirements,
-		InterviewType:    req.InterviewType,
-		Language:         req.Language,
-		CreatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-		UpdatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
-	}
-
-	if err := s.resumeRepo.CreateResumeAndJobRequirement(ctx, resumeReq); err != nil {
-		if err := s.queue.PublishTaskDeleteFile(ctx, &aws.DeleteFilePayload{Key: storageKey}); err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateResume] Error publishing delete file task", err)
-		}
-
-		s.log.ErrorWithID(ctx, "[Service: CreateResume] Error creating resume", err)
-		return nil, err
-	}
-
-	resp := entities.CreateResumeAndJobRequirementResp{
-		ResumeID:         resumeReq.ResumeID.String(),
-		JobRequirementID: resumeReq.JobRequirementID.String(),
-	}
-
-	return &resp, nil
 }
 
 func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
@@ -212,6 +139,10 @@ FetchBoth:
 		go func() {
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found") {
+					defaultResumeChan <- db.Resumes{}
+					return
+				}
 				errorChan <- err
 				return
 			}
@@ -236,43 +167,71 @@ FetchBoth:
 			}
 		}
 
-		raw, err := json.Marshal(defaultResume)
-		if err != nil {
-			s.log.WarnWithID(ctx, "[Service: ListResume] Error marshalling default resume", err)
-		} else {
-			if err := s.redisClient.Set(ctx, database.RedisPayload{
-				Key:   defaultResumeKey,
-				Value: string(raw),
-				TTL:   24 * time.Hour,
-			}); err != nil {
-				s.log.ErrorWithID(ctx, "[Service: ListResume] Error caching default resume in Redis", err)
+		if defaultResume.ID != uuid.Nil {
+			raw, err := json.Marshal(defaultResume)
+			if err != nil {
+				s.log.WarnWithID(ctx, "[Service: ListResume] Error marshalling default resume", err)
+			} else {
+				if err := s.redisClient.Set(ctx, database.RedisPayload{
+					Key:   defaultResumeKey,
+					Value: string(raw),
+					TTL:   24 * time.Hour,
+				}); err != nil {
+					s.log.ErrorWithID(ctx, "[Service: ListResume] Error caching default resume in Redis", err)
+				}
 			}
 		}
 	}
 
 Finalize:
-	resp := entities.ListResumeResponse{
-		DefaultResume: entities.GetListResumeByIdResponse{
+	var defaultResumeResp *entities.GetListResumeByIdResponse
+	count := len(resumeList)
+	if defaultResume.ID != uuid.Nil {
+		count++
+		defaultResumeResp = &entities.GetListResumeByIdResponse{
 			ID:        defaultResume.ID.String(),
 			FileName:  defaultResume.FileName,
 			MimeType:  defaultResume.MimeType,
 			ByteSize:  defaultResume.ByteSize,
 			CreatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.CreatedAt),
 			UpdatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.UpdatedAt),
-		},
-		Resumes: []entities.GetListResumeByIdResponse{},
+		}
+	} else {
+		defaultResumeResp = &entities.GetListResumeByIdResponse{
+			ID:        "",
+			FileName:  "",
+			MimeType:  "",
+			ByteSize:  0,
+			CreatedAt: "",
+			UpdatedAt: "",
+		}
 	}
 
-	for _, resume := range resumeList {
-		if !resume.IsDefault {
-			resp.Resumes = append(resp.Resumes, entities.GetListResumeByIdResponse{
-				ID:        resume.ID.String(),
-				FileName:  resume.FileName,
-				MimeType:  resume.MimeType,
-				ByteSize:  resume.ByteSize,
-				CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
-				UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
-			})
+	var resumeContent *entities.ResumeContent
+	if count > 0 {
+		resumeContent = &entities.ResumeContent{
+			DefaultResume: *defaultResumeResp,
+			Resumes:       []entities.GetListResumeByIdResponse{},
+		}
+	}
+
+	resp := entities.ListResumeResponse{
+		Count:         count,
+		ResumeContent: resumeContent,
+	}
+
+	if resumeContent != nil {
+		for _, resume := range resumeList {
+			if !resume.IsDefault {
+				resp.ResumeContent.Resumes = append(resp.ResumeContent.Resumes, entities.GetListResumeByIdResponse{
+					ID:        resume.ID.String(),
+					FileName:  resume.FileName,
+					MimeType:  resume.MimeType,
+					ByteSize:  resume.ByteSize,
+					CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
+					UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
+				})
+			}
 		}
 	}
 

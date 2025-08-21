@@ -45,6 +45,7 @@ type AuthConfig struct {
 	RefreshTokenDuration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	ResetPasswordTokenDuration time.Duration `mapstructure:"RESET_PASSWORD_TOKEN_DURATION"`
 	VerifyEmailTokenDuration   time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
+	TokenGraceWindow           time.Duration `mapstructure:"TOKEN_GRACE_WINDOW"`
 	CookieDomain               string        `mapstructure:"COOKIE_DOMAIN"`
 	CookieRejectHTTP           bool          `mapstructure:"COOKIE_REJECT_HTTP"`
 }

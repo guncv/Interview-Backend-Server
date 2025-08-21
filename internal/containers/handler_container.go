@@ -13,10 +13,6 @@ func (c *Container) HandlerProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(handlers.NewWebSocketHandler); err != nil {
-		c.Error = err
-	}
-
 	if err := c.Container.Provide(handlers.NewInterviewSessionHandler); err != nil {
 		c.Error = err
 	}
