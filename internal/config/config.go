@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -73,28 +74,30 @@ type InterviewSessionConfig struct {
 }
 
 func LoadConfig() (*Config, error) {
+	v := viper.New()
 
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "dev"
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if path := os.Getenv("CONFIG_PATH"); path != "" {
+		v.SetConfigFile(path)
+	} else {
+		env := os.Getenv("ENV")
+		if env == "" {
+			env = "dev"
+		}
+		v.SetConfigName("config." + env)
+		v.SetConfigType("yaml")
+		v.AddConfigPath("./config")
 	}
 
-	viper.SetConfigName("config." + env)
+	if err := v.ReadInConfig(); err != nil {
+		log.Printf("[config] No config file found, using ENV/defaults only: %v", err)
+	}
 
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file: %v", err)
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
-
-	var config = &Config{}
-	if err := viper.Unmarshal(config); err != nil {
-		log.Fatalf("Unable to unmarshal config: %v", err)
-		return nil, err
-	}
-
-	return config, nil
+	return &cfg, nil
 }
