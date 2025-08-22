@@ -27,6 +27,7 @@ type ListResumeRequest struct {
 type ListResumeResponse struct {
 	Count         int            `json:"count"`
 	ResumeContent *ResumeContent `json:"resume_content"`
+	LastUpdatedAt *string        `json:"last_updated_at"`
 }
 
 type ResumeContent struct {

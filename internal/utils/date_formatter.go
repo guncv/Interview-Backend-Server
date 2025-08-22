@@ -19,3 +19,7 @@ func FormatToBangkokTime(t time.Time) string {
 func FormatToBangkokTimeFromUTC(t time.Time) string {
 	return FormatToBangkokTime(t)
 }
+
+func FormatToUTCString(t time.Time) string {
+	return t.UTC().Format("2006-01-02T15:04:05Z")
+}

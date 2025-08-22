@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -681,6 +682,419 @@ func TestResumeService_ListResume(t *testing.T) {
 				assert.NotNil(t, gotResp)
 				assert.Equal(t, "default.pdf", gotResp.ResumeContent.DefaultResume.FileName)
 				assert.Equal(t, 1, len(gotResp.ResumeContent.Resumes))
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: Only default resume exists",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				defaultResume := db.Resumes{
+					ID:        uuid.New(),
+					UserID:    userID,
+					FileName:  "default.pdf",
+					MimeType:  "application/pdf",
+					ByteSize:  1024,
+					IsDefault: true,
+					CreatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
+				}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return([]db.Resumes{}, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(defaultResume, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, gotResp.Count)
+				assert.NotNil(t, gotResp.LastUpdatedAt)
+				assert.Equal(t, "2024-01-15T10:30:00Z", *gotResp.LastUpdatedAt)
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: Only regular resumes exist (no default)",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				// No default resume
+				emptyDefaultResume := db.Resumes{}
+
+				resumeList := []db.Resumes{
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume1.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  1024,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume2.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  2048,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+					},
+				}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return(resumeList, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(emptyDefaultResume, sql.ErrNoRows)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 2, gotResp.Count)
+				assert.NotNil(t, gotResp.LastUpdatedAt)
+				// Should be the most recent regular resume (resume2 at 9:00 AM)
+				assert.Equal(t, "2024-01-15T09:00:00Z", *gotResp.LastUpdatedAt)
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: Both default and regular resumes exist, default is more recent",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				defaultResume := db.Resumes{
+					ID:        uuid.New(),
+					UserID:    userID,
+					FileName:  "default.pdf",
+					MimeType:  "application/pdf",
+					ByteSize:  1024,
+					IsDefault: true,
+					CreatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC), // Most recent
+				}
+
+				resumeList := []db.Resumes{
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume1.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  1024,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume2.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  2048,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+					},
+				}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return(resumeList, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(defaultResume, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 3, gotResp.Count)
+				assert.NotNil(t, gotResp.LastUpdatedAt)
+				// Should be the default resume since it's more recent (10:30 AM)
+				assert.Equal(t, "2024-01-15T10:30:00Z", *gotResp.LastUpdatedAt)
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: Both default and regular resumes exist, regular resume is more recent",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				defaultResume := db.Resumes{
+					ID:        uuid.New(),
+					UserID:    userID,
+					FileName:  "default.pdf",
+					MimeType:  "application/pdf",
+					ByteSize:  1024,
+					IsDefault: true,
+					CreatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC),
+				}
+
+				resumeList := []db.Resumes{
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume1.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  1024,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 7, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 7, 0, 0, 0, time.UTC),
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume2.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  2048,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC), // Most recent
+						UpdatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC), // Most recent
+					},
+				}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return(resumeList, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(defaultResume, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 3, gotResp.Count)
+				assert.NotNil(t, gotResp.LastUpdatedAt)
+				// Should be the regular resume since it's more recent (10:30 AM)
+				assert.Equal(t, "2024-01-15T10:30:00Z", *gotResp.LastUpdatedAt)
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: No resumes exist at all",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				// No default resume
+				emptyDefaultResume := db.Resumes{}
+
+				// No regular resumes
+				emptyResumeList := []db.Resumes{}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return(emptyResumeList, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(emptyDefaultResume, sql.ErrNoRows)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 0, gotResp.Count)
+				assert.Nil(t, gotResp.LastUpdatedAt) // Should be nil when no resumes exist
+				assert.Nil(t, gotResp.ResumeContent) // Should be nil when no resumes exist
+			},
+		},
+		{
+			name:  "Success - LastUpdatedAt logic: Multiple regular resumes, find the most recent",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return("", redis.Nil)
+
+				// No default resume
+				emptyDefaultResume := db.Resumes{}
+
+				resumeList := []db.Resumes{
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume1.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  1024,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 6, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 6, 0, 0, 0, time.UTC),
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume2.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  2048,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 9, 0, 0, 0, time.UTC),
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume3.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  3072,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC), // Most recent
+						UpdatedAt: time.Date(2024, 1, 15, 11, 0, 0, 0, time.UTC), // Most recent
+					},
+					{
+						ID:        uuid.New(),
+						UserID:    userID,
+						FileName:  "resume4.pdf",
+						MimeType:  "application/pdf",
+						ByteSize:  4096,
+						IsDefault: false,
+						CreatedAt: time.Date(2024, 1, 15, 7, 0, 0, 0, time.UTC),
+						UpdatedAt: time.Date(2024, 1, 15, 7, 0, 0, 0, time.UTC),
+					},
+				}
+
+				mockResumeRepository.EXPECT().
+					ListResumeByUserIDFirstPage(ctx, userID).
+					Return(resumeList, nil)
+
+				mockResumeRepository.EXPECT().
+					GetDefaultResumeByUserID(ctx, userID).
+					Return(emptyDefaultResume, sql.ErrNoRows)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 4, gotResp.Count)
+				assert.NotNil(t, gotResp.LastUpdatedAt)
+				// Should be the most recent regular resume (resume3 at 11:00 AM)
+				assert.Equal(t, "2024-01-15T11:00:00Z", *gotResp.LastUpdatedAt)
 			},
 		},
 	}
