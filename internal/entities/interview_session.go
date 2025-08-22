@@ -2,7 +2,6 @@ package entities
 
 import (
 	"mime/multipart"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -15,7 +14,7 @@ type CreateInterviewSessionWithNewResumeRequest struct {
 	JobRequirements string                `form:"job_requirements" binding:"required"`
 	InterviewType   string                `form:"interview_type" binding:"required"`
 	Language        string                `form:"language" binding:"required"`
-	ConsentAt       time.Time             `form:"consent_at" binding:"required"`
+	IsConsent       bool                  `form:"is_consent" binding:"required"`
 }
 
 type CreateInterviewSessionWithNewResumeResponse struct {
@@ -23,14 +22,14 @@ type CreateInterviewSessionWithNewResumeResponse struct {
 }
 
 type CreateInterviewSessionWithExistingResumeReq struct {
-	ResumeID        string    `json:"resume_id" binding:"required"`
-	Position        string    `json:"position" binding:"required"`
-	Company         string    `json:"company" binding:"required"`
-	WorkType        string    `json:"work_type" binding:"required"`
-	JobRequirements string    `json:"job_requirements" binding:"required"`
-	InterviewType   string    `json:"interview_type" binding:"required"`
-	Language        string    `json:"language" binding:"required"`
-	ConsentAt       time.Time `json:"consent_at" binding:"required"`
+	ResumeID        string `json:"resume_id" binding:"required"`
+	Position        string `json:"position" binding:"required"`
+	Company         string `json:"company" binding:"required"`
+	WorkType        string `json:"work_type" binding:"required"`
+	JobRequirements string `json:"job_requirements" binding:"required"`
+	InterviewType   string `json:"interview_type" binding:"required"`
+	Language        string `json:"language" binding:"required"`
+	IsConsent       bool   `json:"is_consent" binding:"required"`
 }
 
 type CreateInterviewSessionWithExistingResumeResp struct {

@@ -24,7 +24,7 @@ CREATE TABLE interview_sessions (
             CHECK (status IN ('pending','on_going','completed','aborted','cancelled','timed_out')),
     prompt_json JSONB,
 
-    consent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_consent BOOLEAN NOT NULL DEFAULT TRUE,
     started_at TIMESTAMPTZ DEFAULT now(),
     ended_at TIMESTAMPTZ,
     overall_score NUMERIC(5,2),

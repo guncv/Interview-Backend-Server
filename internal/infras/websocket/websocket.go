@@ -27,7 +27,11 @@ type Client struct {
 	sessionID string
 }
 
-type WebSocketServer struct {
+type WebSocketServerInterface interface {
+	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error
+}
+
+type webSocketServer struct {
 	log                     *log.Logger
 	sessions                map[string]*Client
 	userSessions            map[string]map[string]bool
@@ -43,13 +47,13 @@ func NewWebSocketServer(
 	redisClient database.RedisClient,
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
-) *WebSocketServer {
+) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
-	return &WebSocketServer{
+	return &webSocketServer{
 		log:                     log,
 		upgrader:                upgrader,
 		sessions:                make(map[string]*Client),
@@ -59,7 +63,7 @@ func NewWebSocketServer(
 	}
 }
 
-func (s *WebSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
+func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
@@ -125,7 +129,7 @@ func (s *WebSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 	return nil
 }
 
-func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
+func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
 	defer s.disconnect(c)
 	c.conn.SetReadLimit(1 << 20)
@@ -155,7 +159,7 @@ func (s *WebSocketServer) readLoop(ctx context.Context, c *Client) {
 	}
 }
 
-func (s *WebSocketServer) SendToSession(fromSession, toSession string, content any) error {
+func (s *webSocketServer) SendToSession(fromSession, toSession string, content any) error {
 	s.log.InfoWithID(context.Background(), "[WebSocketServer: SendToSession] Called")
 	s.mu.RLock()
 	rcpt := s.sessions[toSession]
@@ -169,7 +173,7 @@ func (s *WebSocketServer) SendToSession(fromSession, toSession string, content a
 	})
 }
 
-func (s *WebSocketServer) disconnect(c *Client) {
+func (s *webSocketServer) disconnect(c *Client) {
 	s.log.InfoWithID(context.Background(), "[WebSocketServer: disconnect] Called")
 	s.mu.Lock()
 	delete(s.sessions, c.sessionID)
@@ -183,7 +187,7 @@ func (s *WebSocketServer) disconnect(c *Client) {
 	_ = c.conn.Close()
 }
 
-func (s *WebSocketServer) writeJSON(c *Client, v any) error {
+func (s *webSocketServer) writeJSON(c *Client, v any) error {
 	s.log.InfoWithID(context.Background(), "[WebSocketServer: writeJSON] Called")
 	c.mu.Lock()
 	defer c.mu.Unlock()

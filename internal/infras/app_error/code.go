@@ -15,10 +15,8 @@ const (
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"
 	ErrCodeAuthExpiredToken            ErrorCode = "ONX0201"
-	ErrCodeAuthInvalidAccessToken      ErrorCode = "ONX0202"
-	ErrCodeAuthExpiredAccessToken      ErrorCode = "ONX0203"
-	ErrCodeAuthInvalidRefreshToken     ErrorCode = "ONX0204"
-	ErrCodeAuthExpiredRefreshToken     ErrorCode = "ONX0205"
+	ErrCodeAuthInvalidRefreshToken     ErrorCode = "ONX0202"
+	ErrCodeAuthExpiredRefreshToken     ErrorCode = "ONX0203"
 	ErrCodeAuthUserNotFound            ErrorCode = "ONX0206"
 	ErrCodeAuthUserAlreadyExists       ErrorCode = "ONX0207"
 	ErrCodeAuthResetTokenNotFound      ErrorCode = "ONX0208"

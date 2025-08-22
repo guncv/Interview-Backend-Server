@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -139,7 +138,7 @@ FetchBoth:
 		go func() {
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found") {
+				if errors.Is(err, sql.ErrNoRows) {
 					defaultResumeChan <- db.Resumes{}
 					return
 				}
@@ -215,9 +214,39 @@ Finalize:
 		}
 	}
 
+	var lastUpdatedAt *string
+	if defaultResume.ID != uuid.Nil {
+		formattedTime := utils.FormatToUTCString(defaultResume.UpdatedAt)
+		lastUpdatedAt = &formattedTime
+	}
+
+	if len(resumeList) > 0 {
+		mostRecentResume := resumeList[0]
+		for _, resume := range resumeList {
+			if resume.UpdatedAt.After(mostRecentResume.UpdatedAt) {
+				mostRecentResume = resume
+			}
+		}
+
+		if defaultResume.ID != uuid.Nil {
+			if mostRecentResume.UpdatedAt.After(defaultResume.UpdatedAt) {
+				formattedTime := utils.FormatToUTCString(mostRecentResume.UpdatedAt)
+				lastUpdatedAt = &formattedTime
+			}
+		} else {
+			formattedTime := utils.FormatToUTCString(mostRecentResume.UpdatedAt)
+			lastUpdatedAt = &formattedTime
+		}
+	}
+
+	if defaultResume.ID == uuid.Nil && len(resumeList) == 0 {
+		lastUpdatedAt = nil
+	}
+
 	resp := entities.ListResumeResponse{
 		Count:         count,
 		ResumeContent: resumeContent,
+		LastUpdatedAt: lastUpdatedAt,
 	}
 
 	if resumeContent != nil {

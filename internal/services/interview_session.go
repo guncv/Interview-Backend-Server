@@ -144,7 +144,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:     constants.StatusPending,
 		Modality:   constants.ModalityVoiceChat,
-		ConsentAt:  req.ConsentAt,
+		IsConsent:  req.IsConsent,
 		CreatedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 		UpdatedAt:  sql.NullTime{Time: time.Now(), Valid: true},
 	}
@@ -258,7 +258,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:     constants.StatusPending,
 		Modality:   constants.ModalityVoiceChat,
-		ConsentAt:  req.ConsentAt,
+		IsConsent:  req.IsConsent,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSessionWithExistingResumeTx(ctx, createInterviewSessionWithExistingResumeReq); err != nil {

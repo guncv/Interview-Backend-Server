@@ -66,7 +66,7 @@ type InterviewSessions struct {
 	Modality      string                `json:"modality"`
 	Status        string                `json:"status"`
 	PromptJson    pqtype.NullRawMessage `json:"prompt_json"`
-	ConsentAt     time.Time             `json:"consent_at"`
+	IsConsent     bool                  `json:"is_consent"`
 	StartedAt     sql.NullTime          `json:"started_at"`
 	EndedAt       sql.NullTime          `json:"ended_at"`
 	OverallScore  sql.NullString        `json:"overall_score"`

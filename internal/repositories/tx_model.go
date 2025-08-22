@@ -99,7 +99,7 @@ type CreateInterviewSessionTxReq struct {
 	PromptJson pqtype.NullRawMessage
 	Status     string
 	Modality   string
-	ConsentAt  time.Time
+	IsConsent  bool
 }
 
 type CreateInterviewSessionWithExistingResumeTxReq struct {
@@ -120,5 +120,5 @@ type CreateInterviewSessionWithExistingResumeTxReq struct {
 	PromptJson pqtype.NullRawMessage
 	Status     string
 	Modality   string
-	ConsentAt  time.Time
+	IsConsent  bool
 }

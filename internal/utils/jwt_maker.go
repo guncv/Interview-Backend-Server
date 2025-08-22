@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -26,6 +27,7 @@ type JwtToken interface {
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
 	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
+	RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error)
 }
 
 type jwtToken struct {
@@ -175,6 +177,62 @@ func (maker *jwtToken) HashTokenSHA256(ctx context.Context, token string) string
 func (maker *jwtToken) IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool {
 	maker.logger.InfoWithID(ctx, "[Utils: JWT] Checking if token matches", "providedToken", providedToken, "storedTokenHash", storedTokenHash)
 	return maker.HashTokenSHA256(ctx, providedToken) == storedTokenHash
+}
+
+func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error) {
+	maker.logger.InfoWithID(ctx, "[Utils: RenewAccessToken] Renewing access token", "token")
+
+	refreshPayload, err := maker.VerifyToken(ctx, token)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error verifying token", "error", err)
+		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	session, err := maker.sessionRepository.GetSessionByID(ctx, refreshPayload.ID)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error getting session", "error", err)
+		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.IsRevoked.Bool {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Session revoked", "error", constants.ErrInvalidToken)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.ID.String() != refreshPayload.ID.String() {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Incorrect session id", "error", constants.ErrInvalidToken)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.UserID.String() != refreshPayload.UserID {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Incorrect session user", "error", constants.ErrInvalidToken)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	refreshTokenHash := maker.HashTokenSHA256(ctx, token)
+
+	if session.RefreshTokenHash != refreshTokenHash {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Mismatch session token", "error", constants.ErrInvalidToken)
+		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if time.Now().After(session.ExpiresAt.Time) {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Session expired", "error", constants.ErrExpiredToken)
+		return "", nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
+	}
+
+	createTokenreq := &entities.TokenRequest{
+		UserID:   session.UserID.String(),
+		Role:     refreshPayload.Role,
+		Duration: maker.config.AuthConfig.AccessTokenDuration,
+	}
+
+	accessToken, _, err := maker.CreateToken(ctx, createTokenreq)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return accessToken, refreshPayload, nil
 }
 
 func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {

@@ -214,6 +214,42 @@ func TestFormatToBangkokTimeDifferentHours(t *testing.T) {
 	}
 }
 
+func TestFormatToUTCString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    time.Time
+		expected string
+	}{
+		{
+			name:     "Format UTC time to UTC string",
+			input:    time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC),
+			expected: "2024-01-15T10:30:45Z",
+		},
+		{
+			name:     "Format Bangkok time to UTC string",
+			input:    time.Date(2024, 1, 15, 17, 30, 45, 0, time.FixedZone("Bangkok", 7*3600)),
+			expected: "2024-01-15T10:30:45Z",
+		},
+		{
+			name:     "Format with zero time",
+			input:    time.Time{},
+			expected: "0001-01-01T00:00:00Z",
+		},
+		{
+			name:     "Format with milliseconds",
+			input:    time.Date(2024, 1, 15, 10, 30, 45, 123456789, time.UTC),
+			expected: "2024-01-15T10:30:45Z", // Note: nanoseconds are truncated
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatToUTCString(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 // Helper functions to get different timezone locations
 func getBangkokLocation() *time.Location {
 	loc, _ := time.LoadLocation(constants.BangkokTimezone)

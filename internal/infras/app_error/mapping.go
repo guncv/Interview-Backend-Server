@@ -11,8 +11,6 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
 	ErrCodeAuthExpiredToken:            ErrHttpCodeUnauthorized,
-	ErrCodeAuthInvalidAccessToken:      ErrHttpCodeUnauthorized,
-	ErrCodeAuthExpiredAccessToken:      ErrHttpCodeUnauthorized,
 	ErrCodeAuthInvalidRefreshToken:     ErrHttpCodeUnauthorized,
 	ErrCodeAuthExpiredRefreshToken:     ErrHttpCodeUnauthorized,
 	ErrCodeAuthInvalidPassword:         ErrHttpCodeBadRequest,
@@ -55,8 +53,6 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,
-	ErrCodeAuthInvalidAccessToken:      ErrMessageAuthInvalidAccessToken,
-	ErrCodeAuthExpiredAccessToken:      ErrMessageAuthExpiredAccessToken,
 	ErrCodeAuthInvalidRefreshToken:     ErrMessageAuthInvalidRefreshToken,
 	ErrCodeAuthExpiredRefreshToken:     ErrMessageAuthExpiredRefreshToken,
 	ErrCodeAuthInvalidPassword:         ErrMessageAuthInvalidPassword,

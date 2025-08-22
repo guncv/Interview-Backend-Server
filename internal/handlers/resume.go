@@ -3,6 +3,9 @@ package handlers
 import (
 	"net/http"
 
+	"errors"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -36,10 +39,17 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
 
+	updatedAtStr := c.Query("updated_at")
 	var req entities.ListResumeRequest
-	if err := h.validator.ValidateAndBind(c, &req, "ListResume"); err != nil {
-		utils.RespondWithError(c, err)
-		return
+
+	if updatedAtStr != "" {
+		updatedAt, err := time.Parse(time.RFC3339, updatedAtStr)
+		if err != nil {
+			h.log.ErrorWithID(ctx, "[Handler: ListResume] Invalid updated_at format", err)
+			utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeResumeInvalidRequest))
+			return
+		}
+		req.UpdatedAt = &updatedAt
 	}
 
 	ctx, err := h.authContext.ExtractAuthContext(c)
@@ -93,7 +103,7 @@ func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	resumeId := c.Param("id")
 	if resumeId == "" {
 		h.log.ErrorWithID(ctx, "[Handler: GetResumeByID] Resume ID is required")
-		utils.RespondWithError(c, app_error.New(nil, app_error.ErrCodeResumeInvalidRequest))
+		utils.RespondWithError(c, app_error.New(errors.New("resume ID is required"), app_error.ErrCodeResumeInvalidRequest))
 		return
 	}
 
