@@ -1,4 +1,4 @@
-dc = docker-compose -f compose.dev.yml
+dc = docker compose -f compose.dev.yml
 
 .PHONY: run-dev down-dev build-dev clean-dev logs-dev restart-dev ps-dev migrate-up-dev migrate-down-dev rebuild-dev mock clean-mock test
 
