@@ -40,7 +40,6 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
 
 	updatedAtStr := c.Query("updated_at")
-
 	var req entities.ListResumeRequest
 
 	if updatedAtStr != "" {
