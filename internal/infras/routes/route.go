@@ -11,7 +11,7 @@ import (
 )
 
 func RegisterRoutes(e *gin.Engine, c *dig.Container) {
-	e.Use(middleware.InjectRequestMetadata())
+
 	e.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -20,6 +20,9 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	e.RedirectTrailingSlash = false
+	e.Use(middleware.InjectRequestMetadata())
 
 	if err := c.Invoke(func(
 		userHandler *handlers.UserHandler,
@@ -58,7 +61,7 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 	resumeMiddleRoutes := eg.Group("/resumes").Use(authMiddleware.AuthMiddleware())
 
 	{
-		resumeMiddleRoutes.GET("/", resumeHandler.ListResume)
+		resumeMiddleRoutes.GET("", resumeHandler.ListResume)
 		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 		resumeMiddleRoutes.GET("/:id", resumeHandler.GetResumeByID)
 	}
@@ -68,7 +71,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 	interviewSessionMiddleRoutes := eg.Group("/sessions").Use(authMiddleware.AuthMiddleware())
 
 	{
-		interviewSessionMiddleRoutes.POST("/", interviewSessionHandler.CreateInterviewSessionWithNewResume)
+		interviewSessionMiddleRoutes.POST("", interviewSessionHandler.CreateInterviewSessionWithNewResume)
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 	}
 }
