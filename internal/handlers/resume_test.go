@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -28,31 +29,25 @@ func TestResumeHandler_ListResume(t *testing.T) {
 	err := errors.New("mock error")
 
 	tests := []struct {
-		name   string
-		input  func() *entities.ListResumeRequest
-		setup  func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext)
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
+		name        string
+		queryParams string
+		setup       func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext)
+		verify      func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
 		{
-			name: "Success",
-			input: func() *entities.ListResumeRequest {
-				return &entities.ListResumeRequest{}
-			},
+			name:        "Success - No query params",
+			queryParams: "",
 			setup: func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext) {
 				mockResumeService := new(services.MockResumeService)
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
-
-				mockValidator.EXPECT().
-					ValidateAndBind(mock.Anything, mock.Anything, "ListResume").
-					Return(nil)
 
 				mockAuthContext.EXPECT().
 					ExtractAuthContext(mock.Anything).
 					Return(ctx, nil)
 
 				mockResumeService.EXPECT().
-					ListResume(ctx, mock.Anything).
+					ListResume(ctx, &entities.ListResumeRequest{}).
 					Return(&entities.ListResumeResponse{
 						Count:         0,
 						ResumeContent: nil,
@@ -66,40 +61,69 @@ func TestResumeHandler_ListResume(t *testing.T) {
 			},
 		},
 		{
-			name: "Error With Validation",
-			input: func() *entities.ListResumeRequest {
-				return &entities.ListResumeRequest{}
-			},
+			name:        "Success - With updated_at query param",
+			queryParams: "?updated_at=2023-01-01T00:00:00Z",
 			setup: func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext) {
+				mockResumeService := new(services.MockResumeService)
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
-				mockResumeService := new(services.MockResumeService)
 
-				validationErr := app_error.New(err, app_error.ErrCodeAuthInvalidRequest)
-				mockValidator.EXPECT().
-					ValidateAndBind(mock.Anything, mock.Anything, "ListResume").
-					Return(validationErr)
+				expectedTime, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
+				expectedReq := &entities.ListResumeRequest{
+					UpdatedAt: &expectedTime,
+				}
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockResumeService.EXPECT().
+					ListResume(ctx, expectedReq).
+					Return(&entities.ListResumeResponse{
+						Count: 1,
+						ResumeContent: &entities.ResumeContent{
+							DefaultResume: entities.GetListResumeByIdResponse{
+								ID:        "",
+								FileName:  "",
+								MimeType:  "",
+								ByteSize:  0,
+								CreatedAt: "",
+								UpdatedAt: "",
+							},
+							Resumes: nil,
+						},
+					}, nil)
+
+				return mockResumeService, mockValidator, mockAuthContext
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				expectedResponse := `{"count":1,"resume_content":{"default_resume":{"id":"","file_name":"","mime_type":"","byte_size":0,"created_at":"","updated_at":""},"resumes":null}}`
+				assert.JSONEq(t, expectedResponse, w.Body.String())
+			},
+		},
+		{
+			name:        "Error - Invalid updated_at format",
+			queryParams: "?updated_at=invalid-date",
+			setup: func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext) {
+				mockResumeService := new(services.MockResumeService)
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
 
 				return mockResumeService, mockValidator, mockAuthContext
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "Something went wrong with the request")
+				assert.Contains(t, w.Body.String(), "The request is invalid. Please try again.")
 			},
 		},
 		{
-			name: "Error With Auth Context",
-			input: func() *entities.ListResumeRequest {
-				return &entities.ListResumeRequest{}
-			},
+			name:        "Error With Auth Context",
+			queryParams: "",
 			setup: func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
 				mockResumeService := new(services.MockResumeService)
-
-				mockValidator.EXPECT().
-					ValidateAndBind(mock.Anything, mock.Anything, "ListResume").
-					Return(nil)
 
 				authErr := app_error.New(err, app_error.ErrCodeAuthInvalidHeader)
 				mockAuthContext.EXPECT().
@@ -114,18 +138,12 @@ func TestResumeHandler_ListResume(t *testing.T) {
 			},
 		},
 		{
-			name: "Error With Service",
-			input: func() *entities.ListResumeRequest {
-				return &entities.ListResumeRequest{}
-			},
+			name:        "Error With Service",
+			queryParams: "",
 			setup: func() (*services.MockResumeService, *utils.MockValidator, *middleware.MockAuthContext) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
 				mockResumeService := new(services.MockResumeService)
-
-				mockValidator.EXPECT().
-					ValidateAndBind(mock.Anything, mock.Anything, "ListResume").
-					Return(nil)
 
 				mockAuthContext.EXPECT().
 					ExtractAuthContext(mock.Anything).
@@ -133,7 +151,7 @@ func TestResumeHandler_ListResume(t *testing.T) {
 
 				serviceErr := app_error.New(err, app_error.ErrCodeResumeNotFound)
 				mockResumeService.EXPECT().
-					ListResume(ctx, mock.Anything).
+					ListResume(ctx, &entities.ListResumeRequest{}).
 					Return(nil, serviceErr)
 
 				return mockResumeService, mockValidator, mockAuthContext
@@ -147,11 +165,12 @@ func TestResumeHandler_ListResume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body, _ := json.Marshal(tt.input())
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodPost, "/resumes/", bytes.NewBuffer(body))
-			c.Request.Header.Set("Content-Type", "application/json")
+
+			// Use GET method with query parameters instead of POST with body
+			url := "/resumes/" + tt.queryParams
+			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
 
 			mockResumeService, mockValidator, mockAuthContext := tt.setup()
 			defer mockResumeService.AssertExpectations(t)

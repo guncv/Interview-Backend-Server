@@ -555,6 +555,217 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				assert.Contains(t, gotErr.Error(), "Redis set failed")
 			},
 		},
+		{
+			name: "Error - Resume processing failure",
+			input: &entities.CreateInterviewSessionWithNewResumeRequest{
+				File: &multipart.FileHeader{
+					Filename: "resume.pdf",
+					Size:     1024,
+					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
+				},
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID1 := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID1).Times(1)
+
+				// Mock resume repository to return error
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(nil, errors.New("resume processing failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "resume processing failed")
+			},
+		},
+		{
+			name: "Error - Redis connection failure",
+			input: &entities.CreateInterviewSessionWithNewResumeRequest{
+				File: &multipart.FileHeader{
+					Filename: "resume.pdf",
+					Size:     1024,
+					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
+				},
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID1 := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID1).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
+						ParsedJson: repositories.PromptInfo{
+							FullName:   "John Doe",
+							Email:      "john@example.com",
+							Experience: []string{"Software Engineer at Tech Corp"},
+							Skills:     []string{"Go", "Docker", "AWS"},
+						},
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
+					Return("s3-key-123", nil)
+
+				mockResumeRepo.EXPECT().
+					CheckIsDefaultResumeExistsByUserID(ctx, userID).
+					Return(false, nil)
+
+				// Mock generator for remaining UUIDs
+				resumeID := uuid.New()
+				jobRequirementID := uuid.New()
+				sessionID2 := uuid.New()
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID2).Times(1)
+
+				mockInterviewSessionRepo.EXPECT().
+					CreateInterviewSessionWithNewResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionTxReq")).
+					Return(nil)
+
+				// Mock generator for token key
+				tokenKey := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
+
+				// Mock Redis client to return error
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(errors.New("Redis connection failed"))
+
+				config := &config.Config{
+					InterviewSessionConfig: config.InterviewSessionConfig{
+						InterviewSessionTokenDuration: 24 * time.Hour,
+					},
+				}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "Redis connection failed")
+			},
+		},
+		{
+			name: "Error - File conversion failure",
+			input: &entities.CreateInterviewSessionWithNewResumeRequest{
+				File: &multipart.FileHeader{
+					Filename: "resume.pdf",
+					Size:     1024,
+					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
+				},
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				// Mock resume repository to return error due to nil file conversion
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(nil, errors.New("file conversion failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "file conversion failed")
+			},
+		},
 	}
 
 	for _, tC := range testCases {
@@ -772,6 +983,587 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				assert.Equal(t, "auth failed", gotErr.Error())
 			},
 		},
+		{
+			name: "Error - Get resume by ID failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(nil, errors.New("resume not found"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "resume not found")
+			},
+		},
+		{
+			name: "Error - S3 download failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(nil, errors.New("S3 download failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "S3 download failed")
+			},
+		},
+		{
+			name: "Error - Get resume JSON failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(&aws.CustomFileHeader{
+						Filename:    "resume.pdf",
+						Size:        1024,
+						Header:      map[string][]string{"Content-Type": {"application/pdf"}},
+						FileContent: []byte("resume content"),
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(nil, errors.New("JSON generation failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "JSON generation failed")
+			},
+		},
+		{
+			name: "Error - Prompt JSON marshalling failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(&aws.CustomFileHeader{
+						Filename:    "resume.pdf",
+						Size:        1024,
+						Header:      map[string][]string{"Content-Type": {"application/pdf"}},
+						FileContent: []byte("resume content"),
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
+						ParsedJson: repositories.PromptInfo{
+							FullName:   "John Doe",
+							Email:      "john@example.com",
+							Experience: []string{"Software Engineer at Tech Corp"},
+							Skills:     []string{"Go", "Docker", "AWS"},
+						},
+					}, nil)
+
+				// Mock generator for remaining UUIDs
+				jobRequirementID := uuid.New()
+				sessionID2 := uuid.New()
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID2).Times(1)
+
+				// Mock interview session repository to return error
+				mockInterviewSessionRepo.EXPECT().
+					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					Return(errors.New("database transaction failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "database transaction failed")
+			},
+		},
+		{
+			name: "Error - Transaction failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(&aws.CustomFileHeader{
+						Filename:    "resume.pdf",
+						Size:        1024,
+						Header:      map[string][]string{"Content-Type": {"application/pdf"}},
+						FileContent: []byte("resume content"),
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
+						ParsedJson: repositories.PromptInfo{
+							FullName:   "John Doe",
+							Email:      "john@example.com",
+							Experience: []string{"Software Engineer at Tech Corp"},
+							Skills:     []string{"Go", "Docker", "AWS"},
+						},
+					}, nil)
+
+				// Mock generator for remaining UUIDs
+				jobRequirementID := uuid.New()
+				sessionID2 := uuid.New()
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID2).Times(1)
+
+				mockInterviewSessionRepo.EXPECT().
+					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					Return(errors.New("transaction failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "transaction failed")
+			},
+		},
+		{
+			name: "Error - Redis connection failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(&aws.CustomFileHeader{
+						Filename:    "resume.pdf",
+						Size:        1024,
+						Header:      map[string][]string{"Content-Type": {"application/pdf"}},
+						FileContent: []byte("resume content"),
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
+						ParsedJson: repositories.PromptInfo{
+							FullName:   "John Doe",
+							Email:      "john@example.com",
+							Experience: []string{"Software Engineer at Tech Corp"},
+							Skills:     []string{"Go", "Docker", "AWS"},
+						},
+					}, nil)
+
+				// Mock generator for remaining UUIDs
+				jobRequirementID := uuid.New()
+				sessionID2 := uuid.New()
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID2).Times(1)
+
+				mockInterviewSessionRepo.EXPECT().
+					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					Return(nil)
+
+				// Mock generator for token key
+				tokenKey := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
+
+				// Mock Redis client to return error
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(errors.New("Redis connection failed"))
+
+				config := &config.Config{
+					InterviewSessionConfig: config.InterviewSessionConfig{
+						InterviewSessionTokenDuration: 24 * time.Hour,
+					},
+				}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "Redis connection failed")
+			},
+		},
+		{
+			name: "Error - Redis set failure",
+			input: &entities.CreateInterviewSessionWithExistingResumeReq{
+				ResumeID:        resumeID.String(),
+				Position:        "Software Engineer",
+				Company:         "Tech Corp",
+				WorkType:        "Full-time",
+				JobRequirements: "Go, Docker, AWS",
+				InterviewType:   "Technical",
+				Language:        "English",
+				IsConsent:       true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				mockResumeRepo.EXPECT().
+					GetResumeByID(ctx, resumeID).
+					Return(&db.Resumes{
+						ID:         resumeID,
+						UserID:     userID,
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  false,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				mockS3Storage.EXPECT().
+					DownloadFile(ctx, "s3-key-123").
+					Return(&aws.CustomFileHeader{
+						Filename:    "resume.pdf",
+						Size:        1024,
+						Header:      map[string][]string{"Content-Type": {"application/pdf"}},
+						FileContent: []byte("resume content"),
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
+					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
+						ParsedJson: repositories.PromptInfo{
+							FullName:   "John Doe",
+							Email:      "john@example.com",
+							Experience: []string{"Software Engineer at Tech Corp"},
+							Skills:     []string{"Go", "Docker", "AWS"},
+						},
+					}, nil)
+
+				// Mock generator for remaining UUIDs
+				jobRequirementID := uuid.New()
+				sessionID2 := uuid.New()
+				tokenKey := uuid.New()
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID2).Times(1)
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
+
+				mockInterviewSessionRepo.EXPECT().
+					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					Return(nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(errors.New("Redis set failed"))
+
+				config := &config.Config{
+					InterviewSessionConfig: config.InterviewSessionConfig{
+						InterviewSessionTokenDuration: 24 * time.Hour,
+					},
+				}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "Redis set failed")
+			},
+		},
 	}
 
 	for _, tC := range testCases {
@@ -902,10 +1694,90 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				assert.Equal(t, "database error", gotErr.Error())
 			},
 		},
+		{
+			name: "Error - Invalid session ID format",
+			input: &entities.StartInterviewSessionReq{
+				SessionID: "invalid-uuid",
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				// This test expects a panic due to invalid UUID
+				// The service uses uuid.MustParse which panics on invalid input
+				assert.Panics(t, func() {
+					svc := NewInterviewSessionService(
+						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+					)
+					svc.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+						SessionID: "invalid-uuid",
+					})
+				})
+			},
+		},
+		{
+			name: "Error - Empty session ID",
+			input: &entities.StartInterviewSessionReq{
+				SessionID: "",
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				// This test expects a panic due to empty UUID
+				// The service uses uuid.MustParse which panics on invalid input
+				assert.Panics(t, func() {
+					svc := NewInterviewSessionService(
+						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+					)
+					svc.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+						SessionID: "",
+					})
+				})
+			},
+		},
 	}
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
+			// Handle panic cases differently
+			if tC.name == "Error - Invalid session ID format" || tC.name == "Error - Empty session ID" {
+				// These tests expect panics, so we test them separately
+				assert.Panics(t, func() {
+					svc := NewInterviewSessionService(
+						lgr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+					)
+					svc.StartInterviewSession(ctx, tC.input)
+				})
+				return
+			}
+
 			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient := tC.setup()
 			defer func() {
 				if mockResumeService != nil {
