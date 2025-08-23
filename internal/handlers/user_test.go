@@ -637,7 +637,7 @@ func TestUserHandler_RefreshToken(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0204","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"ONX0202","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
 			},
 		},
 		{
@@ -662,7 +662,7 @@ func TestUserHandler_RefreshToken(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0204","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"ONX0202","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
 			},
 		},
 	}

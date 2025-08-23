@@ -57,7 +57,7 @@ func TestResumeHandler_ListResume(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"count":0,"resume_content":null}`, w.Body.String())
+				assert.JSONEq(t, `{"count":0,"last_updated_at":null,"resume_content":null}`, w.Body.String())
 			},
 		},
 		{
@@ -98,7 +98,7 @@ func TestResumeHandler_ListResume(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, w.Code)
-				expectedResponse := `{"count":1,"resume_content":{"default_resume":{"id":"","file_name":"","mime_type":"","byte_size":0,"created_at":"","updated_at":""},"resumes":null}}`
+				expectedResponse := `{"count":1,"last_updated_at":null,"resume_content":{"default_resume":{"id":"","file_name":"","mime_type":"","byte_size":0,"created_at":"","updated_at":""},"resumes":null}}`
 				assert.JSONEq(t, expectedResponse, w.Body.String())
 			},
 		},
