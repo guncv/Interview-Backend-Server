@@ -38,8 +38,16 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeResumeInvalidRequest:         ErrHttpCodeBadRequest,
 
 	// Session
-	ErrCodeSessionInvalidToken: ErrHttpCodeBadRequest,
-	ErrCodeSessionNotFound:     ErrHttpCodeNotFound,
+	ErrCodeSessionInvalidToken:          ErrHttpCodeBadRequest,
+	ErrCodeSessionNotFound:              ErrHttpCodeNotFound,
+	ErrCodeWebSocketInvalidHello:        ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidSegmentStart: ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidSegmentEnd:   ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidStopTTS:      ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidDBAck:        ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidError:        ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidPing:         ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidMessage:      ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -80,6 +88,14 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeResumeInvalidRequest:         ErrMessageResumeInvalidRequest,
 
 	// Session
-	ErrCodeSessionInvalidToken: ErrMessageSessionInvalidToken,
-	ErrCodeSessionNotFound:     ErrMessageSessionNotFound,
+	ErrCodeSessionInvalidToken:          ErrMessageSessionInvalidToken,
+	ErrCodeSessionNotFound:              ErrMessageSessionNotFound,
+	ErrCodeWebSocketInvalidHello:        ErrMessageWebSocketInvalidHello,
+	ErrCodeWebSocketInvalidSegmentStart: ErrMessageWebSocketInvalidSegmentStart,
+	ErrCodeWebSocketInvalidSegmentEnd:   ErrMessageWebSocketInvalidSegmentEnd,
+	ErrCodeWebSocketInvalidStopTTS:      ErrMessageWebSocketInvalidStopTTS,
+	ErrCodeWebSocketInvalidDBAck:        ErrMessageWebSocketInvalidDBAck,
+	ErrCodeWebSocketInvalidError:        ErrMessageWebSocketInvalidError,
+	ErrCodeWebSocketInvalidPing:         ErrMessageWebSocketInvalidPing,
+	ErrCodeWebSocketInvalidMessage:      ErrMessageWebSocketInvalidMessage,
 }
