@@ -16,7 +16,7 @@ services:
     networks:
       - interview-network
 
-  redis:
+  redis_server:
     image: redis:alpine
     container_name: interview-redis
     restart: unless-stopped
@@ -40,7 +40,7 @@ services:
       - interview-network
     depends_on:
       - postgres
-      - redis
+      - redis_server
     environment:
       ENV: dev
       DB_SOURCE: postgresql://user:password@postgres:5432/interview?sslmode=disable
