@@ -79,6 +79,7 @@ func (h *UserHandler) SignUpUser(c *gin.Context) {
 
 	req := &entities.SignUpUserRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignUpUser"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignUpUser] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -110,6 +111,7 @@ func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 
 	req := &entities.VerifyEmailRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SendVerifyEmail"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SendVerifyEmail] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -141,6 +143,7 @@ func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 
 	req := &entities.ResetVerifyEmailCodeRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ResetVerifyEmailCode"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ResetVerifyEmailCode] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -172,6 +175,7 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 
 	req := &entities.SignInUserByEmailAndPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignInUserByEmailAndPassword"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -209,6 +213,7 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 
 	req := &entities.ForgotPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ForgotPassword"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ForgotPassword] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -240,6 +245,7 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 
 	req := &entities.ResetUserPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ResetUserPassword"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ResetUserPassword] Error validate and bind", err)
 		utils.RespondWithError(c, err)
 		return
 	}

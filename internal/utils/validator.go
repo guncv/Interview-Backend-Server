@@ -20,7 +20,6 @@ type Validator interface {
 	ValidateAndBind(c *gin.Context, req interface{}, handlerName string) error
 	GetValidate() *validator.Validate
 	IsAllowedResumeContentType(ctx context.Context, fileHeader *multipart.FileHeader) bool
-	getSpecificBindingErrorMessage(err error) string
 }
 
 type validatorImpl struct {

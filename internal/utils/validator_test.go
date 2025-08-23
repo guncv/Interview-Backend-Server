@@ -521,6 +521,10 @@ func TestGetSpecificBindingErrorMessage(t *testing.T) {
 	logger := log.Initialize("test")
 	validator := NewValidator(logger)
 
+	// Type assert to access the private method for testing
+	validatorImpl, ok := validator.(*validatorImpl)
+	assert.True(t, ok, "Validator should be of type *validatorImpl")
+
 	tests := []struct {
 		name     string
 		err      error
@@ -580,7 +584,7 @@ func TestGetSpecificBindingErrorMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validator.getSpecificBindingErrorMessage(tt.err)
+			result := validatorImpl.getSpecificBindingErrorMessage(tt.err)
 			assert.Equal(t, tt.expected, result, "Expected error message '%s' but got '%s'", tt.expected, result)
 		})
 	}
@@ -590,6 +594,10 @@ func TestImprovedErrorHandlingDemonstration(t *testing.T) {
 	logger := log.Initialize("test")
 	validator := NewValidator(logger)
 
+	// Type assert to access the private method for testing
+	validatorImpl, ok := validator.(*validatorImpl)
+	assert.True(t, ok, "Validator should be of type *validatorImpl")
+
 	// This test demonstrates how the improved error handling provides specific messages
 	// instead of the generic "Something went wrong with the request. Please try again."
 
@@ -598,22 +606,22 @@ func TestImprovedErrorHandlingDemonstration(t *testing.T) {
 
 		// 1. Date format error - user sends "2024/05/12" instead of "2024-05-12"
 		dateError := errors.New("parsing time \"2024/05/12\" as \"2006-01-02\": cannot parse \"/05/12\" as \"-\"")
-		dateMsg := validator.getSpecificBindingErrorMessage(dateError)
+		dateMsg := validatorImpl.getSpecificBindingErrorMessage(dateError)
 		assert.Equal(t, "invalid date format. Please use ISO 8601 format (YYYY-MM-DD)", dateMsg)
 
 		// 2. JSON syntax error - user sends malformed JSON
 		jsonError := errors.New("invalid character '}' looking for beginning of value")
-		jsonMsg := validator.getSpecificBindingErrorMessage(jsonError)
+		jsonMsg := validatorImpl.getSpecificBindingErrorMessage(jsonError)
 		assert.Equal(t, "invalid JSON format. Check for syntax errors in your request body", jsonMsg)
 
 		// 3. Type mismatch - user sends string where number expected
 		typeError := errors.New("cannot unmarshal string \"abc\" into Go struct field .Age of type int")
-		typeMsg := validator.getSpecificBindingErrorMessage(typeError)
+		typeMsg := validatorImpl.getSpecificBindingErrorMessage(typeError)
 		assert.Equal(t, "invalid data type. Expected number but received string", typeMsg)
 
 		// 4. Incomplete JSON - user sends partial request
 		incompleteError := errors.New("unexpected end of JSON input")
-		incompleteMsg := validator.getSpecificBindingErrorMessage(incompleteError)
+		incompleteMsg := validatorImpl.getSpecificBindingErrorMessage(incompleteError)
 		assert.Equal(t, "invalid JSON format. Request body is incomplete or malformed", incompleteMsg)
 
 		t.Logf("✅ Date format error: %s", dateMsg)
