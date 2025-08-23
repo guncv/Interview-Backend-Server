@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AbortInterviewSession(ctx context.Context, arg AbortInterviewSessionParams) (int64, error)
+	CheckInterviewSessionExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)

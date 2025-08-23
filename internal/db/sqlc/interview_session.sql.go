@@ -34,6 +34,21 @@ func (q *Queries) AbortInterviewSession(ctx context.Context, arg AbortInterviewS
 	return result.RowsAffected()
 }
 
+const checkInterviewSessionExists = `-- name: CheckInterviewSessionExists :one
+SELECT EXISTS (
+    SELECT 1
+    FROM interview_sessions
+    WHERE id = $1
+)
+`
+
+func (q *Queries) CheckInterviewSessionExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkInterviewSessionExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createInterviewSession = `-- name: CreateInterviewSession :exec
 INSERT INTO interview_sessions (
     id,
