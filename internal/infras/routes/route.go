@@ -2,19 +2,29 @@ package routes
 
 import (
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/handlers"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"go.uber.org/dig"
 )
 
-func RegisterRoutes(e *gin.Engine, c *dig.Container) {
+func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
+
+	// Use configurable CORS origins
+	corsOrigins := cfg.AppConfig.CORSOrigins
+	if len(corsOrigins) == 0 {
+		// Fallback to default origins if none configured
+		corsOrigins = []string{"http://localhost:5173"}
+	}
 
 	e.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     corsOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Active-Role"},
 		ExposeHeaders:    []string{"Content-Length", "Authorization", "Access-Control-Expose-Headers", "X-New-Access-Token"},
@@ -32,7 +42,23 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 	})
 
 	e.GET("/api/v1/swagger.json", func(c *gin.Context) {
-		c.File("./docs/swagger.json")
+		swaggerBytes, err := os.ReadFile("./docs/swagger.json")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read swagger configuration"})
+			return
+		}
+
+		// Use the configuration to determine the correct host
+		apiHost := cfg.AppConfig.APIHost
+		if apiHost == "" {
+			apiHost = "localhost:8080" // fallback
+		}
+
+		// Replace the placeholder with the actual host
+		swaggerContent := strings.ReplaceAll(string(swaggerBytes), "${API_HOST:-localhost:8080}", apiHost)
+
+		c.Header("Content-Type", "application/json")
+		c.String(http.StatusOK, swaggerContent)
 	})
 
 	if err := c.Invoke(func(

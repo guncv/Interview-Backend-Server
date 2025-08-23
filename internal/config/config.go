@@ -20,8 +20,10 @@ type Config struct {
 }
 
 type AppConfig struct {
-	AppPort string `mapstructure:"APP_PORT"`
-	AppEnv  string `mapstructure:"APP_ENV"`
+	AppPort     string   `mapstructure:"APP_PORT"`
+	AppEnv      string   `mapstructure:"APP_ENV"`
+	APIHost     string   `mapstructure:"API_HOST"`
+	CORSOrigins []string `mapstructure:"CORS_ORIGINS"`
 }
 
 type DatabaseConfig struct {

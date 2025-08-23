@@ -30,6 +30,6 @@ func NewGinServer(c *config.Config, diContainer *dig.Container) *GinServer {
 		AppConfig: &c.AppConfig,
 	}
 
-	routes.RegisterRoutes(router, diContainer)
+	routes.RegisterRoutes(router, diContainer, c)
 	return s
 }
