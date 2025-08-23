@@ -61,6 +61,29 @@
                 }
             }
         },
+        "/auth/health": {
+            "get": {
+                "description": "Check if the server is running and healthy",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health Check"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.HealthCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh-token": {
             "post": {
                 "description": "Get new access token using refresh token from cookie",
@@ -845,6 +868,14 @@
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.HealthCheckResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
                     "type": "string"
                 }
             }
