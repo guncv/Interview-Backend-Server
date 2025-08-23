@@ -558,7 +558,7 @@
                 ],
                 "description": "Create a new interview session with a newly uploaded resume",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -569,13 +569,60 @@
                 "summary": "Create interview session with new resume",
                 "parameters": [
                     {
-                        "description": "Interview session creation request with new resume",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeRequest"
-                        }
+                        "type": "file",
+                        "description": "Resume file (PDF, DOC, DOCX)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Job position",
+                        "name": "position",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Company name",
+                        "name": "company",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Work type (full-time, part-time, contract, etc.)",
+                        "name": "work_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Job requirements description",
+                        "name": "job_requirements",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Interview type (technical, behavioral, etc.)",
+                        "name": "interview_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Interview language",
+                        "name": "language",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "User consent for interview",
+                        "name": "is_consent",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -760,45 +807,6 @@
             "type": "object",
             "properties": {
                 "session_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeRequest": {
-            "type": "object",
-            "required": [
-                "company",
-                "file",
-                "interview_type",
-                "is_consent",
-                "job_requirements",
-                "language",
-                "position",
-                "work_type"
-            ],
-            "properties": {
-                "company": {
-                    "type": "string"
-                },
-                "file": {
-                    "$ref": "#/definitions/multipart.FileHeader"
-                },
-                "interview_type": {
-                    "type": "string"
-                },
-                "is_consent": {
-                    "type": "boolean"
-                },
-                "job_requirements": {
-                    "type": "string"
-                },
-                "language": {
-                    "type": "string"
-                },
-                "position": {
-                    "type": "string"
-                },
-                "work_type": {
                     "type": "string"
                 }
             }
@@ -1141,30 +1149,6 @@
                 "ErrCodeSessionInvalidToken",
                 "ErrCodeSessionNotFound"
             ]
-        },
-        "multipart.FileHeader": {
-            "type": "object",
-            "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "header": {
-                    "$ref": "#/definitions/textproto.MIMEHeader"
-                },
-                "size": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "textproto.MIMEHeader": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
         }
     },
     "securityDefinitions": {

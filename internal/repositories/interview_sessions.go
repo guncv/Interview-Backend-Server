@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
 type InterviewSessionRepository interface {
+	CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error)
 	StartInterviewSession(ctx context.Context, req *db.StartInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error
@@ -28,6 +30,18 @@ func NewInterviewSessionRepository(
 		log: log,
 		db:  db,
 	}
+}
+
+func (r *interviewSessionRepository) CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error) {
+	r.log.InfoWithID(ctx, "[Repository: CheckInterviewSessionExists] Called")
+
+	exists, err := r.db.CheckInterviewSessionExists(ctx, sessionID)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: CheckInterviewSessionExists] Error checking interview session exists", err)
+		return false, app_error.HandleDatabaseError(err)
+	}
+
+	return exists, nil
 }
 
 func (r *interviewSessionRepository) StartInterviewSession(ctx context.Context, req *db.StartInterviewSessionParams) error {

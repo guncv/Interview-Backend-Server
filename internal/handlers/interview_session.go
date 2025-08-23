@@ -42,9 +42,16 @@ func NewInterviewSessionHandler(
 // @Summary Create interview session with new resume
 // @Description Create a new interview session with a newly uploaded resume
 // @Tags Interview Sessions
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param request body entities.CreateInterviewSessionWithNewResumeRequest true "Interview session creation request with new resume"
+// @Param file formData file true "Resume file (PDF, DOC, DOCX)"
+// @Param position formData string true "Job position"
+// @Param company formData string true "Company name"
+// @Param work_type formData string true "Work type (full-time, part-time, contract, etc.)"
+// @Param job_requirements formData string true "Job requirements description"
+// @Param interview_type formData string true "Interview type (technical, behavioral, etc.)"
+// @Param language formData string true "Interview language"
+// @Param is_consent formData boolean true "User consent for interview"
 // @Security BearerAuth
 // @Success 201 {object} entities.CreateInterviewSessionWithNewResumeResponse
 // @Failure 400 {object} app_error.AppError "Validation error or business logic error"
@@ -142,11 +149,14 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 		return
 	}
 
-	var req entities.OpenWsConnectionRequest
-	if err := h.validator.ValidateAndBind(c, &req, "OpenWsConnection"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error binding request", err)
-		utils.RespondWithError(c, err)
+	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Invalid session token", err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeSessionInvalidToken))
 		return
+	}
+
+	req := entities.OpenWsConnectionRequest{
+		SessionToken: sessionToken,
 	}
 
 	ctx, err := h.authContext.ExtractAuthContext(c)

@@ -17,6 +17,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
 
@@ -40,6 +41,7 @@ type webSocketServer struct {
 	redisClient             database.RedisClient
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
+	interviewSessionRepo    repositories.InterviewSessionRepository
 }
 
 func NewWebSocketServer(
@@ -47,6 +49,7 @@ func NewWebSocketServer(
 	redisClient database.RedisClient,
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
+	interviewSessionRepo repositories.InterviewSessionRepository,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -56,10 +59,12 @@ func NewWebSocketServer(
 	return &webSocketServer{
 		log:                     log,
 		upgrader:                upgrader,
+		redisClient:             redisClient,
 		sessions:                make(map[string]*Client),
 		userSessions:            make(map[string]map[string]bool),
 		authContext:             authContext,
 		interviewSessionService: interviewSessionService,
+		interviewSessionRepo:    interviewSessionRepo,
 	}
 }
 
@@ -89,13 +94,23 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
 	}
 
+	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking interview session exists", err)
+		return err
+	}
+
+	if !exists {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Interview session not found")
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionNotFound)
+	}
+
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error upgrading connection", err)
 		return err
 	}
 
-	sessionID := uuid.NewString()
 	client := &Client{
 		conn:      conn,
 		userID:    sessionPayload.UserID,
@@ -103,15 +118,15 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 	}
 
 	s.mu.Lock()
-	s.sessions[sessionID] = client
+	s.sessions[sessionPayload.SessionID] = client
 	if s.userSessions[sessionPayload.UserID] == nil {
 		s.userSessions[sessionPayload.UserID] = map[string]bool{}
 	}
-	s.userSessions[sessionPayload.UserID][sessionID] = true
+	s.userSessions[sessionPayload.UserID][sessionPayload.SessionID] = true
 	s.mu.Unlock()
 
 	if err := s.interviewSessionService.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
-		SessionID: sessionID,
+		SessionID: sessionPayload.SessionID,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 		s.disconnect(client)
@@ -142,7 +157,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 		var msg struct {
 			Type         string      `json:"type"`
-			SessionToken string      `json:"session_token,omitempty"`
+			SessionToken string      `json:"session_token"`
 			Content      interface{} `json:"content"`
 		}
 

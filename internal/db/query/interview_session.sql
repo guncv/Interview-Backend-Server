@@ -31,3 +31,10 @@ UPDATE interview_sessions
 SET status = $2,
     started_at = $3
 WHERE id = $1;
+
+-- name: CheckInterviewSessionExists :one
+SELECT EXISTS (
+    SELECT 1
+    FROM interview_sessions
+    WHERE id = $1
+);
