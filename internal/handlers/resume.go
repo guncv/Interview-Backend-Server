@@ -35,6 +35,19 @@ func NewResumeHandler(
 	}
 }
 
+// ListResume godoc
+// @Summary List user resumes
+// @Description Get a list of all resumes for the authenticated user
+// @Tags Resumes
+// @Accept json
+// @Produce json
+// @Param updated_at query string false "Filter by updated date (RFC3339 format)"
+// @Security BearerAuth
+// @Success 200 {object} entities.ListResumeResponse
+// @Failure 400 {object} app_error.AppError "Invalid request parameters"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /resumes/list [get]
 func (h *ResumeHandler) ListResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
@@ -69,6 +82,19 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// SwitchDefaultResume godoc
+// @Summary Switch default resume
+// @Description Set a specific resume as the default resume for the user
+// @Tags Resumes
+// @Accept json
+// @Produce json
+// @Param request body entities.SwitchDefaultResumeRequest true "Resume switch request"
+// @Security BearerAuth
+// @Success 200 "Default resume switched successfully"
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /resumes/switch-default [post]
 func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SwitchDefaultResume] Called")
@@ -96,6 +122,20 @@ func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
 	c.JSON(http.StatusOK, nil)
 }
 
+// GetResumeByID godoc
+// @Summary Get resume by ID
+// @Description Retrieve a specific resume by its ID
+// @Tags Resumes
+// @Accept json
+// @Produce json
+// @Param id path string true "Resume ID (UUID)"
+// @Security BearerAuth
+// @Success 200 {object} entities.GetResumeByIDResponse
+// @Failure 400 {object} app_error.AppError "Invalid resume ID"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 404 {object} app_error.AppError "Resume not found"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /resumes/{id} [get]
 func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: GetResumeByID] Called")

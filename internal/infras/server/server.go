@@ -22,6 +22,9 @@ func (s *GinServer) Start() error {
 func NewGinServer(c *config.Config, diContainer *dig.Container) *GinServer {
 	router := gin.Default()
 
+	// Load HTML templates for Swagger UI
+	router.LoadHTMLGlob("docs/*.html")
+
 	s := &GinServer{
 		Router:    router,
 		AppConfig: &c.AppConfig,

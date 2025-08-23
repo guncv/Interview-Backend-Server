@@ -38,6 +38,19 @@ func NewInterviewSessionHandler(
 	}
 }
 
+// CreateInterviewSessionWithNewResume godoc
+// @Summary Create interview session with new resume
+// @Description Create a new interview session with a newly uploaded resume
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param request body entities.CreateInterviewSessionWithNewResumeRequest true "Interview session creation request with new resume"
+// @Security BearerAuth
+// @Success 201 {object} entities.CreateInterviewSessionWithNewResumeResponse
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /sessions [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithNewResume] Called")
@@ -65,6 +78,19 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Con
 	c.JSON(http.StatusCreated, resp)
 }
 
+// CreateInterviewSessionWithExistingResume godoc
+// @Summary Create interview session with existing resume
+// @Description Create a new interview session using an existing resume
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param request body entities.CreateInterviewSessionWithExistingResumeReq true "Interview session creation request with existing resume"
+// @Security BearerAuth
+// @Success 201 {object} entities.CreateInterviewSessionWithExistingResumeResp
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /sessions/existing [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Called")
@@ -92,6 +118,19 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gi
 	c.JSON(http.StatusCreated, resp)
 }
 
+// OpenWsConnection godoc
+// @Summary Open WebSocket connection
+// @Description Establish a WebSocket connection for real-time interview communication
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param id path string true "Session token"
+// @Security BearerAuth
+// @Success 200 "WebSocket connection established"
+// @Failure 400 {object} app_error.AppError "Invalid session token or request"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /ws/connect/{id} [get]
 func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: OpenWsConnection] Called")

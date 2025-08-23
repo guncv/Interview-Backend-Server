@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -23,6 +24,16 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container) {
 
 	e.RedirectTrailingSlash = false
 	e.Use(middleware.InjectRequestMetadata())
+
+	e.GET("/api/v1/docs", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "swagger.html", gin.H{
+			"title": "Interview Simulation API - Swagger UI",
+		})
+	})
+
+	e.GET("/api/v1/swagger.json", func(c *gin.Context) {
+		c.File("./docs/swagger.json")
+	})
 
 	if err := c.Invoke(func(
 		userHandler *handlers.UserHandler,
