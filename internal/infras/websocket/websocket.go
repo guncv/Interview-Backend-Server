@@ -212,9 +212,12 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
-	if err := s.interviewSessionService.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
-	}); err != nil {
+		Status:    constants.StatusOnGoing,
+	}
+
+	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 		s.disconnect(client)
 		return err

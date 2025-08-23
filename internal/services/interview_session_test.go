@@ -1624,20 +1624,20 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 	}
 }
 
-func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
+func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	sessionID := uuid.New()
 
 	testCases := []struct {
 		name   string
-		input  *entities.StartInterviewSessionReq
+		input  *entities.UpdateInterviewSessionStatusReq
 		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
-			name: "Success - Start interview session",
-			input: &entities.StartInterviewSessionReq{
+			name: "Success",
+			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: sessionID.String(),
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
@@ -1653,7 +1653,7 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockInterviewSessionRepo.EXPECT().
-					StartInterviewSession(ctx, mock.AnythingOfType("*db.StartInterviewSessionParams")).
+					UpdateInterviewSessionStatus(ctx, mock.AnythingOfType("*db.UpdateInterviewSessionStatusParams")).
 					Return(nil)
 
 				config := &config.Config{}
@@ -1665,8 +1665,8 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 			},
 		},
 		{
-			name: "Error - Start interview session failure",
-			input: &entities.StartInterviewSessionReq{
+			name: "Error - Update interview session status failure",
+			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: sessionID.String(),
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
@@ -1682,7 +1682,7 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockInterviewSessionRepo.EXPECT().
-					StartInterviewSession(ctx, mock.AnythingOfType("*db.StartInterviewSessionParams")).
+					UpdateInterviewSessionStatus(ctx, mock.AnythingOfType("*db.UpdateInterviewSessionStatusParams")).
 					Return(errors.New("database error"))
 
 				config := &config.Config{}
@@ -1696,7 +1696,7 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 		},
 		{
 			name: "Error - Invalid session ID format",
-			input: &entities.StartInterviewSessionReq{
+			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: "invalid-uuid",
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
@@ -1716,13 +1716,11 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
-				// This test expects a panic due to invalid UUID
-				// The service uses uuid.MustParse which panics on invalid input
 				assert.Panics(t, func() {
 					svc := NewInterviewSessionService(
 						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 					)
-					svc.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+					svc.UpdateInterviewSessionStatus(ctx, &entities.UpdateInterviewSessionStatusReq{
 						SessionID: "invalid-uuid",
 					})
 				})
@@ -1730,7 +1728,7 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 		},
 		{
 			name: "Error - Empty session ID",
-			input: &entities.StartInterviewSessionReq{
+			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: "",
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
@@ -1750,13 +1748,11 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
-				// This test expects a panic due to empty UUID
-				// The service uses uuid.MustParse which panics on invalid input
 				assert.Panics(t, func() {
 					svc := NewInterviewSessionService(
 						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 					)
-					svc.StartInterviewSession(ctx, &entities.StartInterviewSessionReq{
+					svc.UpdateInterviewSessionStatus(ctx, &entities.UpdateInterviewSessionStatusReq{
 						SessionID: "",
 					})
 				})
@@ -1766,14 +1762,12 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			// Handle panic cases differently
 			if tC.name == "Error - Invalid session ID format" || tC.name == "Error - Empty session ID" {
-				// These tests expect panics, so we test them separately
 				assert.Panics(t, func() {
 					svc := NewInterviewSessionService(
 						lgr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 					)
-					svc.StartInterviewSession(ctx, tC.input)
+					svc.UpdateInterviewSessionStatus(ctx, tC.input)
 				})
 				return
 			}
@@ -1827,7 +1821,7 @@ func TestInterviewSessionService_StartInterviewSession(t *testing.T) {
 				mockRedisClient,
 			)
 
-			gotErr := svc.StartInterviewSession(ctx, tC.input)
+			gotErr := svc.UpdateInterviewSessionStatus(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

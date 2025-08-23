@@ -13,27 +13,6 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
-const abortInterviewSession = `-- name: AbortInterviewSession :execrows
-UPDATE interview_sessions
-SET status = $2,
-    ended_at = $3
-WHERE id = $1
-`
-
-type AbortInterviewSessionParams struct {
-	ID      uuid.UUID    `json:"id"`
-	Status  string       `json:"status"`
-	EndedAt sql.NullTime `json:"ended_at"`
-}
-
-func (q *Queries) AbortInterviewSession(ctx context.Context, arg AbortInterviewSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, abortInterviewSession, arg.ID, arg.Status, arg.EndedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const checkInterviewSessionExists = `-- name: CheckInterviewSessionExists :one
 SELECT EXISTS (
     SELECT 1
@@ -120,21 +99,21 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 	return result.RowsAffected()
 }
 
-const startInterviewSession = `-- name: StartInterviewSession :execrows
+const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
 SET status = $2,
-    started_at = $3
+    started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
 WHERE id = $1
 `
 
-type StartInterviewSessionParams struct {
-	ID        uuid.UUID    `json:"id"`
-	Status    string       `json:"status"`
-	StartedAt sql.NullTime `json:"started_at"`
+type UpdateInterviewSessionStatusParams struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
 }
 
-func (q *Queries) StartInterviewSession(ctx context.Context, arg StartInterviewSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, startInterviewSession, arg.ID, arg.Status, arg.StartedAt)
+func (q *Queries) UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Status)
 	if err != nil {
 		return 0, err
 	}

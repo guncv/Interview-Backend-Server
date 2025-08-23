@@ -44,6 +44,7 @@ type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
 }
 
-type StartInterviewSessionReq struct {
+type UpdateInterviewSessionStatusReq struct {
 	SessionID string `json:"session_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
 }

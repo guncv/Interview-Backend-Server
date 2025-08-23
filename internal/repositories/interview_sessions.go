@@ -12,7 +12,8 @@ import (
 
 type InterviewSessionRepository interface {
 	CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error)
-	StartInterviewSession(ctx context.Context, req *db.StartInterviewSessionParams) error
+	UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error
+	EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error
 }
@@ -44,18 +45,36 @@ func (r *interviewSessionRepository) CheckInterviewSessionExists(ctx context.Con
 	return exists, nil
 }
 
-func (r *interviewSessionRepository) StartInterviewSession(ctx context.Context, req *db.StartInterviewSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: StartInterviewSession] Called")
+func (r *interviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateInterviewSessionStatus] Called")
 
-	rowAffected, err := r.db.StartInterviewSession(ctx, *req)
+	rowAffected, err := r.db.UpdateInterviewSessionStatus(ctx, *req)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: StartInterviewSession] Error starting interview session", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateInterviewSessionStatus] Error updating interview session status", err)
 		return app_error.HandleDatabaseError(err)
 	}
 
 	if rowAffected == 0 {
 		err := errors.New("interview session not found")
-		r.log.ErrorWithID(ctx, "[Repository: StartInterviewSession] Interview session not found", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateInterviewSessionStatus] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
+}
+
+func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error {
+	r.log.InfoWithID(ctx, "[Repository: EndInterviewSession] Called")
+
+	rowAffected, err := r.db.EndInterviewSession(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: EndInterviewSession] Error ending interview session", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: EndInterviewSession] Interview session not found", err)
 		return app_error.New(err, app_error.ErrCodeSessionNotFound)
 	}
 
