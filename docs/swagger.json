@@ -1,0 +1,1147 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A backend server for interview simulation platform",
+        "title": "Interview Simulation API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Send password reset link to user's email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Password reset request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Password reset email sent successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh-token": {
+            "post": {
+                "description": "Get new access token using refresh token from cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh access token",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.RefreshTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset user password using reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset user password",
+                "parameters": [
+                    {
+                        "description": "Password reset details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetUserPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Password reset successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-verify-email": {
+            "post": {
+                "description": "Generate a new verification code for email verification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset email verification code",
+                "parameters": [
+                    {
+                        "description": "Reset verification code request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sign-in": {
+            "post": {
+                "description": "Authenticate user with email and password, returns access and refresh tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "User authentication",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sign-out": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sign out user and invalidate tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "User logout",
+                "responses": {
+                    "204": {
+                        "description": "User signed out successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sign-up": {
+            "post": {
+                "description": "Create a new user account with email verification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "User registration",
+                "parameters": [
+                    {
+                        "description": "User registration details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-email": {
+            "post": {
+                "description": "Send verification code to user's email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Send email verification",
+                "parameters": [
+                    {
+                        "description": "Email verification details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Email sent successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/resumes/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all resumes for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resumes"
+                ],
+                "summary": "List user resumes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by updated date (RFC3339 format)",
+                        "name": "updated_at",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListResumeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/resumes/switch-default": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Set a specific resume as the default resume for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resumes"
+                ],
+                "summary": "Switch default resume",
+                "parameters": [
+                    {
+                        "description": "Resume switch request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SwitchDefaultResumeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default resume switched successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/resumes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific resume by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resumes"
+                ],
+                "summary": "Get resume by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resume ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetResumeByIDResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid resume ID",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Resume not found",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new interview session with a newly uploaded resume",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Create interview session with new resume",
+                "parameters": [
+                    {
+                        "description": "Interview session creation request with new resume",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/existing": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new interview session using an existing resume",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Create interview session with existing resume",
+                "parameters": [
+                    {
+                        "description": "Interview session creation request with existing resume",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/ws/connect/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Establish a WebSocket connection for real-time interview communication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Open WebSocket connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session token",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "WebSocket connection established"
+                    },
+                    "400": {
+                        "description": "Invalid session token or request",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeReq": {
+            "type": "object",
+            "required": [
+                "company",
+                "interview_type",
+                "is_consent",
+                "job_requirements",
+                "language",
+                "position",
+                "resume_id",
+                "work_type"
+            ],
+            "properties": {
+                "company": {
+                    "type": "string"
+                },
+                "interview_type": {
+                    "type": "string"
+                },
+                "is_consent": {
+                    "type": "boolean"
+                },
+                "job_requirements": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "resume_id": {
+                    "type": "string"
+                },
+                "work_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeResp": {
+            "type": "object",
+            "properties": {
+                "session_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeRequest": {
+            "type": "object",
+            "required": [
+                "company",
+                "file",
+                "interview_type",
+                "is_consent",
+                "job_requirements",
+                "language",
+                "position",
+                "work_type"
+            ],
+            "properties": {
+                "company": {
+                    "type": "string"
+                },
+                "file": {
+                    "$ref": "#/definitions/multipart.FileHeader"
+                },
+                "interview_type": {
+                    "type": "string"
+                },
+                "is_consent": {
+                    "type": "boolean"
+                },
+                "job_requirements": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "work_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithNewResumeResponse": {
+            "type": "object",
+            "properties": {
+                "session_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetListResumeByIdResponse": {
+            "type": "object",
+            "properties": {
+                "byte_size": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetResumeByIDResponse": {
+            "type": "object",
+            "properties": {
+                "byte_size": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListResumeResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "last_updated_at": {
+                    "type": "string"
+                },
+                "resume_content": {
+                    "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResumeContent"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.RefreshTokenResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetUserPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 8
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeResponse": {
+            "type": "object",
+            "properties": {
+                "token_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResumeContent": {
+            "type": "object",
+            "properties": {
+                "default_resume": {
+                    "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetListResumeByIdResponse"
+                },
+                "resumes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetListResumeByIdResponse"
+                    }
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 8
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserRequest": {
+            "type": "object",
+            "required": [
+                "country",
+                "date_of_birth",
+                "email",
+                "full_name",
+                "gender",
+                "password"
+            ],
+            "properties": {
+                "country": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "male",
+                        "female",
+                        "other"
+                    ]
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 8
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserResponse": {
+            "type": "object",
+            "properties": {
+                "token_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SwitchDefaultResumeRequest": {
+            "type": "object",
+            "required": [
+                "resume_id"
+            ],
+            "properties": {
+                "resume_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.VerifyEmailRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "token"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 6,
+                    "minLength": 6
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.ErrorCode"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.ErrorCode": {
+            "type": "string",
+            "enum": [
+                "ONX0101",
+                "ONX0102",
+                "ONX0104",
+                "ONX0105",
+                "ONX0106",
+                "ONX0200",
+                "ONX0201",
+                "ONX0202",
+                "ONX0203",
+                "ONX0206",
+                "ONX0207",
+                "ONX0208",
+                "ONX0209",
+                "ONX0210",
+                "ONX0211",
+                "ONX0212",
+                "ONX0213",
+                "ONX0214",
+                "ONX0215",
+                "ONX0216",
+                "ONX0217",
+                "ONX0218",
+                "ONX0219",
+                "ONX0300",
+                "ONX0301",
+                "ONX0302",
+                "ONX0303",
+                "ONX0304",
+                "ONX0305",
+                "ONX0306",
+                "ONX0400",
+                "ONX0401"
+            ],
+            "x-enum-varnames": [
+                "ErrCodeGeneralServerUnavailable",
+                "ErrCodeGeneralRequestTimeout",
+                "ErrCodeGeneralResourceNotFound",
+                "ErrCodeGeneralDatabaseConnection",
+                "ErrCodeGeneralConstraintViolation",
+                "ErrCodeAuthInvalidToken",
+                "ErrCodeAuthExpiredToken",
+                "ErrCodeAuthInvalidRefreshToken",
+                "ErrCodeAuthExpiredRefreshToken",
+                "ErrCodeAuthUserNotFound",
+                "ErrCodeAuthUserAlreadyExists",
+                "ErrCodeAuthResetTokenNotFound",
+                "ErrCodeAuthResetTokenExpired",
+                "ErrCodeAuthResetTokenUsed",
+                "ErrCodeAuthPasswordSameAsOld",
+                "ErrCodeAuthInvalidHeader",
+                "ErrCodeAuthInvalidRequest",
+                "ErrCodeAuthInvalidVerifyEmailCode",
+                "ErrCodeAuthInvalidVerifyEmailToken",
+                "ErrCodeAuthMaxAttemptVerifyEmail",
+                "ErrCodeAuthInvalidPassword",
+                "ErrCodeAuthSessionNotFound",
+                "ErrCodeAuthEmailNotVerified",
+                "ErrCodeResumeInvalidFileSize",
+                "ErrCodeResumeInvalidFileContentType",
+                "ErrCodeResumeUploadFailed",
+                "ErrCodeResumeAlreadyExists",
+                "ErrCodeResumeNotFound",
+                "ErrCodeResumeInvalidID",
+                "ErrCodeResumeInvalidRequest",
+                "ErrCodeSessionInvalidToken",
+                "ErrCodeSessionNotFound"
+            ]
+        },
+        "multipart.FileHeader": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "header": {
+                    "$ref": "#/definitions/textproto.MIMEHeader"
+                },
+                "size": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "textproto.MIMEHeader": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

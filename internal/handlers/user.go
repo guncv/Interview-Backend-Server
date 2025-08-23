@@ -40,6 +40,14 @@ func NewUserHandler(
 	}
 }
 
+// HealthCheck godoc
+// @Summary Health check endpoint
+// @Description Check if the server is running and healthy
+// @Tags Health Check
+// @Accept json
+// @Produce json
+// @Success 200 {object} entities.HealthCheckResponse
+// @Router /auth/health [get]
 func (h *UserHandler) HealthCheck(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: HealthCheck] Called")
@@ -54,6 +62,17 @@ func (h *UserHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// SignUpUser godoc
+// @Summary User registration
+// @Description Create a new user account with email verification
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.SignUpUserRequest true "User registration details"
+// @Success 200 {object} entities.SignUpUserResponse
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/sign-up [post]
 func (h *UserHandler) SignUpUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SignUpUser] Called")
@@ -74,6 +93,17 @@ func (h *UserHandler) SignUpUser(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// SendVerifyEmail godoc
+// @Summary Send email verification
+// @Description Send verification code to user's email address
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.VerifyEmailRequest true "Email verification details"
+// @Success 204 "Email sent successfully"
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/verify-email [post]
 func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SendVerifyEmail] Called")
@@ -94,6 +124,17 @@ func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
+// ResetVerifyEmailCode godoc
+// @Summary Reset email verification code
+// @Description Generate a new verification code for email verification
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.ResetVerifyEmailCodeRequest true "Reset verification code request"
+// @Success 200 {object} entities.ResetVerifyEmailCodeResponse
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/reset-verify-email [post]
 func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ResetVerifyEmailCode] Called")
@@ -114,6 +155,17 @@ func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// SignInUserByEmailAndPassword godoc
+// @Summary User authentication
+// @Description Authenticate user with email and password, returns access and refresh tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.SignInUserByEmailAndPasswordRequest true "Login credentials"
+// @Success 200 {object} entities.SignInUserByEmailAndPasswordResponse
+// @Failure 400 {object} app_error.AppError "Validation error or invalid credentials"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/sign-in [post]
 func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Called")
@@ -140,6 +192,17 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// ForgotPassword godoc
+// @Summary Request password reset
+// @Description Send password reset link to user's email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.ForgotPasswordRequest true "Password reset request"
+// @Success 204 "Password reset email sent successfully"
+// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/forgot-password [post]
 func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ForgotPassword] Called")
@@ -160,6 +223,17 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
+// ResetUserPassword godoc
+// @Summary Reset user password
+// @Description Reset user password using reset token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.ResetUserPasswordRequest true "Password reset details"
+// @Success 204 "Password reset successfully"
+// @Failure 400 {object} app_error.AppError "Validation error or invalid token"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/reset-password [post]
 func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: ResetUserPassword] Called")
@@ -180,6 +254,16 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
+// RefreshToken godoc
+// @Summary Refresh access token
+// @Description Get new access token using refresh token from cookie
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} entities.RefreshTokenResponse
+// @Failure 400 {object} app_error.AppError "Invalid refresh token"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/refresh-token [post]
 func (h *UserHandler) RefreshToken(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: RefreshToken] Called")
@@ -203,6 +287,17 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// SignOut godoc
+// @Summary User logout
+// @Description Sign out user and invalidate tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 204 "User signed out successfully"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /auth/sign-out [post]
 func (h *UserHandler) SignOut(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SignOut] Called")
