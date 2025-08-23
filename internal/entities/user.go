@@ -11,12 +11,12 @@ type HealthCheckResponse struct {
 }
 
 type SignUpUserRequest struct {
-	Email       string    `json:"email" validate:"required,email,max=100"`
+	Email       string    `json:"email" validate:"required,valid_email,max=100"`
 	Password    string    `json:"password" validate:"required,min=8,max=100"`
 	FullName    string    `json:"full_name" validate:"required,min=2,max=50"`
 	Country     string    `json:"country" validate:"required,min=2,max=50"`
 	Gender      string    `json:"gender" validate:"required,oneof=male female other"`
-	DateOfBirth time.Time `json:"date_of_birth" validate:"required"`
+	DateOfBirth time.Time `json:"date_of_birth" validate:"required,valid_date_time"`
 }
 
 type SignUpUserResponse struct {
@@ -37,7 +37,7 @@ type ResetVerifyEmailCodeResponse struct {
 }
 
 type SignInUserByEmailAndPasswordRequest struct {
-	Email    string `json:"email" validate:"required,email,max=100"`
+	Email    string `json:"email" validate:"required,valid_email,max=100"`
 	Password string `json:"password" validate:"required,min=8,max=100"`
 }
 
@@ -65,7 +65,7 @@ type CookieRequest struct {
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" validate:"required,email,max=100"`
+	Email string `json:"email" validate:"required,valid_email,max=100"`
 }
 
 type ResetUserPasswordRequest struct {
