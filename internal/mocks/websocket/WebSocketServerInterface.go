@@ -24,6 +24,51 @@ func (_m *MockWebSocketServerInterface) EXPECT() *MockWebSocketServerInterface_E
 	return &MockWebSocketServerInterface_Expecter{mock: &_m.Mock}
 }
 
+// Close provides a mock function with no fields
+func (_m *MockWebSocketServerInterface) Close() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Close")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketServerInterface_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type MockWebSocketServerInterface_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+func (_e *MockWebSocketServerInterface_Expecter) Close() *MockWebSocketServerInterface_Close_Call {
+	return &MockWebSocketServerInterface_Close_Call{Call: _e.mock.On("Close")}
+}
+
+func (_c *MockWebSocketServerInterface_Close_Call) Run(run func()) *MockWebSocketServerInterface_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_Close_Call) Return(_a0 error) *MockWebSocketServerInterface_Close_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_Close_Call) RunAndReturn(run func() error) *MockWebSocketServerInterface_Close_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // HandleConnection provides a mock function with given fields: ctx, w, r, sessionToken
 func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
 	ret := _m.Called(ctx, w, r, sessionToken)
@@ -69,6 +114,52 @@ func (_c *MockWebSocketServerInterface_HandleConnection_Call) Return(_a0 error) 
 }
 
 func (_c *MockWebSocketServerInterface_HandleConnection_Call) RunAndReturn(run func(context.Context, http.ResponseWriter, *http.Request, entities.OpenWsConnectionRequest) error) *MockWebSocketServerInterface_HandleConnection_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Start provides a mock function with given fields: ctx
+func (_m *MockWebSocketServerInterface) Start(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Start")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketServerInterface_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type MockWebSocketServerInterface_Start_Call struct {
+	*mock.Call
+}
+
+// Start is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockWebSocketServerInterface_Expecter) Start(ctx interface{}) *MockWebSocketServerInterface_Start_Call {
+	return &MockWebSocketServerInterface_Start_Call{Call: _e.mock.On("Start", ctx)}
+}
+
+func (_c *MockWebSocketServerInterface_Start_Call) Run(run func(ctx context.Context)) *MockWebSocketServerInterface_Start_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_Start_Call) Return(_a0 error) *MockWebSocketServerInterface_Start_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_Start_Call) RunAndReturn(run func(context.Context) error) *MockWebSocketServerInterface_Start_Call {
 	_c.Call.Return(run)
 	return _c
 }

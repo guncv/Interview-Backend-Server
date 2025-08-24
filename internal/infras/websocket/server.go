@@ -50,33 +50,46 @@ type msgStopTTS struct {
 	SegmentID string `json:"segment_id"`
 }
 
-// type msgASR struct {
-// 	msgBase
-// 	SegmentID string  `json:"segment_id"`
-// 	Text      string  `json:"text"`
-// 	IsFinal   bool    `json:"is_final"`
-// 	Seq       int     `json:"seq,omitempty"`
-// 	Stability float64 `json:"stability,omitempty"`
-// }
+type ConversationTurn struct {
+	SessionID  string    `json:"session_id"`
+	SegmentID  string    `json:"segment_id"`
+	TurnType   string    `json:"turn_type"` // "user_audio", "asr_result", "tts_start", "tts_end"
+	Content    string    `json:"content,omitempty"`
+	TTSID      string    `json:"tts_id,omitempty"`
+	Encoding   string    `json:"encoding,omitempty"`
+	SampleRate int       `json:"sample_rate,omitempty"`
+	Channels   int       `json:"channels,omitempty"`
+	StartedAt  time.Time `json:"started_at"`
+	EndedAt    time.Time `json:"ended_at,omitempty"`
+}
 
-// type msgTTSStart struct {
-// 	msgBase
-// 	SegmentID string `json:"segment_id"`
-// 	TTSID     string `json:"tts_id"`
-// 	Encoding  string `json:"encoding"` // "OPUS_OGG" | "OPUS_WEBM" | "PCM16"
-// }
+type msgASR struct {
+	msgBase
+	SegmentID string  `json:"segment_id"`
+	Text      string  `json:"text"`
+	IsFinal   bool    `json:"is_final"`
+	Seq       int     `json:"seq,omitempty"`
+	Stability float64 `json:"stability,omitempty"`
+}
 
-// type msgTTSEnd struct {
-// 	msgBase
-// 	SegmentID string `json:"segment_id"`
-// 	TTSID     string `json:"tts_id"`
-// }
+type msgTTSStart struct {
+	msgBase
+	SegmentID string `json:"segment_id"`
+	TTSID     string `json:"tts_id"`
+	Encoding  string `json:"encoding"` // "OPUS_OGG" | "OPUS_WEBM" | "PCM16"
+}
 
-// type msgDBAck struct {
-// 	msgBase
-// 	TurnID string   `json:"turn_id"`
-// 	Saved  []string `json:"saved"`
-// }
+type msgTTSEnd struct {
+	msgBase
+	SegmentID string `json:"segment_id"`
+	TTSID     string `json:"tts_id"`
+}
+
+type msgDBAck struct {
+	msgBase
+	TurnID string   `json:"turn_id"`
+	Saved  []string `json:"saved"`
+}
 
 type msgError struct {
 	msgBase
@@ -94,6 +107,8 @@ type Client struct {
 
 type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error
+	Start(ctx context.Context) error
+	Close() error
 }
 
 type webSocketServer struct {
@@ -106,6 +121,8 @@ type webSocketServer struct {
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
 	interviewSessionRepo    repositories.InterviewSessionRepository
+	webSocketClient         WebSocketClient
+	aiAgentConnected        bool
 }
 
 func NewWebSocketServer(
@@ -114,6 +131,7 @@ func NewWebSocketServer(
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
 	interviewSessionRepo repositories.InterviewSessionRepository,
+	webSocketClient WebSocketClient,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -131,7 +149,41 @@ func NewWebSocketServer(
 		authContext:             authContext,
 		interviewSessionService: interviewSessionService,
 		interviewSessionRepo:    interviewSessionRepo,
+		webSocketClient:         webSocketClient,
+		aiAgentConnected:        false,
 	}
+}
+
+func (s *webSocketServer) Start(ctx context.Context) error {
+	s.log.InfoWithID(ctx, "[WebSocketServer: Start] Starting WebSocket server")
+
+	if err := s.webSocketClient.Start(ctx); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: Start] Failed to connect to AI agent", err)
+		return err
+	}
+
+	s.aiAgentConnected = true
+	s.log.InfoWithID(ctx, "[WebSocketServer: Start] WebSocket server started successfully")
+	return nil
+}
+
+func (s *webSocketServer) Close() error {
+	s.log.InfoWithID(context.Background(), "[WebSocketServer: Close] Closing WebSocket server")
+
+	s.mu.Lock()
+	for _, client := range s.sessions {
+		_ = client.conn.Close()
+	}
+	s.sessions = make(map[string]*Client)
+	s.userSessions = make(map[string]map[string]bool)
+	s.mu.Unlock()
+
+	if s.webSocketClient != nil {
+		_ = s.webSocketClient.Close()
+	}
+
+	s.aiAgentConnected = false
+	return nil
 }
 
 func isTimeoutErr(err error) bool {
@@ -223,6 +275,14 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 		return err
 	}
 
+	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+		if err := s.webSocketClient.SendSessionInfo(ctx, client.sessionID, client.userID); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error sending session info to AI agent", err)
+			s.disconnect(client)
+			return err
+		}
+	}
+
 	_ = s.writeJSON(client, map[string]any{
 		"v": 1, "type": "connection_established", "session_id": client.sessionID,
 	})
@@ -270,6 +330,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				c.sessionID = m.SessionID
 				_ = s.writeJSON(c, map[string]any{"v": 1, "type": "hello", "session_id": c.sessionID})
 
+				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+					if err := s.webSocketClient.SendMessage(ctx, "hello", map[string]interface{}{
+						"session_id": c.sessionID,
+					}); err != nil {
+						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error sending hello to AI agent", err)
+					}
+				}
+
 			case constants.WebSocketMessageTypeSegmentStart:
 				var m msgSegmentStart
 				if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
@@ -277,6 +345,22 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 					continue
 				}
 				c.currentSegmentID = m.SegmentID
+
+				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+					if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
+						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment start to AI agent", err)
+					}
+				}
+
+				s.storeConversationTurn(ctx, c, &ConversationTurn{
+					SessionID:  c.sessionID,
+					SegmentID:  m.SegmentID,
+					TurnType:   "user_audio",
+					SampleRate: m.SampleRate,
+					Encoding:   m.Encoding,
+					Channels:   m.Channels,
+					StartedAt:  time.Now(),
+				})
 
 			case constants.WebSocketMessageTypeSegmentEnd:
 				var m msgSegmentEnd
@@ -289,6 +373,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 					continue
 				}
 
+				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+					if err := s.webSocketClient.SegmentEnd(ctx, m.SegmentID); err != nil {
+						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment end to AI agent", err)
+					}
+				}
+
+				s.updateConversationTurnEndTime(ctx, m.SegmentID, time.Now())
+
 				c.currentSegmentID = ""
 
 			case constants.WebSocketMessageTypeStopTTS:
@@ -296,6 +388,12 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
 					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidStopTTS), app_error.ErrCodeWebSocketInvalidStopTTS.Message()})
 					continue
+				}
+
+				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+					if err := s.webSocketClient.StopTTS(ctx, m.SegmentID); err != nil {
+						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding stop TTS to AI agent", err)
+					}
 				}
 
 				c.currentSegmentID = ""
@@ -310,12 +408,35 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				_ = s.writeJSON(c, msgError{msgBase{1, "error"}, "NO_ACTIVE_SEGMENT", "binary audio with no active segment"})
 				continue
 			}
-			// TODO: write to recorder/S3 multipart and/or forward to AI agent
-			// Example: s.audioForwarder.Forward(c.sessionID, c.currentSegmentID, payload)
+
+			if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+				if err := s.webSocketClient.SendAudio(ctx, c.currentSegmentID, payload); err != nil {
+					s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding audio to AI agent", err)
+				}
+			}
+
+			// TODO: Store audio in S3 or local storage
+			// TODO: Update conversation turn with audio data
 		default:
 			// ignore other frame types
 		}
 	}
+}
+
+func (s *webSocketServer) storeConversationTurn(ctx context.Context, client *Client, turn *ConversationTurn) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: storeConversationTurn] Storing turn", map[string]interface{}{
+		"session_id": turn.SessionID,
+		"segment_id": turn.SegmentID,
+		"turn_type":  turn.TurnType,
+		"started_at": turn.StartedAt,
+	})
+}
+
+func (s *webSocketServer) updateConversationTurnEndTime(ctx context.Context, segmentID string, endTime time.Time) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: updateConversationTurnEndTime] Updating turn end time", map[string]interface{}{
+		"segment_id": segmentID,
+		"end_time":   endTime,
+	})
 }
 
 func (s *webSocketServer) pingLoop(c *Client, every time.Duration) {
@@ -356,50 +477,34 @@ func (s *webSocketServer) writeJSON(c *Client, v any) error {
 	return c.conn.WriteJSON(v)
 }
 
-// func (s *webSocketServer) writeBinary(c *Client, b []byte) error {
-// 	c.mu.Lock()
-// 	defer c.mu.Unlock()
-// 	return c.conn.WriteMessage(websocket.BinaryMessage, b)
-// }
+func (s *webSocketServer) sendASRPartial(c *Client, segmentID, text string, seq int, stability float64) error {
+	return s.writeJSON(c, msgASR{
+		msgBase:   msgBase{1, "asr"},
+		SegmentID: segmentID,
+		Text:      text,
+		IsFinal:   false,
+		Seq:       seq,
+		Stability: stability,
+	})
+}
 
-// // Example helper you might call when AI agent returns text:
-// func (s *webSocketServer) sendASRPartial(c *Client, segmentID, text string, seq int, stability float64) error {
-// 	return s.writeJSON(c, msgASR{
-// 		msgBase:   msgBase{1, "asr"},
-// 		SegmentID: segmentID,
-// 		Text:      text,
-// 		IsFinal:   false,
-// 		Seq:       seq,
-// 		Stability: stability,
-// 	})
-// }
+func (s *webSocketServer) sendASRFinal(c *Client, segmentID, text string, seq int) error {
+	return s.writeJSON(c, msgASR{
+		msgBase:   msgBase{1, "asr"},
+		SegmentID: segmentID,
+		Text:      text,
+		IsFinal:   true,
+		Seq:       seq,
+	})
+}
 
-// func (s *webSocketServer) sendASRFinal(c *Client, segmentID, text string, seq int) error {
-// 	return s.writeJSON(c, msgASR{
-// 		msgBase:   msgBase{1, "asr"},
-// 		SegmentID: segmentID,
-// 		Text:      text,
-// 		IsFinal:   true,
-// 		Seq:       seq,
-// 	})
-// }
+func (s *webSocketServer) sendTTSEvents(c *Client, segmentID, ttsID string, start bool) error {
+	if start {
+		return s.writeJSON(c, msgTTSStart{msgBase{1, "tts_start"}, segmentID, ttsID, "OPUS_OGG"})
+	}
+	return s.writeJSON(c, msgTTSEnd{msgBase{1, "tts_end"}, segmentID, ttsID})
+}
 
-// func (s *webSocketServer) sendTTSEvents(c *Client, segmentID, ttsID string, start bool) error {
-// 	if start {
-// 		return s.writeJSON(c, msgTTSStart{msgBase{1, "tts_start"}, segmentID, ttsID, "OPUS_OGG"})
-// 	}
-// 	return s.writeJSON(c, msgTTSEnd{msgBase{1, "tts_end"}, segmentID, ttsID})
-// }
-
-// // Example error send
-// func (s *webSocketServer) sendError(c *Client, code, message string) error {
-// 	return s.writeJSON(c, msgError{msgBase{1, "error"}, code, message})
-// }
-
-// // Example guard
-// func require(b bool, code, msg string) error {
-// 	if !b {
-// 		return errors.New(code + ": " + msg)
-// 	}
-// 	return nil
-// }
+func (s *webSocketServer) sendError(c *Client, code, message string) error {
+	return s.writeJSON(c, msgError{msgBase{1, "error"}, code, message})
+}
