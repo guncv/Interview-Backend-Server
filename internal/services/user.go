@@ -46,7 +46,7 @@ type userService struct {
 	resetTokenRepo     repositories.ResetTokenRepository
 	redisClient        database.RedisClient
 	redisTaskPublisher queue.RedisTaskPublisher
-	password           utils.Password
+	password           utils.PasswordUtil
 	generator          utils.Generator
 }
 
@@ -60,7 +60,7 @@ func NewUserService(l *log.Logger,
 	resetTokenRepository repositories.ResetTokenRepository,
 	redisClient database.RedisClient,
 	redisTaskPublisher queue.RedisTaskPublisher,
-	password utils.Password,
+	password utils.PasswordUtil,
 	generator utils.Generator,
 ) UserService {
 	return &userService{
@@ -375,13 +375,15 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 	}
 
 	if !user.IsEmailVerified.Bool {
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error", "error", errors.New("this email is not verified"))
-		return nil, app_error.New(errors.New("this email or password is incorrect"), app_error.ErrCodeAuthInvalidPassword)
+		err := errors.New("this email or password is incorrect")
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error", "error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthEmailNotVerified)
 	}
 
-	if err = s.password.CheckPassword(ctx, req.Password, user.PasswordHash); err != nil {
+	if !s.password.IsPasswordValid(ctx, req.Password, user.PasswordHash) {
+		err := errors.New("this email or password is incorrect")
 		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Password is incorrect", err)
-		return nil, err
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidPassword)
 	}
 
 	accessTokenRequest := &entities.TokenRequest{
@@ -539,10 +541,10 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 		return err
 	}
 
-	if err = s.password.CheckPassword(ctx, req.NewPassword, user.PasswordHash); err == nil {
-		error := errors.New("password is the same as the old password")
-		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Password is the same as the old password", app_error.New(error, app_error.ErrCodeAuthPasswordSameAsOld))
-		return app_error.New(error, app_error.ErrCodeAuthPasswordSameAsOld)
+	if s.password.IsPasswordValid(ctx, req.NewPassword, user.PasswordHash) {
+		err := errors.New("password is the same as the old password")
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Password is the same as the old password", err)
+		return app_error.New(err, app_error.ErrCodeAuthPasswordSameAsOld)
 	}
 
 	newHashedPassword, err := s.password.HashPassword(ctx, req.NewPassword)

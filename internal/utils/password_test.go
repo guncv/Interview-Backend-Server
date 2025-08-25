@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -17,7 +16,8 @@ func TestNewPassword(t *testing.T) {
 	passwordUtil := NewPassword(logger)
 
 	assert.NotNil(t, passwordUtil)
-	assert.IsType(t, &bcryptPassword{}, passwordUtil)
+	// Check that it implements the PasswordUtil interface
+	var _ PasswordUtil = passwordUtil
 }
 
 func TestHashPassword(t *testing.T) {
@@ -116,7 +116,7 @@ func TestHashPasswordWithNilContext(t *testing.T) {
 	})
 }
 
-func TestCheckPassword(t *testing.T) {
+func TestIsPasswordValid(t *testing.T) {
 	logger := log.Initialize(constants.TestAppEnv)
 	passwordUtil := NewPassword(logger)
 	ctx := context.Background()
@@ -125,37 +125,37 @@ func TestCheckPassword(t *testing.T) {
 		name           string
 		password       string
 		hashedPassword string
-		expectError    bool
+		expectValid    bool
 	}{
 		{
 			name:           "Check correct password",
 			password:       "correctPassword123",
 			hashedPassword: "",
-			expectError:    false,
+			expectValid:    true,
 		},
 		{
 			name:           "Check incorrect password",
 			password:       "wrongPassword",
 			hashedPassword: "",
-			expectError:    true,
+			expectValid:    false,
 		},
 		{
 			name:           "Check password with special characters",
 			password:       "P@ssw0rd!@#$%^&*()",
 			hashedPassword: "",
-			expectError:    false,
+			expectValid:    true,
 		},
 		{
 			name:           "Check password with unicode characters",
 			password:       "password世界",
 			hashedPassword: "",
-			expectError:    false,
+			expectValid:    true,
 		},
 		{
 			name:           "Check empty password",
 			password:       "",
 			hashedPassword: "",
-			expectError:    false,
+			expectValid:    true,
 		},
 	}
 
@@ -168,13 +168,9 @@ func TestCheckPassword(t *testing.T) {
 				require.NoError(t, err)
 				require.NotEmpty(t, hashedPassword)
 
-				// Then check with wrong password - should return error
-				err = passwordUtil.CheckPassword(ctx, tt.password, hashedPassword)
-				assert.Error(t, err)
-				// Verify it's the correct error type
-				var appErr *app_error.AppError
-				assert.ErrorAs(t, err, &appErr)
-				assert.Equal(t, app_error.ErrCodeAuthInvalidPassword, appErr.Code)
+				// Then check with wrong password - should return false
+				isValid := passwordUtil.IsPasswordValid(ctx, tt.password, hashedPassword)
+				assert.False(t, isValid)
 			} else {
 				// First hash the password
 				hashedPassword, err := passwordUtil.HashPassword(ctx, tt.password)
@@ -182,38 +178,31 @@ func TestCheckPassword(t *testing.T) {
 				require.NotEmpty(t, hashedPassword)
 
 				// Then check the password
-				err = passwordUtil.CheckPassword(ctx, tt.password, hashedPassword)
+				isValid := passwordUtil.IsPasswordValid(ctx, tt.password, hashedPassword)
 
-				if tt.expectError {
-					assert.Error(t, err)
-					// Verify it's the correct error type
-					var appErr *app_error.AppError
-					assert.ErrorAs(t, err, &appErr)
-					assert.Equal(t, app_error.ErrCodeAuthInvalidPassword, appErr.Code)
+				if tt.expectValid {
+					assert.True(t, isValid)
 				} else {
-					assert.NoError(t, err)
+					assert.False(t, isValid)
 				}
 			}
 		})
 	}
 }
 
-func TestCheckPasswordWithIncorrectHash(t *testing.T) {
+func TestIsPasswordValidWithIncorrectHash(t *testing.T) {
 	logger := log.Initialize(constants.TestAppEnv)
 	passwordUtil := NewPassword(logger)
 	ctx := context.Background()
 
 	// Test with a completely wrong hash
 	wrongHash := "$2a$10$wronghashformat"
-	err := passwordUtil.CheckPassword(ctx, "testPassword", wrongHash)
+	isValid := passwordUtil.IsPasswordValid(ctx, "testPassword", wrongHash)
 
-	assert.Error(t, err)
-	var appErr *app_error.AppError
-	assert.ErrorAs(t, err, &appErr)
-	assert.Equal(t, app_error.ErrCodeAuthInvalidPassword, appErr.Code)
+	assert.False(t, isValid)
 }
 
-func TestCheckPasswordWithNilContext(t *testing.T) {
+func TestIsPasswordValidWithNilContext(t *testing.T) {
 	logger := log.Initialize(constants.TestAppEnv)
 	passwordUtil := NewPassword(logger)
 
@@ -223,13 +212,13 @@ func TestCheckPasswordWithNilContext(t *testing.T) {
 
 	// Should not panic with nil context
 	assert.NotPanics(t, func() {
-		err := passwordUtil.CheckPassword(context.Background(), "testPassword", hashedPassword)
-		assert.NoError(t, err)
+		isValid := passwordUtil.IsPasswordValid(context.Background(), "testPassword", hashedPassword)
+		assert.True(t, isValid)
 	})
 }
 
 func TestPasswordInterface(t *testing.T) {
-	var _ Password = (*bcryptPassword)(nil)
+	var _ PasswordUtil = (*passwordUtil)(nil)
 }
 
 func TestHashPasswordConsistency(t *testing.T) {
@@ -249,8 +238,8 @@ func TestHashPasswordConsistency(t *testing.T) {
 		hashes[hash] = true
 
 		// Each hash should be valid
-		err = passwordUtil.CheckPassword(ctx, password, hash)
-		assert.NoError(t, err)
+		isValid := passwordUtil.IsPasswordValid(ctx, password, hash)
+		assert.True(t, isValid)
 	}
 }
 
@@ -268,7 +257,7 @@ func TestHashPasswordPerformance(t *testing.T) {
 	}
 }
 
-func TestCheckPasswordPerformance(t *testing.T) {
+func TestIsPasswordValidPerformance(t *testing.T) {
 	logger := log.Initialize(constants.TestAppEnv)
 	passwordUtil := NewPassword(logger)
 	ctx := context.Background()
@@ -280,8 +269,8 @@ func TestCheckPasswordPerformance(t *testing.T) {
 
 	// Test performance with multiple checks
 	for i := 0; i < 10; i++ {
-		err := passwordUtil.CheckPassword(ctx, password, hash)
-		assert.NoError(t, err)
+		isValid := passwordUtil.IsPasswordValid(ctx, password, hash)
+		assert.True(t, isValid)
 	}
 }
 
@@ -304,11 +293,11 @@ func TestPasswordSecurity(t *testing.T) {
 	assert.NotEqual(t, hash1, hash2)
 
 	// Each hash should only work with its own password
-	err = passwordUtil.CheckPassword(ctx, password1, hash2)
-	assert.Error(t, err)
+	isValid1 := passwordUtil.IsPasswordValid(ctx, password1, hash2)
+	assert.False(t, isValid1)
 
-	err = passwordUtil.CheckPassword(ctx, password2, hash1)
-	assert.Error(t, err)
+	isValid2 := passwordUtil.IsPasswordValid(ctx, password2, hash1)
+	assert.False(t, isValid2)
 }
 
 func TestPasswordWithDifferentContexts(t *testing.T) {
@@ -333,8 +322,8 @@ func TestPasswordWithDifferentContexts(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, hash)
 
-				err = passwordUtil.CheckPassword(ctx, password, hash)
-				assert.NoError(t, err)
+				isValid := passwordUtil.IsPasswordValid(ctx, password, hash)
+				assert.True(t, isValid)
 			} else {
 				// Nil context should still work
 				assert.NoError(t, err)

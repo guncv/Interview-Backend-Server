@@ -9,22 +9,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Password interface {
+type PasswordUtil interface {
 	HashPassword(ctx context.Context, password string) (string, error)
-	CheckPassword(ctx context.Context, password string, hashedPassword string) error
+	IsPasswordValid(ctx context.Context, password string, hashedPassword string) bool
 }
 
-type bcryptPassword struct {
+type passwordUtil struct {
 	log *log.Logger
 }
 
-func NewPassword(log *log.Logger) Password {
-	return &bcryptPassword{
+func NewPassword(log *log.Logger) PasswordUtil {
+	return &passwordUtil{
 		log: log,
 	}
 }
 
-func (p *bcryptPassword) HashPassword(ctx context.Context, password string) (string, error) {
+func (p *passwordUtil) HashPassword(ctx context.Context, password string) (string, error) {
 	p.log.InfoWithID(ctx, "[Password: HashPassword] Hashing password")
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -35,7 +35,18 @@ func (p *bcryptPassword) HashPassword(ctx context.Context, password string) (str
 	return string(hashedPassword), nil
 }
 
-func (p *bcryptPassword) CheckPassword(ctx context.Context, password string, hashedPassword string) error {
+func (p *passwordUtil) IsPasswordValid(ctx context.Context, password string, hashedPassword string) bool {
+	p.log.InfoWithID(ctx, "[Password: IsPasswordValid] Checking password")
+
+	err := p.checkPassword(ctx, password, hashedPassword)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Password: IsPasswordValid] Error checking password", zap.Error(err))
+		return false
+	}
+	return true
+}
+
+func (p *passwordUtil) checkPassword(ctx context.Context, password string, hashedPassword string) error {
 	p.log.InfoWithID(ctx, "[Password: CheckPassword] Checking password")
 
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
