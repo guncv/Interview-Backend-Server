@@ -42,4 +42,14 @@ const (
 	// Session
 	ErrMessageSessionInvalidToken ErrorMessage = "The session token is invalid. Please try again."
 	ErrMessageSessionNotFound     ErrorMessage = "The session was not found. Please try again."
+
+	// WebSocket
+	ErrMessageWebSocketInvalidHello        ErrorMessage = "The hello message is invalid. Please try again."
+	ErrMessageWebSocketInvalidSegmentStart ErrorMessage = "The segment start message is invalid. Please try again."
+	ErrMessageWebSocketInvalidSegmentEnd   ErrorMessage = "The segment end message is invalid. Please try again."
+	ErrMessageWebSocketInvalidStopTTS      ErrorMessage = "The stop TTS message is invalid. Please try again."
+	ErrMessageWebSocketInvalidDBAck        ErrorMessage = "The DB ack message is invalid. Please try again."
+	ErrMessageWebSocketInvalidError        ErrorMessage = "The error message is invalid. Please try again."
+	ErrMessageWebSocketInvalidPing         ErrorMessage = "The ping message is invalid. Please try again."
+	ErrMessageWebSocketInvalidMessage      ErrorMessage = "The message is invalid. Please try again."
 )

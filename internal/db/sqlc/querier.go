@@ -11,7 +11,6 @@ import (
 )
 
 type Querier interface {
-	AbortInterviewSession(ctx context.Context, arg AbortInterviewSessionParams) (int64, error)
 	CheckInterviewSessionExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
@@ -38,9 +37,9 @@ type Querier interface {
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SetInterruptedTurn(ctx context.Context, arg SetInterruptedTurnParams) (int64, error)
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
-	StartInterviewSession(ctx context.Context, arg StartInterviewSessionParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateEvaluationCriterion(ctx context.Context, arg UpdateEvaluationCriterionParams) (int64, error)
+	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)

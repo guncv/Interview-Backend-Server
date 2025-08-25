@@ -11,16 +11,13 @@ import (
 )
 
 func RespondWithError(ctx *gin.Context, err error) {
-	// Check if it's already an AppError
 	appErr, ok := err.(*app_error.AppError)
 	if ok {
 		ctx.JSON(int(app_error.ErrorCodeToHttpCode[appErr.Code]), appErr)
 		return
 	}
 
-	// Check if it's a validation error
 	if validationErr, ok := err.(validator.ValidationErrors); ok {
-		// Convert validation errors to a proper error response
 		validationError := app_error.NewWithCustomMessage(
 			err,
 			app_error.ErrCodeAuthInvalidRequest,
@@ -30,7 +27,6 @@ func RespondWithError(ctx *gin.Context, err error) {
 		return
 	}
 
-	// Check if it's a single validation error
 	if strings.Contains(err.Error(), "Field validation for") {
 		validationError := app_error.NewWithCustomMessage(
 			err,
@@ -41,8 +37,6 @@ func RespondWithError(ctx *gin.Context, err error) {
 		return
 	}
 
-	// Default case - internal server error
-	// Convert error to a map to ensure proper JSON serialization
 	type errorResponseKey string
 	const errorKey errorResponseKey = "error"
 

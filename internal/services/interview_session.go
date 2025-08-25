@@ -26,7 +26,7 @@ import (
 type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
-	StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error
+	UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error
 }
 
 type interviewSessionService struct {
@@ -296,17 +296,16 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	return resp, nil
 }
 
-func (s *interviewSessionService) StartInterviewSession(ctx context.Context, req *entities.StartInterviewSessionReq) error {
-	s.log.InfoWithID(ctx, "[Service: StartInterviewSession] Called")
+func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error {
+	s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Called")
 
-	dbReq := &db.StartInterviewSessionParams{
-		ID:        uuid.MustParse(req.SessionID),
-		Status:    constants.StatusOnGoing,
-		StartedAt: sql.NullTime{Time: time.Now(), Valid: true},
+	dbReq := &db.UpdateInterviewSessionStatusParams{
+		ID:     uuid.MustParse(req.SessionID),
+		Status: req.Status,
 	}
 
-	if err := s.interviewSessionRepo.StartInterviewSession(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: StartInterviewSession] Error starting interview session", err)
+	if err := s.interviewSessionRepo.UpdateInterviewSessionStatus(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Error updating interview session status", err)
 		return err
 	}
 

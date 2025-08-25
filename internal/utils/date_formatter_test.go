@@ -18,7 +18,7 @@ func TestFormatToBangkokTime(t *testing.T) {
 		{
 			name:     "Format UTC time to Bangkok time",
 			input:    time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
-			expected: "15 January 2024 17:30PM", // UTC+7
+			expected: "15 January 2024 17:30PM",
 		},
 		{
 			name:     "Format Bangkok time to Bangkok time (no change)",
@@ -28,17 +28,17 @@ func TestFormatToBangkokTime(t *testing.T) {
 		{
 			name:     "Format New York time to Bangkok time",
 			input:    time.Date(2024, 1, 15, 5, 30, 0, 0, getNewYorkLocation()),
-			expected: "15 January 2024 17:30PM", // EST+12
+			expected: "15 January 2024 17:30PM",
 		},
 		{
 			name:     "Format London time to Bangkok time",
 			input:    time.Date(2024, 1, 15, 10, 30, 0, 0, getLondonLocation()),
-			expected: "15 January 2024 17:30PM", // GMT+7
+			expected: "15 January 2024 17:30PM",
 		},
 		{
 			name:     "Format Tokyo time to Bangkok time",
 			input:    time.Date(2024, 1, 15, 19, 30, 0, 0, getTokyoLocation()),
-			expected: "15 January 2024 17:30PM", // JST-2
+			expected: "15 January 2024 17:30PM",
 		},
 		{
 			name:     "Format midnight time",
@@ -105,7 +105,7 @@ func TestFormatToBangkokTimeFromUTC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := FormatToBangkokTimeFromUTC(tt.input)
+			result := FormatToBangkokTime(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -120,7 +120,7 @@ func TestFormatToBangkokTimeEdgeCases(t *testing.T) {
 		{
 			name:     "Format very old date",
 			input:    time.Date(1900, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "1 January 1900 18:42PM", // UTC+6:42 for Bangkok in 1900
+			expected: "1 January 1900 18:42PM",
 		},
 		{
 			name:     "Format very future date",
@@ -130,12 +130,12 @@ func TestFormatToBangkokTimeEdgeCases(t *testing.T) {
 		{
 			name:     "Format with zero time",
 			input:    time.Time{},
-			expected: "1 January 0001 06:42AM", // UTC+6:42 for Bangkok in year 1
+			expected: "1 January 0001 06:42AM",
 		},
 		{
 			name:     "Format with negative year (should handle gracefully)",
 			input:    time.Date(-100, 1, 1, 12, 0, 0, 0, time.UTC),
-			expected: "1 January -0100 18:42PM", // UTC+6:42 for Bangkok in -100
+			expected: "1 January -0100 18:42PM",
 		},
 	}
 
@@ -148,7 +148,6 @@ func TestFormatToBangkokTimeEdgeCases(t *testing.T) {
 }
 
 func TestFormatToBangkokTimeConsistency(t *testing.T) {
-	// Test that the same input always produces the same output
 	input := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	expected := "15 January 2024 17:30PM"
 
@@ -161,7 +160,6 @@ func TestFormatToBangkokTimeConsistency(t *testing.T) {
 func TestFormatToBangkokTimePerformance(t *testing.T) {
 	input := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
-	// Test performance with multiple calls
 	for i := 0; i < 10000; i++ {
 		_ = FormatToBangkokTime(input)
 	}
@@ -179,9 +177,8 @@ func TestFormatToBangkokTimeDifferentMonths(t *testing.T) {
 			input := time.Date(2024, month, 15, 12, 0, 0, 0, time.UTC)
 			result := FormatToBangkokTime(input)
 
-			// Verify the month is correctly formatted
 			assert.Contains(t, result, month.String())
-			assert.Contains(t, result, "19:00PM") // 12:00 UTC + 7 hours
+			assert.Contains(t, result, "19:00PM")
 		})
 	}
 }
@@ -192,17 +189,11 @@ func TestFormatToBangkokTimeDifferentHours(t *testing.T) {
 			input := time.Date(2024, 1, 15, hour, 0, 0, 0, time.UTC)
 			result := FormatToBangkokTime(input)
 
-			// Check if AM/PM is correct based on actual Bangkok time
-			// UTC 0-11 = Bangkok 7-18 (AM/PM depending on hour)
-			// UTC 12-16 = Bangkok 19-23 (PM)
-			// UTC 17-23 = Bangkok 0-6 (AM)
-			if hour >= 12 && hour <= 16 { // UTC 12-16 = Bangkok 19-23 (PM)
+			if hour >= 12 && hour <= 16 {
 				assert.Contains(t, result, "PM")
-			} else if hour >= 17 { // UTC 17-23 = Bangkok 0-6 (AM)
+			} else if hour >= 17 {
 				assert.Contains(t, result, "AM")
-			} else { // UTC 0-11 = Bangkok 7-18 (AM/PM depending on hour)
-				// For UTC 0-11, Bangkok time is 7-18
-				// 7-11 = AM, 12-18 = PM
+			} else {
 				bangkokHour := hour + 7
 				if bangkokHour >= 12 {
 					assert.Contains(t, result, "PM")
@@ -238,7 +229,7 @@ func TestFormatToUTCString(t *testing.T) {
 		{
 			name:     "Format with milliseconds",
 			input:    time.Date(2024, 1, 15, 10, 30, 45, 123456789, time.UTC),
-			expected: "2024-01-15T10:30:45Z", // Note: nanoseconds are truncated
+			expected: "2024-01-15T10:30:45Z",
 		},
 	}
 
@@ -250,7 +241,6 @@ func TestFormatToUTCString(t *testing.T) {
 	}
 }
 
-// Helper functions to get different timezone locations
 func getBangkokLocation() *time.Location {
 	loc, _ := time.LoadLocation(constants.BangkokTimezone)
 	if loc == nil {

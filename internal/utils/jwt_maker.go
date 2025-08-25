@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -56,57 +57,6 @@ func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (s
 		return "", app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 	return signedToken, nil
-}
-
-func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, claims jwt.Claims) error {
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
-			return nil, errors.New("invalid token method")
-		}
-		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
-	}
-
-	parser := jwt.Parser{
-		SkipClaimsValidation: true,
-	}
-
-	token, err := parser.ParseWithClaims(tokenString, claims, keyFunc)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token signature", "error", constants.ErrInvalidToken)
-		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if err := maker.validateClaims(ctx, token.Claims); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (maker *jwtToken) validateClaims(ctx context.Context, targetClaims jwt.Claims) error {
-	if payload, ok := targetClaims.(interface{ GetExpiredAt() time.Time }); ok {
-		expiredAt := payload.GetExpiredAt()
-		now := time.Now()
-
-		if now.After(expiredAt) {
-			graceWindow := maker.config.AuthConfig.TokenGraceWindow
-			if graceWindow == 0 {
-				graceWindow = time.Minute
-			}
-
-			if time.Since(expiredAt) <= graceWindow {
-				maker.logger.InfoWithID(ctx, "[Utils: JWT] Token expired but within grace window",
-					"expiredAt", expiredAt, "graceWindow", graceWindow)
-			} else {
-				maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token outside grace window",
-					"error", constants.ErrExpiredToken, "expiredAt", expiredAt, "graceWindow", graceWindow)
-				return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
-			}
-		}
-	}
-
-	return nil
 }
 
 func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error) {
@@ -167,6 +117,57 @@ func (maker *jwtToken) VerifyToken(ctx context.Context, token string) (*SignInTo
 	return payload, nil
 }
 
+func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, claims jwt.Claims) error {
+	keyFunc := func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
+			return nil, errors.New("invalid token method")
+		}
+		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
+	}
+
+	parser := jwt.Parser{
+		SkipClaimsValidation: true,
+	}
+
+	token, err := parser.ParseWithClaims(tokenString, claims, keyFunc)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token signature", "error", constants.ErrInvalidToken)
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if err := maker.validateClaims(ctx, token.Claims); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (maker *jwtToken) validateClaims(ctx context.Context, targetClaims jwt.Claims) error {
+	if payload, ok := targetClaims.(interface{ GetExpiredAt() time.Time }); ok {
+		expiredAt := payload.GetExpiredAt()
+		now := time.Now()
+
+		if now.After(expiredAt) {
+			graceWindow := maker.config.AuthConfig.TokenGraceWindow
+			if graceWindow == 0 {
+				graceWindow = time.Minute
+			}
+
+			if time.Since(expiredAt) <= graceWindow {
+				maker.logger.InfoWithID(ctx, "[Utils: JWT] Token expired but within grace window",
+					"expiredAt", expiredAt, "graceWindow", graceWindow)
+			} else {
+				maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token outside grace window",
+					"error", constants.ErrExpiredToken, "expiredAt", expiredAt, "graceWindow", graceWindow)
+				return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (maker *jwtToken) HashTokenSHA256(ctx context.Context, token string) string {
 	maker.logger.InfoWithID(ctx, "[Utils: JWT] Hashing token", "token", token)
 	h := sha256.New()
@@ -184,41 +185,18 @@ func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string,
 
 	refreshPayload, err := maker.VerifyToken(ctx, token)
 	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error verifying token", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+		return "", nil, err
 	}
 
-	session, err := maker.sessionRepository.GetSessionByID(ctx, refreshPayload.ID)
+	session, err := maker.checkSessionByID(ctx, refreshPayload)
 	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error getting session", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error checking session by id", "error", err)
+		return "", nil, err
 	}
 
-	if session.IsRevoked.Bool {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Session revoked", "error", constants.ErrInvalidToken)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if session.ID.String() != refreshPayload.ID.String() {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Incorrect session id", "error", constants.ErrInvalidToken)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if session.UserID.String() != refreshPayload.UserID {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Incorrect session user", "error", constants.ErrInvalidToken)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	refreshTokenHash := maker.HashTokenSHA256(ctx, token)
-
-	if session.RefreshTokenHash != refreshTokenHash {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Mismatch session token", "error", constants.ErrInvalidToken)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if time.Now().After(session.ExpiresAt.Time) {
-		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Session expired", "error", constants.ErrExpiredToken)
-		return "", nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
+	if err = maker.isRefreshTokenValidWithSession(ctx, token, session); err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error checking refresh token with session", "error", err)
+		return "", nil, err
 	}
 
 	createTokenreq := &entities.TokenRequest{
@@ -229,10 +207,54 @@ func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string,
 
 	accessToken, _, err := maker.CreateToken(ctx, createTokenreq)
 	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: RenewAccessToken] Error creating token", "error", err)
 		return "", nil, err
 	}
 
 	return accessToken, refreshPayload, nil
+}
+
+func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *SignInTokenPayload) (*db.Sessions, error) {
+
+	session, err := maker.sessionRepository.GetSessionByID(ctx, refreshPayload.ID)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: checkSessionByID] Error getting session", "error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.IsRevoked.Bool {
+		maker.logger.ErrorWithID(ctx, "[Utils: checkSessionByID] Session revoked", "error", constants.ErrInvalidToken)
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.ID.String() != refreshPayload.ID.String() {
+		maker.logger.ErrorWithID(ctx, "[Utils: checkSessionByID] Incorrect session id", "error", constants.ErrInvalidToken)
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if session.UserID.String() != refreshPayload.UserID {
+		maker.logger.ErrorWithID(ctx, "[Utils: checkSessionByID] Incorrect session user", "error", constants.ErrInvalidToken)
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	return &session, nil
+}
+
+func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token string, session *db.Sessions) error {
+	maker.logger.InfoWithID(ctx, "[Utils: isRefreshTokenValidWithSession] Checking refresh token with session")
+	refreshTokenHash := maker.HashTokenSHA256(ctx, token)
+
+	if session.RefreshTokenHash != refreshTokenHash {
+		maker.logger.ErrorWithID(ctx, "[Utils: isRefreshTokenValidWithSession] Mismatch session token", "error", constants.ErrInvalidToken)
+		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if time.Now().After(session.ExpiresAt.Time) {
+		maker.logger.ErrorWithID(ctx, "[Utils: isRefreshTokenValidWithSession] Session expired", "error", constants.ErrExpiredToken)
+		return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
+	}
+
+	return nil
 }
 
 func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {
@@ -258,7 +280,26 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
 	}
 
+	payload, err := maker.mapClaimsToVerifyEmailPayload(claims)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error mapping claims to verify email payload", "error", err)
+		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	payload.ExpiredAt = time.Now().Add(maker.config.AuthConfig.VerifyEmailTokenDuration)
+
+	newToken, err := maker.CreateJWTToken(ctx, payload)
+	if err != nil {
+		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
+		return "", nil, err
+	}
+
+	return newToken, payload, nil
+}
+
+func (maker *jwtToken) mapClaimsToVerifyEmailPayload(claims jwt.MapClaims) (*VerifyEmailTokenPayload, error) {
 	payload := &VerifyEmailTokenPayload{}
+
 	if idStr, ok := claims["id"].(string); ok {
 		if id, err := uuid.Parse(idStr); err == nil {
 			payload.ID = id
@@ -277,13 +318,5 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 		payload.ExpiredAt = time.Unix(int64(expiredAt), 0)
 	}
 
-	payload.ExpiredAt = time.Now().Add(maker.config.AuthConfig.VerifyEmailTokenDuration)
-
-	newToken, err := maker.CreateJWTToken(ctx, payload)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
-		return "", nil, err
-	}
-
-	return newToken, payload, nil
+	return payload, nil
 }

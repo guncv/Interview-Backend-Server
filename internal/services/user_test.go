@@ -99,7 +99,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.SignUpUserRequest
-		setup  func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher)
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher)
 		verify func(t *testing.T, got *entities.SignUpUserResponse, gotErr error)
 	}{
 		{
@@ -112,9 +112,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -178,9 +178,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -239,7 +239,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock CheckIsEmailExists returns existing verified user
@@ -264,9 +264,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 
 				// Mock CheckIsEmailExists returns sql.ErrNoRows
 				mockUserRepo.EXPECT().
@@ -296,9 +296,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 
 				// Mock user existence check returns no rows
@@ -339,9 +339,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 
@@ -393,9 +393,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -453,9 +453,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -519,9 +519,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -560,9 +560,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -601,9 +601,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -662,9 +662,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 
@@ -715,7 +715,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "Male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock user existence check fails with database error
@@ -741,9 +741,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "male",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -807,9 +807,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -868,9 +868,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -919,9 +919,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -975,9 +975,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -1036,9 +1036,9 @@ func TestUserService_SignUpUser(t *testing.T) {
 				Gender:      "female",
 				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockGenerator := new(utils.MockGenerator)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -2285,7 +2285,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.SignInUserByEmailAndPasswordRequest
-		setup  func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken)
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken)
 		verify func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error)
 	}{
 		{
@@ -2294,9 +2294,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock user existence check
@@ -2306,8 +2306,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "password123", mock.AnythingOfType("string")).
-					Return(nil)
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
 
 				// Mock JWT token creation for access token
 				mockJwtToken.EXPECT().
@@ -2348,7 +2348,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "nonexistent@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock user existence check returns no rows
@@ -2369,7 +2369,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "unverified@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock user existence check returns unverified user
@@ -2390,9 +2390,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "wrong_password",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
@@ -2401,8 +2401,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification fails
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "wrong_password", mock.AnythingOfType("string")).
-					Return(mockErr)
+					IsPasswordValid(ctx, "wrong_password", mock.AnythingOfType("string")).
+					Return(false)
 
 				return mockUserRepo, mockPassword, nil
 			},
@@ -2418,9 +2418,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock user existence check
@@ -2430,8 +2430,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "password123", mock.AnythingOfType("string")).
-					Return(nil)
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
 
 				// Mock JWT token creation for access token fails
 				mockJwtToken.EXPECT().
@@ -2454,9 +2454,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock user existence check
@@ -2466,8 +2466,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "password123", mock.AnythingOfType("string")).
-					Return(nil)
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
 
 				// Mock JWT token creation for access token
 				mockJwtToken.EXPECT().
@@ -2497,9 +2497,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock user existence check
@@ -2509,8 +2509,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "password123", mock.AnythingOfType("string")).
-					Return(nil)
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
 
 				// Mock JWT token creation for access token
 				mockJwtToken.EXPECT().
@@ -2549,9 +2549,9 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock user existence check
@@ -2561,8 +2561,8 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				// Mock password verification
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "password123", mock.AnythingOfType("string")).
-					Return(nil)
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
 
 				// Mock JWT token creation for access token
 				mockJwtToken.EXPECT().
@@ -2602,7 +2602,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock user existence check to fail early since context is invalid
@@ -2623,7 +2623,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "password123",
 			},
-			setup: func() (*repositories.MockUserRepository, *utils.MockPassword, *utils.MockJwtToken) {
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
 				mockUserRepo := new(repositories.MockUserRepository)
 
 				// Mock user existence check to fail early since context is invalid
@@ -3128,7 +3128,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.ResetUserPasswordRequest
-		setup  func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient)
+		setup  func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
@@ -3137,10 +3137,10 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3161,8 +3161,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -3191,10 +3191,10 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3224,8 +3224,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -3254,10 +3254,10 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3287,8 +3287,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -3317,7 +3317,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "used_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
@@ -3353,7 +3353,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "expired_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
@@ -3389,7 +3389,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
@@ -3422,9 +3422,9 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "samepassword",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3445,8 +3445,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (same as old password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "samepassword", "old_hash").
-					Return(nil)
+					IsPasswordValid(ctx, "samepassword", "old_hash").
+					Return(true)
 
 				return mockUserRepo, nil, mockPassword, mockJwtToken, mockRedisClient
 			},
@@ -3460,9 +3460,9 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3483,8 +3483,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing fails
 				mockPassword.EXPECT().
@@ -3504,9 +3504,9 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3527,8 +3527,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -3553,9 +3553,9 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockPassword := new(utils.MockPassword)
+				mockPassword := new(utils.MockPasswordUtil)
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -3576,8 +3576,8 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock password check (different from new password)
 				mockPassword.EXPECT().
-					CheckPassword(ctx, "newpassword123", "old_hash").
-					Return(mockErr)
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -3607,7 +3607,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
@@ -3640,7 +3640,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				Token:       "reset_token",
 				NewPassword: "newpassword123",
 			},
-			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPassword, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
 				mockJwtToken := new(utils.MockJwtToken)
 
 				// Mock JWT token hashing fails

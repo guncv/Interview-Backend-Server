@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -125,11 +124,17 @@ func TestSetRefreshTokenCookie(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			logger := log.Initialize(constants.TestAppEnv)
-			cfg := &config.Config{}
+			cfg := &config.Config{
+				AuthConfig: config.AuthConfig{
+					CookieDomain:         tt.domain,
+					CookieRejectHTTP:     tt.isRejectHTTP,
+					RefreshTokenDuration: tt.duration,
+				},
+			}
 			c, _ := gin.CreateTestContext(rr)
 
 			cookieUtil := NewCookies(cfg, logger)
-			cookieUtil.SetRefreshTokenCookie(c, tt.token, tt.duration, tt.domain, tt.isRejectHTTP)
+			cookieUtil.SetRefreshTokenCookie(c, tt.token)
 
 			cookies := rr.Result().Cookies()
 			require.Len(t, cookies, 1)
@@ -143,104 +148,6 @@ func TestSetRefreshTokenCookie(t *testing.T) {
 			assert.Equal(t, tt.expectedCookie.SameSite, actualCookie.SameSite)
 			assert.Equal(t, tt.expectedCookie.Domain, actualCookie.Domain)
 			assert.WithinDuration(t, tt.expectedCookie.Expires, actualCookie.Expires, time.Second)
-		})
-	}
-}
-
-func TestSetCookie(t *testing.T) {
-	tests := []struct {
-		name         string
-		serviceResp  *entities.SignInUserByEmailAndPasswordResponse
-		config       *config.Config
-		expectedResp *entities.SignInUserByEmailAndPasswordResponse
-		expectError  bool
-	}{
-		{
-			name: "Set Cookie successfully",
-			serviceResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "access_token_value",
-				RefreshToken: "refresh_token_value",
-			},
-			config: &config.Config{
-				AuthConfig: config.AuthConfig{
-					RefreshTokenDuration: time.Hour * 24,
-					CookieDomain:         "example.com",
-					CookieRejectHTTP:     false,
-				},
-			},
-			expectedResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "access_token_value",
-				RefreshToken: "refresh_token_value",
-			},
-			expectError: false,
-		},
-		{
-			name: "Set Cookie with temporary password",
-			serviceResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "temp_access_token",
-				RefreshToken: "temp_refresh_token",
-			},
-			config: &config.Config{
-				AuthConfig: config.AuthConfig{
-					RefreshTokenDuration: time.Hour * 12,
-					CookieDomain:         "localhost",
-					CookieRejectHTTP:     true,
-				},
-			},
-			expectedResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "temp_access_token",
-				RefreshToken: "temp_refresh_token",
-			},
-			expectError: false,
-		},
-		{
-			name: "Set Cookie with empty refresh token",
-			serviceResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "access_token",
-				RefreshToken: "",
-			},
-			config: &config.Config{
-				AuthConfig: config.AuthConfig{
-					RefreshTokenDuration: time.Hour * 24,
-					CookieDomain:         "example.com",
-					CookieRejectHTTP:     false,
-				},
-			},
-			expectedResp: &entities.SignInUserByEmailAndPasswordResponse{
-				AccessToken:  "access_token",
-				RefreshToken: "",
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-			logger := log.Initialize(constants.TestAppEnv)
-			c, _ := gin.CreateTestContext(rr)
-
-			cookieUtil := NewCookies(tt.config, logger)
-			err := cookieUtil.SetCookie(c, tt.serviceResp)
-
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-
-				// Verify that refresh token cookie was set
-				cookies := rr.Result().Cookies()
-				require.Len(t, cookies, 1)
-
-				actualCookie := cookies[0]
-				assert.Equal(t, string(constants.RefreshTokenCookieKey), actualCookie.Name)
-				assert.Equal(t, tt.serviceResp.RefreshToken, actualCookie.Value)
-				assert.Equal(t, "/", actualCookie.Path)
-				assert.True(t, actualCookie.HttpOnly)
-				assert.Equal(t, !tt.config.AuthConfig.CookieRejectHTTP, actualCookie.Secure)
-				assert.Equal(t, http.SameSiteLaxMode, actualCookie.SameSite)
-				assert.Equal(t, tt.config.AuthConfig.CookieDomain, actualCookie.Domain)
-			}
 		})
 	}
 }
@@ -346,7 +253,7 @@ func TestSetRefreshTokenCookieWithNilContext(t *testing.T) {
 
 	// This should panic with nil context
 	assert.Panics(t, func() {
-		cookieUtil.SetRefreshTokenCookie(nil, "token", time.Hour, "domain", false)
+		cookieUtil.SetRefreshTokenCookie(nil, "token")
 	})
 }
 

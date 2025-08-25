@@ -20,16 +20,11 @@ SET status = $2,
     summary_md = $5
 WHERE id = $1;
 
--- name: AbortInterviewSession :execrows
+-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
 SET status = $2,
-    ended_at = $3
-WHERE id = $1;
-
--- name: StartInterviewSession :execrows
-UPDATE interview_sessions
-SET status = $2,
-    started_at = $3
+    started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
 WHERE id = $1;
 
 -- name: CheckInterviewSessionExists :one
