@@ -247,8 +247,7 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 					}, nil)
 
 				mockCookies.EXPECT().
-					SetCookie(mock.Anything, mock.Anything).
-					Return(nil)
+					SetRefreshTokenCookie(mock.Anything, mock.Anything)
 
 				return mockUserService, mockValidator, mockConfig, mockCookies
 			},
@@ -337,8 +336,7 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 					}, nil)
 
 				mockCookies.EXPECT().
-					SetCookie(mock.Anything, mock.Anything).
-					Return(errors.New("cookie error"))
+					SetRefreshTokenCookie(mock.Anything, mock.Anything)
 
 				return mockUserService, mockValidator, mockConfig, mockCookies
 			},

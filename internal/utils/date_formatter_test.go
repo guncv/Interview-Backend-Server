@@ -105,7 +105,7 @@ func TestFormatToBangkokTimeFromUTC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := FormatToBangkokTimeFromUTC(tt.input)
+			result := FormatToBangkokTime(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

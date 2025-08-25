@@ -187,11 +187,7 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 		return
 	}
 
-	if err = h.cookies.SetCookie(c, res); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error setting cookie", err)
-		utils.RespondWithError(c, err)
-		return
-	}
+	h.cookies.SetRefreshTokenCookie(c, res.RefreshToken)
 
 	c.JSON(http.StatusOK, res)
 }

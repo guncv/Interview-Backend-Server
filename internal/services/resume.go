@@ -192,8 +192,8 @@ Finalize:
 			FileName:  defaultResume.FileName,
 			MimeType:  defaultResume.MimeType,
 			ByteSize:  defaultResume.ByteSize,
-			CreatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.CreatedAt),
-			UpdatedAt: utils.FormatToBangkokTimeFromUTC(defaultResume.UpdatedAt),
+			CreatedAt: utils.FormatToBangkokTime(defaultResume.CreatedAt),
+			UpdatedAt: utils.FormatToBangkokTime(defaultResume.UpdatedAt),
 		}
 	} else {
 		defaultResumeResp = &entities.GetListResumeByIdResponse{
@@ -257,8 +257,8 @@ Finalize:
 					FileName:  resume.FileName,
 					MimeType:  resume.MimeType,
 					ByteSize:  resume.ByteSize,
-					CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
-					UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
+					CreatedAt: utils.FormatToBangkokTime(resume.CreatedAt),
+					UpdatedAt: utils.FormatToBangkokTime(resume.UpdatedAt),
 				})
 			}
 		}
@@ -345,8 +345,8 @@ func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResu
 		MimeType:  resume.MimeType,
 		ByteSize:  resume.ByteSize,
 		FileUrl:   fileUrl,
-		CreatedAt: utils.FormatToBangkokTimeFromUTC(resume.CreatedAt),
-		UpdatedAt: utils.FormatToBangkokTimeFromUTC(resume.UpdatedAt),
+		CreatedAt: utils.FormatToBangkokTime(resume.CreatedAt),
+		UpdatedAt: utils.FormatToBangkokTime(resume.UpdatedAt),
 	}
 
 	return &resp, nil
