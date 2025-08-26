@@ -19,15 +19,16 @@ const (
 	WebSocketMessageTypeSegmentStart = "segment_start"
 	WebSocketMessageTypeSegmentEnd   = "segment_end"
 	WebSocketBineryTypeAudioChunk    = "audio_chunk"
+	WebSocketMessageTypeError        = "error"
 
-	WebSocketMessageTypeASR        = "asr"
-	WebSocketMessageTypeEvaluation = "evaluation"
-	WebSocketMessageTypeTTSStart   = "tts_start"
-	WebSocketMessageTypeTTSEnd     = "tts_end"
-	WebSocketMessageTypeError      = "error"
+	// Additional message types for Python server compatibility
+	WebSocketMessageTypeConnectionEstablished = "connection_established"
+	WebSocketMessageTypeEcho                  = "echo"
+	WebSocketMessageTypePing                  = "ping"
+	WebSocketMessageTypePong                  = "pong"
 
-	WebSocketPingInterval = 10 * time.Second
+	WebSocketPingInterval = 30 * time.Second
 	WebSocketPingDuration = 5 * time.Second
-	WebSocketReadTimeout  = 30 * time.Second
-	WebSocketPongTimeout  = 15 * time.Second
+	WebSocketReadTimeout  = 60 * time.Second
+	WebSocketPongTimeout  = 10 * time.Second
 )

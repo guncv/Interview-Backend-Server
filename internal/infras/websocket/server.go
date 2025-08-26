@@ -28,6 +28,7 @@ type Client struct {
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
+	clientManager    *ClientManager
 }
 
 type WebSocketServerInterface interface {
@@ -46,7 +47,6 @@ type webSocketServer struct {
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
 	interviewSessionRepo    repositories.InterviewSessionRepository
-	webSocketClient         WebSocketClient
 	aiAgentConnected        bool
 }
 
@@ -56,7 +56,6 @@ func NewWebSocketServer(
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
 	interviewSessionRepo repositories.InterviewSessionRepository,
-	webSocketClient WebSocketClient,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -74,18 +73,12 @@ func NewWebSocketServer(
 		authContext:             authContext,
 		interviewSessionService: interviewSessionService,
 		interviewSessionRepo:    interviewSessionRepo,
-		webSocketClient:         webSocketClient,
 		aiAgentConnected:        false,
 	}
 }
 
 func (s *webSocketServer) Start(ctx context.Context) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: Start] Starting WebSocket server")
-
-	if err := s.webSocketClient.Start(ctx); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: Start] Failed to connect to AI agent", err)
-		return err
-	}
 
 	s.aiAgentConnected = true
 
@@ -103,10 +96,6 @@ func (s *webSocketServer) Close() error {
 	s.sessions = make(map[string]*Client)
 	s.userSessions = make(map[string]map[string]bool)
 	s.mu.Unlock()
-
-	if s.webSocketClient != nil {
-		_ = s.webSocketClient.Close()
-	}
 
 	s.aiAgentConnected = false
 	return nil
@@ -153,12 +142,15 @@ func (s *webSocketServer) HandleConnection(
 		return err
 	}
 
+	clientManager := NewClientManager()
+
 	client := &Client{
-		conn:         conn,
-		userID:       sessionPayload.UserID,
-		sessionID:    sessionPayload.SessionID,
-		lastPongTime: time.Now(),
-		pongReceived: make(chan struct{}, 1),
+		conn:          conn,
+		userID:        sessionPayload.UserID,
+		sessionID:     sessionPayload.SessionID,
+		lastPongTime:  time.Now(),
+		pongReceived:  make(chan struct{}, 1),
+		clientManager: clientManager,
 	}
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
@@ -194,14 +186,6 @@ func (s *webSocketServer) HandleConnection(
 		return err
 	}
 
-	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SendSessionInfo(ctx, client.sessionID, client.userID); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error sending session info to AI agent", err)
-			s.disconnect(client)
-			return err
-		}
-	}
-
 	_ = s.writeJSON(client, map[string]any{
 		"v": 1, "type": "connection_established", "session_id": client.sessionID,
 	})
@@ -235,16 +219,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 		switch mt {
 		case websocket.TextMessage:
-
-			var base struct {
-				V    int    `json:"v"`
+			var m struct {
 				Type string `json:"type"`
 			}
-			if json.Unmarshal(payload, &base) != nil {
+			if json.Unmarshal(payload, &m) != nil {
 				continue
 			}
 
-			switch base.Type {
+			switch m.Type {
 
 			case constants.WebSocketMessageTypeSegmentStart:
 				s.sendMessageTypeSegmentStart(ctx, c, payload)
@@ -269,6 +251,8 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 }
 
 func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Called")
+
 	if len(payload) < 4 {
 		s.log.ErrorWithID(ctx, "Invalid frame: too short")
 		s.disconnect(client)
@@ -323,13 +307,7 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 		return
 	}
 
-	audioData := payload[4+headerLength:]
-
-	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SendAudio(ctx, header.SegmentID, audioData); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding audio chunk to AI agent", err)
-		}
-	}
+	// audioData := payload[4+headerLength:]
 }
 
 func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
@@ -358,16 +336,11 @@ func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, clien
 
 	client.currentSegmentID = m.SegmentID
 
-	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, 16000, "OPUS_OGG", 1); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment start to AI agent", err)
-		}
-	}
-
 }
 
 func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Called")
+
 	var m msgSegmentEnd
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
 		_ = s.writeJSON(client, msgError{
@@ -397,17 +370,12 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 		return
 	}
 
-	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SegmentEnd(ctx, m.SegmentID); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment end to AI agent", err)
-		}
-	}
-
 	client.currentSegmentID = ""
 }
 
 func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
+
 	_ = s.writeJSON(client, msgError{
 		Type:    "error",
 		Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
