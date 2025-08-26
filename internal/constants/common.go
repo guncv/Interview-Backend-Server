@@ -1,7 +1,6 @@
 package constants
 
 import (
-	"errors"
 	"net/http"
 	"time"
 )
@@ -15,84 +14,9 @@ const (
 	ClientIPKey  ContextKey = "client-ip"
 )
 
-// User Role Constants
-const (
-	UserRoleUser  UserRole = "user"
-	UserRoleAdmin UserRole = "admin"
-)
-
-// Publish Constants
-const (
-	CanPublish      = true
-	CannotPublish   = false
-	CanSubscribe    = true
-	CannotSubscribe = false
-)
-
-// Auth Constants
+// Token Constants
 var (
-	AuthorizationHeaderKey  ContextKey = "authorization"
-	AuthorizationTypeBearer ContextKey = "bearer"
-	AuthorizationPayloadKey ContextKey = "authorization_payload"
-	RefreshTokenCookieKey   ContextKey = "refresh_token"
-	NewAccessTokenKey       ContextKey = "new_access_token"
-	XAccessTokenHeaderKey   ContextKey = "X-Access-Token"
-	AuthContextKey          ContextKey = "auth_context"
-	RoleKey                 ContextKey = "x-active-role"
-)
-
-// Error Response Messages
-var (
-	ErrCategoryIDRequired           = errors.New("category id is required")
-	ErrExpiredToken                 = errors.New("token has expired")
-	ErrInvalidToken                 = errors.New("token is invalid")
-	ErrInvalidRole                  = errors.New("invalid role")
-	ErrCategoryNotFound             = errors.New("category not found")
-	ErrCourseNotFound               = errors.New("course not found")
-	ErrCourseAlreadyExists          = errors.New("course already exists")
-	ErrOrganizationNotFound         = errors.New("organization not found")
-	ErrCourseSectionNotFound        = errors.New("course section not found")
-	ErrCourseSectionAlreadyExists   = errors.New("course section already exists")
-	ErrCourseSectionInvalidRequest  = errors.New("course section invalid request")
-	ErrSectionContentNotFound       = errors.New("section content not found")
-	ErrSectionContentAlreadyExists  = errors.New("section content already exists")
-	ErrSectionContentInvalidRequest = errors.New("section content invalid request")
-)
-
-// Redis Prefix Constants
-const (
-	RedisPrefixVerifyEmail        = "auth:verify_email:code:"
-	RedisAttemptPrefixVerifyEmail = "auth:verify_email:attempt:"
-	RedisPrefixDefaultResume      = "resume:default"
-
-	MaxAttemptVerifyEmail = 3
-	RedisTTLDefault       = 1 * time.Hour
-)
-
-// Queue Constants
-var (
-	TaskSendResetPasswordEmail = "task:send_reset_password_email"
-	TaskSendVerifyEmail        = "task:send_verify_email"
-	TaskDeleteFile             = "task:delete_file"
-	TaskSetRedis               = "task:set_redis"
-	TaskDeleteRedis            = "task:delete_redis"
-	TaskDeleteJobRequirement   = "task:delete_job_requirement"
-
-	QueueCritical = "critical"
-	QueueDefault  = "default"
-	MaxRetry      = 3
-
-	CriticalQueueConcurrency = 10
-	DefaultQueueConcurrency  = 5
-	DefaultConcurrency       = 10
-)
-
-// Email Constants
-var (
-	OptionResetPasswordEmail = "option_reset_password_email"
-
-	SubjectResetPassword = "Reset your password"
-	SubjectVerifyEmail   = "Verify your email"
+	TokenGraceWindow = 1 * time.Minute
 )
 
 // Test Env
@@ -151,25 +75,4 @@ var (
 		"application/pdf",
 	}
 	ResumeMaxFileSize = 5 * 1024 * 1024 // 5MB
-)
-
-// Interview Session Constants
-const (
-	StatusPending   = "pending"
-	StatusOnGoing   = "on_going"
-	StatusCompleted = "completed"
-	StatusAborted   = "aborted"
-	StatusCancelled = "cancelled"
-	StatusTimedOut  = "timed_out"
-
-	ModalityVoiceChat = "voice_chat"
-
-	WebSocketMessageTypeHello        = "hello"
-	WebSocketMessageTypeSegmentStart = "segment_start"
-	WebSocketMessageTypeSegmentEnd   = "segment_end"
-	WebSocketMessageTypeStopTTS      = "stop_tts"
-	WebSocketMessageTypeError        = "error"
-
-	WebSocketPingInterval = 30 * time.Second
-	WebSocketReadTimeout  = 60 * time.Second
 )

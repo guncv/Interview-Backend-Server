@@ -101,19 +101,19 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
-SET status = $2,
+SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
     ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
 WHERE id = $1
 `
 
 type UpdateInterviewSessionStatusParams struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
+	ID      uuid.UUID `json:"id"`
+	Column2 string    `json:"column_2"`
 }
 
 func (q *Queries) UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Status)
+	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Column2)
 	if err != nil {
 		return 0, err
 	}

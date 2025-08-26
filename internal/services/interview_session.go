@@ -300,8 +300,8 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 	s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Called")
 
 	dbReq := &db.UpdateInterviewSessionStatusParams{
-		ID:     uuid.MustParse(req.SessionID),
-		Status: req.Status,
+		ID:      uuid.MustParse(req.SessionID),
+		Column2: req.Status,
 	}
 
 	if err := s.interviewSessionRepo.UpdateInterviewSessionStatus(ctx, dbReq); err != nil {

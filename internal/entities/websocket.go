@@ -2,6 +2,7 @@ package entities
 
 type OpenWsConnectionRequest struct {
 	SessionToken string `json:"session_token" validate:"required,uuid"`
+	UserID       string `json:"user_id"`
 }
 
 type RedisSessionToken struct {

@@ -22,7 +22,7 @@ WHERE id = $1;
 
 -- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
-SET status = $2,
+SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
     ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
 WHERE id = $1;

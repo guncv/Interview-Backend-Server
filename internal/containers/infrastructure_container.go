@@ -122,4 +122,8 @@ func (c *Container) InfrastructureProvider() {
 	if err := c.Container.Provide(ws.NewWebSocketServer); err != nil {
 		c.Error = err
 	}
+
+	if err := c.Container.Provide(ws.NewWebSocketClient); err != nil {
+		c.Error = err
+	}
 }
