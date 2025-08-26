@@ -3,7 +3,6 @@ package websocket
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -20,83 +19,6 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
 
-type msgBase struct {
-	V    int    `json:"v"`
-	Type string `json:"type"`
-}
-
-type msgHello struct {
-	msgBase
-	SessionID string `json:"session_id"`
-}
-
-type msgSegmentStart struct {
-	msgBase
-	SegmentID  string `json:"segment_id"`
-	SampleRate int    `json:"sample_rate"`
-	Encoding   string `json:"encoding"`
-	Channels   int    `json:"channels"`
-	StartedAt  int64  `json:"started_at_ms,omitempty"`
-}
-
-type msgSegmentEnd struct {
-	msgBase
-	SegmentID string `json:"segment_id"`
-	EndedAt   int64  `json:"ended_at_ms,omitempty"`
-}
-
-type msgStopTTS struct {
-	msgBase
-	SegmentID string `json:"segment_id"`
-}
-
-type ConversationTurn struct {
-	SessionID  string    `json:"session_id"`
-	SegmentID  string    `json:"segment_id"`
-	TurnType   string    `json:"turn_type"` // "user_audio", "asr_result", "tts_start", "tts_end"
-	Content    string    `json:"content,omitempty"`
-	TTSID      string    `json:"tts_id,omitempty"`
-	Encoding   string    `json:"encoding,omitempty"`
-	SampleRate int       `json:"sample_rate,omitempty"`
-	Channels   int       `json:"channels,omitempty"`
-	StartedAt  time.Time `json:"started_at"`
-	EndedAt    time.Time `json:"ended_at,omitempty"`
-}
-
-type msgASR struct {
-	msgBase
-	SegmentID string  `json:"segment_id"`
-	Text      string  `json:"text"`
-	IsFinal   bool    `json:"is_final"`
-	Seq       int     `json:"seq,omitempty"`
-	Stability float64 `json:"stability,omitempty"`
-}
-
-type msgTTSStart struct {
-	msgBase
-	SegmentID string `json:"segment_id"`
-	TTSID     string `json:"tts_id"`
-	Encoding  string `json:"encoding"` // "OPUS_OGG" | "OPUS_WEBM" | "PCM16"
-}
-
-type msgTTSEnd struct {
-	msgBase
-	SegmentID string `json:"segment_id"`
-	TTSID     string `json:"tts_id"`
-}
-
-type msgDBAck struct {
-	msgBase
-	TurnID string   `json:"turn_id"`
-	Saved  []string `json:"saved"`
-}
-
-type msgError struct {
-	msgBase
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 type Client struct {
 	conn             *websocket.Conn
 	mu               sync.Mutex
@@ -106,7 +28,7 @@ type Client struct {
 }
 
 type WebSocketServerInterface interface {
-	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error
+	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error
 	Start(ctx context.Context) error
 	Close() error
 }
@@ -186,33 +108,10 @@ func (s *webSocketServer) Close() error {
 	return nil
 }
 
-func isTimeoutErr(err error) bool {
-	if ne, ok := err.(net.Error); ok && ne.Timeout() {
-		return true
-	}
-	if ce, ok := err.(*websocket.CloseError); ok {
-		return ce.Code == websocket.CloseAbnormalClosure
-	}
-	return false
-}
-
-func isNormalClose(err error) bool {
-	if ce, ok := err.(*websocket.CloseError); ok {
-		return ce.Code == websocket.CloseNormalClosure || ce.Code == websocket.CloseGoingAway
-	}
-	return false
-}
-
-func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
+func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
 
-	authCtx, err := s.authContext.GetAuthContext(ctx)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting auth context", err)
-		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
-	}
-
-	redisSessionToken, err := s.redisClient.Get(ctx, sessionToken.SessionToken)
+	redisSessionToken, err := s.redisClient.Get(ctx, payloadReq.SessionToken)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
 		return err
@@ -224,7 +123,7 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 		return err
 	}
 
-	if sessionPayload.UserID != authCtx.Payload.UserID {
+	if sessionPayload.UserID != payloadReq.UserID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
 		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
 	}
@@ -321,106 +220,132 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			switch base.Type {
 
 			case constants.WebSocketMessageTypeHello:
-				var m msgHello
-				if json.Unmarshal(payload, &m) != nil || m.SessionID == "" {
-					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidHello), app_error.ErrCodeWebSocketInvalidHello.Message()})
-					continue
-				}
-
-				c.sessionID = m.SessionID
-				_ = s.writeJSON(c, map[string]any{"v": 1, "type": "hello", "session_id": c.sessionID})
-
-				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-					if err := s.webSocketClient.SendMessage(ctx, "hello", map[string]interface{}{
-						"session_id": c.sessionID,
-					}); err != nil {
-						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error sending hello to AI agent", err)
-					}
-				}
+				s.sendMessageTypeHello(ctx, c, payload)
+				continue
 
 			case constants.WebSocketMessageTypeSegmentStart:
-				var m msgSegmentStart
-				if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentStart), app_error.ErrCodeWebSocketInvalidSegmentStart.Message()})
-					continue
-				}
-				c.currentSegmentID = m.SegmentID
-
-				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-					if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
-						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment start to AI agent", err)
-					}
-				}
-
-				s.storeConversationTurn(ctx, c, &ConversationTurn{
-					SessionID:  c.sessionID,
-					SegmentID:  m.SegmentID,
-					TurnType:   "user_audio",
-					SampleRate: m.SampleRate,
-					Encoding:   m.Encoding,
-					Channels:   m.Channels,
-					StartedAt:  time.Now(),
-				})
+				s.sendMessageTypeSegmentStart(ctx, c, payload)
+				continue
 
 			case constants.WebSocketMessageTypeSegmentEnd:
-				var m msgSegmentEnd
-				if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
-					continue
-				}
-				if c.currentSegmentID != m.SegmentID {
-					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
-					continue
-				}
-
-				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-					if err := s.webSocketClient.SegmentEnd(ctx, m.SegmentID); err != nil {
-						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment end to AI agent", err)
-					}
-				}
-
-				s.updateConversationTurnEndTime(ctx, m.SegmentID, time.Now())
-
-				c.currentSegmentID = ""
-
-			case constants.WebSocketMessageTypeStopTTS:
-				var m msgStopTTS
-				if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-					_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidStopTTS), app_error.ErrCodeWebSocketInvalidStopTTS.Message()})
-					continue
-				}
-
-				if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-					if err := s.webSocketClient.StopTTS(ctx, m.SegmentID); err != nil {
-						s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding stop TTS to AI agent", err)
-					}
-				}
-
-				c.currentSegmentID = ""
+				s.sendMessageTypeSegmentEnd(ctx, c, payload)
+				continue
 
 			default:
-				_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidMessage), app_error.ErrCodeWebSocketInvalidMessage.Message()})
-				_ = s.writeJSON(c, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
-			}
-
-		case websocket.BinaryMessage:
-			if c.currentSegmentID == "" {
-				_ = s.writeJSON(c, msgError{msgBase{1, "error"}, "NO_ACTIVE_SEGMENT", "binary audio with no active segment"})
+				s.sendMessageTypeError(ctx, c, payload)
 				continue
 			}
 
-			if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-				if err := s.webSocketClient.SendAudio(ctx, c.currentSegmentID, payload); err != nil {
-					s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding audio to AI agent", err)
-				}
+		case websocket.BinaryMessage:
+			var base struct {
+				V    int    `json:"v"`
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(payload, &base) != nil {
+				continue
 			}
 
-			// TODO: Store audio in S3 or local storage
-			// TODO: Update conversation turn with audio data
+			switch base.Type {
+			case constants.WebSocketBineryTypeAudioChunk:
+				s.sendBinaryMessageTypeAudioChunk(ctx, c, payload)
+				continue
+
+			default:
+				s.sendMessageTypeError(ctx, c, payload)
+				continue
+			}
+
 		default:
 			// ignore other frame types
 		}
 	}
+}
+
+func (s *webSocketServer) sendMessageTypeHello(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeHello] Called")
+	var m msgHello
+	if json.Unmarshal(payload, &m) != nil || m.SessionID == "" {
+		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidHello), app_error.ErrCodeWebSocketInvalidHello.Message()})
+		return
+	}
+
+	client.sessionID = m.SessionID
+	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "hello", "session_id": client.sessionID})
+
+	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+		if err := s.webSocketClient.SendMessage(ctx, "hello", map[string]interface{}{
+			"session_id": client.sessionID,
+		}); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error sending hello to AI agent", err)
+		}
+	}
+}
+
+func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Called")
+	var m msgSegmentStart
+	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
+		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentStart), app_error.ErrCodeWebSocketInvalidSegmentStart.Message()})
+		return
+	}
+	client.currentSegmentID = m.SegmentID
+
+	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+		if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment start to AI agent", err)
+		}
+	}
+
+	s.storeConversationTurn(ctx, client, &ConversationTurn{
+		SessionID:  client.sessionID,
+		SegmentID:  m.SegmentID,
+		TurnType:   "user_audio",
+		SampleRate: m.SampleRate,
+		Encoding:   m.Encoding,
+		Channels:   m.Channels,
+		StartedAt:  time.Now(),
+	})
+}
+
+func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Called")
+	var m msgSegmentEnd
+	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
+		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
+		return
+	}
+	if client.currentSegmentID != m.SegmentID {
+		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
+		return
+	}
+
+	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
+		if err := s.webSocketClient.SegmentEnd(ctx, m.SegmentID); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment end to AI agent", err)
+		}
+	}
+
+	s.updateConversationTurnEndTime(ctx, m.SegmentID, time.Now())
+
+	client.currentSegmentID = ""
+}
+
+func (s *webSocketServer) sendBinaryMessageTypeAudioChunk(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendBinaryMessageTypeAudioChunk] Called")
+	// var base struct {
+	// 	V    int    `json:"v"`
+	// 	Type string `json:"type"`
+	// }
+	// if json.Unmarshal(payload, &base) != nil {
+	// 	_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidAudioChunk), app_error.ErrCodeWebSocketInvalidAudioChunk.Message()})
+	// 	return
+	// }
+}
+
+func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
+	_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidMessage), app_error.ErrCodeWebSocketInvalidMessage.Message()})
+	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
 }
 
 func (s *webSocketServer) storeConversationTurn(ctx context.Context, client *Client, turn *ConversationTurn) {
@@ -475,36 +400,4 @@ func (s *webSocketServer) writeJSON(c *Client, v any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.conn.WriteJSON(v)
-}
-
-func (s *webSocketServer) sendASRPartial(c *Client, segmentID, text string, seq int, stability float64) error {
-	return s.writeJSON(c, msgASR{
-		msgBase:   msgBase{1, "asr"},
-		SegmentID: segmentID,
-		Text:      text,
-		IsFinal:   false,
-		Seq:       seq,
-		Stability: stability,
-	})
-}
-
-func (s *webSocketServer) sendASRFinal(c *Client, segmentID, text string, seq int) error {
-	return s.writeJSON(c, msgASR{
-		msgBase:   msgBase{1, "asr"},
-		SegmentID: segmentID,
-		Text:      text,
-		IsFinal:   true,
-		Seq:       seq,
-	})
-}
-
-func (s *webSocketServer) sendTTSEvents(c *Client, segmentID, ttsID string, start bool) error {
-	if start {
-		return s.writeJSON(c, msgTTSStart{msgBase{1, "tts_start"}, segmentID, ttsID, "OPUS_OGG"})
-	}
-	return s.writeJSON(c, msgTTSEnd{msgBase{1, "tts_end"}, segmentID, ttsID})
-}
-
-func (s *webSocketServer) sendError(c *Client, code, message string) error {
-	return s.writeJSON(c, msgError{msgBase{1, "error"}, code, message})
 }

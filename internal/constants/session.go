@@ -16,8 +16,13 @@ const (
 	WebSocketMessageTypeHello        = "hello"
 	WebSocketMessageTypeSegmentStart = "segment_start"
 	WebSocketMessageTypeSegmentEnd   = "segment_end"
-	WebSocketMessageTypeStopTTS      = "stop_tts"
-	WebSocketMessageTypeError        = "error"
+	WebSocketBineryTypeAudioChunk    = "audio_chunk"
+
+	WebSocketMessageTypeASR        = "asr"
+	WebSocketMessageTypeEvaluation = "evaluation"
+	WebSocketMessageTypeTTSStart   = "tts_start"
+	WebSocketMessageTypeTTSEnd     = "tts_end"
+	WebSocketMessageTypeError      = "error"
 
 	WebSocketPingInterval = 30 * time.Second
 	WebSocketReadTimeout  = 60 * time.Second

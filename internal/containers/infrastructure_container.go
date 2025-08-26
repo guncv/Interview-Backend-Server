@@ -119,6 +119,21 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
+	if err := c.Container.Provide(func(cfg *config.Config) ws.WebSocketClient {
+		callbacks := ws.WebSocketCallbacks{
+			OnASRPartial: func(segmentID, text string, seq int, stability float64) {},
+			OnASRFinal:   func(segmentID, text string, seq int) {},
+			OnTTSStart:   func(segmentID, ttsID, encoding string) {},
+			OnTTSChunk:   func(segmentID string, data []byte) {},
+			OnTTSEnd:     func(segmentID, ttsID string) {},
+			OnError:      func(code, msg string) {},
+			OnEvaluation: func(segmentID string, score float64, comment string) {},
+		}
+		return ws.NewWebSocketClient(cfg.InterviewSessionConfig.InterviewAgentURL, make(map[string]string), callbacks)
+	}); err != nil {
+		c.Error = err
+	}
+
 	if err := c.Container.Provide(ws.NewWebSocketServer); err != nil {
 		c.Error = err
 	}

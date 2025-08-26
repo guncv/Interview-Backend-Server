@@ -16,6 +16,7 @@ type WebSocketCallbacks struct {
 	OnTTSChunk   func(segmentID string, data []byte)
 	OnTTSEnd     func(segmentID, ttsID string)
 	OnError      func(code, msg string)
+	OnEvaluation func(segmentID string, score float64, comment string)
 }
 
 type WebSocketClient interface {
@@ -169,6 +170,16 @@ func (c *webSocketClient) readLoop() {
 					if c.cb.OnASRPartial != nil {
 						c.cb.OnASRPartial(x.SegmentID, x.Text, x.Seq, x.Stability)
 					}
+				}
+
+			case "evaluation":
+				var x struct {
+					SegmentID string  `json:"segment_id"`
+					Score     float64 `json:"score"`
+					Comment   string  `json:"comment"`
+				}
+				if json.Unmarshal(data, &x) == nil && c.cb.OnEvaluation != nil {
+					c.cb.OnEvaluation(x.SegmentID, x.Score, x.Comment)
 				}
 
 			case "tts_start":
