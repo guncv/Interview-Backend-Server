@@ -24,6 +24,7 @@ const (
 	WebSocketMessageTypeTTSEnd     = "tts_end"
 	WebSocketMessageTypeError      = "error"
 
-	WebSocketPingInterval = 30 * time.Second
-	WebSocketReadTimeout  = 60 * time.Second
+	WebSocketPingInterval = 10 * time.Second
+	WebSocketPingDuration = 5 * time.Second
+	WebSocketReadTimeout  = 30 * time.Second
 )

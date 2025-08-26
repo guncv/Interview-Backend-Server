@@ -108,7 +108,12 @@ func (s *webSocketServer) Close() error {
 	return nil
 }
 
-func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error {
+func (s *webSocketServer) HandleConnection(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	payloadReq entities.OpenWsConnectionRequest,
+) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
 
 	redisSessionToken, err := s.redisClient.Get(ctx, payloadReq.SessionToken)
@@ -186,7 +191,7 @@ func (s *webSocketServer) HandleConnection(ctx context.Context, w http.ResponseW
 		"v": 1, "type": "connection_established", "session_id": client.sessionID,
 	})
 
-	go s.pingLoop(client, constants.WebSocketPingInterval)
+	go s.pingLoop(client)
 	go s.readLoop(ctx, client)
 
 	return nil
@@ -199,9 +204,16 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 	for {
 		mt, payload, err := c.conn.ReadMessage()
+
+		_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error reading message", err)
-			_ = s.writeJSON(c, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidMessage), app_error.ErrCodeWebSocketInvalidMessage.Message()})
+			_ = s.writeJSON(c, msgError{
+				msgBase: msgBase{1, "error"},
+				Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
+				Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
+			})
 			s.disconnect(c)
 			return
 		}
@@ -265,7 +277,11 @@ func (s *webSocketServer) sendMessageTypeHello(ctx context.Context, client *Clie
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeHello] Called")
 	var m msgHello
 	if json.Unmarshal(payload, &m) != nil || m.SessionID == "" {
-		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidHello), app_error.ErrCodeWebSocketInvalidHello.Message()})
+		_ = s.writeJSON(client, msgError{
+			msgBase: msgBase{1, "error"},
+			Code:    string(app_error.ErrCodeWebSocketInvalidHello),
+			Message: app_error.ErrCodeWebSocketInvalidHello.Message(),
+		})
 		return
 	}
 
@@ -285,7 +301,11 @@ func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, clien
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Called")
 	var m msgSegmentStart
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentStart), app_error.ErrCodeWebSocketInvalidSegmentStart.Message()})
+		_ = s.writeJSON(client, msgError{
+			msgBase: msgBase{1, "error"},
+			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentStart),
+			Message: app_error.ErrCodeWebSocketInvalidSegmentStart.Message(),
+		})
 		return
 	}
 	client.currentSegmentID = m.SegmentID
@@ -311,11 +331,19 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Called")
 	var m msgSegmentEnd
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
+		_ = s.writeJSON(client, msgError{
+			msgBase: msgBase{1, "error"},
+			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentEnd),
+			Message: app_error.ErrCodeWebSocketInvalidSegmentEnd.Message(),
+		})
 		return
 	}
 	if client.currentSegmentID != m.SegmentID {
-		_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidSegmentEnd), app_error.ErrCodeWebSocketInvalidSegmentEnd.Message()})
+		_ = s.writeJSON(client, msgError{
+			msgBase: msgBase{1, "error"},
+			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentEnd),
+			Message: app_error.ErrCodeWebSocketInvalidSegmentEnd.Message(),
+		})
 		return
 	}
 
@@ -344,7 +372,11 @@ func (s *webSocketServer) sendBinaryMessageTypeAudioChunk(ctx context.Context, c
 
 func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
-	_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidMessage), app_error.ErrCodeWebSocketInvalidMessage.Message()})
+	_ = s.writeJSON(client, msgError{
+		msgBase: msgBase{1, "error"},
+		Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
+		Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
+	})
 	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
 }
 
@@ -364,18 +396,20 @@ func (s *webSocketServer) updateConversationTurnEndTime(ctx context.Context, seg
 	})
 }
 
-func (s *webSocketServer) pingLoop(c *Client, every time.Duration) {
-	t := time.NewTicker(every)
+func (s *webSocketServer) pingLoop(c *Client) {
+	s.log.InfoWithID(context.Background(), "[WebSocketServer: pingLoop] Starting ping loop")
+
+	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
 
 	for range t.C {
 		c.mu.Lock()
-		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
 		c.mu.Unlock()
 
 		if err != nil {
 			s.log.ErrorWithID(context.Background(), "[WebSocketServer: pingLoop] Error writing ping message", err)
-			_ = c.conn.Close()
+			s.disconnect(c)
 			return
 		}
 	}
