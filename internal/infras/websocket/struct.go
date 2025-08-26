@@ -2,43 +2,29 @@ package websocket
 
 import "time"
 
-type msgBase struct {
-	V    int    `json:"v"`
-	Type string `json:"type"`
-}
-
-type msgHello struct {
-	msgBase
+type msgAudioChunk struct {
+	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
+	SegmentID string `json:"segment_id"`
 }
 
 type msgSegmentStart struct {
-	msgBase
-	SegmentID  string `json:"segment_id"`
-	SampleRate int    `json:"sample_rate"`
-	Encoding   string `json:"encoding"`
-	Channels   int    `json:"channels"`
-	StartedAt  int64  `json:"started_at_ms,omitempty"`
-}
-
-type msgAudioChunk struct {
-	V          int    `json:"v"`
-	Type       string `json:"type"`
-	SegmentID  string `json:"segment_id"`
-	ChunkIndex int    `json:"index"`
-	Timestamp  int64  `json:"timestamp"`
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+	SegmentID string `json:"segment_id"`
+	StartedAt int64  `json:"started_at_ms,omitempty"`
 }
 
 type msgSegmentEnd struct {
-	msgBase
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
-	EndedAt   int64  `json:"ended_at_ms,omitempty"`
 }
 
 type ConversationTurn struct {
 	SessionID  string    `json:"session_id"`
 	SegmentID  string    `json:"segment_id"`
-	TurnType   string    `json:"turn_type"` // "user_audio", "asr_result", "tts_start", "tts_end"
+	TurnType   string    `json:"turn_type"`
 	Content    string    `json:"content,omitempty"`
 	TTSID      string    `json:"tts_id,omitempty"`
 	Encoding   string    `json:"encoding,omitempty"`
@@ -49,7 +35,7 @@ type ConversationTurn struct {
 }
 
 type msgASR struct {
-	msgBase
+	Type      string  `json:"type"`
 	SegmentID string  `json:"segment_id"`
 	Text      string  `json:"text"`
 	IsFinal   bool    `json:"is_final"`
@@ -58,33 +44,33 @@ type msgASR struct {
 }
 
 type msgEvaluation struct {
-	msgBase
+	Type      string  `json:"type"`
 	SegmentID string  `json:"segment_id"`
 	Score     float64 `json:"score"`
 	Comment   string  `json:"comment"`
 }
 
 type msgTTSStart struct {
-	msgBase
+	Type      string `json:"type"`
 	SegmentID string `json:"segment_id"`
 	TTSID     string `json:"tts_id"`
-	Encoding  string `json:"encoding"` // "OPUS_OGG" | "OPUS_WEBM" | "PCM16"
+	Encoding  string `json:"encoding"`
 }
 
 type msgTTSEnd struct {
-	msgBase
+	Type      string `json:"type"`
 	SegmentID string `json:"segment_id"`
 	TTSID     string `json:"tts_id"`
 }
 
 type msgDBAck struct {
-	msgBase
+	Type   string   `json:"type"`
 	TurnID string   `json:"turn_id"`
 	Saved  []string `json:"saved"`
 }
 
 type msgError struct {
-	msgBase
+	Type    string `json:"type"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }

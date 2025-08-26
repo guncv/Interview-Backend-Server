@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"net/http"
 	"sync"
@@ -224,7 +225,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error reading message", err)
 			_ = s.writeJSON(c, msgError{
-				msgBase: msgBase{1, "error"},
+				Type:    "error",
 				Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
 				Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
 			})
@@ -245,10 +246,6 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 			switch base.Type {
 
-			case constants.WebSocketMessageTypeHello:
-				s.sendMessageTypeHello(ctx, c, payload)
-				continue
-
 			case constants.WebSocketMessageTypeSegmentStart:
 				s.sendMessageTypeSegmentStart(ctx, c, payload)
 				continue
@@ -263,23 +260,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			}
 
 		case websocket.BinaryMessage:
-			var base struct {
-				V    int    `json:"v"`
-				Type string `json:"type"`
-			}
-			if json.Unmarshal(payload, &base) != nil {
-				continue
-			}
-
-			switch base.Type {
-			case constants.WebSocketBineryTypeAudioChunk:
-				s.sendBinaryMessageTypeAudioChunk(ctx, c, payload)
-				continue
-
-			default:
-				s.sendMessageTypeError(ctx, c, payload)
-				continue
-			}
+			s.handleAudioBinaryMessage(ctx, c, payload)
 
 		default:
 			// ignore other frame types, like pong
@@ -287,58 +268,102 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	}
 }
 
-func (s *webSocketServer) sendMessageTypeHello(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeHello] Called")
-	var m msgHello
-	if json.Unmarshal(payload, &m) != nil || m.SessionID == "" {
-		_ = s.writeJSON(client, msgError{
-			msgBase: msgBase{1, "error"},
-			Code:    string(app_error.ErrCodeWebSocketInvalidHello),
-			Message: app_error.ErrCodeWebSocketInvalidHello.Message(),
-		})
+func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
+	if len(payload) < 4 {
+		s.log.ErrorWithID(ctx, "Invalid frame: too short")
+		s.disconnect(client)
 		return
 	}
 
-	client.sessionID = m.SessionID
-	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "hello", "session_id": client.sessionID})
+	headerLength := binary.BigEndian.Uint32(payload[:4])
+
+	if int(headerLength)+4 > len(payload) {
+		s.log.ErrorWithID(ctx, "Invalid frame: header length too large")
+		s.disconnect(client)
+		return
+	}
+
+	headerBytes := payload[4 : 4+headerLength]
+
+	var header msgAudioChunk
+	if err := json.Unmarshal(headerBytes, &header); err != nil {
+		s.log.ErrorWithID(ctx, "Invalid header JSON", err)
+		s.disconnect(client)
+		return
+	}
+
+	if header.SessionID != client.sessionID {
+		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
+			"expected_session_id": client.sessionID,
+			"received_session_id": header.SessionID,
+			"user_id":             client.userID,
+		})
+		_ = s.writeJSON(client, msgError{
+			Type:    "error",
+			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
+			Message: "Session ID mismatch",
+		})
+		s.disconnect(client)
+		return
+	}
+
+	if header.SegmentID != client.currentSegmentID {
+		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch", map[string]any{
+			"expected_segment_id": client.currentSegmentID,
+			"received_segment_id": header.SegmentID,
+			"session_id":          client.sessionID,
+			"user_id":             client.userID,
+		})
+		_ = s.writeJSON(client, msgError{
+			Type:    "error",
+			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
+			Message: "Segment ID mismatch",
+		})
+		s.disconnect(client)
+		return
+	}
+
+	audioData := payload[4+headerLength:]
 
 	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SendMessage(ctx, "hello", map[string]interface{}{
-			"session_id": client.sessionID,
-		}); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error sending hello to AI agent", err)
+		if err := s.webSocketClient.SendAudio(ctx, header.SegmentID, audioData); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding audio chunk to AI agent", err)
 		}
 	}
 }
 
 func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Called")
+
 	var m msgSegmentStart
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
 		_ = s.writeJSON(client, msgError{
-			msgBase: msgBase{1, "error"},
+			Type:    "error",
 			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentStart),
 			Message: app_error.ErrCodeWebSocketInvalidSegmentStart.Message(),
 		})
+		s.disconnect(client)
 		return
 	}
+
+	if client.sessionID != m.SessionID {
+		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
+			"expected_session_id": client.sessionID,
+			"received_session_id": m.SessionID,
+			"user_id":             client.userID,
+		})
+		s.disconnect(client)
+		return
+	}
+
 	client.currentSegmentID = m.SegmentID
 
 	if s.aiAgentConnected && s.webSocketClient.IsConnected() {
-		if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
+		if err := s.webSocketClient.SegmentStart(ctx, m.SegmentID, 16000, "OPUS_OGG", 1); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error forwarding segment start to AI agent", err)
 		}
 	}
 
-	s.storeConversationTurn(ctx, client, &ConversationTurn{
-		SessionID:  client.sessionID,
-		SegmentID:  m.SegmentID,
-		TurnType:   "user_audio",
-		SampleRate: m.SampleRate,
-		Encoding:   m.Encoding,
-		Channels:   m.Channels,
-		StartedAt:  time.Now(),
-	})
 }
 
 func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client *Client, payload []byte) {
@@ -346,17 +371,28 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 	var m msgSegmentEnd
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
 		_ = s.writeJSON(client, msgError{
-			msgBase: msgBase{1, "error"},
+			Type:    "error",
 			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentEnd),
 			Message: app_error.ErrCodeWebSocketInvalidSegmentEnd.Message(),
 		})
 		return
 	}
+
+	if client.sessionID != m.SessionID {
+		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
+			"expected_session_id": client.sessionID,
+			"received_session_id": m.SessionID,
+			"user_id":             client.userID,
+		})
+		return
+	}
+
 	if client.currentSegmentID != m.SegmentID {
-		_ = s.writeJSON(client, msgError{
-			msgBase: msgBase{1, "error"},
-			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentEnd),
-			Message: app_error.ErrCodeWebSocketInvalidSegmentEnd.Message(),
+		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch", map[string]any{
+			"expected_segment_id": client.currentSegmentID,
+			"received_segment_id": m.SegmentID,
+			"session_id":          client.sessionID,
+			"user_id":             client.userID,
 		})
 		return
 	}
@@ -367,47 +403,17 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 		}
 	}
 
-	s.updateConversationTurnEndTime(ctx, m.SegmentID, time.Now())
-
 	client.currentSegmentID = ""
-}
-
-func (s *webSocketServer) sendBinaryMessageTypeAudioChunk(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendBinaryMessageTypeAudioChunk] Called")
-	// var base struct {
-	// 	V    int    `json:"v"`
-	// 	Type string `json:"type"`
-	// }
-	// if json.Unmarshal(payload, &base) != nil {
-	// 	_ = s.writeJSON(client, msgError{msgBase{1, "error"}, string(app_error.ErrCodeWebSocketInvalidAudioChunk), app_error.ErrCodeWebSocketInvalidAudioChunk.Message()})
-	// 	return
-	// }
 }
 
 func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
 	_ = s.writeJSON(client, msgError{
-		msgBase: msgBase{1, "error"},
+		Type:    "error",
 		Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
 		Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
 	})
 	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
-}
-
-func (s *webSocketServer) storeConversationTurn(ctx context.Context, client *Client, turn *ConversationTurn) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: storeConversationTurn] Storing turn", map[string]interface{}{
-		"session_id": turn.SessionID,
-		"segment_id": turn.SegmentID,
-		"turn_type":  turn.TurnType,
-		"started_at": turn.StartedAt,
-	})
-}
-
-func (s *webSocketServer) updateConversationTurnEndTime(ctx context.Context, segmentID string, endTime time.Time) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: updateConversationTurnEndTime] Updating turn end time", map[string]interface{}{
-		"segment_id": segmentID,
-		"end_time":   endTime,
-	})
 }
 
 func (s *webSocketServer) pingLoop(c *Client) {
