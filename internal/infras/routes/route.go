@@ -114,7 +114,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 }
 
 func websocketRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.InterviewSessionHandler, authMiddleware middleware.AuthMiddleware) {
-	websocketRoutes := eg.Group("/ws").Use(authMiddleware.AuthMiddleware())
+	websocketRoutes := eg.Group("/ws")
 
 	{
 		websocketRoutes.GET("/connect/:id", interviewSessionHandler.OpenWsConnection)

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,7 @@ type InterviewSessionHandler struct {
 	authContext             middleware.AuthContext
 	validator               utils.Validator
 	wsServer                websocket.WebSocketServerInterface
+	jwtToken                utils.JwtToken
 }
 
 func NewInterviewSessionHandler(
@@ -28,6 +31,7 @@ func NewInterviewSessionHandler(
 	authContext middleware.AuthContext,
 	validator utils.Validator,
 	wsServer websocket.WebSocketServerInterface,
+	jwtToken utils.JwtToken,
 ) *InterviewSessionHandler {
 	return &InterviewSessionHandler{
 		interviewSessionService: interviewSessionService,
@@ -35,6 +39,7 @@ func NewInterviewSessionHandler(
 		authContext:             authContext,
 		validator:               validator,
 		wsServer:                wsServer,
+		jwtToken:                jwtToken,
 	}
 }
 
@@ -132,7 +137,7 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gi
 // @Accept json
 // @Produce json
 // @Param id path string true "Session token"
-// @Security BearerAuth
+// @Param access_token query string true "Access token for authentication"
 // @Success 200 "WebSocket connection established"
 // @Failure 400 {object} app_error.AppError "Invalid session token or request"
 // @Failure 401 {object} app_error.AppError "Unauthorized"
@@ -155,22 +160,67 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 		return
 	}
 
-	req := entities.OpenWsConnectionRequest{
-		SessionToken: sessionToken,
-	}
-
-	ctx, err := h.authContext.ExtractAuthContext(c)
+	payload, err := h.authenticateWebSocketConnection(c)
 	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error getting auth context", err)
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Authentication failed", err)
 		utils.RespondWithError(c, err)
 		return
 	}
 
-	if err := h.wsServer.HandleConnection(ctx, c.Writer, c.Request, req); err != nil {
+	enrichedCtx := context.WithValue(ctx, constants.AuthContextKey, &middleware.AuthPayload{
+		Payload: payload,
+	})
+
+	req := entities.OpenWsConnectionRequest{
+		SessionToken: sessionToken,
+		UserID:       payload.UserID,
+	}
+
+	if err := h.wsServer.HandleConnection(enrichedCtx, c.Writer, c.Request, req); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error handling connection", err)
 		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRequest))
 		return
 	}
 
 	c.JSON(http.StatusOK, nil)
+}
+
+func (h *InterviewSessionHandler) authenticateWebSocketConnection(c *gin.Context) (*utils.SignInTokenPayload, error) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: authenticateWebSocketConnection] Called")
+
+	accessToken := c.Query("access_token")
+	if accessToken == "" {
+		h.log.ErrorWithID(ctx, "[Handler: authenticateWebSocketConnection] Access token is required")
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidHeader)
+	}
+
+	payload, err := h.jwtToken.VerifyToken(ctx, accessToken)
+	if err != nil {
+		var appErr *app_error.AppError
+		if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
+			h.log.InfoWithID(ctx, "[Handler: authenticateWebSocketConnection] Access token expired, attempting renewal")
+
+			cookie, err := c.Request.Cookie("refresh_token")
+			if err != nil {
+				h.log.ErrorWithID(ctx, "[Handler: authenticateWebSocketConnection] Refresh token cookie not found, user must login again")
+				return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthExpiredToken)
+			}
+
+			_, newPayload, err := h.jwtToken.RenewAccessToken(c, cookie.Value)
+			if err != nil {
+				h.log.ErrorWithID(ctx, "[Handler: authenticateWebSocketConnection] Failed to renew access token", err)
+				return nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken)
+			}
+
+			h.log.InfoWithID(ctx, "[Handler: authenticateWebSocketConnection] Access token renewed successfully")
+			return newPayload, nil
+		}
+
+		h.log.ErrorWithID(ctx, "[Handler: authenticateWebSocketConnection] Invalid access token", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	h.log.InfoWithID(ctx, "[Handler: authenticateWebSocketConnection] Access token verified successfully")
+	return payload, nil
 }
