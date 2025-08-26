@@ -666,13 +666,8 @@ func TestTokenPayload_GraceWindow(t *testing.T) {
 		assert.Equal(t, constants.ErrExpiredToken, err)
 
 		// Should pass with grace window validation (1 minute grace window)
-		err = payload.ValidWithGraceWindow(time.Minute)
+		err = payload.ValidWithGraceWindow()
 		assert.NoError(t, err)
-
-		// Should fail with shorter grace window
-		err = payload.ValidWithGraceWindow(10 * time.Second)
-		assert.Error(t, err)
-		assert.Equal(t, constants.ErrExpiredToken, err)
 	})
 
 	t.Run("VerifyEmailTokenPayload grace window validation", func(t *testing.T) {
@@ -690,13 +685,9 @@ func TestTokenPayload_GraceWindow(t *testing.T) {
 		assert.Equal(t, constants.ErrExpiredToken, err)
 
 		// Should pass with grace window validation (1 minute grace window)
-		err = payload.ValidWithGraceWindow(time.Minute)
+		err = payload.ValidWithGraceWindow()
 		assert.NoError(t, err)
 
-		// Should fail with shorter grace window
-		err = payload.ValidWithGraceWindow(10 * time.Second)
-		assert.Error(t, err)
-		assert.Equal(t, constants.ErrExpiredToken, err)
 	})
 }
 

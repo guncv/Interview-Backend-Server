@@ -66,7 +66,8 @@ func (payload *SignInTokenPayload) Valid() error {
 	return nil
 }
 
-func (payload *SignInTokenPayload) ValidWithGraceWindow(graceWindow time.Duration) error {
+func (payload *SignInTokenPayload) ValidWithGraceWindow() error {
+	graceWindow := constants.TokenGraceWindow
 	if graceWindow == 0 {
 		graceWindow = time.Minute
 	}
@@ -90,7 +91,8 @@ func (payload *VerifyEmailTokenPayload) Valid() error {
 	return nil
 }
 
-func (payload *VerifyEmailTokenPayload) ValidWithGraceWindow(graceWindow time.Duration) error {
+func (payload *VerifyEmailTokenPayload) ValidWithGraceWindow() error {
+	graceWindow := constants.TokenGraceWindow
 	if graceWindow == 0 {
 		graceWindow = time.Minute
 	}
