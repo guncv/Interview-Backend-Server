@@ -1,6 +1,8 @@
 package constants
 
-import "time"
+import (
+	"time"
+)
 
 // Interview Session Constants
 const (
@@ -27,4 +29,5 @@ const (
 	WebSocketPingInterval = 10 * time.Second
 	WebSocketPingDuration = 5 * time.Second
 	WebSocketReadTimeout  = 30 * time.Second
+	WebSocketPongTimeout  = 15 * time.Second
 )

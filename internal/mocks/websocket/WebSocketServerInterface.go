@@ -69,9 +69,9 @@ func (_c *MockWebSocketServerInterface_Close_Call) RunAndReturn(run func() error
 	return _c
 }
 
-// HandleConnection provides a mock function with given fields: ctx, w, r, sessionToken
-func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest) error {
-	ret := _m.Called(ctx, w, r, sessionToken)
+// HandleConnection provides a mock function with given fields: ctx, w, r, payloadReq
+func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error {
+	ret := _m.Called(ctx, w, r, payloadReq)
 
 	if len(ret) == 0 {
 		panic("no return value specified for HandleConnection")
@@ -79,7 +79,7 @@ func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w 
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, http.ResponseWriter, *http.Request, entities.OpenWsConnectionRequest) error); ok {
-		r0 = rf(ctx, w, r, sessionToken)
+		r0 = rf(ctx, w, r, payloadReq)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -96,12 +96,12 @@ type MockWebSocketServerInterface_HandleConnection_Call struct {
 //   - ctx context.Context
 //   - w http.ResponseWriter
 //   - r *http.Request
-//   - sessionToken entities.OpenWsConnectionRequest
-func (_e *MockWebSocketServerInterface_Expecter) HandleConnection(ctx interface{}, w interface{}, r interface{}, sessionToken interface{}) *MockWebSocketServerInterface_HandleConnection_Call {
-	return &MockWebSocketServerInterface_HandleConnection_Call{Call: _e.mock.On("HandleConnection", ctx, w, r, sessionToken)}
+//   - payloadReq entities.OpenWsConnectionRequest
+func (_e *MockWebSocketServerInterface_Expecter) HandleConnection(ctx interface{}, w interface{}, r interface{}, payloadReq interface{}) *MockWebSocketServerInterface_HandleConnection_Call {
+	return &MockWebSocketServerInterface_HandleConnection_Call{Call: _e.mock.On("HandleConnection", ctx, w, r, payloadReq)}
 }
 
-func (_c *MockWebSocketServerInterface_HandleConnection_Call) Run(run func(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionToken entities.OpenWsConnectionRequest)) *MockWebSocketServerInterface_HandleConnection_Call {
+func (_c *MockWebSocketServerInterface_HandleConnection_Call) Run(run func(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest)) *MockWebSocketServerInterface_HandleConnection_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(http.ResponseWriter), args[2].(*http.Request), args[3].(entities.OpenWsConnectionRequest))
 	})

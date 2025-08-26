@@ -25,6 +25,8 @@ type Client struct {
 	userID           string
 	sessionID        string
 	currentSegmentID string
+	lastPongTime     time.Time
+	pongReceived     chan struct{}
 }
 
 type WebSocketServerInterface interface {
@@ -85,6 +87,7 @@ func (s *webSocketServer) Start(ctx context.Context) error {
 	}
 
 	s.aiAgentConnected = true
+
 	s.log.InfoWithID(ctx, "[WebSocketServer: Start] WebSocket server started successfully")
 	return nil
 }
@@ -150,13 +153,24 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	client := &Client{
-		conn:      conn,
-		userID:    sessionPayload.UserID,
-		sessionID: sessionPayload.SessionID,
+		conn:         conn,
+		userID:       sessionPayload.UserID,
+		sessionID:    sessionPayload.SessionID,
+		lastPongTime: time.Now(),
+		pongReceived: make(chan struct{}, 1),
 	}
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
+		client.mu.Lock()
+		client.lastPongTime = time.Now()
+		client.mu.Unlock()
+
+		select {
+		case client.pongReceived <- struct{}{}:
+		default:
+		}
+
 		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
@@ -268,7 +282,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			}
 
 		default:
-			// ignore other frame types
+			// ignore other frame types, like pong
 		}
 	}
 }
@@ -404,6 +418,20 @@ func (s *webSocketServer) pingLoop(c *Client) {
 
 	for range t.C {
 		c.mu.Lock()
+		timeSinceLastPong := time.Since(c.lastPongTime)
+		c.mu.Unlock()
+
+		if timeSinceLastPong > constants.WebSocketPongTimeout {
+			s.log.ErrorWithID(context.Background(), "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
+				"session_id":           c.sessionID,
+				"time_since_last_pong": timeSinceLastPong,
+				"timeout":              constants.WebSocketPongTimeout,
+			})
+			s.disconnect(c)
+			return
+		}
+
+		c.mu.Lock()
 		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
 		c.mu.Unlock()
 
@@ -412,6 +440,11 @@ func (s *webSocketServer) pingLoop(c *Client) {
 			s.disconnect(c)
 			return
 		}
+
+		s.log.DebugWithID(context.Background(), "[WebSocketServer: pingLoop] Ping sent", map[string]interface{}{
+			"session_id":           c.sessionID,
+			"time_since_last_pong": timeSinceLastPong,
+		})
 	}
 }
 
@@ -427,6 +460,8 @@ func (s *webSocketServer) disconnect(c *Client) {
 		}
 	}
 	s.mu.Unlock()
+
+	close(c.pongReceived)
 	_ = c.conn.Close()
 }
 
