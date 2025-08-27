@@ -27,8 +27,8 @@ const (
 	WebSocketMessageTypePing                  = "ping"
 	WebSocketMessageTypePong                  = "pong"
 
-	WebSocketPingInterval = 30 * time.Second
-	WebSocketPingDuration = 5 * time.Second
-	WebSocketReadTimeout  = 60 * time.Second
+	WebSocketPingInterval = 3 * time.Second
+	WebSocketPingDuration = 3 * time.Second
+	WebSocketReadTimeout  = 30 * time.Second
 	WebSocketPongTimeout  = 10 * time.Second
 )

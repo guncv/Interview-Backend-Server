@@ -183,7 +183,7 @@ func (s *webSocketServer) HandleConnection(
 	u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return nil
 	}
 
@@ -203,12 +203,12 @@ func (s *webSocketServer) HandleConnection(
 	agentClient.SetCallbacks(*callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return nil
 	}
 
 	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
-	s.clientManager.Set(client.sessionID, agentClient)
+	s.clientManager.SetClientBySessionID(ctx, client.sessionID, agentClient)
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
@@ -218,7 +218,7 @@ func (s *webSocketServer) HandleConnection(
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return nil
 	}
 
@@ -226,7 +226,7 @@ func (s *webSocketServer) HandleConnection(
 		"v": 1, "type": "connection_established", "session_id": client.sessionID,
 	})
 
-	go s.pingLoop(client)
+	go s.pingLoop(ctx, client)
 	go s.readLoop(ctx, client)
 
 	return nil
@@ -234,7 +234,7 @@ func (s *webSocketServer) HandleConnection(
 
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
-	defer s.disconnect(c)
+	defer s.disconnect(ctx, c)
 	c.conn.SetReadLimit(1 << 20)
 
 	for {
@@ -249,7 +249,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
 				Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
 			})
-			s.disconnect(c)
+			s.disconnect(ctx, c)
 			return
 		}
 
@@ -300,7 +300,7 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 
 	if len(payload) < 4 {
 		s.log.ErrorWithID(ctx, "Invalid frame: too short")
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
@@ -308,7 +308,7 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 
 	if int(headerLength)+4 > len(payload) {
 		s.log.ErrorWithID(ctx, "Invalid frame: header length too large")
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
@@ -317,7 +317,7 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 	var header msgAudioChunk
 	if err := json.Unmarshal(headerBytes, &header); err != nil {
 		s.log.ErrorWithID(ctx, "Invalid header JSON", err)
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
@@ -332,7 +332,7 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
 			Message: "Session ID mismatch",
 		})
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
@@ -348,13 +348,13 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
 			Message: "Segment ID mismatch",
 		})
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
 	audioData := payload[4+headerLength:]
 
-	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		if err := agentClient.SendAudio(ctx, header.SegmentID, audioData); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error forwarding audio to AI agent", err)
 		}
@@ -371,7 +371,7 @@ func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, clien
 			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentStart),
 			Message: app_error.ErrCodeWebSocketInvalidSegmentStart.Message(),
 		})
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
@@ -381,13 +381,13 @@ func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, clien
 			"received_session_id": m.SessionID,
 			"user_id":             client.userID,
 		})
-		s.disconnect(client)
+		s.disconnect(ctx, client)
 		return
 	}
 
 	client.currentSegmentID = m.SegmentID
 
-	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		if err := agentClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Error forwarding segment start to AI agent", err)
 		}
@@ -429,7 +429,7 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 
 	client.currentSegmentID = ""
 
-	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		if err := agentClient.SegmentEnd(ctx, m.SegmentID); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error forwarding segment end to AI agent", err)
 		}
@@ -447,8 +447,8 @@ func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Clie
 	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
 }
 
-func (s *webSocketServer) pingLoop(c *Client) {
-	s.log.InfoWithID(context.Background(), "[WebSocketServer: pingLoop] Starting ping loop")
+func (s *webSocketServer) pingLoop(ctx context.Context, c *Client) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: pingLoop] Starting ping loop")
 
 	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
@@ -464,17 +464,16 @@ func (s *webSocketServer) pingLoop(c *Client) {
 				"time_since_last_pong": timeSinceLastPong,
 				"timeout":              constants.WebSocketPongTimeout,
 			})
-			s.disconnect(c)
+			s.disconnect(ctx, c)
 			return
 		}
 
 		c.mu.Lock()
 		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
 		c.mu.Unlock()
-
 		if err != nil {
 			s.log.ErrorWithID(context.Background(), "[WebSocketServer: pingLoop] Error writing ping message", err)
-			s.disconnect(c)
+			s.disconnect(ctx, c)
 			return
 		}
 
@@ -485,8 +484,8 @@ func (s *webSocketServer) pingLoop(c *Client) {
 	}
 }
 
-func (s *webSocketServer) disconnect(client *Client) {
-	s.log.InfoWithID(context.Background(), "[WebSocketServer: disconnect] Called")
+func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 	s.mu.Lock()
 	delete(s.sessions, client.sessionID)
 
@@ -504,7 +503,7 @@ func (s *webSocketServer) disconnect(client *Client) {
 		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
 	})
 
-	s.clientManager.Delete(client.sessionID)
+	s.clientManager.DeleteClientBySessionID(ctx, client.sessionID)
 	s.mu.Unlock()
 	_ = client.conn.Close()
 	close(client.pongReceived)
