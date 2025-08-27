@@ -36,7 +36,7 @@ type Client struct {
 type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error
 	Start(ctx context.Context) error
-	Close() error
+	Close(ctx context.Context) error
 }
 
 type webSocketServer struct {
@@ -92,8 +92,8 @@ func (s *webSocketServer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *webSocketServer) Close() error {
-	s.log.InfoWithID(context.Background(), "[WebSocketServer: Close] Closing WebSocket server")
+func (s *webSocketServer) Close(ctx context.Context) error {
+	s.log.InfoWithID(ctx, "[WebSocketServer: Close] Closing WebSocket server")
 
 	s.mu.Lock()
 	for _, client := range s.sessions {
@@ -180,11 +180,41 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
+	if err := s.initClient(ctx, client); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
+		s.disconnect(ctx, client)
+		return nil
+	}
+
+	interviewReq := &entities.UpdateInterviewSessionStatusReq{
+		SessionID: client.sessionID,
+		Status:    constants.StatusOnGoing,
+	}
+
+	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
+		s.disconnect(ctx, client)
+		return nil
+	}
+
+	_ = s.writeJSON(client, map[string]any{
+		"v": 1, "type": "connection_established", "session_id": client.sessionID,
+	})
+
+	go s.pingLoop(ctx, client)
+	go s.readLoop(ctx, client)
+
+	return nil
+}
+
+func (s *webSocketServer) initClient(ctx context.Context, client *Client) error {
+	s.log.InfoWithID(ctx, "[WebSocketServer: initClient] Called")
+
 	u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
 		s.disconnect(ctx, client)
-		return nil
+		return err
 	}
 
 	q := u.Query()
@@ -204,30 +234,11 @@ func (s *webSocketServer) HandleConnection(
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
 		s.disconnect(ctx, client)
-		return nil
+		return err
 	}
 
 	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
 	s.clientManager.SetClientBySessionID(ctx, client.sessionID, agentClient)
-
-	interviewReq := &entities.UpdateInterviewSessionStatusReq{
-		SessionID: client.sessionID,
-		Status:    constants.StatusOnGoing,
-	}
-
-	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
-
-		s.disconnect(ctx, client)
-		return nil
-	}
-
-	_ = s.writeJSON(client, map[string]any{
-		"v": 1, "type": "connection_established", "session_id": client.sessionID,
-	})
-
-	go s.pingLoop(ctx, client)
-	go s.readLoop(ctx, client)
 
 	return nil
 }
@@ -239,7 +250,6 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 	for {
 		mt, payload, err := c.conn.ReadMessage()
-
 		_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 
 		if err != nil {
@@ -280,17 +290,8 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 		case websocket.BinaryMessage:
 			s.handleAudioBinaryMessage(ctx, c, payload)
 
-		case websocket.PingMessage:
-			s.log.InfoWithID(ctx, "[WebSocketServer] PingMessage received — replying with Pong")
-			// You must reply with Pong manually here
-			_ = c.conn.WriteMessage(websocket.PongMessage, nil)
-
-		case websocket.PongMessage:
-			s.log.InfoWithID(ctx, "[WebSocketServer] PongMessage received (manual read path)")
-			c.lastPongTime = time.Now()
-
 		default:
-			// ignore other frame types, like pong
+			s.log.InfoWithID(ctx, "[WebSocketServer] Ignoring frame type", map[string]any{"frame_type": mt})
 		}
 	}
 }

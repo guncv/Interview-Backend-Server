@@ -48,7 +48,7 @@ func (m *ClientManager) CloseAllClients(ctx context.Context) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, client := range m.clients {
-		_ = client.Close()
+		_ = client.Close(ctx)
 	}
 	m.clients = make(map[string]WebSocketClient)
 }
