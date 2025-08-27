@@ -9,15 +9,19 @@ type msgAudioChunk struct {
 }
 
 type msgSegmentStart struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-	SegmentID string `json:"segment_id"`
+	Type       string `json:"type"`
+	SessionID  string `json:"session_id"`
+	SegmentID  string `json:"segment_id"`
+	SampleRate int    `json:"sample_rate"`
+	Encoding   string `json:"encoding"`
+	Channels   int    `json:"channels"`
 }
 
 type msgSegmentEnd struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 type ConversationTurn struct {

@@ -178,11 +178,12 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 
 	if err := h.wsServer.HandleConnection(enrichedCtx, c.Writer, c.Request, req); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error handling connection", err)
-		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRequest))
+		// utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRequest))
+		c.Abort()
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Abort()
 }
 
 func (h *InterviewSessionHandler) authenticateWebSocketConnection(c *gin.Context) (*utils.SignInTokenPayload, error) {

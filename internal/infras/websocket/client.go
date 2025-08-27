@@ -5,10 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
 type WebSocketCallbacks struct {
@@ -24,7 +26,7 @@ type WebSocketCallbacks struct {
 }
 
 type WebSocketClient interface {
-	Start(ctx context.Context) error
+	Start(ctx context.Context, url string) error
 	Close() error
 
 	SegmentStart(ctx context.Context, segmentID string, sampleRate int, encoding string, channels int) error
@@ -39,9 +41,8 @@ type WebSocketClient interface {
 }
 
 type webSocketClient struct {
-	url       string
-	h         httpHeader
 	cb        WebSocketCallbacks
+	log       *log.Logger
 	sessionID string
 	userID    string
 
@@ -49,26 +50,30 @@ type webSocketClient struct {
 	connected bool
 }
 
-type httpHeader map[string]string
-
-func NewWebSocketClient(url string, headers map[string]string) WebSocketClient {
+func NewWebSocketClient(log *log.Logger) WebSocketClient {
 	return &webSocketClient{
-		url:       url,
-		h:         headers,
 		cb:        WebSocketCallbacks{},
+		log:       log,
 		conn:      nil,
 		connected: false,
 	}
 }
 
-func (c *webSocketClient) Start(ctx context.Context) error {
-	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	var hdr = make(map[string][]string)
-	for k, v := range c.h {
-		hdr[k] = []string{v}
+func (c *webSocketClient) Start(ctx context.Context, url string) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: Start] Calleds:", url)
+
+	dialer := websocket.Dialer{
+		Proxy:             http.ProxyFromEnvironment,
+		HandshakeTimeout:  10 * time.Second,
+		EnableCompression: true,
 	}
-	conn, _, err := d.DialContext(ctx, c.url, hdr)
+
+	hdr := http.Header{}
+	hdr.Set("Origin", "http://agent-server:8080")
+
+	conn, _, err := dialer.DialContext(ctx, url, hdr)
 	if err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: Start] Error dialing:", err)
 		return err
 	}
 	c.conn = conn
@@ -76,24 +81,31 @@ func (c *webSocketClient) Start(ctx context.Context) error {
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	c.conn.SetPongHandler(func(string) error {
+		c.log.InfoWithID(ctx, "[WebSocketClient: Start] Pong received")
 		return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
 	go c.readLoop()
-	go c.pingLoop(constants.WebSocketPingInterval)
+	go c.pingLoop()
 	return nil
 }
 
 func (c *webSocketClient) Close() error {
+	ctx := context.Background()
+	c.log.InfoWithID(ctx, "[WebSocketClient: Close] Calleds")
+
 	c.connected = false
 	if c.conn != nil {
+		c.log.InfoWithID(ctx, "[WebSocketClient: Close] Closing connection")
 		return c.conn.Close()
 	}
 	return nil
 }
 
 func (c *webSocketClient) SegmentStart(ctx context.Context, seg string, sr int, enc string, ch int) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Calleds:", seg, sr, enc, ch)
 	if c.sessionID == "" {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID not set")
 		return fmt.Errorf("session ID not set")
 	}
 
@@ -108,7 +120,9 @@ func (c *webSocketClient) SegmentStart(ctx context.Context, seg string, sr int, 
 }
 
 func (c *webSocketClient) SendAudio(ctx context.Context, seg string, buf []byte) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SendAudio] Calleds:", seg)
 	if c.sessionID == "" {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Session ID not set")
 		return fmt.Errorf("session ID not set")
 	}
 
@@ -133,6 +147,7 @@ func (c *webSocketClient) SendAudio(ctx context.Context, seg string, buf []byte)
 
 func (c *webSocketClient) SegmentEnd(ctx context.Context, seg string) error {
 	if c.sessionID == "" {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Session ID not set")
 		return fmt.Errorf("session ID not set")
 	}
 
@@ -146,6 +161,7 @@ func (c *webSocketClient) SegmentEnd(ctx context.Context, seg string) error {
 
 func (c *webSocketClient) StopTTS(ctx context.Context, seg string) error {
 	if c.sessionID == "" {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: StopTTS] Session ID not set")
 		return fmt.Errorf("session ID not set")
 	}
 
@@ -158,6 +174,7 @@ func (c *webSocketClient) StopTTS(ctx context.Context, seg string) error {
 
 func (c *webSocketClient) SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error {
 	if !c.connected || c.conn == nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Not connected")
 		return websocket.ErrCloseSent
 	}
 
@@ -173,6 +190,7 @@ func (c *webSocketClient) SendMessage(ctx context.Context, msgType string, data 
 }
 
 func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID string) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SendSessionInfo] Calleds:", sessionID, userID)
 	c.sessionID = sessionID
 	c.userID = userID
 
@@ -184,14 +202,21 @@ func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID
 }
 
 func (c *webSocketClient) IsConnected() bool {
+	ctx := context.Background()
+	c.log.InfoWithID(ctx, "[WebSocketClient: IsConnected] Calleds:", c.connected, c.conn != nil)
 	return c.connected && c.conn != nil
 }
 
 func (c *webSocketClient) SetCallbacks(callbacks WebSocketCallbacks) {
+	ctx := context.Background()
+	c.log.InfoWithID(ctx, "[WebSocketClient: SetCallbacks] Calleds:", callbacks)
 	c.cb = callbacks
 }
 
 func (c *webSocketClient) readLoop() {
+	ctx := context.Background()
+	c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] Calleds")
+
 	for {
 		mt, data, err := c.conn.ReadMessage()
 		if err != nil {
@@ -307,8 +332,11 @@ func (c *webSocketClient) readLoop() {
 	}
 }
 
-func (c *webSocketClient) pingLoop(every time.Duration) {
-	t := time.NewTicker(every)
+func (c *webSocketClient) pingLoop() {
+	ctx := context.Background()
+	c.log.InfoWithID(ctx, "[WebSocketClient: pingLoop] Calleds")
+
+	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
 	for range t.C {
 		if c.conn != nil {
