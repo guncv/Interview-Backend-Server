@@ -71,8 +71,10 @@ type AWSConfig struct {
 }
 
 type InterviewSessionConfig struct {
-	InterviewAgentURL             string        `mapstructure:"INTERVIEW_AGENT_URL"`
-	InterviewSessionTokenDuration time.Duration `mapstructure:"INTERVIEW_SESSION_TOKEN_DURATION"`
+	InterviewAgentURL             string            `mapstructure:"INTERVIEW_AGENT_URL"`
+	WebSocketURL                  string            `mapstructure:"AI_SERVICE_WEBSOCKET_URL"`
+	InterviewSessionTokenDuration time.Duration     `mapstructure:"INTERVIEW_SESSION_TOKEN_DURATION"`
+	Headers                       map[string]string `mapstructure:"AI_SERVICE_HEADERS"`
 }
 
 func LoadConfig() (*Config, error) {

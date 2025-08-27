@@ -40,7 +40,7 @@ type WebSocketClient interface {
 
 type webSocketClient struct {
 	url       string
-	h         httpHeader
+	h         map[string]string
 	cb        WebSocketCallbacks
 	sessionID string
 	userID    string
@@ -48,8 +48,6 @@ type webSocketClient struct {
 	conn      *websocket.Conn
 	connected bool
 }
-
-type httpHeader map[string]string
 
 func NewWebSocketClient(url string, headers map[string]string) WebSocketClient {
 	return &webSocketClient{

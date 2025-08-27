@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -28,7 +29,6 @@ type Client struct {
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
-	clientManager    *ClientManager
 }
 
 type WebSocketServerInterface interface {
@@ -48,6 +48,7 @@ type webSocketServer struct {
 	interviewSessionService services.InterviewSessionService
 	interviewSessionRepo    repositories.InterviewSessionRepository
 	aiAgentConnected        bool
+	clientManager           *ClientManager
 }
 
 func NewWebSocketServer(
@@ -56,6 +57,7 @@ func NewWebSocketServer(
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
 	interviewSessionRepo repositories.InterviewSessionRepository,
+	clientManager *ClientManager,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -74,6 +76,7 @@ func NewWebSocketServer(
 		interviewSessionService: interviewSessionService,
 		interviewSessionRepo:    interviewSessionRepo,
 		aiAgentConnected:        false,
+		clientManager:           clientManager,
 	}
 }
 
@@ -81,8 +84,6 @@ func (s *webSocketServer) Start(ctx context.Context) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: Start] Starting WebSocket server")
 
 	s.aiAgentConnected = true
-
-	s.log.InfoWithID(ctx, "[WebSocketServer: Start] WebSocket server started successfully")
 	return nil
 }
 
@@ -142,15 +143,12 @@ func (s *webSocketServer) HandleConnection(
 		return err
 	}
 
-	clientManager := NewClientManager()
-
 	client := &Client{
-		conn:          conn,
-		userID:        sessionPayload.UserID,
-		sessionID:     sessionPayload.SessionID,
-		lastPongTime:  time.Now(),
-		pongReceived:  make(chan struct{}, 1),
-		clientManager: clientManager,
+		conn:         conn,
+		userID:       sessionPayload.UserID,
+		sessionID:    sessionPayload.SessionID,
+		lastPongTime: time.Now(),
+		pongReceived: make(chan struct{}, 1),
 	}
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
@@ -175,6 +173,22 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
+	agentClient := NewWebSocketClient("ws://ai-agent-server", nil)
+	callbacks := NewWebSocketCallbacks().
+		WithASRPartial(func(segmentID, text string, seq int, stability float64) {
+			s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
+		}).
+		WithASRFinal(func(segmentID, text string, seq int) {
+			s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
+		})
+	agentClient.SetCallbacks(*callbacks)
+	if err := agentClient.Start(ctx); err != nil {
+		return err
+	}
+
+	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
+	s.clientManager.Set(client.sessionID, agentClient)
+
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
 		Status:    constants.StatusOnGoing,
@@ -185,10 +199,6 @@ func (s *webSocketServer) HandleConnection(
 		s.disconnect(client)
 		return err
 	}
-
-	_ = s.writeJSON(client, map[string]any{
-		"v": 1, "type": "connection_established", "session_id": client.sessionID,
-	})
 
 	go s.pingLoop(client)
 	go s.readLoop(ctx, client)
@@ -307,7 +317,13 @@ func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *
 		return
 	}
 
-	// audioData := payload[4+headerLength:]
+	audioData := payload[4+headerLength:]
+
+	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+		if err := agentClient.SendAudio(ctx, header.SegmentID, audioData); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error forwarding audio to AI agent", err)
+		}
+	}
 }
 
 func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
@@ -335,6 +351,12 @@ func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, clien
 	}
 
 	client.currentSegmentID = m.SegmentID
+
+	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+		if err := agentClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Error forwarding segment start to AI agent", err)
+		}
+	}
 
 }
 
@@ -371,6 +393,12 @@ func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client 
 	}
 
 	client.currentSegmentID = ""
+
+	if agentClient, exists := s.clientManager.Get(client.sessionID); exists {
+		if err := agentClient.SegmentEnd(ctx, m.SegmentID); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error forwarding segment end to AI agent", err)
+		}
+	}
 }
 
 func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
@@ -433,14 +461,77 @@ func (s *webSocketServer) disconnect(c *Client) {
 			delete(s.userSessions, c.userID)
 		}
 	}
-	s.mu.Unlock()
 
-	close(c.pongReceived)
+	s.clientManager.Delete(c.sessionID)
+	s.mu.Unlock()
 	_ = c.conn.Close()
+	close(c.pongReceived)
 }
 
 func (s *webSocketServer) writeJSON(c *Client, v any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.conn.WriteJSON(v)
+}
+
+func (s *webSocketServer) HandleTTSResponse(ctx context.Context, sessionID, segmentID, ttsID, encoding string) error {
+	s.mu.RLock()
+	client, exists := s.sessions[sessionID]
+	s.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("client not found for session %s", sessionID)
+	}
+
+	_ = s.writeJSON(client, map[string]any{
+		"v": 1, "type": "tts_start", "segment_id": segmentID, "tts_id": ttsID, "encoding": encoding,
+	})
+
+	return nil
+}
+
+func (s *webSocketServer) HandleTTSChunk(ctx context.Context, sessionID, segmentID string, audioData []byte) error {
+	s.mu.RLock()
+	client, exists := s.sessions[sessionID]
+	s.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("client not found for session %s", sessionID)
+	}
+
+	header := map[string]string{
+		"type":       "tts_chunk",
+		"session_id": sessionID,
+		"segment_id": segmentID,
+	}
+
+	headerBytes, err := json.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	frame := make([]byte, 4+len(headerBytes)+len(audioData))
+	binary.BigEndian.PutUint32(frame[:4], uint32(len(headerBytes)))
+	copy(frame[4:], headerBytes)
+	copy(frame[4+len(headerBytes):], audioData)
+
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	return client.conn.WriteMessage(websocket.BinaryMessage, frame)
+}
+
+func (s *webSocketServer) HandleTTSEnd(ctx context.Context, sessionID, segmentID, ttsID string) error {
+	s.mu.RLock()
+	client, exists := s.sessions[sessionID]
+	s.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("client not found for session %s", sessionID)
+	}
+
+	_ = s.writeJSON(client, map[string]any{
+		"v": 1, "type": "tts_end", "segment_id": segmentID, "tts_id": ttsID,
+	})
+
+	return nil
 }
