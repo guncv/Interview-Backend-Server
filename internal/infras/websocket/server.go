@@ -159,6 +159,7 @@ func (s *webSocketServer) HandleConnection(
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
+		s.log.InfoWithID(ctx, "[WebSocketServer] Pong received from client")
 		client.mu.Lock()
 		client.lastPongTime = time.Now()
 		client.mu.Unlock()
@@ -278,6 +279,15 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 		case websocket.BinaryMessage:
 			s.handleAudioBinaryMessage(ctx, c, payload)
+
+		case websocket.PingMessage:
+			s.log.InfoWithID(ctx, "[WebSocketServer] PingMessage received — replying with Pong")
+			// You must reply with Pong manually here
+			_ = c.conn.WriteMessage(websocket.PongMessage, nil)
+
+		case websocket.PongMessage:
+			s.log.InfoWithID(ctx, "[WebSocketServer] PongMessage received (manual read path)")
+			c.lastPongTime = time.Now()
 
 		default:
 			// ignore other frame types, like pong
