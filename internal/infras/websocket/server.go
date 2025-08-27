@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -178,33 +179,34 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
-	// u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
-	// if err != nil {
-	// 	s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err, map[string]any{"base": s.cfg.InterviewSessionConfig.WebSocketURL})
-	// 	s.disconnect(client)
-	// 	return err
-	// }
+	u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err, map[string]any{"base": s.cfg.InterviewSessionConfig.WebSocketURL})
+		s.disconnect(client)
+		return err
+	}
 
-	// q := u.Query()
-	// q.Set("session_id", client.sessionID)
-	// q.Set("user_id", client.userID)
-	// u.RawQuery = q.Encode()
+	q := u.Query()
+	q.Set("session_id", client.sessionID)
+	q.Set("user_id", client.userID)
+	u.RawQuery = q.Encode()
 
-	// agentClient := NewWebSocketClient()
-	// callbacks := NewWebSocketCallbacks().
-	// 	WithASRPartial(func(segmentID, text string, seq int, stability float64) {
-	// 		s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
-	// 	}).
-	// 	WithASRFinal(func(segmentID, text string, seq int) {
-	// 		s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
-	// 	})
-	// agentClient.SetCallbacks(*callbacks)
-	// if err := agentClient.Start(ctx, u.String()); err != nil {
-	// 	return err
-	// }
+	agentClient := NewWebSocketClient(s.log)
+	callbacks := NewWebSocketCallbacks().
+		WithASRPartial(func(segmentID, text string, seq int, stability float64) {
+			s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
+		}).
+		WithASRFinal(func(segmentID, text string, seq int) {
+			s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
+		})
+	agentClient.SetCallbacks(*callbacks)
+	if err := agentClient.Start(ctx, u.String()); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
+		return err
+	}
 
-	// _ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
-	// s.clientManager.Set(client.sessionID, agentClient)
+	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
+	s.clientManager.Set(client.sessionID, agentClient)
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
