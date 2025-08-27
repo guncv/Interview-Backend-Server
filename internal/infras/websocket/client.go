@@ -24,7 +24,7 @@ type WebSocketCallbacks struct {
 }
 
 type WebSocketClient interface {
-	Start(ctx context.Context) error
+	Start(ctx context.Context, url string) error
 	Close() error
 
 	SegmentStart(ctx context.Context, segmentID string, sampleRate int, encoding string, channels int) error
@@ -39,8 +39,6 @@ type WebSocketClient interface {
 }
 
 type webSocketClient struct {
-	url       string
-	h         map[string]string
 	cb        WebSocketCallbacks
 	sessionID string
 	userID    string
@@ -49,23 +47,18 @@ type webSocketClient struct {
 	connected bool
 }
 
-func NewWebSocketClient(url string, headers map[string]string) WebSocketClient {
+func NewWebSocketClient() WebSocketClient {
 	return &webSocketClient{
-		url:       url,
-		h:         headers,
 		cb:        WebSocketCallbacks{},
 		conn:      nil,
 		connected: false,
 	}
 }
 
-func (c *webSocketClient) Start(ctx context.Context) error {
+func (c *webSocketClient) Start(ctx context.Context, url string) error {
 	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	var hdr = make(map[string][]string)
-	for k, v := range c.h {
-		hdr[k] = []string{v}
-	}
-	conn, _, err := d.DialContext(ctx, c.url, hdr)
+
+	conn, _, err := d.DialContext(ctx, url, nil)
 	if err != nil {
 		return err
 	}

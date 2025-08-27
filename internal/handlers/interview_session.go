@@ -182,7 +182,7 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.Abort()
 }
 
 func (h *InterviewSessionHandler) authenticateWebSocketConnection(c *gin.Context) (*utils.SignInTokenPayload, error) {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -49,6 +50,7 @@ type webSocketServer struct {
 	interviewSessionRepo    repositories.InterviewSessionRepository
 	aiAgentConnected        bool
 	clientManager           *ClientManager
+	cfg                     *config.Config
 }
 
 func NewWebSocketServer(
@@ -58,6 +60,7 @@ func NewWebSocketServer(
 	interviewSessionService services.InterviewSessionService,
 	interviewSessionRepo repositories.InterviewSessionRepository,
 	clientManager *ClientManager,
+	cfg *config.Config,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -77,6 +80,7 @@ func NewWebSocketServer(
 		interviewSessionRepo:    interviewSessionRepo,
 		aiAgentConnected:        false,
 		clientManager:           clientManager,
+		cfg:                     cfg,
 	}
 }
 
@@ -94,6 +98,7 @@ func (s *webSocketServer) Close() error {
 	for _, client := range s.sessions {
 		_ = client.conn.Close()
 	}
+
 	s.sessions = make(map[string]*Client)
 	s.userSessions = make(map[string]map[string]bool)
 	s.mu.Unlock()
@@ -173,21 +178,33 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
-	agentClient := NewWebSocketClient("ws://ai-agent-server", nil)
-	callbacks := NewWebSocketCallbacks().
-		WithASRPartial(func(segmentID, text string, seq int, stability float64) {
-			s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
-		}).
-		WithASRFinal(func(segmentID, text string, seq int) {
-			s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
-		})
-	agentClient.SetCallbacks(*callbacks)
-	if err := agentClient.Start(ctx); err != nil {
-		return err
-	}
+	// u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
+	// if err != nil {
+	// 	s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err, map[string]any{"base": s.cfg.InterviewSessionConfig.WebSocketURL})
+	// 	s.disconnect(client)
+	// 	return err
+	// }
 
-	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
-	s.clientManager.Set(client.sessionID, agentClient)
+	// q := u.Query()
+	// q.Set("session_id", client.sessionID)
+	// q.Set("user_id", client.userID)
+	// u.RawQuery = q.Encode()
+
+	// agentClient := NewWebSocketClient()
+	// callbacks := NewWebSocketCallbacks().
+	// 	WithASRPartial(func(segmentID, text string, seq int, stability float64) {
+	// 		s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
+	// 	}).
+	// 	WithASRFinal(func(segmentID, text string, seq int) {
+	// 		s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
+	// 	})
+	// agentClient.SetCallbacks(*callbacks)
+	// if err := agentClient.Start(ctx, u.String()); err != nil {
+	// 	return err
+	// }
+
+	// _ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
+	// s.clientManager.Set(client.sessionID, agentClient)
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
@@ -199,6 +216,10 @@ func (s *webSocketServer) HandleConnection(
 		s.disconnect(client)
 		return err
 	}
+
+	_ = s.writeJSON(client, map[string]any{
+		"v": 1, "type": "connection_established", "session_id": client.sessionID,
+	})
 
 	go s.pingLoop(client)
 	go s.readLoop(ctx, client)
