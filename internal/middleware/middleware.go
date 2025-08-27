@@ -14,6 +14,7 @@ import (
 
 type AuthMiddleware interface {
 	AuthMiddleware() gin.HandlerFunc
+	VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error)
 }
 
 type authMiddleware struct {
@@ -57,38 +58,10 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
-		payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken)
+		payload, err := m.VerifyAndRenewAccessToken(ctx, accessToken)
 		if err != nil {
-			var appErr *app_error.AppError
-			if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
-				m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Access token expired")
-
-				cookie, err := ctx.Request.Cookie("refresh_token")
-				if err != nil {
-					m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Get refresh token error", err)
-					ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
-					return
-				}
-
-				m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renewing access token", "refreshToken", cookie.Value)
-				refreshToken := cookie.Value
-				accessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
-				if err != nil {
-					m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renew access token error", err)
-					ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
-					return
-				}
-				ctx.Set(string(constants.AuthorizationPayloadKey), payload)
-				ctx.Set(string(constants.NewAccessTokenKey), accessToken)
-
-				ctx.Header(string(constants.XAccessTokenHeaderKey), accessToken)
-
-				ctx.Next()
-				return
-			}
-
-			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify access token error", err)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, app_error.New(err, app_error.ErrCodeAuthInvalidToken))
+			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Error", err)
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, err)
 			return
 		}
 
@@ -97,4 +70,40 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		ctx.Next()
 
 	}
+}
+
+func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error) {
+	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken)
+	if err != nil {
+		var appErr *app_error.AppError
+		if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
+			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Access token expired")
+
+			cookie, err := ctx.Request.Cookie("refresh_token")
+			if err != nil {
+				m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Get refresh token error", err)
+				return nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken)
+			}
+
+			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renewing access token", "refreshToken", cookie.Value)
+			refreshToken := cookie.Value
+			accessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
+			if err != nil {
+				m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renew access token error", err)
+				return nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken)
+			}
+			ctx.Set(string(constants.AuthorizationPayloadKey), payload)
+			ctx.Set(string(constants.NewAccessTokenKey), accessToken)
+
+			ctx.Header(string(constants.XAccessTokenHeaderKey), accessToken)
+
+			ctx.Next()
+			return payload, nil
+		}
+
+		m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify access token error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	return payload, nil
 }

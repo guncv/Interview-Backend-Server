@@ -146,7 +146,7 @@ func (s *webSocketServer) HandleConnection(
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error upgrading connection", err)
-		return err
+		return nil
 	}
 
 	client := &Client{
@@ -181,9 +181,9 @@ func (s *webSocketServer) HandleConnection(
 
 	u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err, map[string]any{"base": s.cfg.InterviewSessionConfig.WebSocketURL})
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
 		s.disconnect(client)
-		return err
+		return nil
 	}
 
 	q := u.Query()
@@ -202,7 +202,8 @@ func (s *webSocketServer) HandleConnection(
 	agentClient.SetCallbacks(*callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
-		return err
+		s.disconnect(client)
+		return nil
 	}
 
 	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
@@ -215,8 +216,9 @@ func (s *webSocketServer) HandleConnection(
 
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
+
 		s.disconnect(client)
-		return err
+		return nil
 	}
 
 	_ = s.writeJSON(client, map[string]any{
@@ -473,22 +475,29 @@ func (s *webSocketServer) pingLoop(c *Client) {
 	}
 }
 
-func (s *webSocketServer) disconnect(c *Client) {
+func (s *webSocketServer) disconnect(client *Client) {
 	s.log.InfoWithID(context.Background(), "[WebSocketServer: disconnect] Called")
 	s.mu.Lock()
-	delete(s.sessions, c.sessionID)
+	delete(s.sessions, client.sessionID)
 
-	if set := s.userSessions[c.userID]; set != nil {
-		delete(set, c.sessionID)
+	if set := s.userSessions[client.userID]; set != nil {
+		delete(set, client.sessionID)
 		if len(set) == 0 {
-			delete(s.userSessions, c.userID)
+			delete(s.userSessions, client.userID)
 		}
 	}
 
-	s.clientManager.Delete(c.sessionID)
+	_ = s.writeJSON(client, map[string]any{
+		"v":       1,
+		"type":    "error",
+		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
+		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
+	})
+
+	s.clientManager.Delete(client.sessionID)
 	s.mu.Unlock()
-	_ = c.conn.Close()
-	close(c.pongReceived)
+	_ = client.conn.Close()
+	close(client.pongReceived)
 }
 
 func (s *webSocketServer) writeJSON(c *Client, v any) error {
