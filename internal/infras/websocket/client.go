@@ -21,7 +21,6 @@ type WebSocketClient interface {
 	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
 	SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error
 	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
-	StopTTS(ctx context.Context, segmentID string) error
 
 	SendMessage(ctx context.Context, data map[string]interface{}) error
 	SendBinaryMessage(ctx context.Context, data []byte) error
@@ -118,6 +117,8 @@ func (c *webSocketClient) SegmentStart(ctx context.Context, msg MsgSegmentStart)
 		"segment_id": msg.SegmentID,
 	}
 
+	c.currentSegmentID = msg.SegmentID
+
 	if err := c.SendMessage(ctx, message); err != nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
 		return err
@@ -172,10 +173,10 @@ func (c *webSocketClient) SendAudio(ctx context.Context, msg MsgAudioChunk, audi
 }
 
 func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Called:", msg)
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentEnd] Called:", msg)
 
 	if c.sessionID != msg.SessionID {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID mismatch")
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Session ID mismatch")
 		return errors.New("session ID mismatch")
 	}
 
@@ -190,15 +191,13 @@ func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) err
 		"segment_id": msg.SegmentID,
 	}
 
+	c.currentSegmentID = ""
+
 	if err := c.SendMessage(ctx, message); err != nil {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Error sending session info", err)
 		return err
 	}
 
-	return nil
-}
-
-func (c *webSocketClient) StopTTS(ctx context.Context, seg string) error {
 	return nil
 }
 
