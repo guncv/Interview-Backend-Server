@@ -131,7 +131,7 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(ws.NewWebSocketServerCallbacks); err != nil {
+	if err := c.Container.Provide(ws.NewWebSocketServerLogic); err != nil {
 		c.Error = err
 	}
 

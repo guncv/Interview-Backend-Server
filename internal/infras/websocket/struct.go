@@ -2,26 +2,22 @@ package websocket
 
 import "time"
 
-type msgAudioChunk struct {
+type MsgAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
 }
 
-type msgSegmentStart struct {
-	Type       string `json:"type"`
-	SessionID  string `json:"session_id"`
-	SegmentID  string `json:"segment_id"`
-	SampleRate int    `json:"sample_rate"`
-	Encoding   string `json:"encoding"`
-	Channels   int    `json:"channels"`
-}
-
-type msgSegmentEnd struct {
+type MsgSegmentStart struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
-	Timestamp int64  `json:"timestamp"`
+}
+
+type MsgSegmentEnd struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+	SegmentID string `json:"segment_id"`
 }
 
 type ConversationTurn struct {

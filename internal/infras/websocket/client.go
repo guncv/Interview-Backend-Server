@@ -2,7 +2,9 @@ package websocket
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -16,22 +18,24 @@ type WebSocketClient interface {
 	Start(ctx context.Context, url string) error
 	Close(ctx context.Context) error
 
-	SegmentStart(ctx context.Context, segmentID string, sampleRate int, encoding string, channels int) error
-	SendAudio(ctx context.Context, segmentID string, buf []byte) error
-	SegmentEnd(ctx context.Context, segmentID string) error
+	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
+	SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error
+	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
 	StopTTS(ctx context.Context, segmentID string) error
 
-	SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error
+	SendMessage(ctx context.Context, data map[string]interface{}) error
+	SendBinaryMessage(ctx context.Context, data []byte) error
 	SendSessionInfo(ctx context.Context, sessionID, userID string) error
 	IsConnected() bool
 	SetCallbacks(callbacks WebSocketClientCallbacks)
 }
 
 type webSocketClient struct {
-	cb        WebSocketClientCallbacks
-	log       *log.Logger
-	sessionID string
-	userID    string
+	cb               WebSocketClientCallbacks
+	log              *log.Logger
+	sessionID        string
+	userID           string
+	currentSegmentID string
 
 	conn         *websocket.Conn
 	connected    bool
@@ -100,15 +104,97 @@ func (c *webSocketClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *webSocketClient) SegmentStart(ctx context.Context, seg string, sr int, enc string, ch int) error {
+func (c *webSocketClient) SegmentStart(ctx context.Context, msg MsgSegmentStart) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID mismatch")
+		return errors.New("session ID mismatch")
+	}
+
+	message := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
+	}
+
+	if err := c.SendMessage(ctx, message); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
+		return err
+	}
+
 	return nil
 }
 
-func (c *webSocketClient) SendAudio(ctx context.Context, seg string, buf []byte) error {
+func (c *webSocketClient) SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SendAudio] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Session ID mismatch")
+		return errors.New("session ID mismatch")
+	}
+
+	if c.currentSegmentID != msg.SegmentID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Segment ID mismatch")
+		return errors.New("segment ID mismatch")
+	}
+
+	header := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
+	}
+
+	headerBytes, err := json.Marshal(header)
+	if err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Error marshalling header", err)
+		return err
+	}
+
+	headerLength := uint32(len(headerBytes))
+
+	payload := make([]byte, 4+len(headerBytes)+len(audioData))
+
+	binary.BigEndian.PutUint32(payload[:4], headerLength)
+
+	copy(payload[4:4+headerLength], headerBytes)
+
+	copy(payload[4+headerLength:], audioData)
+
+	if err := c.SendBinaryMessage(ctx, payload); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Error sending audio", err)
+		return err
+	}
+
+	c.currentSegmentID = msg.SegmentID
+
 	return nil
 }
 
-func (c *webSocketClient) SegmentEnd(ctx context.Context, seg string) error {
+func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID mismatch")
+		return errors.New("session ID mismatch")
+	}
+
+	if c.currentSegmentID != msg.SegmentID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Segment ID mismatch")
+		return errors.New("segment ID mismatch")
+	}
+
+	message := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
+	}
+
+	if err := c.SendMessage(ctx, message); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -116,21 +202,28 @@ func (c *webSocketClient) StopTTS(ctx context.Context, seg string) error {
 	return nil
 }
 
-func (c *webSocketClient) SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error {
+func (c *webSocketClient) SendMessage(ctx context.Context, data map[string]interface{}) error {
 	if !c.connected || c.conn == nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Not connected")
 		return websocket.ErrCloseSent
 	}
 
-	message := map[string]interface{}{
-		"type": msgType,
+	message, err := json.Marshal(data)
+	if err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Error marshalling message", err)
+		return err
 	}
 
-	for k, v := range data {
-		message[k] = v
+	return c.conn.WriteMessage(websocket.TextMessage, message)
+}
+
+func (c *webSocketClient) SendBinaryMessage(ctx context.Context, data []byte) error {
+	if !c.connected || c.conn == nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendBinaryMessage] Not connected")
+		return websocket.ErrCloseSent
 	}
 
-	return c.conn.WriteJSON(message)
+	return c.conn.WriteMessage(websocket.BinaryMessage, data)
 }
 
 func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID string) error {
@@ -138,7 +231,7 @@ func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID
 	c.sessionID = sessionID
 	c.userID = userID
 
-	return c.SendMessage(ctx, "session_info", map[string]interface{}{
+	return c.SendMessage(ctx, map[string]interface{}{
 		"session_id": sessionID,
 		"user_id":    userID,
 		"timestamp":  time.Now().Unix(),

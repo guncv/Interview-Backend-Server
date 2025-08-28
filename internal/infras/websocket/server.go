@@ -51,7 +51,7 @@ type webSocketServer struct {
 	aiAgentConnected        bool
 	clientManager           *ClientManager
 	cfg                     *config.Config
-	callbacks               *WebSocketServerCallbacks
+	logic                   *WebSocketServerLogic
 	jwtMaker                utils.JwtToken
 }
 
@@ -83,18 +83,18 @@ func NewWebSocketServer(
 		aiAgentConnected:        false,
 		clientManager:           clientManager,
 		cfg:                     cfg,
-		callbacks:               nil,
+		logic:                   nil,
 		jwtMaker:                jwtMaker,
 	}
 
-	callbacks := NewWebSocketServerCallbacks(
+	logic := NewWebSocketServerLogic(
 		log,
 		server.disconnect,
 		server.writeJSON,
 		clientManager,
 	)
 
-	server.callbacks = callbacks
+	server.logic = logic
 
 	return server
 }
@@ -258,12 +258,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error reading message", err)
-			_ = s.writeJSON(c, msgError{
-				Type:    "error",
-				Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
-				Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
-			})
-			s.disconnect(ctx, c)
+			s.logic.sendMessageTypeError(ctx, c, app_error.ErrCodeWebSocketInvalidMessage)
 			return
 		}
 
@@ -279,11 +274,11 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			switch m.Type {
 
 			case constants.WebSocketMessageTypeSegmentStart:
-				s.callbacks.sendMessageTypeSegmentStart(ctx, c, payload)
+				s.logic.sendMessageTypeSegmentStart(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeSegmentEnd:
-				s.callbacks.sendMessageTypeSegmentEnd(ctx, c, payload)
+				s.logic.sendMessageTypeSegmentEnd(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeClose:
@@ -295,12 +290,12 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				return
 
 			default:
-				s.callbacks.sendMessageTypeError(ctx, c, payload)
+				s.logic.sendMessageTypeError(ctx, c, app_error.ErrCodeWebSocketInvalidMessage)
 				continue
 			}
 
 		case websocket.BinaryMessage:
-			s.callbacks.handleAudioBinaryMessage(ctx, c, payload)
+			s.logic.handleAudioBinaryMessage(ctx, c, payload)
 
 		default:
 			s.log.InfoWithID(ctx, "[WebSocketServer] Ignoring frame type", map[string]any{"frame_type": mt})
