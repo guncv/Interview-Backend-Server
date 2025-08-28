@@ -31,7 +31,6 @@ type UserService interface {
 	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
 	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
 	ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error
-	RefreshToken(ctx context.Context, req *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error)
 	SignOut(ctx context.Context) error
 }
 
@@ -127,7 +126,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 			verifyEmailReq := &entities.VerifyEmailTokenRequest{
 				UserID:   resp.ID.String(),
 				Email:    req.Email,
-				Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
+				Duration: s.config.EmailConfig.VerifyEmailTokenDuration,
 			}
 
 			verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
@@ -139,7 +138,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 			if err = s.redisClient.Set(ctx, database.RedisPayload{
 				Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
 				Value: code,
-				TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+				TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
 			}); err != nil {
 				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
 				return nil, err
@@ -199,7 +198,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 	verifyEmailReq := &entities.VerifyEmailTokenRequest{
 		UserID:   resp.ID.String(),
 		Email:    req.Email,
-		Duration: s.config.AuthConfig.VerifyEmailTokenDuration,
+		Duration: s.config.EmailConfig.VerifyEmailTokenDuration,
 	}
 
 	verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
@@ -211,7 +210,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 	if err = s.redisClient.Set(ctx, database.RedisPayload{
 		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
 		Value: code,
-		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
 		return nil, err
@@ -220,7 +219,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 	if err = s.redisClient.Set(ctx, database.RedisPayload{
 		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, verifyEmailToken),
 		Value: "0",
-		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting attempt", "error", err)
 		return nil, err
@@ -331,7 +330,7 @@ func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.Re
 	if err := s.redisClient.Set(ctx, database.RedisPayload{
 		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, newToken),
 		Value: code,
-		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting verify email token", "error", err)
 		return nil, err
@@ -340,7 +339,7 @@ func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.Re
 	if err := s.redisClient.Set(ctx, database.RedisPayload{
 		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, newToken),
 		Value: "0",
-		TTL:   s.config.AuthConfig.VerifyEmailTokenDuration,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
 	}); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting attempt", "error", err)
 		return nil, err
@@ -571,53 +570,6 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 	}
 
 	return nil
-}
-
-func (s *userService) RefreshToken(ctx context.Context, req *entities.RefreshTokenRequest) (*entities.RefreshTokenResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: RefreshToken] Called")
-
-	refreshPayload, err := s.jwtToken.VerifyToken(ctx, req.RefreshToken)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error verifying token", err)
-		return nil, err
-	}
-
-	if refreshPayload.ID == uuid.Nil || refreshPayload.UserID == "" || refreshPayload.Role == "" {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Invalid token payload", errors.New("invalid token payload"))
-		return nil, app_error.New(errors.New("invalid token payload"), app_error.ErrCodeAuthInvalidToken)
-	}
-
-	session, err := s.sessionRepo.GetSessionByID(ctx, refreshPayload.ID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error getting session", err)
-		return nil, err
-	}
-
-	if session.IsRevoked.Bool {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session is revoked", errors.New("session is revoked"))
-		return nil, app_error.New(errors.New("session is revoked"), app_error.ErrCodeAuthInvalidRefreshToken)
-	}
-
-	if session.ExpiresAt.Valid && time.Now().After(session.ExpiresAt.Time) {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Session expired", errors.New("session expired"))
-		return nil, app_error.New(errors.New("session expired"), app_error.ErrCodeAuthExpiredToken)
-	}
-
-	tokenRequest := &entities.TokenRequest{
-		UserID:   session.UserID.String(),
-		Role:     refreshPayload.Role,
-		Duration: s.config.AuthConfig.AccessTokenDuration,
-	}
-
-	accessToken, _, err := s.jwtToken.CreateToken(ctx, tokenRequest)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: RefreshToken] Error creating access token", err)
-		return nil, err
-	}
-
-	return &entities.RefreshTokenResponse{
-		AccessToken: accessToken,
-	}, nil
 }
 
 func (s *userService) SignOut(ctx context.Context) error {

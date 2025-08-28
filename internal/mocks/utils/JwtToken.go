@@ -28,9 +28,9 @@ func (_m *MockJwtToken) EXPECT() *MockJwtToken_Expecter {
 	return &MockJwtToken_Expecter{mock: &_m.Mock}
 }
 
-// CreateJWTToken provides a mock function with given fields: ctx, claims
-func (_m *MockJwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
-	ret := _m.Called(ctx, claims)
+// CreateJWTToken provides a mock function with given fields: ctx, claims, secretKey
+func (_m *MockJwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims, secretKey string) (string, error) {
+	ret := _m.Called(ctx, claims, secretKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateJWTToken")
@@ -38,17 +38,17 @@ func (_m *MockJwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) (string, error)); ok {
-		return rf(ctx, claims)
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims, string) (string, error)); ok {
+		return rf(ctx, claims, secretKey)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims) string); ok {
-		r0 = rf(ctx, claims)
+	if rf, ok := ret.Get(0).(func(context.Context, jwt.Claims, string) string); ok {
+		r0 = rf(ctx, claims, secretKey)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, jwt.Claims) error); ok {
-		r1 = rf(ctx, claims)
+	if rf, ok := ret.Get(1).(func(context.Context, jwt.Claims, string) error); ok {
+		r1 = rf(ctx, claims, secretKey)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -64,13 +64,14 @@ type MockJwtToken_CreateJWTToken_Call struct {
 // CreateJWTToken is a helper method to define mock.On call
 //   - ctx context.Context
 //   - claims jwt.Claims
-func (_e *MockJwtToken_Expecter) CreateJWTToken(ctx interface{}, claims interface{}) *MockJwtToken_CreateJWTToken_Call {
-	return &MockJwtToken_CreateJWTToken_Call{Call: _e.mock.On("CreateJWTToken", ctx, claims)}
+//   - secretKey string
+func (_e *MockJwtToken_Expecter) CreateJWTToken(ctx interface{}, claims interface{}, secretKey interface{}) *MockJwtToken_CreateJWTToken_Call {
+	return &MockJwtToken_CreateJWTToken_Call{Call: _e.mock.On("CreateJWTToken", ctx, claims, secretKey)}
 }
 
-func (_c *MockJwtToken_CreateJWTToken_Call) Run(run func(ctx context.Context, claims jwt.Claims)) *MockJwtToken_CreateJWTToken_Call {
+func (_c *MockJwtToken_CreateJWTToken_Call) Run(run func(ctx context.Context, claims jwt.Claims, secretKey string)) *MockJwtToken_CreateJWTToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(jwt.Claims))
+		run(args[0].(context.Context), args[1].(jwt.Claims), args[2].(string))
 	})
 	return _c
 }
@@ -80,7 +81,7 @@ func (_c *MockJwtToken_CreateJWTToken_Call) Return(_a0 string, _a1 error) *MockJ
 	return _c
 }
 
-func (_c *MockJwtToken_CreateJWTToken_Call) RunAndReturn(run func(context.Context, jwt.Claims) (string, error)) *MockJwtToken_CreateJWTToken_Call {
+func (_c *MockJwtToken_CreateJWTToken_Call) RunAndReturn(run func(context.Context, jwt.Claims, string) (string, error)) *MockJwtToken_CreateJWTToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -501,9 +502,9 @@ func (_c *MockJwtToken_RenewVerifyEmailToken_Call) RunAndReturn(run func(context
 	return _c
 }
 
-// VerifyToken provides a mock function with given fields: ctx, token
-func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string) (*utils.SignInTokenPayload, error) {
-	ret := _m.Called(ctx, token)
+// VerifyToken provides a mock function with given fields: ctx, token, secretKey
+func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string, secretKey string) (*utils.SignInTokenPayload, error) {
+	ret := _m.Called(ctx, token, secretKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for VerifyToken")
@@ -511,19 +512,19 @@ func (_m *MockJwtToken) VerifyToken(ctx context.Context, token string) (*utils.S
 
 	var r0 *utils.SignInTokenPayload
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*utils.SignInTokenPayload, error)); ok {
-		return rf(ctx, token)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*utils.SignInTokenPayload, error)); ok {
+		return rf(ctx, token, secretKey)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *utils.SignInTokenPayload); ok {
-		r0 = rf(ctx, token)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *utils.SignInTokenPayload); ok {
+		r0 = rf(ctx, token, secretKey)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*utils.SignInTokenPayload)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, token)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, token, secretKey)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -539,13 +540,14 @@ type MockJwtToken_VerifyToken_Call struct {
 // VerifyToken is a helper method to define mock.On call
 //   - ctx context.Context
 //   - token string
-func (_e *MockJwtToken_Expecter) VerifyToken(ctx interface{}, token interface{}) *MockJwtToken_VerifyToken_Call {
-	return &MockJwtToken_VerifyToken_Call{Call: _e.mock.On("VerifyToken", ctx, token)}
+//   - secretKey string
+func (_e *MockJwtToken_Expecter) VerifyToken(ctx interface{}, token interface{}, secretKey interface{}) *MockJwtToken_VerifyToken_Call {
+	return &MockJwtToken_VerifyToken_Call{Call: _e.mock.On("VerifyToken", ctx, token, secretKey)}
 }
 
-func (_c *MockJwtToken_VerifyToken_Call) Run(run func(ctx context.Context, token string)) *MockJwtToken_VerifyToken_Call {
+func (_c *MockJwtToken_VerifyToken_Call) Run(run func(ctx context.Context, token string, secretKey string)) *MockJwtToken_VerifyToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -555,7 +557,7 @@ func (_c *MockJwtToken_VerifyToken_Call) Return(_a0 *utils.SignInTokenPayload, _
 	return _c
 }
 
-func (_c *MockJwtToken_VerifyToken_Call) RunAndReturn(run func(context.Context, string) (*utils.SignInTokenPayload, error)) *MockJwtToken_VerifyToken_Call {
+func (_c *MockJwtToken_VerifyToken_Call) RunAndReturn(run func(context.Context, string, string) (*utils.SignInTokenPayload, error)) *MockJwtToken_VerifyToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

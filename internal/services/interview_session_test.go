@@ -124,7 +124,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
@@ -543,7 +543,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
@@ -697,7 +697,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
@@ -933,7 +933,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
@@ -1449,7 +1449,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
@@ -1552,7 +1552,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
-						InterviewSessionTokenDuration: 24 * time.Hour,
+						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 

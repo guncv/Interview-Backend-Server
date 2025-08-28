@@ -24,8 +24,8 @@ type JwtToken interface {
 	CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error)
 	VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error)
 	CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error)
-	VerifyToken(ctx context.Context, token string) (*SignInTokenPayload, error)
-	CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error)
+	VerifyToken(ctx context.Context, token string, secretKey string) (*SignInTokenPayload, error)
+	CreateJWTToken(ctx context.Context, claims jwt.Claims, secretKey string) (string, error)
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
 	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
@@ -50,9 +50,9 @@ func NewJwtToken(
 	}
 }
 
-func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (string, error) {
+func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims, secretKey string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(maker.config.AuthConfig.JwtSecretKey))
+	signedToken, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error signing token", "error", err)
 		return "", app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
@@ -65,7 +65,7 @@ func (maker *jwtToken) CreateWebSocketSessionToken(ctx context.Context, req *ent
 
 	payload := NewWebSocketSessionPayload(req)
 
-	token, err := maker.CreateJWTToken(ctx, payload)
+	token, err := maker.CreateJWTToken(ctx, payload, maker.config.InterviewSessionConfig.EncryptionSecretKey)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities
 		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	token, err := maker.CreateJWTToken(ctx, payload)
+	token, err := maker.CreateJWTToken(ctx, payload, maker.config.EmailConfig.EncryptionSecretKey)
 	if err != nil {
 		return "", nil, err
 	}
@@ -94,7 +94,7 @@ func (maker *jwtToken) VerifyVerifyEmailToken(ctx context.Context, token string)
 	maker.logger.InfoWithID(ctx, "[Utils: JWT] Verifying verify email token", "token", token)
 
 	payload := &VerifyEmailTokenPayload{}
-	if err := maker.verifyJWTToken(ctx, token, payload); err != nil {
+	if err := maker.verifyJWTToken(ctx, token, payload, maker.config.EmailConfig.EncryptionSecretKey); err != nil {
 		return nil, err
 	}
 
@@ -110,7 +110,7 @@ func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenReque
 		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	token, err := maker.CreateJWTToken(ctx, payload)
+	token, err := maker.CreateJWTToken(ctx, payload, maker.config.AuthConfig.EncryptionSecretKey)
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating sign-in token", "error", err)
 		return "", nil, err
@@ -119,11 +119,11 @@ func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenReque
 	return token, payload, nil
 }
 
-func (maker *jwtToken) VerifyToken(ctx context.Context, token string) (*SignInTokenPayload, error) {
+func (maker *jwtToken) VerifyToken(ctx context.Context, token string, secretKey string) (*SignInTokenPayload, error) {
 	maker.logger.InfoWithID(ctx, "[Utils: JWT] Verifying sign-in token", "token", token)
 
 	payload := &SignInTokenPayload{}
-	if err := maker.verifyJWTToken(ctx, token, payload); err != nil {
+	if err := maker.verifyJWTToken(ctx, token, payload, secretKey); err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error verifying sign-in token", "error", err)
 		return nil, err
 	}
@@ -131,13 +131,13 @@ func (maker *jwtToken) VerifyToken(ctx context.Context, token string) (*SignInTo
 	return payload, nil
 }
 
-func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, claims jwt.Claims) error {
+func (maker *jwtToken) verifyJWTToken(ctx context.Context, tokenString string, claims jwt.Claims, secretKey string) error {
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
 			return nil, errors.New("invalid token method")
 		}
-		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
+		return []byte(secretKey), nil
 	}
 
 	parser := jwt.Parser{
@@ -197,7 +197,7 @@ func (maker *jwtToken) IsTokenMatch(ctx context.Context, providedToken string, s
 func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error) {
 	maker.logger.InfoWithID(ctx, "[Utils: RenewAccessToken] Renewing access token", "token")
 
-	refreshPayload, err := maker.VerifyToken(ctx, token)
+	refreshPayload, err := maker.VerifyToken(ctx, token, maker.config.AuthConfig.EncryptionSecretKey)
 	if err != nil {
 		return "", nil, err
 	}
@@ -279,7 +279,7 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
 			return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
 		}
-		return []byte(maker.config.AuthConfig.JwtSecretKey), nil
+		return []byte(maker.config.EmailConfig.EncryptionSecretKey), nil
 	}
 
 	token, err := jwt.Parse(oldToken, keyFunc)
@@ -300,9 +300,9 @@ func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken strin
 		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	payload.ExpiredAt = time.Now().Add(maker.config.AuthConfig.VerifyEmailTokenDuration)
+	payload.ExpiredAt = time.Now().Add(maker.config.EmailConfig.VerifyEmailTokenDuration)
 
-	newToken, err := maker.CreateJWTToken(ctx, payload)
+	newToken, err := maker.CreateJWTToken(ctx, payload, maker.config.EmailConfig.EncryptionSecretKey)
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
 		return "", nil, err

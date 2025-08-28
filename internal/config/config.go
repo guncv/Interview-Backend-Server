@@ -43,23 +43,24 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	JwtSecretKey               string        `mapstructure:"JWT_SECRET_KEY"`
+	EncryptionSecretKey        string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
 	AccessTokenDuration        time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	ResetPasswordTokenDuration time.Duration `mapstructure:"RESET_PASSWORD_TOKEN_DURATION"`
-	VerifyEmailTokenDuration   time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
 	TokenGraceWindow           time.Duration `mapstructure:"TOKEN_GRACE_WINDOW"`
 	CookieDomain               string        `mapstructure:"COOKIE_DOMAIN"`
 	CookieRejectHTTP           bool          `mapstructure:"COOKIE_REJECT_HTTP"`
 }
 
 type EmailConfig struct {
-	Host             string `mapstructure:"EMAIL_HOST"`
-	Port             int    `mapstructure:"EMAIL_PORT"`
-	Username         string `mapstructure:"EMAIL_USERNAME"`
-	Password         string `mapstructure:"EMAIL_PASSWORD"`
-	From             string `mapstructure:"EMAIL_FROM"`
-	ResetPasswordURL string `mapstructure:"RESET_PASSWORD_URL"`
+	Host                     string        `mapstructure:"EMAIL_HOST"`
+	Port                     int           `mapstructure:"EMAIL_PORT"`
+	Username                 string        `mapstructure:"EMAIL_USERNAME"`
+	Password                 string        `mapstructure:"EMAIL_PASSWORD"`
+	From                     string        `mapstructure:"EMAIL_FROM"`
+	ResetPasswordURL         string        `mapstructure:"RESET_PASSWORD_URL"`
+	VerifyEmailTokenDuration time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
+	EncryptionSecretKey      string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
 }
 
 type AWSConfig struct {
@@ -71,9 +72,11 @@ type AWSConfig struct {
 }
 
 type InterviewSessionConfig struct {
-	InterviewAgentURL             string        `mapstructure:"INTERVIEW_AGENT_URL"`
-	InterviewWebsocketPath        string        `mapstructure:"INTERVIEW_WEBSOCKET_PATH"`
-	InterviewSessionTokenDuration time.Duration `mapstructure:"INTERVIEW_SESSION_TOKEN_DURATION"`
+	InterviewAgentURL        string        `mapstructure:"INTERVIEW_AGENT_URL"`
+	InterviewWebsocketPath   string        `mapstructure:"INTERVIEW_WEBSOCKET_PATH"`
+	InterviewSessionTokenTTL time.Duration `mapstructure:"INTERVIEW_SESSION_TOKEN_TTL"`
+	InterviewSessionDuration time.Duration `mapstructure:"INTERVIEW_SESSION_DURATION"`
+	EncryptionSecretKey      string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
 }
 
 func LoadConfig() (*Config, error) {

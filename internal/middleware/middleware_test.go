@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -225,8 +226,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
 			c, mockToken := tC.setup()
+			cfg := &config.Config{
+				AuthConfig: config.AuthConfig{
+					EncryptionSecretKey: "test_secret",
+				},
+			}
 
-			middleware := NewAuthMiddleware(mockToken, lgr)
+			middleware := NewAuthMiddleware(mockToken, lgr, cfg)
 			authHandler := middleware.AuthMiddleware()
 
 			authHandler(c)
@@ -246,8 +252,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 func TestNewAuthMiddleware(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	mockToken := &utils.MockJwtToken{}
+	cfg := &config.Config{
+		AuthConfig: config.AuthConfig{
+			EncryptionSecretKey: "test_secret",
+		},
+	}
 
-	middleware := NewAuthMiddleware(mockToken, lgr)
+	middleware := NewAuthMiddleware(mockToken, lgr, cfg)
 
 	assert.NotNil(t, middleware)
 	assert.Implements(t, (*AuthMiddleware)(nil), middleware)

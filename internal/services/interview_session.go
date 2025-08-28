@@ -179,7 +179,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
 		Value: string(tokenReqJSON),
-		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenTTL,
 	}
 
 	err = s.redisClient.Set(ctx, redisPayload)
@@ -283,7 +283,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
 		Value: string(tokenReqJSON),
-		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenDuration,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenTTL,
 	}
 
 	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
@@ -320,13 +320,13 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error getting redis session token", err)
-		return nil, err
+		return nil, app_error.New(err, app_error.ErrCodeSessionNotFound)
 	}
 
 	var sessionPayload entities.RedisSessionToken
 	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error unmarshalling redis session token", err)
-		return nil, err
+		return nil, app_error.New(err, app_error.ErrCodeSessionInvalidToken)
 	}
 
 	if sessionPayload.UserID != req.UserID {

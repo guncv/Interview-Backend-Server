@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -20,12 +21,14 @@ type AuthMiddleware interface {
 type authMiddleware struct {
 	tokenMaker utils.JwtToken
 	log        *log.Logger
+	cfg        *config.Config
 }
 
-func NewAuthMiddleware(tokenMaker utils.JwtToken, log *log.Logger) AuthMiddleware {
+func NewAuthMiddleware(tokenMaker utils.JwtToken, log *log.Logger, cfg *config.Config) AuthMiddleware {
 	return &authMiddleware{
 		tokenMaker: tokenMaker,
 		log:        log,
+		cfg:        cfg,
 	}
 }
 
@@ -73,7 +76,7 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 }
 
 func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error) {
-	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken)
+	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken, m.cfg.AuthConfig.EncryptionSecretKey)
 	if err != nil {
 		var appErr *app_error.AppError
 		if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
