@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -18,8 +17,8 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
 
 type Client struct {
@@ -33,7 +32,7 @@ type Client struct {
 }
 
 type WebSocketServerInterface interface {
-	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error
+	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp) error
 	Start(ctx context.Context) error
 	Close(ctx context.Context) error
 	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
@@ -48,11 +47,11 @@ type webSocketServer struct {
 	redisClient             database.RedisClient
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
-	interviewSessionRepo    repositories.InterviewSessionRepository
 	aiAgentConnected        bool
 	clientManager           *ClientManager
 	cfg                     *config.Config
 	callbacks               *WebSocketServerCallbacks
+	jwtMaker                utils.JwtToken
 }
 
 func NewWebSocketServer(
@@ -60,9 +59,9 @@ func NewWebSocketServer(
 	redisClient database.RedisClient,
 	authContext middleware.AuthContext,
 	interviewSessionService services.InterviewSessionService,
-	interviewSessionRepo repositories.InterviewSessionRepository,
 	clientManager *ClientManager,
 	cfg *config.Config,
+	jwtMaker utils.JwtToken,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -80,11 +79,11 @@ func NewWebSocketServer(
 		userSessions:            make(map[string]map[string]bool),
 		authContext:             authContext,
 		interviewSessionService: interviewSessionService,
-		interviewSessionRepo:    interviewSessionRepo,
 		aiAgentConnected:        false,
 		clientManager:           clientManager,
 		cfg:                     cfg,
 		callbacks:               nil,
+		jwtMaker:                jwtMaker,
 	}
 
 	callbacks := NewWebSocketServerCallbacks(
@@ -128,15 +127,9 @@ func (s *webSocketServer) HandleConnection(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
-	payloadReq entities.OpenWsConnectionRequest,
+	session *entities.IsSessionValidResp,
 ) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
-
-	userID, sessionID, err := s.isSessionValid(ctx, payloadReq)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking session valid", err)
-		return err
-	}
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -146,8 +139,8 @@ func (s *webSocketServer) HandleConnection(
 
 	client := &Client{
 		conn:         conn,
-		userID:       userID,
-		sessionID:    sessionID,
+		userID:       session.UserID,
+		sessionID:    session.SessionID,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 	}
@@ -201,43 +194,21 @@ func (s *webSocketServer) HandleConnection(
 	return nil
 }
 
-func (s *webSocketServer) isSessionValid(ctx context.Context, req entities.OpenWsConnectionRequest) (string, string, error) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: isSessionValid] Called")
-
-	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
-		return "", "", err
-	}
-
-	var sessionPayload entities.RedisSessionToken
-	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error unmarshalling redis session token", err)
-		return "", "", err
-	}
-
-	if sessionPayload.UserID != req.UserID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
-		return "", "", app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
-	}
-
-	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking interview session exists", err)
-		return "", "", err
-	}
-	if !exists {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Interview session not found")
-		return "", "", app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionNotFound)
-	}
-
-	return sessionPayload.UserID, sessionPayload.SessionID, nil
-}
-
 func (s *webSocketServer) initClient(ctx context.Context, client *Client) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: initClient] Called")
 
-	u, err := url.Parse(s.cfg.InterviewSessionConfig.WebSocketURL)
+	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
+		UserID:    client.userID,
+		SessionID: client.sessionID,
+		Duration:  s.cfg.AuthConfig.AccessTokenDuration,
+	})
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
+		s.disconnect(ctx, client)
+		return err
+	}
+
+	u, err := url.Parse(s.cfg.InterviewSessionConfig.InterviewAgentURL + s.cfg.InterviewSessionConfig.InterviewWebsocketPath)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
 		s.disconnect(ctx, client)
@@ -245,8 +216,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	}
 
 	q := u.Query()
-	q.Set("session_id", client.sessionID)
-	q.Set("user_id", client.userID)
+	q.Set("token", token)
 	u.RawQuery = q.Encode()
 
 	agentClient := NewWebSocketClient(s.log)
@@ -260,7 +230,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent disconnected, disconnecting browser client", map[string]any{
 				"session_id": sessionID,
 			})
-			s.chainDisconnect(ctx, sessionID)
+			s.disconnect(ctx, client)
 		})
 	agentClient.SetCallbacks(*callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
@@ -398,25 +368,6 @@ func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
 	s.mu.Unlock()
 	_ = client.conn.Close()
 	close(client.pongReceived)
-}
-
-func (s *webSocketServer) chainDisconnect(ctx context.Context, sessionID string) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: chainDisconnect] Called", map[string]any{
-		"session_id": sessionID,
-	})
-
-	s.mu.RLock()
-	client, exists := s.sessions[sessionID]
-	s.mu.RUnlock()
-
-	if !exists {
-		s.log.WarnWithID(ctx, "[WebSocketServer: chainDisconnect] Client not found for session", map[string]any{
-			"session_id": sessionID,
-		})
-		return
-	}
-
-	s.disconnect(ctx, client)
 }
 
 func (s *webSocketServer) writeJSON(c *Client, v any) error {

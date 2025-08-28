@@ -14,6 +14,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -27,6 +28,7 @@ type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
 	UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error
+	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
 }
 
 type interviewSessionService struct {
@@ -310,6 +312,44 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 	}
 
 	return nil
+}
+
+func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
+	s.log.InfoWithID(ctx, "[Service: IsSessionValid] Called")
+
+	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error getting redis session token", err)
+		return nil, err
+	}
+
+	var sessionPayload entities.RedisSessionToken
+	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error unmarshalling redis session token", err)
+		return nil, err
+	}
+
+	if sessionPayload.UserID != req.UserID {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] User ID mismatch")
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error checking interview session exists", err)
+		return nil, err
+	}
+	if !exists {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Interview session not found")
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionNotFound)
+	}
+
+	resp := &entities.IsSessionValidResp{
+		UserID:    sessionPayload.UserID,
+		SessionID: sessionPayload.SessionID,
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

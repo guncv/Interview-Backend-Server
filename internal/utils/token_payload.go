@@ -24,6 +24,13 @@ type VerifyEmailTokenPayload struct {
 	ExpiredAt time.Time `json:"expires_at"`
 }
 
+type WebSocketSessionPayload struct {
+	UserID    string    `json:"user_id"`
+	SessionID string    `json:"session_id"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiredAt time.Time `json:"expires_at"`
+}
+
 func NewSignInTokenPayload(req *entities.TokenRequest) (*SignInTokenPayload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
@@ -56,6 +63,15 @@ func NewVerifyEmailTokenPayload(req *entities.VerifyEmailTokenRequest) (*VerifyE
 	}
 
 	return payload, nil
+}
+
+func NewWebSocketSessionPayload(req *entities.WebSocketSessionReq) *WebSocketSessionPayload {
+	return &WebSocketSessionPayload{
+		UserID:    req.UserID,
+		SessionID: req.SessionID,
+		IssuedAt:  time.Now(),
+		ExpiredAt: time.Now().Add(req.Duration),
+	}
 }
 
 func (payload *SignInTokenPayload) Valid() error {
@@ -105,5 +121,30 @@ func (payload *VerifyEmailTokenPayload) ValidWithGraceWindow() error {
 }
 
 func (payload *VerifyEmailTokenPayload) GetExpiredAt() time.Time {
+	return payload.ExpiredAt
+}
+
+func (payload *WebSocketSessionPayload) Valid() error {
+	if time.Now().After(payload.ExpiredAt) {
+		return constants.ErrExpiredToken
+	}
+
+	return nil
+}
+
+func (payload *WebSocketSessionPayload) ValidWithGraceWindow() error {
+	graceWindow := constants.TokenGraceWindow
+	if graceWindow == 0 {
+		graceWindow = time.Minute
+	}
+
+	if time.Since(payload.ExpiredAt) > graceWindow {
+		return constants.ErrExpiredToken
+	}
+
+	return nil
+}
+
+func (payload *WebSocketSessionPayload) GetExpiredAt() time.Time {
 	return payload.ExpiredAt
 }

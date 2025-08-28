@@ -20,6 +20,7 @@ import (
 )
 
 type JwtToken interface {
+	CreateWebSocketSessionToken(ctx context.Context, req *entities.WebSocketSessionReq) (string, error)
 	CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error)
 	VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error)
 	CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error)
@@ -57,6 +58,19 @@ func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims) (s
 		return "", app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 	return signedToken, nil
+}
+
+func (maker *jwtToken) CreateWebSocketSessionToken(ctx context.Context, req *entities.WebSocketSessionReq) (string, error) {
+	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating web socket session token", "req", req)
+
+	payload := NewWebSocketSessionPayload(req)
+
+	token, err := maker.CreateJWTToken(ctx, payload)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error) {

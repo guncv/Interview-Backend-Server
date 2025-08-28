@@ -174,12 +174,17 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 		Payload: payload,
 	})
 
-	req := entities.OpenWsConnectionRequest{
+	session, err := h.interviewSessionService.IsSessionValid(enrichedCtx, &entities.IsSessionValidReq{
 		SessionToken: sessionToken,
 		UserID:       payload.UserID,
+	})
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error checking session valid", err)
+		utils.RespondWithError(c, err)
+		return
 	}
 
-	if err := h.wsServer.HandleConnection(enrichedCtx, c.Writer, c.Request, req); err != nil {
+	if err := h.wsServer.HandleConnection(enrichedCtx, c.Writer, c.Request, session); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Error handling connection", err)
 		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRequest))
 		return

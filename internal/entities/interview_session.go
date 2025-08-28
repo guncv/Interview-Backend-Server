@@ -2,6 +2,7 @@ package entities
 
 import (
 	"mime/multipart"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -47,4 +48,20 @@ type DeleteJobRequirementPayload struct {
 type UpdateInterviewSessionStatusReq struct {
 	SessionID string `json:"session_id" binding:"required"`
 	Status    string `json:"status" binding:"required"`
+}
+
+type IsSessionValidReq struct {
+	SessionToken string `json:"session_token" binding:"required"`
+	UserID       string `json:"user_id" binding:"required"`
+}
+
+type IsSessionValidResp struct {
+	UserID    string `json:"user_id"`
+	SessionID string `json:"session_id"`
+}
+
+type WebSocketSessionReq struct {
+	UserID    string        `json:"user_id"`
+	SessionID string        `json:"session_id"`
+	Duration  time.Duration `json:"duration"`
 }
