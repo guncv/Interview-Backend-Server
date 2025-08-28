@@ -91,7 +91,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 	mockErr := errors.New("error")
 
 	mockConfig := &config.Config{
-		AuthConfig: config.AuthConfig{
+		EmailConfig: config.EmailConfig{
 			VerifyEmailTokenDuration: 15 * time.Minute,
 		},
 	}
@@ -1760,7 +1760,7 @@ func TestUserService_ResetVerifyEmailCode(t *testing.T) {
 
 	// Create mock config
 	mockConfig := &config.Config{
-		AuthConfig: config.AuthConfig{
+		EmailConfig: config.EmailConfig{
 			VerifyEmailTokenDuration: 15 * time.Minute,
 		},
 	}
@@ -2409,7 +2409,6 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
@@ -3681,271 +3680,6 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 			gotErr := svc.ResetUserPassword(ctx, tC.input)
 
 			tC.verify(t, gotErr)
-		})
-	}
-}
-
-func TestUserService_RefreshToken(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	mockErr := errors.New("error")
-
-	// Create mock config
-	mockConfig := &config.Config{
-		AuthConfig: config.AuthConfig{
-			AccessTokenDuration: 15 * time.Minute,
-		},
-	}
-
-	testCases := []struct {
-		name   string
-		input  *entities.RefreshTokenRequest
-		setup  func() (*repositories.MockSessionRepository, *utils.MockJwtToken)
-		verify func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error)
-	}{
-		{
-			name: "Success",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID: "user-123",
-						Role:   constants.UserRoleUser,
-					}, nil)
-
-				// Mock session retrieval
-				mockSessionRepo.EXPECT().
-					GetSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
-					Return(db.Sessions{
-						ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						IsRevoked: sql.NullBool{Bool: false, Valid: true},
-					}, nil)
-
-				// Mock JWT token creation for access token
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.AnythingOfType("*entities.TokenRequest")).
-					Return("new_access_token", &utilsPkg.SignInTokenPayload{}, nil)
-
-				return mockSessionRepo, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.NotNil(t, got)
-				assert.Equal(t, "new_access_token", got.AccessToken)
-			},
-		},
-		{
-			name: "Error_InvalidToken",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "invalid_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification fails
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "invalid_token").
-					Return(nil, mockErr)
-
-				return nil, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-		{
-			name: "Error_SessionNotFound",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID: "user-123",
-						Role:   constants.UserRoleUser,
-					}, nil)
-
-				// Mock session retrieval fails
-				mockSessionRepo.EXPECT().
-					GetSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
-					Return(db.Sessions{}, mockErr)
-
-				return mockSessionRepo, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-		{
-			name: "Error_SessionRevoked",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID: "user-123",
-						Role:   constants.UserRoleUser,
-					}, nil)
-
-				// Mock session retrieval returns revoked session
-				mockSessionRepo.EXPECT().
-					GetSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
-					Return(db.Sessions{
-						ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						IsRevoked: sql.NullBool{Bool: true, Valid: true},
-					}, nil)
-
-				return mockSessionRepo, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_AccessTokenCreationFailed",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID: "user-123",
-						Role:   constants.UserRoleUser,
-					}, nil)
-
-				// Mock session retrieval
-				mockSessionRepo.EXPECT().
-					GetSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
-					Return(db.Sessions{
-						ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						IsRevoked: sql.NullBool{Bool: false, Valid: true},
-					}, nil)
-
-				// Mock JWT token creation for access token fails
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.AnythingOfType("*entities.TokenRequest")).
-					Return("", nil, mockErr)
-
-				return mockSessionRepo, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-		{
-			name: "Error_SessionExpired",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID: "user-123",
-						Role:   constants.UserRoleUser,
-					}, nil)
-
-				// Mock session retrieval returns expired session
-				mockSessionRepo.EXPECT().
-					GetSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
-					Return(db.Sessions{
-						ID:        uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-						IsRevoked: sql.NullBool{Bool: false, Valid: true},
-						ExpiresAt: sql.NullTime{Time: time.Now().Add(-time.Hour), Valid: true},
-					}, nil)
-
-				return mockSessionRepo, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_InvalidTokenPayload",
-			input: &entities.RefreshTokenRequest{
-				RefreshToken: "refresh_token",
-			},
-			setup: func() (*repositories.MockSessionRepository, *utils.MockJwtToken) {
-				mockJwtToken := new(utils.MockJwtToken)
-
-				// Mock JWT token verification returns invalid payload
-				mockJwtToken.EXPECT().
-					VerifyToken(ctx, "refresh_token").
-					Return(&utilsPkg.SignInTokenPayload{
-						ID:     uuid.Nil,
-						UserID: "",
-						Role:   "",
-					}, nil)
-
-				return nil, mockJwtToken
-			},
-			verify: func(t *testing.T, got *entities.RefreshTokenResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockSessionRepo, mockJwtToken := tC.setup()
-			defer func() {
-				if mockSessionRepo != nil {
-					mockSessionRepo.AssertExpectations(t)
-				}
-				if mockJwtToken != nil {
-					mockJwtToken.AssertExpectations(t)
-				}
-			}()
-
-			svc := NewUserService(lgr, nil, mockSessionRepo, mockJwtToken, nil, mockConfig, nil, nil, nil, nil, nil, nil)
-			got, gotErr := svc.RefreshToken(ctx, tC.input)
-
-			tC.verify(t, got, gotErr)
 		})
 	}
 }

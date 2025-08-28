@@ -5,9 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
@@ -254,39 +252,6 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
-}
-
-// RefreshToken godoc
-// @Summary Refresh access token
-// @Description Get new access token using refresh token from cookie
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Success 200 {object} entities.RefreshTokenResponse
-// @Failure 400 {object} app_error.AppError "Invalid refresh token"
-// @Failure 500 {object} app_error.AppError "Internal server error"
-// @Router /auth/refresh-token [post]
-func (h *UserHandler) RefreshToken(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: RefreshToken] Called")
-
-	cookie, err := c.Request.Cookie(string(constants.RefreshTokenCookieKey))
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: RefreshToken] Error getting refresh token from cookie", err)
-		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeAuthInvalidRefreshToken))
-		return
-	}
-
-	res, err := h.userService.RefreshToken(ctx, &entities.RefreshTokenRequest{
-		RefreshToken: cookie.Value,
-	})
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: RefreshToken] Error refreshing token", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
 }
 
 // SignOut godoc

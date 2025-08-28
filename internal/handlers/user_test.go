@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -582,100 +581,6 @@ func TestUserHandler_ForgotPassword(t *testing.T) {
 
 			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
 			handler.ForgotPassword(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestUserHandler_RefreshToken(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		setup  func(c *gin.Context) (*services.MockUserService, *config.Config)
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Success",
-			setup: func(c *gin.Context) (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				// Set cookie in the request
-				c.Request.AddCookie(&http.Cookie{
-					Name:  string(constants.RefreshTokenCookieKey),
-					Value: "refresh-token-123",
-				})
-
-				mockUserService.EXPECT().
-					RefreshToken(ctx, &entities.RefreshTokenRequest{
-						RefreshToken: "refresh-token-123",
-					}).
-					Return(&entities.RefreshTokenResponse{
-						AccessToken: "new-access-token",
-					}, nil)
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"access_token":"new-access-token"}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingCookie",
-			setup: func(c *gin.Context) (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0202","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "ServiceError",
-			setup: func(c *gin.Context) (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				// Set cookie in the request
-				c.Request.AddCookie(&http.Cookie{
-					Name:  string(constants.RefreshTokenCookieKey),
-					Value: "refresh-token-123",
-				})
-
-				mockUserService.EXPECT().
-					RefreshToken(ctx, &entities.RefreshTokenRequest{
-						RefreshToken: "refresh-token-123",
-					}).
-					Return(nil, app_error.New(errors.New("invalid refresh token"), app_error.ErrCodeAuthInvalidRefreshToken))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0202","message":"Your refresh token is invalid. Please log in again."}`, w.Body.String())
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodPost, "/refresh-token", nil)
-
-			mockUserService, mockConfig := tt.setup(c)
-			defer mockUserService.AssertExpectations(t)
-
-			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, nil)
-			handler.RefreshToken(c)
 
 			tt.verify(t, w)
 		})

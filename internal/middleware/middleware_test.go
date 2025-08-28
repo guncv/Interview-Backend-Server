@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -27,7 +28,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 		verify       func(t *testing.T, c *gin.Context, mockToken *utils.MockJwtToken)
 	}{
 		{
-			name: "AuthMiddleware_MissingAuthorizationHeader",
+			name: "MissingAuthorizationHeader",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -45,7 +46,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_InvalidHeaderFormat",
+			name: "InvalidHeaderFormat",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -64,7 +65,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_WrongAuthorizationType",
+			name: "WrongAuthorizationType",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -83,7 +84,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_ValidToken",
+			name: "ValidToken",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -96,7 +97,10 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 					UserID: "user123",
 					Role:   constants.UserRoleAdmin,
 				}
-				mockToken.On("VerifyToken", mock.Anything, "valid_access_token").Return(expectedPayload, nil)
+				mockToken.EXPECT().
+					VerifyToken(mock.Anything, mock.Anything, mock.Anything).
+					Return(expectedPayload, nil)
+
 				return c, mockToken
 			},
 			expectStatus: http.StatusOK,
@@ -116,7 +120,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_ExpiredTokenWithValidRefreshToken",
+			name: "ExpiredTokenWithValidRefreshToken",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -134,8 +138,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 					Role:   constants.UserRoleAdmin,
 				}
 
-				mockToken.On("VerifyToken", mock.Anything, "expired_access_token").Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
-				mockToken.On("RenewAccessToken", mock.Anything, "valid_refresh_token").Return("new_access_token", expectedPayload, nil)
+				mockToken.EXPECT().
+					VerifyToken(mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
+
+				mockToken.EXPECT().
+					RenewAccessToken(mock.Anything, mock.Anything).
+					Return("new_access_token", expectedPayload, nil)
 				return c, mockToken
 			},
 			expectStatus: http.StatusOK,
@@ -155,7 +164,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_ExpiredTokenWithMissingRefreshToken",
+			name: "ExpiredTokenWithMissingRefreshToken",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -164,7 +173,9 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 				c.Request = req
 
 				mockToken := &utils.MockJwtToken{}
-				mockToken.On("VerifyToken", mock.Anything, "expired_access_token").Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
+				mockToken.EXPECT().
+					VerifyToken(mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
 				return c, mockToken
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -176,7 +187,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_ExpiredTokenWithInvalidRefreshToken",
+			name: "ExpiredTokenWithInvalidRefreshToken",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -189,8 +200,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 				c.Request = req
 
 				mockToken := &utils.MockJwtToken{}
-				mockToken.On("VerifyToken", mock.Anything, "expired_access_token").Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
-				mockToken.On("RenewAccessToken", mock.Anything, "invalid_refresh_token").Return("", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
+				mockToken.EXPECT().
+					VerifyToken(mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken))
+
+				mockToken.EXPECT().
+					RenewAccessToken(mock.Anything, mock.Anything).
+					Return("", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
 				return c, mockToken
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -201,7 +217,7 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name: "AuthMiddleware_InvalidToken",
+			name: "InvalidToken",
 			setup: func() (*gin.Context, *utils.MockJwtToken) {
 				w := httptest.NewRecorder()
 				req := httptest.NewRequest("GET", "/test", nil)
@@ -210,7 +226,11 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 				c.Request = req
 
 				mockToken := &utils.MockJwtToken{}
-				mockToken.On("VerifyToken", mock.Anything, "invalid_access_token").Return(nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
+
+				mockToken.EXPECT().
+					VerifyToken(mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken))
+
 				return c, mockToken
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -225,8 +245,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
 			c, mockToken := tC.setup()
+			cfg := &config.Config{
+				AuthConfig: config.AuthConfig{
+					EncryptionSecretKey: "test_secret",
+				},
+			}
 
-			middleware := NewAuthMiddleware(mockToken, lgr)
+			middleware := NewAuthMiddleware(mockToken, lgr, cfg)
 			authHandler := middleware.AuthMiddleware()
 
 			authHandler(c)
@@ -246,8 +271,13 @@ func TestAuthMiddleware_AuthMiddleware(t *testing.T) {
 func TestNewAuthMiddleware(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	mockToken := &utils.MockJwtToken{}
+	cfg := &config.Config{
+		AuthConfig: config.AuthConfig{
+			EncryptionSecretKey: "test_secret",
+		},
+	}
 
-	middleware := NewAuthMiddleware(mockToken, lgr)
+	middleware := NewAuthMiddleware(mockToken, lgr, cfg)
 
 	assert.NotNil(t, middleware)
 	assert.Implements(t, (*AuthMiddleware)(nil), middleware)

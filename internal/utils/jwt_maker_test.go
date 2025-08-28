@@ -20,7 +20,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	cfg := &config.Config{
 		AuthConfig: config.AuthConfig{
-			JwtSecretKey: "test_secret",
+			EncryptionSecretKey: "test_secret",
 		},
 	}
 
@@ -87,7 +87,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 			svc := NewJwtToken(cfg, lgr, nil)
 			got, _, gotErr := svc.CreateToken(ctx, tC.input())
 			assert.NoError(t, gotErr)
-			gotPayload, gotErr := svc.VerifyToken(ctx, got)
+			gotPayload, gotErr := svc.VerifyToken(ctx, got, cfg.AuthConfig.EncryptionSecretKey)
 			tC.verify(t, gotPayload, gotErr)
 		})
 	}
@@ -140,7 +140,7 @@ func TestVerifyTokens(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			gotPayload, gotErr := svc.VerifyToken(ctx, tC.input())
+			gotPayload, gotErr := svc.VerifyToken(ctx, tC.input(), cfg.AuthConfig.EncryptionSecretKey)
 			tC.verify(t, gotPayload, gotErr)
 		})
 	}
@@ -149,7 +149,7 @@ func TestCreateToken_EdgeCases(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	cfg := &config.Config{
 		AuthConfig: config.AuthConfig{
-			JwtSecretKey: "test_secret",
+			EncryptionSecretKey: "test_secret",
 		},
 	}
 
@@ -220,7 +220,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	cfg := &config.Config{
 		AuthConfig: config.AuthConfig{
-			JwtSecretKey: "test_secret",
+			EncryptionSecretKey: "test_secret",
 		},
 	}
 
@@ -260,7 +260,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 				// Create token with different service (different secret)
 				differentCfg := &config.Config{
 					AuthConfig: config.AuthConfig{
-						JwtSecretKey: "different_secret",
+						EncryptionSecretKey: "different_secret",
 					},
 				}
 				differentSvc := NewJwtToken(differentCfg, lgr, nil)
@@ -284,7 +284,7 @@ func TestVerifyToken_EdgeCases(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
 			token := tC.input()
-			payload, err := svc.VerifyToken(ctx, token)
+			payload, err := svc.VerifyToken(ctx, token, cfg.AuthConfig.EncryptionSecretKey)
 			tC.verify(t, payload, err)
 		})
 	}
@@ -491,7 +491,11 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	cfg := &config.Config{
 		AuthConfig: config.AuthConfig{
-			JwtSecretKey:             "test_secret",
+			EncryptionSecretKey:        "test_secret",
+			ResetPasswordTokenDuration: time.Minute * 10,
+		},
+		EmailConfig: config.EmailConfig{
+			EncryptionSecretKey:      "test_email_secret",
 			VerifyEmailTokenDuration: time.Minute * 10,
 		},
 	}
@@ -507,21 +511,18 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 		{
 			name: "RenewVerifyEmailToken_ValidExpiredToken",
 			input: func() string {
-				// Create a token that's already expired by setting past expiration time
 				req := &entities.VerifyEmailTokenRequest{
 					UserID:   "user-123",
 					Email:    "test@example.com",
-					Duration: time.Minute * 10, // Normal duration
+					Duration: time.Minute * 10,
 				}
 				_, payload, err := svc.CreateVerifyEmailToken(ctx, req)
 				assert.NoError(t, err)
 
-				// Manually set the token to be expired by setting ExpiredAt to past
-				payload.ExpiredAt = time.Now().Add(-time.Minute * 10) // 10 minutes ago
+				payload.ExpiredAt = time.Now().Add(-time.Minute * 10)
 
-				// Create a new token with the expired payload using the same secret
 				expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-				signedToken, err := expiredToken.SignedString([]byte(cfg.AuthConfig.JwtSecretKey))
+				signedToken, err := expiredToken.SignedString([]byte(cfg.EmailConfig.EncryptionSecretKey))
 				assert.NoError(t, err)
 				return signedToken
 			},
@@ -531,7 +532,6 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 				assert.NotNil(t, payload)
 				assert.Equal(t, "user-123", payload.UserID)
 				assert.Equal(t, "test@example.com", payload.Email)
-				// New token should have extended expiration time
 				expectedExpiry := time.Now().Add(time.Minute * 10)
 				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
 			},
@@ -539,11 +539,10 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 		{
 			name: "RenewVerifyEmailToken_ValidNonExpiredToken",
 			input: func() string {
-				// Create a token that's still valid
 				req := &entities.VerifyEmailTokenRequest{
 					UserID:   "user-456",
 					Email:    "valid@example.com",
-					Duration: time.Minute * 10, // Valid token
+					Duration: time.Minute * 10,
 				}
 				token, _, err := svc.CreateVerifyEmailToken(ctx, req)
 				assert.NoError(t, err)
@@ -555,7 +554,6 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 				assert.NotNil(t, payload)
 				assert.Equal(t, "user-456", payload.UserID)
 				assert.Equal(t, "valid@example.com", payload.Email)
-				// New token should have extended expiration time
 				expectedExpiry := time.Now().Add(time.Minute * 10)
 				assert.WithinDuration(t, expectedExpiry, payload.ExpiredAt, time.Minute)
 			},
@@ -569,7 +567,6 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 				assert.Error(t, err)
 				assert.Empty(t, newToken)
 				assert.Nil(t, payload)
-				// Should return invalid token error
 				assert.Contains(t, err.Error(), "token is invalid")
 			},
 		},
@@ -585,11 +582,10 @@ func TestRenewVerifyEmailToken(t *testing.T) {
 }
 
 func TestJwtToken_GraceWindow(t *testing.T) {
-	// Setup
 	cfg := &config.Config{
 		AuthConfig: config.AuthConfig{
-			JwtSecretKey:     "test-secret-key",
-			TokenGraceWindow: time.Minute, // 1 minute grace window
+			EncryptionSecretKey: "test-secret-key",
+			TokenGraceWindow:    time.Minute,
 		},
 	}
 
@@ -601,11 +597,10 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Token within grace window should be valid", func(t *testing.T) {
-		// Create a valid token first
 		req := &entities.TokenRequest{
 			UserID:   "test-user",
 			Role:     constants.UserRoleUser,
-			Duration: time.Minute, // Valid for 1 minute
+			Duration: time.Minute,
 		}
 
 		token, payload, err := jwtMaker.CreateToken(ctx, req)
@@ -615,12 +610,11 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 
 		payload.ExpiredAt = time.Now().Add(-30 * time.Second)
 		t.Logf("Modified payload expiration: %v", payload.ExpiredAt)
-		newToken, err := jwtMaker.CreateJWTToken(ctx, payload)
+		newToken, err := jwtMaker.CreateJWTToken(ctx, payload, cfg.AuthConfig.EncryptionSecretKey)
 		assert.NoError(t, err)
 		t.Logf("Created new token with expired payload: %s", newToken[:20])
 
-		// Verify the expired token with grace window should work
-		verifiedPayload, err := jwtMaker.VerifyToken(ctx, newToken)
+		verifiedPayload, err := jwtMaker.VerifyToken(ctx, newToken, cfg.AuthConfig.EncryptionSecretKey)
 		if err != nil {
 			t.Logf("Verification failed: %v", err)
 		}
@@ -630,11 +624,10 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 	})
 
 	t.Run("Valid token should work normally", func(t *testing.T) {
-		// Create a valid token
 		req := &entities.TokenRequest{
 			UserID:   "test-user",
 			Role:     constants.UserRoleUser,
-			Duration: time.Minute, // Valid for 1 minute
+			Duration: time.Minute,
 		}
 
 		token, payload, err := jwtMaker.CreateToken(ctx, req)
@@ -642,8 +635,7 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 		assert.NotEmpty(t, token)
 		assert.NotNil(t, payload)
 
-		// Verify the token should work normally
-		verifiedPayload, err := jwtMaker.VerifyToken(ctx, token)
+		verifiedPayload, err := jwtMaker.VerifyToken(ctx, token, cfg.AuthConfig.EncryptionSecretKey)
 		assert.NoError(t, err)
 		assert.NotNil(t, verifiedPayload)
 		assert.Equal(t, req.UserID, verifiedPayload.UserID)
@@ -657,15 +649,13 @@ func TestTokenPayload_GraceWindow(t *testing.T) {
 			UserID:    "test-user",
 			Role:      constants.UserRoleUser,
 			IssuedAt:  time.Now().Add(-2 * time.Minute),
-			ExpiredAt: time.Now().Add(-30 * time.Second), // Expired 30 seconds ago
+			ExpiredAt: time.Now().Add(-30 * time.Second),
 		}
 
-		// Should fail with regular validation
 		err := payload.Valid()
 		assert.Error(t, err)
 		assert.Equal(t, constants.ErrExpiredToken, err)
 
-		// Should pass with grace window validation (1 minute grace window)
 		err = payload.ValidWithGraceWindow()
 		assert.NoError(t, err)
 	})
@@ -676,22 +666,19 @@ func TestTokenPayload_GraceWindow(t *testing.T) {
 			UserID:    "test-user",
 			Email:     "test@example.com",
 			IssuedAt:  time.Now().Add(-2 * time.Minute),
-			ExpiredAt: time.Now().Add(-30 * time.Second), // Expired 30 seconds ago
+			ExpiredAt: time.Now().Add(-30 * time.Second),
 		}
 
-		// Should fail with regular validation
 		err := payload.Valid()
 		assert.Error(t, err)
 		assert.Equal(t, constants.ErrExpiredToken, err)
 
-		// Should pass with grace window validation (1 minute grace window)
 		err = payload.ValidWithGraceWindow()
 		assert.NoError(t, err)
 
 	})
 }
 
-// mockSessionRepository is a simple mock for testing
 type mockSessionRepository struct{}
 
 func (m *mockSessionRepository) CreateSession(ctx context.Context, arg *db.CreateSessionParams) error {

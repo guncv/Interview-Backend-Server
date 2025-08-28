@@ -140,6 +140,65 @@ func (_c *MockInterviewSessionService_CreateInterviewSessionWithNewResume_Call) 
 	return _c
 }
 
+// IsSessionValid provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsSessionValid")
+	}
+
+	var r0 *entities.IsSessionValidResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.IsSessionValidReq) *entities.IsSessionValidResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.IsSessionValidResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.IsSessionValidReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_IsSessionValid_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsSessionValid'
+type MockInterviewSessionService_IsSessionValid_Call struct {
+	*mock.Call
+}
+
+// IsSessionValid is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.IsSessionValidReq
+func (_e *MockInterviewSessionService_Expecter) IsSessionValid(ctx interface{}, req interface{}) *MockInterviewSessionService_IsSessionValid_Call {
+	return &MockInterviewSessionService_IsSessionValid_Call{Call: _e.mock.On("IsSessionValid", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_IsSessionValid_Call) Run(run func(ctx context.Context, req *entities.IsSessionValidReq)) *MockInterviewSessionService_IsSessionValid_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.IsSessionValidReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_IsSessionValid_Call) Return(_a0 *entities.IsSessionValidResp, _a1 error) *MockInterviewSessionService_IsSessionValid_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_IsSessionValid_Call) RunAndReturn(run func(context.Context, *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)) *MockInterviewSessionService_IsSessionValid_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateInterviewSessionStatus provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error {
 	ret := _m.Called(ctx, req)

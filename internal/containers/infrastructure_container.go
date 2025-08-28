@@ -119,12 +119,23 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
+	if err := c.Container.Provide(ws.NewWebSocketClient); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(ws.NewWebSocketClientCallbacks); err != nil {
+		c.Error = err
+	}
+
 	if err := c.Container.Provide(ws.NewClientManager); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(ws.NewWebSocketServerLogic); err != nil {
 		c.Error = err
 	}
 
 	if err := c.Container.Provide(ws.NewWebSocketServer); err != nil {
 		c.Error = err
 	}
-
 }

@@ -24,17 +24,17 @@ func (_m *MockWebSocketServerInterface) EXPECT() *MockWebSocketServerInterface_E
 	return &MockWebSocketServerInterface_Expecter{mock: &_m.Mock}
 }
 
-// Close provides a mock function with no fields
-func (_m *MockWebSocketServerInterface) Close() error {
-	ret := _m.Called()
+// Close provides a mock function with given fields: ctx
+func (_m *MockWebSocketServerInterface) Close(ctx context.Context) error {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Close")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -48,13 +48,14 @@ type MockWebSocketServerInterface_Close_Call struct {
 }
 
 // Close is a helper method to define mock.On call
-func (_e *MockWebSocketServerInterface_Expecter) Close() *MockWebSocketServerInterface_Close_Call {
-	return &MockWebSocketServerInterface_Close_Call{Call: _e.mock.On("Close")}
+//   - ctx context.Context
+func (_e *MockWebSocketServerInterface_Expecter) Close(ctx interface{}) *MockWebSocketServerInterface_Close_Call {
+	return &MockWebSocketServerInterface_Close_Call{Call: _e.mock.On("Close", ctx)}
 }
 
-func (_c *MockWebSocketServerInterface_Close_Call) Run(run func()) *MockWebSocketServerInterface_Close_Call {
+func (_c *MockWebSocketServerInterface_Close_Call) Run(run func(ctx context.Context)) *MockWebSocketServerInterface_Close_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -64,22 +65,22 @@ func (_c *MockWebSocketServerInterface_Close_Call) Return(_a0 error) *MockWebSoc
 	return _c
 }
 
-func (_c *MockWebSocketServerInterface_Close_Call) RunAndReturn(run func() error) *MockWebSocketServerInterface_Close_Call {
+func (_c *MockWebSocketServerInterface_Close_Call) RunAndReturn(run func(context.Context) error) *MockWebSocketServerInterface_Close_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// HandleConnection provides a mock function with given fields: ctx, w, r, payloadReq
-func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error {
-	ret := _m.Called(ctx, w, r, payloadReq)
+// HandleConnection provides a mock function with given fields: ctx, w, r, session
+func (_m *MockWebSocketServerInterface) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp) error {
+	ret := _m.Called(ctx, w, r, session)
 
 	if len(ret) == 0 {
 		panic("no return value specified for HandleConnection")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, http.ResponseWriter, *http.Request, entities.OpenWsConnectionRequest) error); ok {
-		r0 = rf(ctx, w, r, payloadReq)
+	if rf, ok := ret.Get(0).(func(context.Context, http.ResponseWriter, *http.Request, *entities.IsSessionValidResp) error); ok {
+		r0 = rf(ctx, w, r, session)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -96,14 +97,14 @@ type MockWebSocketServerInterface_HandleConnection_Call struct {
 //   - ctx context.Context
 //   - w http.ResponseWriter
 //   - r *http.Request
-//   - payloadReq entities.OpenWsConnectionRequest
-func (_e *MockWebSocketServerInterface_Expecter) HandleConnection(ctx interface{}, w interface{}, r interface{}, payloadReq interface{}) *MockWebSocketServerInterface_HandleConnection_Call {
-	return &MockWebSocketServerInterface_HandleConnection_Call{Call: _e.mock.On("HandleConnection", ctx, w, r, payloadReq)}
+//   - session *entities.IsSessionValidResp
+func (_e *MockWebSocketServerInterface_Expecter) HandleConnection(ctx interface{}, w interface{}, r interface{}, session interface{}) *MockWebSocketServerInterface_HandleConnection_Call {
+	return &MockWebSocketServerInterface_HandleConnection_Call{Call: _e.mock.On("HandleConnection", ctx, w, r, session)}
 }
 
-func (_c *MockWebSocketServerInterface_HandleConnection_Call) Run(run func(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest)) *MockWebSocketServerInterface_HandleConnection_Call {
+func (_c *MockWebSocketServerInterface_HandleConnection_Call) Run(run func(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp)) *MockWebSocketServerInterface_HandleConnection_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(http.ResponseWriter), args[2].(*http.Request), args[3].(entities.OpenWsConnectionRequest))
+		run(args[0].(context.Context), args[1].(http.ResponseWriter), args[2].(*http.Request), args[3].(*entities.IsSessionValidResp))
 	})
 	return _c
 }
@@ -113,7 +114,55 @@ func (_c *MockWebSocketServerInterface_HandleConnection_Call) Return(_a0 error) 
 	return _c
 }
 
-func (_c *MockWebSocketServerInterface_HandleConnection_Call) RunAndReturn(run func(context.Context, http.ResponseWriter, *http.Request, entities.OpenWsConnectionRequest) error) *MockWebSocketServerInterface_HandleConnection_Call {
+func (_c *MockWebSocketServerInterface_HandleConnection_Call) RunAndReturn(run func(context.Context, http.ResponseWriter, *http.Request, *entities.IsSessionValidResp) error) *MockWebSocketServerInterface_HandleConnection_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendCloseMessage provides a mock function with given fields: ctx, sessionID, reason
+func (_m *MockWebSocketServerInterface) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {
+	ret := _m.Called(ctx, sessionID, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendCloseMessage")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, sessionID, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketServerInterface_SendCloseMessage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendCloseMessage'
+type MockWebSocketServerInterface_SendCloseMessage_Call struct {
+	*mock.Call
+}
+
+// SendCloseMessage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+//   - reason string
+func (_e *MockWebSocketServerInterface_Expecter) SendCloseMessage(ctx interface{}, sessionID interface{}, reason interface{}) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	return &MockWebSocketServerInterface_SendCloseMessage_Call{Call: _e.mock.On("SendCloseMessage", ctx, sessionID, reason)}
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) Run(run func(ctx context.Context, sessionID string, reason string)) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) Return(_a0 error) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) RunAndReturn(run func(context.Context, string, string) error) *MockWebSocketServerInterface_SendCloseMessage_Call {
 	_c.Call.Return(run)
 	return _c
 }

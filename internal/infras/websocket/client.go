@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -13,86 +14,87 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
-type WebSocketCallbacks struct {
-	OnASRPartial            func(segmentID, text string, seq int, stability float64)
-	OnASRFinal              func(segmentID, text string, seq int)
-	OnTTSStart              func(segmentID, ttsID, encoding string)
-	OnTTSChunk              func(segmentID string, data []byte)
-	OnTTSEnd                func(segmentID, ttsID string)
-	OnError                 func(code, msg string)
-	OnEvaluation            func(segmentID string, score float64, comment string)
-	OnConnectionEstablished func(sessionID string)
-	OnPing                  func(timestamp float64)
-}
-
 type WebSocketClient interface {
 	Start(ctx context.Context, url string) error
-	Close() error
+	Close(ctx context.Context) error
 
-	SegmentStart(ctx context.Context, segmentID string, sampleRate int, encoding string, channels int) error
-	SendAudio(ctx context.Context, segmentID string, buf []byte) error
-	SegmentEnd(ctx context.Context, segmentID string) error
+	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
+	SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error
+	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
 	StopTTS(ctx context.Context, segmentID string) error
 
-	SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error
+	SendMessage(ctx context.Context, data map[string]interface{}) error
+	SendBinaryMessage(ctx context.Context, data []byte) error
 	SendSessionInfo(ctx context.Context, sessionID, userID string) error
 	IsConnected() bool
-	SetCallbacks(callbacks WebSocketCallbacks)
+	SetCallbacks(callbacks WebSocketClientCallbacks)
 }
 
 type webSocketClient struct {
-	cb        WebSocketCallbacks
-	log       *log.Logger
-	sessionID string
-	userID    string
+	cb               WebSocketClientCallbacks
+	log              *log.Logger
+	sessionID        string
+	userID           string
+	currentSegmentID string
 
-	conn      *websocket.Conn
-	connected bool
+	conn         *websocket.Conn
+	connected    bool
+	mu           sync.Mutex
+	lastPongTime time.Time
+	pongReceived chan struct{}
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
+	cb := NewWebSocketClientCallbacks()
+
 	return &webSocketClient{
-		cb:        WebSocketCallbacks{},
-		log:       log,
-		conn:      nil,
-		connected: false,
+		cb:           *cb,
+		log:          log,
+		conn:         nil,
+		connected:    false,
+		pongReceived: make(chan struct{}, 1),
 	}
 }
 
 func (c *webSocketClient) Start(ctx context.Context, url string) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: Start] Calleds:", url)
+	c.log.InfoWithID(ctx, "[WebSocketClient: Start] Called:", url)
 
 	dialer := websocket.Dialer{
 		Proxy:             http.ProxyFromEnvironment,
-		HandshakeTimeout:  10 * time.Second,
+		HandshakeTimeout:  constants.WebSocketClientHandshakeTimeout,
 		EnableCompression: true,
 	}
 
-	hdr := http.Header{}
-	hdr.Set("Origin", "http://agent-server:8080")
-
-	conn, _, err := dialer.DialContext(ctx, url, hdr)
+	conn, _, err := dialer.DialContext(ctx, url, nil)
 	if err != nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: Start] Error dialing:", err)
 		return err
 	}
 	c.conn = conn
 	c.connected = true
+	c.lastPongTime = time.Now()
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	c.conn.SetPongHandler(func(string) error {
-		c.log.InfoWithID(ctx, "[WebSocketClient: Start] Pong received")
+		c.mu.Lock()
+		c.lastPongTime = time.Now()
+		c.mu.Unlock()
+
+		select {
+		case c.pongReceived <- struct{}{}:
+		default:
+		}
+
 		return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
-	go c.readLoop()
-	go c.pingLoop()
+	go c.readLoop(ctx)
+	go c.pingLoop(ctx)
 	return nil
 }
 
-func (c *webSocketClient) Close() error {
-	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: Close] Calleds")
+func (c *webSocketClient) Close(ctx context.Context) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: Close] Called")
 
 	c.connected = false
 	if c.conn != nil {
@@ -102,99 +104,134 @@ func (c *webSocketClient) Close() error {
 	return nil
 }
 
-func (c *webSocketClient) SegmentStart(ctx context.Context, seg string, sr int, enc string, ch int) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Calleds:", seg, sr, enc, ch)
-	if c.sessionID == "" {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID not set")
-		return fmt.Errorf("session ID not set")
+func (c *webSocketClient) SegmentStart(ctx context.Context, msg MsgSegmentStart) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID mismatch")
+		return errors.New("session ID mismatch")
 	}
 
-	return c.conn.WriteJSON(map[string]any{
-		"type":        "segment_start",
-		"session_id":  c.sessionID,
-		"segment_id":  seg,
-		"sample_rate": sr,
-		"encoding":    enc,
-		"channels":    ch,
-	})
+	message := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
+	}
+
+	if err := c.SendMessage(ctx, message); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
+		return err
+	}
+
+	return nil
 }
 
-func (c *webSocketClient) SendAudio(ctx context.Context, seg string, buf []byte) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: SendAudio] Calleds:", seg)
-	if c.sessionID == "" {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Session ID not set")
-		return fmt.Errorf("session ID not set")
+func (c *webSocketClient) SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SendAudio] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Session ID mismatch")
+		return errors.New("session ID mismatch")
 	}
 
-	header := map[string]string{
-		"type":       "audio_chunk",
-		"session_id": c.sessionID,
-		"segment_id": seg,
+	if c.currentSegmentID != msg.SegmentID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Segment ID mismatch")
+		return errors.New("segment ID mismatch")
+	}
+
+	header := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
 	}
 
 	headerBytes, err := json.Marshal(header)
 	if err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Error marshalling header", err)
 		return err
 	}
 
-	frame := make([]byte, 4+len(headerBytes)+len(buf))
-	binary.BigEndian.PutUint32(frame[:4], uint32(len(headerBytes)))
-	copy(frame[4:], headerBytes)
-	copy(frame[4+len(headerBytes):], buf)
+	headerLength := uint32(len(headerBytes))
 
-	return c.conn.WriteMessage(websocket.BinaryMessage, frame)
-}
+	payload := make([]byte, 4+len(headerBytes)+len(audioData))
 
-func (c *webSocketClient) SegmentEnd(ctx context.Context, seg string) error {
-	if c.sessionID == "" {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Session ID not set")
-		return fmt.Errorf("session ID not set")
+	binary.BigEndian.PutUint32(payload[:4], headerLength)
+
+	copy(payload[4:4+headerLength], headerBytes)
+
+	copy(payload[4+headerLength:], audioData)
+
+	if err := c.SendBinaryMessage(ctx, payload); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendAudio] Error sending audio", err)
+		return err
 	}
 
-	return c.conn.WriteJSON(map[string]any{
-		"type":       "segment_end",
-		"session_id": c.sessionID,
-		"segment_id": seg,
-		"timestamp":  time.Now().Unix(),
-	})
+	c.currentSegmentID = msg.SegmentID
+
+	return nil
+}
+
+func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: SegmentStart] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Session ID mismatch")
+		return errors.New("session ID mismatch")
+	}
+
+	if c.currentSegmentID != msg.SegmentID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Segment ID mismatch")
+		return errors.New("segment ID mismatch")
+	}
+
+	message := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
+	}
+
+	if err := c.SendMessage(ctx, message); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentStart] Error sending session info", err)
+		return err
+	}
+
+	return nil
 }
 
 func (c *webSocketClient) StopTTS(ctx context.Context, seg string) error {
-	if c.sessionID == "" {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: StopTTS] Session ID not set")
-		return fmt.Errorf("session ID not set")
-	}
-
-	return c.conn.WriteJSON(map[string]any{
-		"type":       "stop_tts",
-		"session_id": c.sessionID,
-		"segment_id": seg,
-	})
+	return nil
 }
 
-func (c *webSocketClient) SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error {
+func (c *webSocketClient) SendMessage(ctx context.Context, data map[string]interface{}) error {
 	if !c.connected || c.conn == nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Not connected")
 		return websocket.ErrCloseSent
 	}
 
-	message := map[string]interface{}{
-		"type": msgType,
+	message, err := json.Marshal(data)
+	if err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Error marshalling message", err)
+		return err
 	}
 
-	for k, v := range data {
-		message[k] = v
+	return c.conn.WriteMessage(websocket.TextMessage, message)
+}
+
+func (c *webSocketClient) SendBinaryMessage(ctx context.Context, data []byte) error {
+	if !c.connected || c.conn == nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: SendBinaryMessage] Not connected")
+		return websocket.ErrCloseSent
 	}
 
-	return c.conn.WriteJSON(message)
+	return c.conn.WriteMessage(websocket.BinaryMessage, data)
 }
 
 func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID string) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: SendSessionInfo] Calleds:", sessionID, userID)
+	c.log.InfoWithID(ctx, "[WebSocketClient: SendSessionInfo] Called:", sessionID, userID)
 	c.sessionID = sessionID
 	c.userID = userID
 
-	return c.SendMessage(ctx, "session_info", map[string]interface{}{
+	return c.SendMessage(ctx, map[string]interface{}{
 		"session_id": sessionID,
 		"user_id":    userID,
 		"timestamp":  time.Now().Unix(),
@@ -203,24 +240,30 @@ func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID
 
 func (c *webSocketClient) IsConnected() bool {
 	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: IsConnected] Calleds:", c.connected, c.conn != nil)
+	c.log.InfoWithID(ctx, "[WebSocketClient: IsConnected] Called:", c.connected, c.conn != nil)
 	return c.connected && c.conn != nil
 }
 
-func (c *webSocketClient) SetCallbacks(callbacks WebSocketCallbacks) {
+func (c *webSocketClient) SetCallbacks(callbacks WebSocketClientCallbacks) {
 	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: SetCallbacks] Calleds:", callbacks)
+	c.log.InfoWithID(ctx, "[WebSocketClient: SetCallbacks] Called:", callbacks)
 	c.cb = callbacks
 }
 
-func (c *webSocketClient) readLoop() {
-	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] Calleds")
+func (c *webSocketClient) readLoop(ctx context.Context) {
+	c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] Called")
 
 	for {
 		mt, data, err := c.conn.ReadMessage()
 		if err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] Connection error, disconnecting", err)
 			c.connected = false
+
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+
+			c.disconnect(ctx)
 			return
 		}
 
@@ -243,104 +286,65 @@ func (c *webSocketClient) readLoop() {
 				if json.Unmarshal(data, &x) == nil && c.cb.OnConnectionEstablished != nil {
 					c.cb.OnConnectionEstablished(x.SessionID)
 				}
-
-			case "asr":
-				var x struct {
-					SegmentID string  `json:"segment_id"`
-					Text      string  `json:"text"`
-					IsFinal   bool    `json:"is_final"`
-					Seq       int     `json:"seq"`
-					Stability float64 `json:"stability"`
-				}
-				if json.Unmarshal(data, &x) != nil {
-					continue
-				}
-				if x.IsFinal {
-					if c.cb.OnASRFinal != nil {
-						c.cb.OnASRFinal(x.SegmentID, x.Text, x.Seq)
-					}
-				} else {
-					if c.cb.OnASRPartial != nil {
-						c.cb.OnASRPartial(x.SegmentID, x.Text, x.Seq, x.Stability)
-					}
-				}
-
-			case "evaluation":
-				var x struct {
-					SegmentID string  `json:"segment_id"`
-					Score     float64 `json:"score"`
-					Comment   string  `json:"comment"`
-				}
-				if json.Unmarshal(data, &x) == nil && c.cb.OnEvaluation != nil {
-					c.cb.OnEvaluation(x.SegmentID, x.Score, x.Comment)
-				}
-
-			case "tts_start":
-				var x struct {
-					SegmentID string `json:"segment_id"`
-					TTSID     string `json:"tts_id"`
-					Encoding  string `json:"encoding"`
-				}
-				if json.Unmarshal(data, &x) == nil && c.cb.OnTTSStart != nil {
-					c.cb.OnTTSStart(x.SegmentID, x.TTSID, x.Encoding)
-				}
-
-			case "tts_end":
-				var x struct {
-					SegmentID string `json:"segment_id"`
-					TTSID     string `json:"tts_id"`
-				}
-				if json.Unmarshal(data, &x) == nil && c.cb.OnTTSEnd != nil {
-					c.cb.OnTTSEnd(x.SegmentID, x.TTSID)
-				}
-
-			case "ping":
-				var x struct {
-					Timestamp float64 `json:"timestamp"`
-				}
-				if json.Unmarshal(data, &x) == nil {
-					if c.cb.OnPing != nil {
-						c.cb.OnPing(x.Timestamp)
-					}
-					c.conn.WriteJSON(map[string]interface{}{
-						"type":      "pong",
-						"timestamp": x.Timestamp,
-					})
-				}
-
-			case "error":
-				var x struct{ Code, Message string }
-				if json.Unmarshal(data, &x) == nil && c.cb.OnError != nil {
-					c.cb.OnError(x.Code, x.Message)
-				}
 			}
 
 		case websocket.BinaryMessage:
-			if len(data) >= 4 {
-				headerLen := binary.BigEndian.Uint32(data[:4])
-				if int(headerLen) <= len(data)-4 {
-					headerData := data[4 : 4+headerLen]
-					var header struct {
-						SegmentID string `json:"segment_id"`
-					}
-					if json.Unmarshal(headerData, &header) == nil && c.cb.OnTTSChunk != nil {
-						c.cb.OnTTSChunk(header.SegmentID, data[4+headerLen:])
-					}
-				}
-			}
+
 		}
 	}
 }
 
-func (c *webSocketClient) pingLoop() {
-	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: pingLoop] Calleds")
+func (c *webSocketClient) pingLoop(ctx context.Context) {
+	c.log.InfoWithID(ctx, "[WebSocketClient: pingLoop] Starting ping loop")
 
 	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
+
 	for range t.C {
-		if c.conn != nil {
-			_ = c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+		c.mu.Lock()
+		timeSinceLastPong := time.Since(c.lastPongTime)
+		c.mu.Unlock()
+
+		if timeSinceLastPong > constants.WebSocketPongTimeout {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Pong timeout - no pong received", map[string]interface{}{
+				"session_id":           c.sessionID,
+				"time_since_last_pong": timeSinceLastPong,
+				"timeout":              constants.WebSocketPongTimeout,
+			})
+			c.connected = false
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+			c.disconnect(ctx)
+			return
 		}
+
+		c.mu.Lock()
+		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
+		c.mu.Unlock()
+		if err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Error writing ping message", err)
+			c.connected = false
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+			c.disconnect(ctx)
+			return
+		}
+	}
+}
+
+func (c *webSocketClient) disconnect(ctx context.Context) {
+	c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Disconnecting client")
+
+	if err := c.conn.Close(); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: disconnect] Error closing connection", err)
+	} else {
+		c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Connection closed successfully")
+	}
+
+	c.connected = false
+	if c.cb.OnDisconnect != nil {
+		c.cb.OnDisconnect(c.sessionID)
 	}
 }
