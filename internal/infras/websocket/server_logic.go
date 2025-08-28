@@ -114,13 +114,13 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 	}
 
 	if client.sessionID != m.SessionID {
-		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
 
 	if client.currentSegmentID != m.SegmentID {
-		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Security violation: Segment ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
