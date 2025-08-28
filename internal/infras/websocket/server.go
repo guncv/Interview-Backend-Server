@@ -71,7 +71,8 @@ func NewWebSocketServer(
 			return true
 		},
 	}
-	return &webSocketServer{
+
+	server := &webSocketServer{
 		log:                     log,
 		upgrader:                upgrader,
 		redisClient:             redisClient,
@@ -85,6 +86,17 @@ func NewWebSocketServer(
 		cfg:                     cfg,
 		callbacks:               nil,
 	}
+
+	callbacks := NewWebSocketServerCallbacks(
+		log,
+		server.disconnect,
+		server.writeJSON,
+		clientManager,
+	)
+
+	server.callbacks = callbacks
+
+	return server
 }
 
 func (s *webSocketServer) Start(ctx context.Context) error {
@@ -167,14 +179,6 @@ func (s *webSocketServer) HandleConnection(
 		s.disconnect(ctx, client)
 		return nil
 	}
-
-	callbacks := NewWebSocketServerCallbacks(
-		s.log,
-		s.disconnect,
-		s.writeJSON,
-		s.clientManager,
-	)
-	s.callbacks = callbacks
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
