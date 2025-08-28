@@ -76,6 +76,8 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 }
 
 func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error) {
+	m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify and renew access token", "accessToken", accessToken)
+
 	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken, m.cfg.AuthConfig.EncryptionSecretKey)
 	if err != nil {
 		var appErr *app_error.AppError

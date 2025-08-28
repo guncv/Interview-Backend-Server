@@ -29,6 +29,7 @@ type Client struct {
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
+	connected        bool
 }
 
 type WebSocketServerInterface interface {
@@ -143,6 +144,7 @@ func (s *webSocketServer) HandleConnection(
 		sessionID:    session.SessionID,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
+		connected:    true,
 	}
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
@@ -200,7 +202,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
 		SessionID: client.sessionID,
-		Duration:  s.cfg.AuthConfig.AccessTokenDuration,
+		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionDuration,
 	})
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
@@ -208,7 +210,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 		return err
 	}
 
-	u, err := url.Parse(s.cfg.InterviewSessionConfig.InterviewAgentURL + s.cfg.InterviewSessionConfig.InterviewWebsocketPath)
+	u, err := url.Parse(s.cfg.InterviewSessionConfig.InterviewWebsocketPath)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
 		s.disconnect(ctx, client)
@@ -367,7 +369,13 @@ func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
 	s.clientManager.DeleteClientBySessionID(ctx, client.sessionID)
 	s.mu.Unlock()
 	_ = client.conn.Close()
-	close(client.pongReceived)
+
+	client.mu.Lock()
+	if client.connected {
+		client.connected = false
+		close(client.pongReceived)
+	}
+	client.mu.Unlock()
 }
 
 func (s *webSocketServer) writeJSON(c *Client, v any) error {

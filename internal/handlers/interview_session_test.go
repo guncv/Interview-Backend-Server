@@ -381,7 +381,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 		name           string
 		sessionToken   string
 		accessToken    string
-		setup          func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware)
+		setup          func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService)
 		verify         func(t *testing.T, w *httptest.ResponseRecorder)
 		expectedStatus int
 	}{
@@ -389,11 +389,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Success",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "valid_access_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance for UUID and required validation
 				realValidator := validator.New()
 
@@ -416,12 +416,19 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 						Role:   "user",
 					}, nil)
 
+				mockInterviewSessionService.EXPECT().
+					IsSessionValid(mock.Anything, mock.Anything).
+					Return(&entities.IsSessionValidResp{
+						UserID:    "user-123",
+						SessionID: "session-123",
+					}, nil)
+
 				// Mock WebSocket connection handling
 				mockWsServer.EXPECT().
 					HandleConnection(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Return(nil)
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, w.Code)
@@ -432,11 +439,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With Empty Session Token",
 			sessionToken: "",
 			accessToken:  "valid_access_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -445,7 +452,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					GetValidate().
 					Return(realValidator)
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -457,11 +464,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With Invalid Session Token Format",
 			sessionToken: "invalid-uuid",
 			accessToken:  "valid_access_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance for UUID validation failure
 				realValidator := validator.New()
 
@@ -470,7 +477,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					GetValidate().
 					Return(realValidator)
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -482,11 +489,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With Missing Access Token",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -500,7 +507,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					GetValidate().
 					Return(realValidator)
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -512,11 +519,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With Invalid Access Token",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "invalid_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -535,7 +542,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					VerifyAndRenewAccessToken(mock.Anything, "invalid_token").
 					Return(nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken))
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -547,11 +554,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With Expired Access Token And Missing Refresh Token",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "expired_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -570,7 +577,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					VerifyAndRenewAccessToken(mock.Anything, "expired_token").
 					Return(nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -582,11 +589,11 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			name:         "Error With VerifyAndRenewAccessToken",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "valid_access_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -605,7 +612,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					VerifyAndRenewAccessToken(mock.Anything, "valid_access_token").
 					Return(nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -614,14 +621,14 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:         "Error With WebSocket Connection",
+			name:         "Error With IsSessionValid",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
 			accessToken:  "valid_access_token",
-			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware) {
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
-
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
 				// Create a real validator instance
 				realValidator := validator.New()
 
@@ -644,12 +651,61 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 						Role:   "user",
 					}, nil)
 
+				mockInterviewSessionService.EXPECT().
+					IsSessionValid(mock.Anything, mock.Anything).
+					Return(nil, err)
+
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Error(t, err)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error With WebSocket Connection",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			accessToken:  "valid_access_token",
+			setup: func() (*utils.MockValidator, websocket.WebSocketServerInterface, *middleware.MockAuthMiddleware, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockWsServer := new(ws.MockWebSocketServerInterface)
+				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+				// Create a real validator instance
+				realValidator := validator.New()
+
+				// Mock UUID validation (session token) - should pass
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				// Mock required validation (access token) - should pass
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				// Mock JWT token verification
+				mockAuthMiddleware.EXPECT().
+					VerifyAndRenewAccessToken(mock.Anything, "valid_access_token").
+					Return(&utilsPkg.SignInTokenPayload{
+						ID:     uuid.New(),
+						UserID: "user-123",
+						Role:   "user",
+					}, nil)
+
+				mockInterviewSessionService.EXPECT().
+					IsSessionValid(mock.Anything, mock.Anything).
+					Return(&entities.IsSessionValidResp{
+						UserID:    "user-123",
+						SessionID: "session-123",
+					}, nil)
+
 				// Mock WebSocket connection handling failure
 				mockWsServer.EXPECT().
 					HandleConnection(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Return(err)
 
-				return mockValidator, mockWsServer, mockAuthMiddleware
+				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -673,12 +729,12 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
 			c.Params = gin.Params{{Key: "id", Value: tt.sessionToken}}
 
-			mockValidator, mockWsServer, mockAuthMiddleware := tt.setup()
+			mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService := tt.setup()
 			defer mockValidator.AssertExpectations(t)
-			// defer mockWsServer.AssertExpectations(t)
 			defer mockAuthMiddleware.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
 
-			handler := NewInterviewSessionHandler(nil, log, nil, mockValidator, mockWsServer, nil, mockAuthMiddleware)
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, nil, mockValidator, mockWsServer, nil, mockAuthMiddleware)
 			handler.OpenWsConnection(c)
 
 			tt.verify(t, w)
