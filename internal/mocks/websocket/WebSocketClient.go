@@ -355,7 +355,7 @@ func (_c *MockWebSocketClient_SendSessionInfo_Call) RunAndReturn(run func(contex
 }
 
 // SetCallbacks provides a mock function with given fields: callbacks
-func (_m *MockWebSocketClient) SetCallbacks(callbacks websocket.WebSocketCallbacks) {
+func (_m *MockWebSocketClient) SetCallbacks(callbacks websocket.WebSocketClientCallbacks) {
 	_m.Called(callbacks)
 }
 
@@ -365,14 +365,14 @@ type MockWebSocketClient_SetCallbacks_Call struct {
 }
 
 // SetCallbacks is a helper method to define mock.On call
-//   - callbacks websocket.WebSocketCallbacks
+//   - callbacks websocket.WebSocketClientCallbacks
 func (_e *MockWebSocketClient_Expecter) SetCallbacks(callbacks interface{}) *MockWebSocketClient_SetCallbacks_Call {
 	return &MockWebSocketClient_SetCallbacks_Call{Call: _e.mock.On("SetCallbacks", callbacks)}
 }
 
-func (_c *MockWebSocketClient_SetCallbacks_Call) Run(run func(callbacks websocket.WebSocketCallbacks)) *MockWebSocketClient_SetCallbacks_Call {
+func (_c *MockWebSocketClient_SetCallbacks_Call) Run(run func(callbacks websocket.WebSocketClientCallbacks)) *MockWebSocketClient_SetCallbacks_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(websocket.WebSocketCallbacks))
+		run(args[0].(websocket.WebSocketClientCallbacks))
 	})
 	return _c
 }
@@ -382,7 +382,7 @@ func (_c *MockWebSocketClient_SetCallbacks_Call) Return() *MockWebSocketClient_S
 	return _c
 }
 
-func (_c *MockWebSocketClient_SetCallbacks_Call) RunAndReturn(run func(websocket.WebSocketCallbacks)) *MockWebSocketClient_SetCallbacks_Call {
+func (_c *MockWebSocketClient_SetCallbacks_Call) RunAndReturn(run func(websocket.WebSocketClientCallbacks)) *MockWebSocketClient_SetCallbacks_Call {
 	_c.Run(run)
 	return _c
 }

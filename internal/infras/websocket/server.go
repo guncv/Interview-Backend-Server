@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -53,6 +52,7 @@ type webSocketServer struct {
 	aiAgentConnected        bool
 	clientManager           *ClientManager
 	cfg                     *config.Config
+	callbacks               *WebSocketServerCallbacks
 }
 
 func NewWebSocketServer(
@@ -83,6 +83,7 @@ func NewWebSocketServer(
 		aiAgentConnected:        false,
 		clientManager:           clientManager,
 		cfg:                     cfg,
+		callbacks:               nil,
 	}
 }
 
@@ -141,7 +142,6 @@ func (s *webSocketServer) HandleConnection(
 
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
-		s.log.InfoWithID(ctx, "[WebSocketServer] Pong received from client")
 		client.mu.Lock()
 		client.lastPongTime = time.Now()
 		client.mu.Unlock()
@@ -167,6 +167,14 @@ func (s *webSocketServer) HandleConnection(
 		s.disconnect(ctx, client)
 		return nil
 	}
+
+	callbacks := NewWebSocketServerCallbacks(
+		s.log,
+		s.disconnect,
+		s.writeJSON,
+		s.clientManager,
+	)
+	s.callbacks = callbacks
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
 		SessionID: client.sessionID,
@@ -238,7 +246,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	u.RawQuery = q.Encode()
 
 	agentClient := NewWebSocketClient(s.log)
-	callbacks := NewWebSocketCallbacks().
+	callbacks := NewWebSocketClientCallbacks().
 		WithConnectionEstablished(func(sessionID string) {
 			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent connected", map[string]any{
 				"session_id": sessionID,
@@ -295,11 +303,11 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			switch m.Type {
 
 			case constants.WebSocketMessageTypeSegmentStart:
-				s.sendMessageTypeSegmentStart(ctx, c, payload)
+				s.callbacks.sendMessageTypeSegmentStart(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeSegmentEnd:
-				s.sendMessageTypeSegmentEnd(ctx, c, payload)
+				s.callbacks.sendMessageTypeSegmentEnd(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeClose:
@@ -311,169 +319,17 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				return
 
 			default:
-				s.sendMessageTypeError(ctx, c, payload)
+				s.callbacks.sendMessageTypeError(ctx, c, payload)
 				continue
 			}
 
 		case websocket.BinaryMessage:
-			s.handleAudioBinaryMessage(ctx, c, payload)
+			s.callbacks.handleAudioBinaryMessage(ctx, c, payload)
 
 		default:
 			s.log.InfoWithID(ctx, "[WebSocketServer] Ignoring frame type", map[string]any{"frame_type": mt})
 		}
 	}
-}
-
-func (s *webSocketServer) handleAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Called")
-
-	if len(payload) < 4 {
-		s.log.ErrorWithID(ctx, "Invalid frame: too short")
-		s.disconnect(ctx, client)
-		return
-	}
-
-	headerLength := binary.BigEndian.Uint32(payload[:4])
-
-	if int(headerLength)+4 > len(payload) {
-		s.log.ErrorWithID(ctx, "Invalid frame: header length too large")
-		s.disconnect(ctx, client)
-		return
-	}
-
-	headerBytes := payload[4 : 4+headerLength]
-
-	var header msgAudioChunk
-	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		s.log.ErrorWithID(ctx, "Invalid header JSON", err)
-		s.disconnect(ctx, client)
-		return
-	}
-
-	if header.SessionID != client.sessionID {
-		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
-			"expected_session_id": client.sessionID,
-			"received_session_id": header.SessionID,
-			"user_id":             client.userID,
-		})
-		_ = s.writeJSON(client, msgError{
-			Type:    "error",
-			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
-			Message: "Session ID mismatch",
-		})
-		s.disconnect(ctx, client)
-		return
-	}
-
-	if header.SegmentID != client.currentSegmentID {
-		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch", map[string]any{
-			"expected_segment_id": client.currentSegmentID,
-			"received_segment_id": header.SegmentID,
-			"session_id":          client.sessionID,
-			"user_id":             client.userID,
-		})
-		_ = s.writeJSON(client, msgError{
-			Type:    "error",
-			Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
-			Message: "Segment ID mismatch",
-		})
-		s.disconnect(ctx, client)
-		return
-	}
-
-	audioData := payload[4+headerLength:]
-
-	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
-		if err := agentClient.SendAudio(ctx, header.SegmentID, audioData); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error forwarding audio to AI agent", err)
-		}
-	}
-}
-
-func (s *webSocketServer) sendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Called")
-
-	var m msgSegmentStart
-	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-		_ = s.writeJSON(client, msgError{
-			Type:    "error",
-			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentStart),
-			Message: app_error.ErrCodeWebSocketInvalidSegmentStart.Message(),
-		})
-		s.disconnect(ctx, client)
-		return
-	}
-
-	if client.sessionID != m.SessionID {
-		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
-			"expected_session_id": client.sessionID,
-			"received_session_id": m.SessionID,
-			"user_id":             client.userID,
-		})
-		s.disconnect(ctx, client)
-		return
-	}
-
-	client.currentSegmentID = m.SegmentID
-
-	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
-		if err := agentClient.SegmentStart(ctx, m.SegmentID, m.SampleRate, m.Encoding, m.Channels); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Error forwarding segment start to AI agent", err)
-		}
-	}
-
-}
-
-func (s *webSocketServer) sendMessageTypeSegmentEnd(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Called")
-
-	var m msgSegmentEnd
-	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
-		_ = s.writeJSON(client, msgError{
-			Type:    "error",
-			Code:    string(app_error.ErrCodeWebSocketInvalidSegmentEnd),
-			Message: app_error.ErrCodeWebSocketInvalidSegmentEnd.Message(),
-		})
-		return
-	}
-
-	if client.sessionID != m.SessionID {
-		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch", map[string]any{
-			"expected_session_id": client.sessionID,
-			"received_session_id": m.SessionID,
-			"user_id":             client.userID,
-		})
-		return
-	}
-
-	if client.currentSegmentID != m.SegmentID {
-		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch", map[string]any{
-			"expected_segment_id": client.currentSegmentID,
-			"received_segment_id": m.SegmentID,
-			"session_id":          client.sessionID,
-			"user_id":             client.userID,
-		})
-		return
-	}
-
-	client.currentSegmentID = ""
-
-	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
-		if err := agentClient.SegmentEnd(ctx, m.SegmentID); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error forwarding segment end to AI agent", err)
-		}
-	}
-}
-
-func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
-
-	_ = s.writeJSON(client, msgError{
-		Type:    "error",
-		Code:    string(app_error.ErrCodeWebSocketInvalidMessage),
-		Message: app_error.ErrCodeWebSocketInvalidMessage.Message(),
-	})
-	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
 }
 
 func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
@@ -563,68 +419,6 @@ func (s *webSocketServer) writeJSON(c *Client, v any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.conn.WriteJSON(v)
-}
-
-func (s *webSocketServer) HandleTTSResponse(ctx context.Context, sessionID, segmentID, ttsID, encoding string) error {
-	s.mu.RLock()
-	client, exists := s.sessions[sessionID]
-	s.mu.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("client not found for session %s", sessionID)
-	}
-
-	_ = s.writeJSON(client, map[string]any{
-		"v": 1, "type": "tts_start", "segment_id": segmentID, "tts_id": ttsID, "encoding": encoding,
-	})
-
-	return nil
-}
-
-func (s *webSocketServer) HandleTTSChunk(ctx context.Context, sessionID, segmentID string, audioData []byte) error {
-	s.mu.RLock()
-	client, exists := s.sessions[sessionID]
-	s.mu.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("client not found for session %s", sessionID)
-	}
-
-	header := map[string]string{
-		"type":       "tts_chunk",
-		"session_id": sessionID,
-		"segment_id": segmentID,
-	}
-
-	headerBytes, err := json.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	frame := make([]byte, 4+len(headerBytes)+len(audioData))
-	binary.BigEndian.PutUint32(frame[:4], uint32(len(headerBytes)))
-	copy(frame[4:], headerBytes)
-	copy(frame[4+len(headerBytes):], audioData)
-
-	client.mu.Lock()
-	defer client.mu.Unlock()
-	return client.conn.WriteMessage(websocket.BinaryMessage, frame)
-}
-
-func (s *webSocketServer) HandleTTSEnd(ctx context.Context, sessionID, segmentID, ttsID string) error {
-	s.mu.RLock()
-	client, exists := s.sessions[sessionID]
-	s.mu.RUnlock()
-
-	if !exists {
-		return fmt.Errorf("client not found for session %s", sessionID)
-	}
-
-	_ = s.writeJSON(client, map[string]any{
-		"v": 1, "type": "tts_end", "segment_id": segmentID, "tts_id": ttsID,
-	})
-
-	return nil
 }
 
 func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {

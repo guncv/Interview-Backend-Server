@@ -12,11 +12,6 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
-type WebSocketCallbacks struct {
-	OnConnectionEstablished func(sessionID string)
-	OnDisconnect            func(sessionID string)
-}
-
 type WebSocketClient interface {
 	Start(ctx context.Context, url string) error
 	Close(ctx context.Context) error
@@ -29,11 +24,11 @@ type WebSocketClient interface {
 	SendMessage(ctx context.Context, msgType string, data map[string]interface{}) error
 	SendSessionInfo(ctx context.Context, sessionID, userID string) error
 	IsConnected() bool
-	SetCallbacks(callbacks WebSocketCallbacks)
+	SetCallbacks(callbacks WebSocketClientCallbacks)
 }
 
 type webSocketClient struct {
-	cb        WebSocketCallbacks
+	cb        WebSocketClientCallbacks
 	log       *log.Logger
 	sessionID string
 	userID    string
@@ -46,8 +41,10 @@ type webSocketClient struct {
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
+	cb := NewWebSocketClientCallbacks()
+
 	return &webSocketClient{
-		cb:           WebSocketCallbacks{},
+		cb:           *cb,
 		log:          log,
 		conn:         nil,
 		connected:    false,
@@ -75,7 +72,6 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	c.conn.SetPongHandler(func(string) error {
-		c.log.InfoWithID(ctx, "[WebSocketClient] Pong received from server")
 		c.mu.Lock()
 		c.lastPongTime = time.Now()
 		c.mu.Unlock()
@@ -155,7 +151,7 @@ func (c *webSocketClient) IsConnected() bool {
 	return c.connected && c.conn != nil
 }
 
-func (c *webSocketClient) SetCallbacks(callbacks WebSocketCallbacks) {
+func (c *webSocketClient) SetCallbacks(callbacks WebSocketClientCallbacks) {
 	ctx := context.Background()
 	c.log.InfoWithID(ctx, "[WebSocketClient: SetCallbacks] Called:", callbacks)
 	c.cb = callbacks
