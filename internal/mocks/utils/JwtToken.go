@@ -217,6 +217,63 @@ func (_c *MockJwtToken_CreateVerifyEmailToken_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// CreateWebSocketSessionToken provides a mock function with given fields: ctx, req
+func (_m *MockJwtToken) CreateWebSocketSessionToken(ctx context.Context, req *entities.WebSocketSessionReq) (string, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateWebSocketSessionToken")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.WebSocketSessionReq) (string, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.WebSocketSessionReq) string); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.WebSocketSessionReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockJwtToken_CreateWebSocketSessionToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateWebSocketSessionToken'
+type MockJwtToken_CreateWebSocketSessionToken_Call struct {
+	*mock.Call
+}
+
+// CreateWebSocketSessionToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.WebSocketSessionReq
+func (_e *MockJwtToken_Expecter) CreateWebSocketSessionToken(ctx interface{}, req interface{}) *MockJwtToken_CreateWebSocketSessionToken_Call {
+	return &MockJwtToken_CreateWebSocketSessionToken_Call{Call: _e.mock.On("CreateWebSocketSessionToken", ctx, req)}
+}
+
+func (_c *MockJwtToken_CreateWebSocketSessionToken_Call) Run(run func(ctx context.Context, req *entities.WebSocketSessionReq)) *MockJwtToken_CreateWebSocketSessionToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.WebSocketSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockJwtToken_CreateWebSocketSessionToken_Call) Return(_a0 string, _a1 error) *MockJwtToken_CreateWebSocketSessionToken_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockJwtToken_CreateWebSocketSessionToken_Call) RunAndReturn(run func(context.Context, *entities.WebSocketSessionReq) (string, error)) *MockJwtToken_CreateWebSocketSessionToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // HashTokenSHA256 provides a mock function with given fields: ctx, token
 func (_m *MockJwtToken) HashTokenSHA256(ctx context.Context, token string) string {
 	ret := _m.Called(ctx, token)
