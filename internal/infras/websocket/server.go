@@ -37,6 +37,7 @@ type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, payloadReq entities.OpenWsConnectionRequest) error
 	Start(ctx context.Context) error
 	Close(ctx context.Context) error
+	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
 }
 
 type webSocketServer struct {
@@ -104,6 +105,8 @@ func (s *webSocketServer) Close(ctx context.Context) error {
 	s.userSessions = make(map[string]map[string]bool)
 	s.mu.Unlock()
 
+	s.clientManager.CloseAllClients(ctx)
+
 	s.aiAgentConnected = false
 	return nil
 }
@@ -116,31 +119,10 @@ func (s *webSocketServer) HandleConnection(
 ) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Called")
 
-	redisSessionToken, err := s.redisClient.Get(ctx, payloadReq.SessionToken)
+	userID, sessionID, err := s.isSessionValid(ctx, payloadReq)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking session valid", err)
 		return err
-	}
-
-	var sessionPayload entities.RedisSessionToken
-	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error unmarshalling redis session token", err)
-		return err
-	}
-
-	if sessionPayload.UserID != payloadReq.UserID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
-		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
-	}
-
-	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking interview session exists", err)
-		return err
-	}
-	if !exists {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Interview session not found")
-		return app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionNotFound)
 	}
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
@@ -151,8 +133,8 @@ func (s *webSocketServer) HandleConnection(
 
 	client := &Client{
 		conn:         conn,
-		userID:       sessionPayload.UserID,
-		sessionID:    sessionPayload.SessionID,
+		userID:       userID,
+		sessionID:    sessionID,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 	}
@@ -207,6 +189,39 @@ func (s *webSocketServer) HandleConnection(
 	return nil
 }
 
+func (s *webSocketServer) isSessionValid(ctx context.Context, req entities.OpenWsConnectionRequest) (string, string, error) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: isSessionValid] Called")
+
+	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error getting redis session token", err)
+		return "", "", err
+	}
+
+	var sessionPayload entities.RedisSessionToken
+	if err := json.Unmarshal([]byte(redisSessionToken), &sessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error unmarshalling redis session token", err)
+		return "", "", err
+	}
+
+	if sessionPayload.UserID != req.UserID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] User ID mismatch")
+		return "", "", app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking interview session exists", err)
+		return "", "", err
+	}
+	if !exists {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Interview session not found")
+		return "", "", app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionNotFound)
+	}
+
+	return sessionPayload.UserID, sessionPayload.SessionID, nil
+}
+
 func (s *webSocketServer) initClient(ctx context.Context, client *Client) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: initClient] Called")
 
@@ -224,11 +239,16 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 
 	agentClient := NewWebSocketClient(s.log)
 	callbacks := NewWebSocketCallbacks().
-		WithASRPartial(func(segmentID, text string, seq int, stability float64) {
-			s.log.InfoWithID(ctx, "[AI-ASRPartial]", map[string]any{"text": text})
+		WithConnectionEstablished(func(sessionID string) {
+			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent connected", map[string]any{
+				"session_id": sessionID,
+			})
 		}).
-		WithASRFinal(func(segmentID, text string, seq int) {
-			s.log.InfoWithID(ctx, "[AI-ASRFinal]", map[string]any{"text": text})
+		WithDisconnect(func(sessionID string) {
+			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent disconnected, disconnecting browser client", map[string]any{
+				"session_id": sessionID,
+			})
+			s.chainDisconnect(ctx, sessionID)
 		})
 	agentClient.SetCallbacks(*callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
@@ -281,6 +301,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			case constants.WebSocketMessageTypeSegmentEnd:
 				s.sendMessageTypeSegmentEnd(ctx, c, payload)
 				continue
+
+			case constants.WebSocketMessageTypeClose:
+				s.log.InfoWithID(ctx, "[WebSocketServer] Received close message from client", map[string]any{
+					"session_id": c.sessionID,
+					"user_id":    c.userID,
+				})
+				s.disconnect(ctx, c)
+				return
 
 			default:
 				s.sendMessageTypeError(ctx, c, payload)
@@ -448,40 +476,35 @@ func (s *webSocketServer) sendMessageTypeError(ctx context.Context, client *Clie
 	_ = s.writeJSON(client, map[string]any{"v": 1, "type": "echo", "content": json.RawMessage(payload)})
 }
 
-func (s *webSocketServer) pingLoop(ctx context.Context, c *Client) {
+func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: pingLoop] Starting ping loop")
 
 	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
 
 	for range t.C {
-		c.mu.Lock()
-		timeSinceLastPong := time.Since(c.lastPongTime)
-		c.mu.Unlock()
+		client.mu.Lock()
+		timeSinceLastPong := time.Since(client.lastPongTime)
+		client.mu.Unlock()
 
 		if timeSinceLastPong > constants.WebSocketPongTimeout {
-			s.log.ErrorWithID(context.Background(), "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
-				"session_id":           c.sessionID,
+			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
+				"session_id":           client.sessionID,
 				"time_since_last_pong": timeSinceLastPong,
 				"timeout":              constants.WebSocketPongTimeout,
 			})
-			s.disconnect(ctx, c)
+			s.disconnect(ctx, client)
 			return
 		}
 
-		c.mu.Lock()
-		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
-		c.mu.Unlock()
+		client.mu.Lock()
+		err := client.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
+		client.mu.Unlock()
 		if err != nil {
-			s.log.ErrorWithID(context.Background(), "[WebSocketServer: pingLoop] Error writing ping message", err)
-			s.disconnect(ctx, c)
+			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Error writing ping message", err)
+			s.disconnect(ctx, client)
 			return
 		}
-
-		s.log.DebugWithID(context.Background(), "[WebSocketServer: pingLoop] Ping sent", map[string]interface{}{
-			"session_id":           c.sessionID,
-			"time_since_last_pong": timeSinceLastPong,
-		})
 	}
 }
 
@@ -504,10 +527,36 @@ func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
 		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
 	})
 
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{
+			"session_id": client.sessionID,
+		})
+		_ = agentClient.Close(ctx)
+	}
+
 	s.clientManager.DeleteClientBySessionID(ctx, client.sessionID)
 	s.mu.Unlock()
 	_ = client.conn.Close()
 	close(client.pongReceived)
+}
+
+func (s *webSocketServer) chainDisconnect(ctx context.Context, sessionID string) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: chainDisconnect] Called", map[string]any{
+		"session_id": sessionID,
+	})
+
+	s.mu.RLock()
+	client, exists := s.sessions[sessionID]
+	s.mu.RUnlock()
+
+	if !exists {
+		s.log.WarnWithID(ctx, "[WebSocketServer: chainDisconnect] Client not found for session", map[string]any{
+			"session_id": sessionID,
+		})
+		return
+	}
+
+	s.disconnect(ctx, client)
 }
 
 func (s *webSocketServer) writeJSON(c *Client, v any) error {
@@ -574,6 +623,27 @@ func (s *webSocketServer) HandleTTSEnd(ctx context.Context, sessionID, segmentID
 	_ = s.writeJSON(client, map[string]any{
 		"v": 1, "type": "tts_end", "segment_id": segmentID, "tts_id": ttsID,
 	})
+
+	return nil
+}
+
+func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {
+	s.mu.RLock()
+	client, exists := s.sessions[sessionID]
+	s.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("client not found for session %s", sessionID)
+	}
+
+	_ = s.writeJSON(client, map[string]any{
+		"v":      1,
+		"type":   constants.WebSocketMessageTypeClose,
+		"reason": reason,
+	})
+
+	time.Sleep(100 * time.Millisecond)
+	s.disconnect(ctx, client)
 
 	return nil
 }

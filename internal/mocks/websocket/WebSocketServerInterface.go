@@ -119,6 +119,54 @@ func (_c *MockWebSocketServerInterface_HandleConnection_Call) RunAndReturn(run f
 	return _c
 }
 
+// SendCloseMessage provides a mock function with given fields: ctx, sessionID, reason
+func (_m *MockWebSocketServerInterface) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {
+	ret := _m.Called(ctx, sessionID, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendCloseMessage")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, sessionID, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketServerInterface_SendCloseMessage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendCloseMessage'
+type MockWebSocketServerInterface_SendCloseMessage_Call struct {
+	*mock.Call
+}
+
+// SendCloseMessage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+//   - reason string
+func (_e *MockWebSocketServerInterface_Expecter) SendCloseMessage(ctx interface{}, sessionID interface{}, reason interface{}) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	return &MockWebSocketServerInterface_SendCloseMessage_Call{Call: _e.mock.On("SendCloseMessage", ctx, sessionID, reason)}
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) Run(run func(ctx context.Context, sessionID string, reason string)) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) Return(_a0 error) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketServerInterface_SendCloseMessage_Call) RunAndReturn(run func(context.Context, string, string) error) *MockWebSocketServerInterface_SendCloseMessage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Start provides a mock function with given fields: ctx
 func (_m *MockWebSocketServerInterface) Start(ctx context.Context) error {
 	ret := _m.Called(ctx)

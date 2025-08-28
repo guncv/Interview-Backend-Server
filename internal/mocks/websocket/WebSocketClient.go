@@ -22,17 +22,17 @@ func (_m *MockWebSocketClient) EXPECT() *MockWebSocketClient_Expecter {
 	return &MockWebSocketClient_Expecter{mock: &_m.Mock}
 }
 
-// Close provides a mock function with no fields
-func (_m *MockWebSocketClient) Close() error {
-	ret := _m.Called()
+// Close provides a mock function with given fields: ctx
+func (_m *MockWebSocketClient) Close(ctx context.Context) error {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Close")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -46,13 +46,14 @@ type MockWebSocketClient_Close_Call struct {
 }
 
 // Close is a helper method to define mock.On call
-func (_e *MockWebSocketClient_Expecter) Close() *MockWebSocketClient_Close_Call {
-	return &MockWebSocketClient_Close_Call{Call: _e.mock.On("Close")}
+//   - ctx context.Context
+func (_e *MockWebSocketClient_Expecter) Close(ctx interface{}) *MockWebSocketClient_Close_Call {
+	return &MockWebSocketClient_Close_Call{Call: _e.mock.On("Close", ctx)}
 }
 
-func (_c *MockWebSocketClient_Close_Call) Run(run func()) *MockWebSocketClient_Close_Call {
+func (_c *MockWebSocketClient_Close_Call) Run(run func(ctx context.Context)) *MockWebSocketClient_Close_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -62,7 +63,7 @@ func (_c *MockWebSocketClient_Close_Call) Return(_a0 error) *MockWebSocketClient
 	return _c
 }
 
-func (_c *MockWebSocketClient_Close_Call) RunAndReturn(run func() error) *MockWebSocketClient_Close_Call {
+func (_c *MockWebSocketClient_Close_Call) RunAndReturn(run func(context.Context) error) *MockWebSocketClient_Close_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -12,15 +13,8 @@ import (
 )
 
 type WebSocketCallbacks struct {
-	OnASRPartial            func(segmentID, text string, seq int, stability float64)
-	OnASRFinal              func(segmentID, text string, seq int)
-	OnTTSStart              func(segmentID, ttsID, encoding string)
-	OnTTSChunk              func(segmentID string, data []byte)
-	OnTTSEnd                func(segmentID, ttsID string)
-	OnError                 func(code, msg string)
-	OnEvaluation            func(segmentID string, score float64, comment string)
 	OnConnectionEstablished func(sessionID string)
-	OnPing                  func(timestamp float64)
+	OnDisconnect            func(sessionID string)
 }
 
 type WebSocketClient interface {
@@ -44,16 +38,20 @@ type webSocketClient struct {
 	sessionID string
 	userID    string
 
-	conn      *websocket.Conn
-	connected bool
+	conn         *websocket.Conn
+	connected    bool
+	mu           sync.Mutex
+	lastPongTime time.Time
+	pongReceived chan struct{}
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
 	return &webSocketClient{
-		cb:        WebSocketCallbacks{},
-		log:       log,
-		conn:      nil,
-		connected: false,
+		cb:           WebSocketCallbacks{},
+		log:          log,
+		conn:         nil,
+		connected:    false,
+		pongReceived: make(chan struct{}, 1),
 	}
 }
 
@@ -73,11 +71,25 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 	}
 	c.conn = conn
 	c.connected = true
+	c.lastPongTime = time.Now()
 
 	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	c.conn.SetPongHandler(func(string) error {
+		c.log.InfoWithID(ctx, "[WebSocketClient] Pong received from server")
+		c.mu.Lock()
+		c.lastPongTime = time.Now()
+		c.mu.Unlock()
 
-	go c.readLoop()
-	go c.pingLoop()
+		select {
+		case c.pongReceived <- struct{}{}:
+		default:
+		}
+
+		return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	})
+
+	go c.readLoop(ctx)
+	go c.pingLoop(ctx)
 	return nil
 }
 
@@ -149,14 +161,20 @@ func (c *webSocketClient) SetCallbacks(callbacks WebSocketCallbacks) {
 	c.cb = callbacks
 }
 
-func (c *webSocketClient) readLoop() {
-	ctx := context.Background()
+func (c *webSocketClient) readLoop(ctx context.Context) {
 	c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] Called")
 
 	for {
 		mt, data, err := c.conn.ReadMessage()
 		if err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] Connection error, disconnecting", err)
 			c.connected = false
+
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+
+			c.disconnect(ctx)
 			return
 		}
 
@@ -179,12 +197,6 @@ func (c *webSocketClient) readLoop() {
 				if json.Unmarshal(data, &x) == nil && c.cb.OnConnectionEstablished != nil {
 					c.cb.OnConnectionEstablished(x.SessionID)
 				}
-
-			case "error":
-				var x struct{ Code, Message string }
-				if json.Unmarshal(data, &x) == nil && c.cb.OnError != nil {
-					c.cb.OnError(x.Code, x.Message)
-				}
 			}
 
 		case websocket.BinaryMessage:
@@ -193,15 +205,57 @@ func (c *webSocketClient) readLoop() {
 	}
 }
 
-func (c *webSocketClient) pingLoop() {
-	ctx := context.Background()
-	c.log.InfoWithID(ctx, "[WebSocketClient: pingLoop] Called")
+func (c *webSocketClient) pingLoop(ctx context.Context) {
+	c.log.InfoWithID(ctx, "[WebSocketClient: pingLoop] Starting ping loop")
 
 	t := time.NewTicker(constants.WebSocketPingInterval)
 	defer t.Stop()
+
 	for range t.C {
-		if c.conn != nil {
-			_ = c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second))
+		c.mu.Lock()
+		timeSinceLastPong := time.Since(c.lastPongTime)
+		c.mu.Unlock()
+
+		if timeSinceLastPong > constants.WebSocketPongTimeout {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Pong timeout - no pong received", map[string]interface{}{
+				"session_id":           c.sessionID,
+				"time_since_last_pong": timeSinceLastPong,
+				"timeout":              constants.WebSocketPongTimeout,
+			})
+			c.connected = false
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+			c.disconnect(ctx)
+			return
 		}
+
+		c.mu.Lock()
+		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
+		c.mu.Unlock()
+		if err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Error writing ping message", err)
+			c.connected = false
+			if c.cb.OnDisconnect != nil {
+				c.cb.OnDisconnect(c.sessionID)
+			}
+			c.disconnect(ctx)
+			return
+		}
+	}
+}
+
+func (c *webSocketClient) disconnect(ctx context.Context) {
+	c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Disconnecting client")
+
+	if err := c.conn.Close(); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: disconnect] Error closing connection", err)
+	} else {
+		c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Connection closed successfully")
+	}
+
+	c.connected = false
+	if c.cb.OnDisconnect != nil {
+		c.cb.OnDisconnect(c.sessionID)
 	}
 }
