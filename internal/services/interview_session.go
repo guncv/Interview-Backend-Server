@@ -168,6 +168,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		"session_id": createResumeAndJobRequirementReq.SessionID,
 		"user_id":    authCtx.Payload.UserID,
 		"role":       authCtx.Payload.Role,
+		"language":   constants.LanguageMapping[req.Language],
 	}
 
 	tokenReqJSON, err := json.Marshal(tokenReq)
@@ -271,6 +272,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	tokenReq := map[string]any{
 		"session_id": createInterviewSessionWithExistingResumeReq.SessionID,
 		"user_id":    authCtx.Payload.UserID,
+		"language":   constants.LanguageMapping[req.Language],
 		"role":       authCtx.Payload.Role,
 	}
 
@@ -347,6 +349,7 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 	resp := &entities.IsSessionValidResp{
 		UserID:    sessionPayload.UserID,
 		SessionID: sessionPayload.SessionID,
+		Language:  sessionPayload.Language,
 	}
 
 	return resp, nil

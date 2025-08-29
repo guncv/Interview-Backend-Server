@@ -9,4 +9,5 @@ type RedisSessionToken struct {
 	SessionID string `json:"session_id"`
 	UserID    string `json:"user_id"`
 	Role      string `json:"role"`
+	Language  string `json:"language"`
 }

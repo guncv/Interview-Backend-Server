@@ -27,6 +27,7 @@ type VerifyEmailTokenPayload struct {
 type WebSocketSessionPayload struct {
 	UserID    string    `json:"user_id"`
 	SessionID string    `json:"session_id"`
+	Language  string    `json:"language"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expires_at"`
 }
@@ -69,6 +70,7 @@ func NewWebSocketSessionPayload(req *entities.WebSocketSessionReq) *WebSocketSes
 	return &WebSocketSessionPayload{
 		UserID:    req.UserID,
 		SessionID: req.SessionID,
+		Language:  req.Language,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(req.Duration),
 	}

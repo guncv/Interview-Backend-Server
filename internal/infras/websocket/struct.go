@@ -12,6 +12,7 @@ type MsgSegmentStart struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
+	Language  string `json:"language"`
 }
 
 type MsgSegmentEnd struct {
