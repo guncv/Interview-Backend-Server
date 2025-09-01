@@ -96,10 +96,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -193,10 +202,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -377,10 +395,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -444,10 +471,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -515,10 +551,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -604,10 +649,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -755,10 +809,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -919,10 +982,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -1107,10 +1179,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -1426,10 +1507,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -1520,10 +1610,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -1613,10 +1712,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
@@ -1719,10 +1827,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
 					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
 						ParsedJson: repositories.PromptInfo{
-							FullName:   "John Doe",
-							Email:      "john@example.com",
-							Experience: []string{"Software Engineer at Tech Corp"},
-							Skills:     []string{"Go", "Docker", "AWS"},
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john@example.com",
+							Experience: []repositories.Experience{
+								{
+									Company:     "Tech Corp",
+									Position:    "Software Engineer",
+									StartDate:   "2020-01-01",
+									EndDate:     "2021-01-01",
+									Description: "Software Engineer at Tech Corp",
+								},
+							},
+							Skills: []string{"Go", "Docker", "AWS"},
 						},
 					}, nil)
 
