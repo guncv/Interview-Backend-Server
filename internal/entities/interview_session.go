@@ -58,10 +58,12 @@ type IsSessionValidReq struct {
 type IsSessionValidResp struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`
+	Language  string `json:"language"`
 }
 
 type WebSocketSessionReq struct {
 	UserID    string        `json:"user_id"`
 	SessionID string        `json:"session_id"`
+	Language  string        `json:"language"`
 	Duration  time.Duration `json:"duration"`
 }

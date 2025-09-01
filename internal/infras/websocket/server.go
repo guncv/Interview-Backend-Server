@@ -26,6 +26,7 @@ type Client struct {
 	mu               sync.Mutex
 	userID           string
 	sessionID        string
+	language         string
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
@@ -142,6 +143,7 @@ func (s *webSocketServer) HandleConnection(
 		conn:         conn,
 		userID:       session.UserID,
 		sessionID:    session.SessionID,
+		language:     session.Language,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 		connected:    true,
@@ -202,6 +204,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
 		SessionID: client.sessionID,
+		Language:  client.language,
 		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionDuration,
 	})
 	if err != nil {
@@ -234,6 +237,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 			})
 			s.disconnect(ctx, client)
 		})
+
 	agentClient.SetCallbacks(*callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)

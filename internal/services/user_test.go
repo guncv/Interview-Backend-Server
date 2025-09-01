@@ -3700,7 +3700,6 @@ func TestUserService_SignOut(t *testing.T) {
 				mockSessionRepo := new(repositories.MockSessionRepository)
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
-				// Mock auth context retrieval
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{

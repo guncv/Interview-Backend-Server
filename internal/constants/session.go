@@ -34,3 +34,16 @@ const (
 	WebSocketPongTimeout            = 4 * time.Second
 	WebSocketClientHandshakeTimeout = 2 * time.Second
 )
+
+const (
+	LanguageThai    = "thai"
+	LanguageEnglish = "english"
+
+	LanguageCodeThai    = "th-TH"
+	LanguageCodeEnglish = "en-US"
+)
+
+var LanguageMapping = map[string]string{
+	LanguageThai:    LanguageCodeThai,
+	LanguageEnglish: LanguageCodeEnglish,
+}

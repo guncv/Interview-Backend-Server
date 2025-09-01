@@ -158,14 +158,6 @@ type Sessions struct {
 	UpdatedAt        sql.NullTime `json:"updated_at"`
 }
 
-type UserRoles struct {
-	ID         uuid.UUID    `json:"id"`
-	UserID     uuid.UUID    `json:"user_id"`
-	Role       string       `json:"role"`
-	AssignedAt sql.NullTime `json:"assigned_at"`
-	DeletedAt  sql.NullTime `json:"deleted_at"`
-}
-
 type Users struct {
 	ID                 uuid.UUID      `json:"id"`
 	Email              string         `json:"email"`

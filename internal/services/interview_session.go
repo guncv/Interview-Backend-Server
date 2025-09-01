@@ -89,9 +89,10 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	}
 
 	customFileHeader := s.convertToCustomFileHeader(req.File)
+	sessionID := s.generator.GenerateUUID(ctx)
 
 	getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
-		SessionID:       s.generator.GenerateUUID(ctx),
+		SessionID:       sessionID,
 		Position:        req.Position,
 		Company:         req.Company,
 		WorkType:        req.WorkType,
@@ -142,7 +143,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		InterviewType:    req.InterviewType,
 		Language:         req.Language,
 
-		SessionID:  s.generator.GenerateUUID(ctx),
+		SessionID:  sessionID,
 		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:     constants.StatusPending,
 		Modality:   constants.ModalityVoiceChat,
@@ -165,9 +166,10 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	}
 
 	tokenReq := map[string]any{
-		"session_id": createResumeAndJobRequirementReq.SessionID,
+		"session_id": sessionID,
 		"user_id":    authCtx.Payload.UserID,
 		"role":       authCtx.Payload.Role,
+		"language":   constants.LanguageMapping[req.Language],
 	}
 
 	tokenReqJSON, err := json.Marshal(tokenReq)
@@ -219,8 +221,9 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
+	sessionID := s.generator.GenerateUUID(ctx)
 	getSummaryJsonReq := &repositories.GetResumeJsonWithSummaryDataReq{
-		SessionID:       s.generator.GenerateUUID(ctx),
+		SessionID:       sessionID,
 		Position:        req.Position,
 		Company:         req.Company,
 		WorkType:        req.WorkType,
@@ -256,7 +259,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		CreatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
 		UpdatedAt:        sql.NullTime{Time: time.Now(), Valid: true},
 
-		SessionID:  s.generator.GenerateUUID(ctx),
+		SessionID:  sessionID,
 		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
 		Status:     constants.StatusPending,
 		Modality:   constants.ModalityVoiceChat,
@@ -269,8 +272,9 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	tokenReq := map[string]any{
-		"session_id": createInterviewSessionWithExistingResumeReq.SessionID,
+		"session_id": sessionID,
 		"user_id":    authCtx.Payload.UserID,
+		"language":   constants.LanguageMapping[req.Language],
 		"role":       authCtx.Payload.Role,
 	}
 
@@ -347,6 +351,7 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 	resp := &entities.IsSessionValidResp{
 		UserID:    sessionPayload.UserID,
 		SessionID: sessionPayload.SessionID,
+		Language:  sessionPayload.Language,
 	}
 
 	return resp, nil

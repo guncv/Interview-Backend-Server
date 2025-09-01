@@ -6,7 +6,7 @@ CREATE TABLE job_requirements (
     work_type VARCHAR(50) NOT NULL,
     job_requirements TEXT NOT NULL,
     interview_type VARCHAR(50) NOT NULL,
-    language VARCHAR(50) NOT NULL,
+    language VARCHAR(50) NOT NULL CHECK (language IN ('thai','english')),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ
