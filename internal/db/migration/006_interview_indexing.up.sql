@@ -1,0 +1,1 @@
+CREATE INDEX idx_interview_turns_session_id ON interview_turns_session_id(session_id);
