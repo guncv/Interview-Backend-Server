@@ -45,8 +45,8 @@ CREATE TABLE interview_turns (
     transcript_text TEXT,
     stt_confidence NUMERIC(4,3),
     was_interrupted BOOLEAN DEFAULT FALSE,
-    start_at TIMESTAMPTZ,
-    end_at TIMESTAMPTZ,
+    start_at VARCHAR(10) NOT NULL,
+    end_at VARCHAR(10) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
 
     UNIQUE(session_id, turn_no)

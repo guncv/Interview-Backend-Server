@@ -32,8 +32,8 @@ type CreateInterviewTurnParams struct {
 	TurnNo         int32          `json:"turn_no"`
 	Actor          string         `json:"actor"`
 	TranscriptText sql.NullString `json:"transcript_text"`
-	StartAt        sql.NullTime   `json:"start_at"`
-	EndAt          sql.NullTime   `json:"end_at"`
+	StartAt        string         `json:"start_at"`
+	EndAt          string         `json:"end_at"`
 }
 
 func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error {
