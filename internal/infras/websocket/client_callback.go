@@ -1,23 +1,41 @@
 package websocket
 
-type WebSocketClientCallbacks struct {
-	OnConnectionEstablished func(sessionID string)
-	OnDisconnect            func(sessionID string)
+import (
+	"context"
+
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+)
+
+type WebSocketClientCallbacks interface {
+	OnConnectionEstablished(ctx context.Context, sessionID string)
+	OnDisconnect(ctx context.Context, sessionID string)
 }
 
-func NewWebSocketClientCallbacks() *WebSocketClientCallbacks {
-	return &WebSocketClientCallbacks{
-		OnConnectionEstablished: func(sessionID string) {},
-		OnDisconnect:            func(sessionID string) {},
+type webSocketClientCallbacks struct {
+	server WebSocketServerInterface
+	client *Client
+	log    *log.Logger
+}
+
+func NewWebSocketClientCallbacks(s WebSocketServerInterface, c *Client, l *log.Logger) WebSocketClientCallbacks {
+
+	return &webSocketClientCallbacks{
+		server: s,
+		client: c,
+		log:    l,
 	}
 }
 
-func (w *WebSocketClientCallbacks) WithConnectionEstablished(callback func(sessionID string)) *WebSocketClientCallbacks {
-	w.OnConnectionEstablished = callback
-	return w
+func (w *webSocketClientCallbacks) OnConnectionEstablished(ctx context.Context, sessionID string) {
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithConnectionEstablished] Agent connected", map[string]any{
+		"session_id": sessionID,
+	})
 }
 
-func (w *WebSocketClientCallbacks) WithDisconnect(callback func(sessionID string)) *WebSocketClientCallbacks {
-	w.OnDisconnect = callback
-	return w
+func (w *webSocketClientCallbacks) OnDisconnect(ctx context.Context, sessionID string) {
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithDisconnect] Agent disconnected", map[string]any{
+		"session_id": sessionID,
+	})
+
+	w.server.Disconnect(ctx, w.client)
 }

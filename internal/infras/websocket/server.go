@@ -38,6 +38,7 @@ type WebSocketServerInterface interface {
 	Start(ctx context.Context) error
 	Close(ctx context.Context) error
 	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
+	Disconnect(ctx context.Context, client *Client)
 }
 
 type webSocketServer struct {
@@ -90,7 +91,7 @@ func NewWebSocketServer(
 
 	logic := NewWebSocketServerLogic(
 		log,
-		server.disconnect,
+		server.Disconnect,
 		server.writeJSON,
 		clientManager,
 	)
@@ -173,7 +174,7 @@ func (s *webSocketServer) HandleConnection(
 
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return nil
 	}
 
@@ -184,7 +185,7 @@ func (s *webSocketServer) HandleConnection(
 
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return nil
 	}
 
@@ -209,14 +210,14 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	})
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
 	u, err := url.Parse(s.cfg.InterviewSessionConfig.InterviewWebsocketPath)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
@@ -225,23 +226,12 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	u.RawQuery = q.Encode()
 
 	agentClient := NewWebSocketClient(s.log)
-	callbacks := NewWebSocketClientCallbacks().
-		WithConnectionEstablished(func(sessionID string) {
-			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent connected", map[string]any{
-				"session_id": sessionID,
-			})
-		}).
-		WithDisconnect(func(sessionID string) {
-			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent disconnected, disconnecting browser client", map[string]any{
-				"session_id": sessionID,
-			})
-			s.disconnect(ctx, client)
-		})
+	callbacks := NewWebSocketClientCallbacks(s, client, s.log)
 
-	agentClient.SetCallbacks(*callbacks)
+	agentClient.SetCallbacks(callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
@@ -253,7 +243,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
-	defer s.disconnect(ctx, c)
+	defer s.Disconnect(ctx, c)
 	c.conn.SetReadLimit(1 << 20)
 
 	for {
@@ -290,7 +280,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 					"session_id": c.sessionID,
 					"user_id":    c.userID,
 				})
-				s.disconnect(ctx, c)
+				s.Disconnect(ctx, c)
 				return
 
 			default:
@@ -324,7 +314,7 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 				"time_since_last_pong": timeSinceLastPong,
 				"timeout":              constants.WebSocketPongTimeout,
 			})
-			s.disconnect(ctx, client)
+			s.Disconnect(ctx, client)
 			return
 		}
 
@@ -333,13 +323,13 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 		client.mu.Unlock()
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Error writing ping message", err)
-			s.disconnect(ctx, client)
+			s.Disconnect(ctx, client)
 			return
 		}
 	}
 }
 
-func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
+func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 	s.mu.Lock()
 	delete(s.sessions, client.sessionID)
@@ -399,7 +389,7 @@ func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string
 	})
 
 	time.Sleep(100 * time.Millisecond)
-	s.disconnect(ctx, client)
+	s.Disconnect(ctx, client)
 
 	return nil
 }

@@ -44,10 +44,10 @@ type webSocketClient struct {
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
-	cb := NewWebSocketClientCallbacks()
+	cb := NewWebSocketClientCallbacks(nil, nil, log)
 
 	return &webSocketClient{
-		cb:           *cb,
+		cb:           cb,
 		log:          log,
 		conn:         nil,
 		connected:    false,
@@ -258,9 +258,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] Connection error, disconnecting", err)
 			c.connected = false
 
-			if c.cb.OnDisconnect != nil {
-				c.cb.OnDisconnect(c.sessionID)
-			}
+			c.cb.OnDisconnect(ctx, c.sessionID)
 
 			c.disconnect(ctx)
 			return
@@ -278,13 +276,29 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			}
 
 			switch base.Type {
-			case "connection_established":
+			case constants.WebSocketMessageTypeConnectionEstablished:
 				var x struct {
 					SessionID string `json:"session_id"`
 				}
-				if json.Unmarshal(data, &x) == nil && c.cb.OnConnectionEstablished != nil {
-					c.cb.OnConnectionEstablished(x.SessionID)
+				if json.Unmarshal(data, &x) == nil {
+					c.cb.OnConnectionEstablished(ctx, x.SessionID)
 				}
+			case constants.WebSocketMessageTypeUserPartialTranscript:
+				// var x struct {
+				// 	SessionID  string `json:"session_id"`
+				// 	Transcript string `json:"transcript"`
+				// }
+				// if json.Unmarshal(data, &x) == nil && c.cb.OnUserPartialTranscript != nil {
+				// 	c.cb.OnUserPartialTranscript(ctx, x.SessionID, x.Transcript)
+				// }
+			case constants.WebSocketMessageTypeUserFullTranscript:
+				// var x struct {
+				// 	SessionID  string `json:"session_id"`
+				// 	Transcript string `json:"transcript"`
+				// }
+				// if json.Unmarshal(data, &x) == nil && c.cb.OnUserFullTranscript != nil {
+				// 	c.cb.OnUserFullTranscript(ctx, x.SessionID, x.Transcript)
+				// }
 			}
 
 		case websocket.BinaryMessage:
@@ -311,9 +325,7 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 				"timeout":              constants.WebSocketPongTimeout,
 			})
 			c.connected = false
-			if c.cb.OnDisconnect != nil {
-				c.cb.OnDisconnect(c.sessionID)
-			}
+			c.cb.OnDisconnect(ctx, c.sessionID)
 			c.disconnect(ctx)
 			return
 		}
@@ -324,9 +336,7 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 		if err != nil {
 			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Error writing ping message", err)
 			c.connected = false
-			if c.cb.OnDisconnect != nil {
-				c.cb.OnDisconnect(c.sessionID)
-			}
+			c.cb.OnDisconnect(ctx, c.sessionID)
 			c.disconnect(ctx)
 			return
 		}
@@ -343,7 +353,5 @@ func (c *webSocketClient) disconnect(ctx context.Context) {
 	}
 
 	c.connected = false
-	if c.cb.OnDisconnect != nil {
-		c.cb.OnDisconnect(c.sessionID)
-	}
+	c.cb.OnDisconnect(ctx, c.sessionID)
 }
