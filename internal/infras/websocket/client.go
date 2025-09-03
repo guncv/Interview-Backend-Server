@@ -293,13 +293,13 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				}
 				c.cb.OnUserPartialTranscript(ctx, msg)
 			case constants.WebSocketMessageTypeUserFullTranscript:
-				// var x struct {
-				// 	SessionID  string `json:"session_id"`
-				// 	Transcript string `json:"transcript"`
-				// }
-				// if json.Unmarshal(data, &x) == nil && c.cb.OnUserFullTranscript != nil {
-				// 	c.cb.OnUserFullTranscript(ctx, x.SessionID, x.Transcript)
-				// }
+				var msg MsgUserFullTranscript
+
+				if json.Unmarshal(data, &msg) == nil {
+					c.cb.OnUserFullTranscript(ctx, msg)
+					c.disconnect(ctx)
+					return
+				}
 			}
 
 		case websocket.BinaryMessage:

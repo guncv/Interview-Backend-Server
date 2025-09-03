@@ -10,6 +10,7 @@ type WebSocketClientCallbacks interface {
 	OnConnectionEstablished(ctx context.Context, sessionID string)
 	OnDisconnect(ctx context.Context, sessionID string)
 	OnUserPartialTranscript(ctx context.Context, req MsgUserPartialTranscript)
+	OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript)
 }
 
 type webSocketClientCallbacks struct {
@@ -54,5 +55,48 @@ func (w *webSocketClientCallbacks) OnUserPartialTranscript(ctx context.Context, 
 		"transcript": req.Transcript,
 	})
 
+	if req.SessionID != w.client.sessionID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserPartialTranscript] Security violation: Session ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
+	if req.SegmentID != w.client.currentSegmentID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserPartialTranscript] Security violation: Segment ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+			"segment_id": req.SegmentID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
 	w.logic.sendMessageTypeUserPartialTranscript(ctx, w.client, req)
+}
+
+func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript) {
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Agent sent full transcript", map[string]any{
+		"session_id": req.SessionID,
+		"transcript": req.Transcript,
+	})
+
+	if req.SessionID != w.client.sessionID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Security violation: Session ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
+	if req.SegmentID != w.client.currentSegmentID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Security violation: Segment ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+			"segment_id": req.SegmentID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
+	w.logic.sendMessageTypeUserFullTranscript(ctx, w.client, req)
 }

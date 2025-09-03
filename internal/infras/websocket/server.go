@@ -334,19 +334,19 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.mu.Lock()
 	delete(s.sessions, client.sessionID)
 
+	s.writeJSON(ctx, client, map[string]any{
+		"type":    "disconnect",
+		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
+		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
+	})
+
 	if set := s.userSessions[client.userID]; set != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error deleting user session", fmt.Errorf("user session not found for user %s", client.userID))
 		delete(set, client.sessionID)
 		if len(set) == 0 {
 			delete(s.userSessions, client.userID)
 		}
 	}
-
-	s.writeJSON(ctx, client, map[string]any{
-		"v":       1,
-		"type":    "error",
-		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
-		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
-	})
 
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{

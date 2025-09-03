@@ -83,6 +83,7 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentStart(ctx context.Context, 
 
 	var m MsgSegmentStart
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
+		s.log.ErrorWithID(ctx, "Invalid segment start message")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentStart)
 		return
 	}
@@ -109,6 +110,7 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 
 	var m MsgSegmentEnd
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
+		s.log.ErrorWithID(ctx, "Invalid segment end message")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentEnd)
 		return
 	}
@@ -137,11 +139,39 @@ func (s *WebSocketServerLogic) sendMessageTypeUserPartialTranscript(ctx context.
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserPartialTranscript] Called")
 
 	if client.sessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
 
 	if client.currentSegmentID != req.SegmentID {
+		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	request := map[string]interface{}{
+		"type":       req.Type,
+		"author":     req.Author,
+		"session_id": req.SessionID,
+		"segment_id": req.SegmentID,
+		"transcript": req.Transcript,
+	}
+
+	s.writeJSON(ctx, client, request)
+}
+
+func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Context, client *Client, req MsgUserFullTranscript) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Called")
+
+	if client.sessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	if client.currentSegmentID != req.SegmentID {
+		s.log.ErrorWithID(ctx, "Security violation: Segment ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
