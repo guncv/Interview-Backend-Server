@@ -70,7 +70,6 @@ func NewWebSocketSessionPayload(req *entities.WebSocketSessionReq) *WebSocketSes
 	return &WebSocketSessionPayload{
 		UserID:    req.UserID,
 		SessionID: req.SessionID,
-		Language:  req.Language,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(req.Duration),
 	}

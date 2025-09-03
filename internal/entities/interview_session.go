@@ -45,9 +45,25 @@ type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
 }
 
+type CreateSessionTurnBySessionIDReq struct {
+	SessionID  string `json:"session_id" binding:"required"`
+	Actor      string `json:"actor" binding:"required"`
+	Transcript string `json:"transcript" binding:"required"`
+}
+
 type UpdateInterviewSessionStatusReq struct {
 	SessionID string `json:"session_id" binding:"required"`
 	Status    string `json:"status" binding:"required"`
+}
+
+type SetSessionStartTimeReq struct {
+	SessionID string  `json:"session_id" binding:"required"`
+	StartedAt float64 `json:"started_at" binding:"required"`
+}
+
+type SetSessionEndTimeReq struct {
+	SessionID string  `json:"session_id" binding:"required"`
+	EndedAt   float64 `json:"ended_at" binding:"required"`
 }
 
 type IsSessionValidReq struct {
@@ -64,6 +80,5 @@ type IsSessionValidResp struct {
 type WebSocketSessionReq struct {
 	UserID    string        `json:"user_id"`
 	SessionID string        `json:"session_id"`
-	Language  string        `json:"language"`
 	Duration  time.Duration `json:"duration"`
 }

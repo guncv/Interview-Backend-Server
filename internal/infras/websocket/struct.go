@@ -14,16 +14,17 @@ type MsgAudioChunk struct {
 }
 
 type MsgSegmentStart struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-	SegmentID string `json:"segment_id"`
-	Language  string `json:"language"`
+	Type      string  `json:"type"`
+	SessionID string  `json:"session_id"`
+	SegmentID string  `json:"segment_id"`
+	StartedAt float64 `json:"started_at"`
 }
 
 type MsgSegmentEnd struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-	SegmentID string `json:"segment_id"`
+	Type      string  `json:"type"`
+	SessionID string  `json:"session_id"`
+	SegmentID string  `json:"segment_id"`
+	EndedAt   float64 `json:"ended_at"`
 }
 
 type MsgUserPartialTranscript struct {

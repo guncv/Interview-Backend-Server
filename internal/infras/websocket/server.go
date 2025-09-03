@@ -26,7 +26,6 @@ type Client struct {
 	mu               sync.Mutex
 	userID           string
 	sessionID        string
-	language         string
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
@@ -94,6 +93,7 @@ func NewWebSocketServer(
 		server.Disconnect,
 		server.writeJSON,
 		clientManager,
+		interviewSessionService,
 	)
 
 	server.logic = logic
@@ -144,12 +144,14 @@ func (s *webSocketServer) HandleConnection(
 		conn:         conn,
 		userID:       session.UserID,
 		sessionID:    session.SessionID,
-		language:     session.Language,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 		connected:    true,
 	}
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
+		"session_id": client.sessionID,
+	})
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
 		client.mu.Lock()
@@ -164,6 +166,9 @@ func (s *webSocketServer) HandleConnection(
 		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions", map[string]any{
+		"session_id": client.sessionID,
+	})
 	s.mu.Lock()
 	s.sessions[client.sessionID] = client
 	if s.userSessions[client.userID] == nil {
@@ -172,6 +177,9 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Initializing client", map[string]any{
+		"session_id": client.sessionID,
+	})
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
@@ -183,6 +191,10 @@ func (s *webSocketServer) HandleConnection(
 		Status:    constants.StatusOnGoing,
 	}
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Updating interview session status", map[string]any{
+		"session_id": client.sessionID,
+	})
+
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 		s.Disconnect(ctx, client)
@@ -190,7 +202,10 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	s.writeJSON(ctx, client, map[string]any{
-		"v": 1, "type": "connection_established", "session_id": client.sessionID,
+		"type": "connection_established", "session_id": client.sessionID,
+	})
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Connected to interview session", map[string]any{
+		"session_id": client.sessionID,
 	})
 
 	go s.pingLoop(ctx, client)
@@ -205,7 +220,6 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
 		SessionID: client.sessionID,
-		Language:  client.language,
 		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 	})
 	if err != nil {
