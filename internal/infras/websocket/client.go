@@ -44,7 +44,7 @@ type webSocketClient struct {
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
-	cb := NewWebSocketClientCallbacks(nil, nil, log)
+	cb := NewWebSocketClientCallbacks(nil, nil, nil, log)
 
 	return &webSocketClient{
 		cb:           cb,
@@ -277,20 +277,21 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 
 			switch base.Type {
 			case constants.WebSocketMessageTypeConnectionEstablished:
-				var x struct {
-					SessionID string `json:"session_id"`
+				var msg MsgConnectionEstablished
+
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
 				}
-				if json.Unmarshal(data, &x) == nil {
-					c.cb.OnConnectionEstablished(ctx, x.SessionID)
-				}
+				c.cb.OnConnectionEstablished(ctx, msg.SessionID)
 			case constants.WebSocketMessageTypeUserPartialTranscript:
-				// var x struct {
-				// 	SessionID  string `json:"session_id"`
-				// 	Transcript string `json:"transcript"`
-				// }
-				// if json.Unmarshal(data, &x) == nil && c.cb.OnUserPartialTranscript != nil {
-				// 	c.cb.OnUserPartialTranscript(ctx, x.SessionID, x.Transcript)
-				// }
+				var msg MsgUserPartialTranscript
+
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
+				}
+				c.cb.OnUserPartialTranscript(ctx, msg)
 			case constants.WebSocketMessageTypeUserFullTranscript:
 				// var x struct {
 				// 	SessionID  string `json:"session_id"`

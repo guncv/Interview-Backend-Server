@@ -13,14 +13,14 @@ import (
 type WebSocketServerLogic struct {
 	log           *log.Logger
 	disconnect    func(ctx context.Context, client *Client)
-	writeJSON     func(client *Client, data any) error
+	writeJSON     func(ctx context.Context, client *Client, data any)
 	clientManager *ClientManager
 }
 
 func NewWebSocketServerLogic(
 	log *log.Logger,
 	disconnect func(ctx context.Context, client *Client),
-	writeJSON func(client *Client, data any) error,
+	writeJSON func(ctx context.Context, client *Client, data any),
 	clientManager *ClientManager,
 ) *WebSocketServerLogic {
 
@@ -125,8 +125,6 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 		return
 	}
 
-	client.currentSegmentID = ""
-
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		if err := agentClient.SegmentEnd(ctx, m); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error forwarding segment end to AI agent", err)
@@ -135,10 +133,34 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 	}
 }
 
+func (s *WebSocketServerLogic) sendMessageTypeUserPartialTranscript(ctx context.Context, client *Client, req MsgUserPartialTranscript) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserPartialTranscript] Called")
+
+	if client.sessionID != req.SessionID {
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	if client.currentSegmentID != req.SegmentID {
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	request := map[string]interface{}{
+		"type":       req.Type,
+		"author":     req.Author,
+		"session_id": req.SessionID,
+		"segment_id": req.SegmentID,
+		"transcript": req.Transcript,
+	}
+
+	s.writeJSON(ctx, client, request)
+}
+
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
 
-	_ = s.writeJSON(client, msgError{
+	s.writeJSON(ctx, client, msgError{
 		Type:    constants.WebSocketMessageTypeError,
 		Code:    string(errCode),
 		Message: errCode.Message(),

@@ -181,7 +181,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
 		Value: string(tokenReqJSON),
-		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenTTL,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionDuration,
 	}
 
 	err = s.redisClient.Set(ctx, redisPayload)
@@ -287,7 +287,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	redisPayload := database.RedisPayload{
 		Key:   s.generator.GenerateUUID(ctx).String(),
 		Value: string(tokenReqJSON),
-		TTL:   s.config.InterviewSessionConfig.InterviewSessionTokenTTL,
+		TTL:   s.config.InterviewSessionConfig.InterviewSessionDuration,
 	}
 
 	if err := s.redisClient.Set(ctx, redisPayload); err != nil {

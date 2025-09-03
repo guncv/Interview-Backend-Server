@@ -2,6 +2,11 @@ package websocket
 
 import "time"
 
+type MsgConnectionEstablished struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
 type MsgAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
@@ -23,6 +28,7 @@ type MsgSegmentEnd struct {
 
 type MsgUserPartialTranscript struct {
 	Type       string `json:"type"`
+	Author     string `json:"author"`
 	SessionID  string `json:"session_id"`
 	SegmentID  string `json:"segment_id"`
 	Transcript string `json:"transcript"`
@@ -30,6 +36,7 @@ type MsgUserPartialTranscript struct {
 
 type MsgUserFullTranscript struct {
 	Type       string `json:"type"`
+	Author     string `json:"author"`
 	SessionID  string `json:"session_id"`
 	SegmentID  string `json:"segment_id"`
 	Transcript string `json:"transcript"`

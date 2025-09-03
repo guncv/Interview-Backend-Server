@@ -189,7 +189,7 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
-	_ = s.writeJSON(client, map[string]any{
+	s.writeJSON(ctx, client, map[string]any{
 		"v": 1, "type": "connection_established", "session_id": client.sessionID,
 	})
 
@@ -206,7 +206,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 		UserID:    client.userID,
 		SessionID: client.sessionID,
 		Language:  client.language,
-		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionDuration,
+		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 	})
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
@@ -226,7 +226,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	u.RawQuery = q.Encode()
 
 	agentClient := NewWebSocketClient(s.log)
-	callbacks := NewWebSocketClientCallbacks(s, client, s.log)
+	callbacks := NewWebSocketClientCallbacks(s, s.logic, client, s.log)
 
 	agentClient.SetCallbacks(callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
@@ -341,7 +341,7 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 		}
 	}
 
-	_ = s.writeJSON(client, map[string]any{
+	s.writeJSON(ctx, client, map[string]any{
 		"v":       1,
 		"type":    "error",
 		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
@@ -367,10 +367,14 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	client.mu.Unlock()
 }
 
-func (s *webSocketServer) writeJSON(c *Client, v any) error {
+func (s *webSocketServer) writeJSON(ctx context.Context, c *Client, v any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.conn.WriteJSON(v)
+	err := c.conn.WriteJSON(v)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Error writing JSON", err)
+		s.Disconnect(ctx, c)
+	}
 }
 
 func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {
@@ -382,7 +386,7 @@ func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string
 		return fmt.Errorf("client not found for session %s", sessionID)
 	}
 
-	_ = s.writeJSON(client, map[string]any{
+	s.writeJSON(ctx, client, map[string]any{
 		"v":      1,
 		"type":   constants.WebSocketMessageTypeClose,
 		"reason": reason,

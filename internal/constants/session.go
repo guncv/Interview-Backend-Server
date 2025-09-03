@@ -15,11 +15,13 @@ const (
 
 	ModalityVoiceChat = "voice_chat"
 
-	WebSocketMessageTypeHello        = "hello"
-	WebSocketMessageTypeSegmentStart = "segment_start"
-	WebSocketMessageTypeSegmentEnd   = "segment_end"
-	WebSocketBineryTypeAudioChunk    = "audio_chunk"
-	WebSocketMessageTypeError        = "error"
+	WebSocketMessageTypeHello                 = "hello"
+	WebSocketMessageTypeSegmentStart          = "segment_start"
+	WebSocketMessageTypeSegmentEnd            = "segment_end"
+	WebSocketBineryTypeAudioChunk             = "audio_chunk"
+	WebSocketMessageTypeError                 = "error"
+	WebSocketMessageTypeUserPartialTranscript = "user_partial_transcript"
+	WebSocketMessageTypeUserFullTranscript    = "user_full_transcript"
 
 	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"

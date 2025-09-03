@@ -42,16 +42,18 @@ const (
 	ErrCodeResumeInvalidRequest         ErrorCode = "ONX0306"
 
 	// Session
-	ErrCodeSessionInvalidToken          ErrorCode = "ONX0400"
-	ErrCodeSessionNotFound              ErrorCode = "ONX0401"
-	ErrCodeWebSocketInvalidHello        ErrorCode = "ONX0402"
-	ErrCodeWebSocketInvalidSegmentStart ErrorCode = "ONX0403"
-	ErrCodeWebSocketInvalidSegmentEnd   ErrorCode = "ONX0404"
-	ErrCodeWebSocketInvalidStopTTS      ErrorCode = "ONX0405"
-	ErrCodeWebSocketInvalidDBAck        ErrorCode = "ONX0406"
-	ErrCodeWebSocketInvalidError        ErrorCode = "ONX0407"
-	ErrCodeWebSocketInvalidPing         ErrorCode = "ONX0408"
-	ErrCodeWebSocketInvalidMessage      ErrorCode = "ONX0409"
+	ErrCodeSessionInvalidToken                   ErrorCode = "ONX0400"
+	ErrCodeSessionNotFound                       ErrorCode = "ONX0401"
+	ErrCodeWebSocketInvalidHello                 ErrorCode = "ONX0402"
+	ErrCodeWebSocketInvalidSegmentStart          ErrorCode = "ONX0403"
+	ErrCodeWebSocketInvalidSegmentEnd            ErrorCode = "ONX0404"
+	ErrCodeWebSocketInvalidStopTTS               ErrorCode = "ONX0405"
+	ErrCodeWebSocketInvalidDBAck                 ErrorCode = "ONX0406"
+	ErrCodeWebSocketInvalidError                 ErrorCode = "ONX0407"
+	ErrCodeWebSocketInvalidPing                  ErrorCode = "ONX0408"
+	ErrCodeWebSocketInvalidMessage               ErrorCode = "ONX0409"
+	ErrCodeWebSocketInvalidUserPartialTranscript ErrorCode = "ONX0410"
+	ErrCodeWebSocketInvalidUserFullTranscript    ErrorCode = "ONX0411"
 )
 
 func (c ErrorCode) Message() string {
