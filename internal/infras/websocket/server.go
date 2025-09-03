@@ -166,31 +166,14 @@ func (s *webSocketServer) HandleConnection(
 		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions", map[string]any{
-		"session_id": client.sessionID,
-	})
 	s.mu.Lock()
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions1", map[string]any{
-		"session_id": client.sessionID,
 	s.sessions[client.sessionID] = client
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions2", map[string]any{
-		"session_id": client.sessionID,
-	})
 	if s.userSessions[client.userID] == nil {
 		s.userSessions[client.userID] = map[string]bool{}
 	}
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions3", map[string]any{
-		"session_id": client.sessionID,
-	})
 	s.userSessions[client.userID][client.sessionID] = true
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions4", map[string]any{
-		"session_id": client.sessionID,
-	})
 	s.mu.Unlock()
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Initializing client", map[string]any{
-		"session_id": client.sessionID,
-	})
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
@@ -202,10 +185,6 @@ func (s *webSocketServer) HandleConnection(
 		Status:    constants.StatusOnGoing,
 	}
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Updating interview session status", map[string]any{
-		"session_id": client.sessionID,
-	})
-
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 		s.Disconnect(ctx, client)
@@ -214,9 +193,6 @@ func (s *webSocketServer) HandleConnection(
 
 	s.writeJSON(ctx, client, map[string]any{
 		"type": "connection_established", "session_id": client.sessionID,
-	})
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Connected to interview session", map[string]any{
-		"session_id": client.sessionID,
 	})
 
 	go s.pingLoop(ctx, client)
