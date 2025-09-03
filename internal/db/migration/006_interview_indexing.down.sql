@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_interview_turns_session_id;

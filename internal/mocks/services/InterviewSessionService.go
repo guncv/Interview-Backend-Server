@@ -140,6 +140,53 @@ func (_c *MockInterviewSessionService_CreateInterviewSessionWithNewResume_Call) 
 	return _c
 }
 
+// CreateSessionTurnBySessionID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) CreateSessionTurnBySessionID(ctx context.Context, req *entities.CreateSessionTurnBySessionIDReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSessionTurnBySessionID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateSessionTurnBySessionIDReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_CreateSessionTurnBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSessionTurnBySessionID'
+type MockInterviewSessionService_CreateSessionTurnBySessionID_Call struct {
+	*mock.Call
+}
+
+// CreateSessionTurnBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.CreateSessionTurnBySessionIDReq
+func (_e *MockInterviewSessionService_Expecter) CreateSessionTurnBySessionID(ctx interface{}, req interface{}) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+	return &MockInterviewSessionService_CreateSessionTurnBySessionID_Call{Call: _e.mock.On("CreateSessionTurnBySessionID", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) Run(run func(ctx context.Context, req *entities.CreateSessionTurnBySessionIDReq)) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.CreateSessionTurnBySessionIDReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) Return(_a0 error) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) RunAndReturn(run func(context.Context, *entities.CreateSessionTurnBySessionIDReq) error) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsSessionValid provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
 	ret := _m.Called(ctx, req)
@@ -195,6 +242,100 @@ func (_c *MockInterviewSessionService_IsSessionValid_Call) Return(_a0 *entities.
 }
 
 func (_c *MockInterviewSessionService_IsSessionValid_Call) RunAndReturn(run func(context.Context, *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)) *MockInterviewSessionService_IsSessionValid_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetSessionEndTime provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) SetSessionEndTime(ctx context.Context, req *entities.SetSessionEndTimeReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetSessionEndTime")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.SetSessionEndTimeReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_SetSessionEndTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetSessionEndTime'
+type MockInterviewSessionService_SetSessionEndTime_Call struct {
+	*mock.Call
+}
+
+// SetSessionEndTime is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.SetSessionEndTimeReq
+func (_e *MockInterviewSessionService_Expecter) SetSessionEndTime(ctx interface{}, req interface{}) *MockInterviewSessionService_SetSessionEndTime_Call {
+	return &MockInterviewSessionService_SetSessionEndTime_Call{Call: _e.mock.On("SetSessionEndTime", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_SetSessionEndTime_Call) Run(run func(ctx context.Context, req *entities.SetSessionEndTimeReq)) *MockInterviewSessionService_SetSessionEndTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.SetSessionEndTimeReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_SetSessionEndTime_Call) Return(_a0 error) *MockInterviewSessionService_SetSessionEndTime_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_SetSessionEndTime_Call) RunAndReturn(run func(context.Context, *entities.SetSessionEndTimeReq) error) *MockInterviewSessionService_SetSessionEndTime_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetSessionStartTime provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetSessionStartTime")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.SetSessionStartTimeReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_SetSessionStartTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetSessionStartTime'
+type MockInterviewSessionService_SetSessionStartTime_Call struct {
+	*mock.Call
+}
+
+// SetSessionStartTime is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.SetSessionStartTimeReq
+func (_e *MockInterviewSessionService_Expecter) SetSessionStartTime(ctx interface{}, req interface{}) *MockInterviewSessionService_SetSessionStartTime_Call {
+	return &MockInterviewSessionService_SetSessionStartTime_Call{Call: _e.mock.On("SetSessionStartTime", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_SetSessionStartTime_Call) Run(run func(ctx context.Context, req *entities.SetSessionStartTimeReq)) *MockInterviewSessionService_SetSessionStartTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.SetSessionStartTimeReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_SetSessionStartTime_Call) Return(_a0 error) *MockInterviewSessionService_SetSessionStartTime_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_SetSessionStartTime_Call) RunAndReturn(run func(context.Context, *entities.SetSessionStartTimeReq) error) *MockInterviewSessionService_SetSessionStartTime_Call {
 	_c.Call.Return(run)
 	return _c
 }

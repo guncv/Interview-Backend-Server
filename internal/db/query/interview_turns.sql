@@ -4,17 +4,14 @@ INSERT INTO interview_turns (
     session_id,
     turn_no,
     actor,
-    content,
     transcript_text,
-    stt_confidence,
-    was_interrupted,
     start_at,
     end_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7
 );
 
--- name: SetInterruptedTurn :execrows
-UPDATE interview_turns
-SET was_interrupted = $2
-WHERE id = $1;
+-- name: GetMaxTurnNoBySessionID :one
+SELECT COALESCE(MAX(turn_no), 0) AS max_turn_no
+FROM interview_turns
+WHERE session_id = $1;

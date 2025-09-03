@@ -477,53 +477,6 @@ func (_c *MockWebSocketClient_Start_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// StopTTS provides a mock function with given fields: ctx, segmentID
-func (_m *MockWebSocketClient) StopTTS(ctx context.Context, segmentID string) error {
-	ret := _m.Called(ctx, segmentID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for StopTTS")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, segmentID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockWebSocketClient_StopTTS_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StopTTS'
-type MockWebSocketClient_StopTTS_Call struct {
-	*mock.Call
-}
-
-// StopTTS is a helper method to define mock.On call
-//   - ctx context.Context
-//   - segmentID string
-func (_e *MockWebSocketClient_Expecter) StopTTS(ctx interface{}, segmentID interface{}) *MockWebSocketClient_StopTTS_Call {
-	return &MockWebSocketClient_StopTTS_Call{Call: _e.mock.On("StopTTS", ctx, segmentID)}
-}
-
-func (_c *MockWebSocketClient_StopTTS_Call) Run(run func(ctx context.Context, segmentID string)) *MockWebSocketClient_StopTTS_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockWebSocketClient_StopTTS_Call) Return(_a0 error) *MockWebSocketClient_StopTTS_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockWebSocketClient_StopTTS_Call) RunAndReturn(run func(context.Context, string) error) *MockWebSocketClient_StopTTS_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // NewMockWebSocketClient creates a new instance of MockWebSocketClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockWebSocketClient(t interface {

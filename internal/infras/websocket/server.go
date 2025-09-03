@@ -26,7 +26,6 @@ type Client struct {
 	mu               sync.Mutex
 	userID           string
 	sessionID        string
-	language         string
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
@@ -38,6 +37,7 @@ type WebSocketServerInterface interface {
 	Start(ctx context.Context) error
 	Close(ctx context.Context) error
 	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
+	Disconnect(ctx context.Context, client *Client)
 }
 
 type webSocketServer struct {
@@ -90,9 +90,10 @@ func NewWebSocketServer(
 
 	logic := NewWebSocketServerLogic(
 		log,
-		server.disconnect,
+		server.Disconnect,
 		server.writeJSON,
 		clientManager,
+		interviewSessionService,
 	)
 
 	server.logic = logic
@@ -143,12 +144,14 @@ func (s *webSocketServer) HandleConnection(
 		conn:         conn,
 		userID:       session.UserID,
 		sessionID:    session.SessionID,
-		language:     session.Language,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 		connected:    true,
 	}
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
+		"session_id": client.sessionID,
+	})
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
 		client.mu.Lock()
@@ -163,6 +166,9 @@ func (s *webSocketServer) HandleConnection(
 		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions", map[string]any{
+		"session_id": client.sessionID,
+	})
 	s.mu.Lock()
 	s.sessions[client.sessionID] = client
 	if s.userSessions[client.userID] == nil {
@@ -171,9 +177,12 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Initializing client", map[string]any{
+		"session_id": client.sessionID,
+	})
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return nil
 	}
 
@@ -182,14 +191,21 @@ func (s *webSocketServer) HandleConnection(
 		Status:    constants.StatusOnGoing,
 	}
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Updating interview session status", map[string]any{
+		"session_id": client.sessionID,
+	})
+
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return nil
 	}
 
-	_ = s.writeJSON(client, map[string]any{
-		"v": 1, "type": "connection_established", "session_id": client.sessionID,
+	s.writeJSON(ctx, client, map[string]any{
+		"type": "connection_established", "session_id": client.sessionID,
+	})
+	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Connected to interview session", map[string]any{
+		"session_id": client.sessionID,
 	})
 
 	go s.pingLoop(ctx, client)
@@ -204,19 +220,18 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
 		SessionID: client.sessionID,
-		Language:  client.language,
-		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionDuration,
+		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 	})
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
 	u, err := url.Parse(s.cfg.InterviewSessionConfig.InterviewWebsocketPath)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Invalid agent WS URL", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
@@ -225,23 +240,12 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	u.RawQuery = q.Encode()
 
 	agentClient := NewWebSocketClient(s.log)
-	callbacks := NewWebSocketClientCallbacks().
-		WithConnectionEstablished(func(sessionID string) {
-			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent connected", map[string]any{
-				"session_id": sessionID,
-			})
-		}).
-		WithDisconnect(func(sessionID string) {
-			s.log.InfoWithID(ctx, "[WebSocketServer] AI agent disconnected, disconnecting browser client", map[string]any{
-				"session_id": sessionID,
-			})
-			s.disconnect(ctx, client)
-		})
+	callbacks := NewWebSocketClientCallbacks(s, s.logic, client, s.log)
 
-	agentClient.SetCallbacks(*callbacks)
+	agentClient.SetCallbacks(callbacks)
 	if err := agentClient.Start(ctx, u.String()); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting agent client: ", err)
-		s.disconnect(ctx, client)
+		s.Disconnect(ctx, client)
 		return err
 	}
 
@@ -253,7 +257,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
-	defer s.disconnect(ctx, c)
+	defer s.Disconnect(ctx, c)
 	c.conn.SetReadLimit(1 << 20)
 
 	for {
@@ -290,7 +294,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 					"session_id": c.sessionID,
 					"user_id":    c.userID,
 				})
-				s.disconnect(ctx, c)
+				s.Disconnect(ctx, c)
 				return
 
 			default:
@@ -324,7 +328,7 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 				"time_since_last_pong": timeSinceLastPong,
 				"timeout":              constants.WebSocketPongTimeout,
 			})
-			s.disconnect(ctx, client)
+			s.Disconnect(ctx, client)
 			return
 		}
 
@@ -333,30 +337,30 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 		client.mu.Unlock()
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Error writing ping message", err)
-			s.disconnect(ctx, client)
+			s.Disconnect(ctx, client)
 			return
 		}
 	}
 }
 
-func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
+func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 	s.mu.Lock()
 	delete(s.sessions, client.sessionID)
 
+	s.writeJSON(ctx, client, map[string]any{
+		"type":    "disconnect",
+		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
+		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
+	})
+
 	if set := s.userSessions[client.userID]; set != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error deleting user session", fmt.Errorf("user session not found for user %s", client.userID))
 		delete(set, client.sessionID)
 		if len(set) == 0 {
 			delete(s.userSessions, client.userID)
 		}
 	}
-
-	_ = s.writeJSON(client, map[string]any{
-		"v":       1,
-		"type":    "error",
-		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
-		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
-	})
 
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{
@@ -377,10 +381,14 @@ func (s *webSocketServer) disconnect(ctx context.Context, client *Client) {
 	client.mu.Unlock()
 }
 
-func (s *webSocketServer) writeJSON(c *Client, v any) error {
+func (s *webSocketServer) writeJSON(ctx context.Context, c *Client, v any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.conn.WriteJSON(v)
+	err := c.conn.WriteJSON(v)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Error writing JSON", err)
+		s.Disconnect(ctx, c)
+	}
 }
 
 func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string, reason string) error {
@@ -392,14 +400,14 @@ func (s *webSocketServer) SendCloseMessage(ctx context.Context, sessionID string
 		return fmt.Errorf("client not found for session %s", sessionID)
 	}
 
-	_ = s.writeJSON(client, map[string]any{
+	s.writeJSON(ctx, client, map[string]any{
 		"v":      1,
 		"type":   constants.WebSocketMessageTypeClose,
 		"reason": reason,
 	})
 
 	time.Sleep(100 * time.Millisecond)
-	s.disconnect(ctx, client)
+	s.Disconnect(ctx, client)
 
 	return nil
 }

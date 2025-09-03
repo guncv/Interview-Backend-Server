@@ -86,8 +86,8 @@ type InterviewTurns struct {
 	TranscriptText sql.NullString `json:"transcript_text"`
 	SttConfidence  sql.NullString `json:"stt_confidence"`
 	WasInterrupted sql.NullBool   `json:"was_interrupted"`
-	StartAt        sql.NullTime   `json:"start_at"`
-	EndAt          sql.NullTime   `json:"end_at"`
+	StartAt        string         `json:"start_at"`
+	EndAt          string         `json:"end_at"`
 	CreatedAt      sql.NullTime   `json:"created_at"`
 }
 

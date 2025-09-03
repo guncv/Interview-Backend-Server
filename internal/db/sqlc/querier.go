@@ -27,6 +27,7 @@ type Querier interface {
 	DeleteJobRequirement(ctx context.Context, id uuid.UUID) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
+	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
@@ -35,7 +36,6 @@ type Querier interface {
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
-	SetInterruptedTurn(ctx context.Context, arg SetInterruptedTurnParams) (int64, error)
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateEvaluationCriterion(ctx context.Context, arg UpdateEvaluationCriterionParams) (int64, error)

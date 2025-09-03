@@ -18,14 +18,11 @@ INSERT INTO interview_turns (
     session_id,
     turn_no,
     actor,
-    content,
     transcript_text,
-    stt_confidence,
-    was_interrupted,
     start_at,
     end_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7
 )
 `
 
@@ -34,12 +31,9 @@ type CreateInterviewTurnParams struct {
 	SessionID      uuid.UUID      `json:"session_id"`
 	TurnNo         int32          `json:"turn_no"`
 	Actor          string         `json:"actor"`
-	Content        string         `json:"content"`
 	TranscriptText sql.NullString `json:"transcript_text"`
-	SttConfidence  sql.NullString `json:"stt_confidence"`
-	WasInterrupted sql.NullBool   `json:"was_interrupted"`
-	StartAt        sql.NullTime   `json:"start_at"`
-	EndAt          sql.NullTime   `json:"end_at"`
+	StartAt        string         `json:"start_at"`
+	EndAt          string         `json:"end_at"`
 }
 
 func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error {
@@ -48,31 +42,22 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 		arg.SessionID,
 		arg.TurnNo,
 		arg.Actor,
-		arg.Content,
 		arg.TranscriptText,
-		arg.SttConfidence,
-		arg.WasInterrupted,
 		arg.StartAt,
 		arg.EndAt,
 	)
 	return err
 }
 
-const setInterruptedTurn = `-- name: SetInterruptedTurn :execrows
-UPDATE interview_turns
-SET was_interrupted = $2
-WHERE id = $1
+const getMaxTurnNoBySessionID = `-- name: GetMaxTurnNoBySessionID :one
+SELECT COALESCE(MAX(turn_no), 0) AS max_turn_no
+FROM interview_turns
+WHERE session_id = $1
 `
 
-type SetInterruptedTurnParams struct {
-	ID             uuid.UUID    `json:"id"`
-	WasInterrupted sql.NullBool `json:"was_interrupted"`
-}
-
-func (q *Queries) SetInterruptedTurn(ctx context.Context, arg SetInterruptedTurnParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, setInterruptedTurn, arg.ID, arg.WasInterrupted)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+func (q *Queries) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getMaxTurnNoBySessionID, sessionID)
+	var max_turn_no interface{}
+	err := row.Scan(&max_turn_no)
+	return max_turn_no, err
 }
