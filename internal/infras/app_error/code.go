@@ -54,6 +54,9 @@ const (
 	ErrCodeWebSocketInvalidMessage               ErrorCode = "ONX0409"
 	ErrCodeWebSocketInvalidUserPartialTranscript ErrorCode = "ONX0410"
 	ErrCodeWebSocketInvalidUserFullTranscript    ErrorCode = "ONX0411"
+	ErrCodeInterviewSessionStartEndTimeNotFound  ErrorCode = "ONX0412"
+	ErrCodeInterviewSessionStartTimeNotFound     ErrorCode = "ONX0413"
+	ErrCodeInterviewSessionEndTimeNotFound       ErrorCode = "ONX0414"
 )
 
 func (c ErrorCode) Message() string {
