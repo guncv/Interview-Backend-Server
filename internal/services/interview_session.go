@@ -120,7 +120,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(ctx, uuid.MustParse(authCtx.Payload.UserID))
+	userID, err := uuid.Parse(authCtx.Payload.UserID)
+	if err != nil {
+		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error parsing user ID", err)
+		return nil, err
+	}
+
+	isDefaultResume, err := s.resumeRepo.CheckIsDefaultResumeExistsByUserID(ctx, userID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error checking if default resume exists", err)
 		return nil, err
@@ -134,7 +141,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 
 	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
 		ResumeID:   s.generator.GenerateUUID(ctx),
-		UserID:     uuid.MustParse(authCtx.Payload.UserID),
+		UserID:     userID,
 		FileName:   req.File.Filename,
 		StorageKey: key,
 		MimeType:   req.File.Header.Get("Content-Type"),
@@ -215,7 +222,13 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
-	resume, err := s.resumeRepo.GetResumeByID(ctx, uuid.MustParse(req.ResumeID))
+	resumeID, err := uuid.Parse(req.ResumeID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid resume ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	resume, err := s.resumeRepo.GetResumeByID(ctx, resumeID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error getting resume", err)
 		return nil, err
@@ -251,9 +264,15 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
+	userID, err := uuid.Parse(authCtx.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid user ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	createInterviewSessionWithExistingResumeReq := &repositories.CreateInterviewSessionWithExistingResumeTxReq{
-		ResumeID: uuid.MustParse(req.ResumeID),
-		UserID:   uuid.MustParse(authCtx.Payload.UserID),
+		ResumeID: resumeID,
+		UserID:   userID,
 
 		JobRequirementID: s.generator.GenerateUUID(ctx),
 		Position:         req.Position,
@@ -315,9 +334,15 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 
 	var maxTurnNo int64
 
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
 	if err == redis.Nil {
-		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), uuid.MustParse(req.SessionID))
+		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Failed to get max turn from DB", err)
 			return err
@@ -353,7 +378,7 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 
 	dbReq := &db.CreateInterviewTurnParams{
 		ID:             s.generator.GenerateUUID(ctx),
-		SessionID:      uuid.MustParse(req.SessionID),
+		SessionID:      sessionID,
 		TurnNo:         maxTurnNo,
 		Actor:          req.Actor,
 		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
@@ -408,8 +433,14 @@ func (s *interviewSessionService) SetSessionEndTime(ctx context.Context, req *en
 func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error {
 	s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Called")
 
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	dbReq := &db.UpdateInterviewSessionStatusParams{
-		ID:      uuid.MustParse(req.SessionID),
+		ID:      sessionID,
 		Column2: req.Status,
 	}
 
@@ -441,7 +472,13 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
 	}
 
-	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, uuid.MustParse(sessionPayload.SessionID))
+	sessionID, err := uuid.Parse(sessionPayload.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	exists, err := s.interviewSessionRepo.CheckInterviewSessionExists(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error checking interview session exists", err)
 		return nil, err

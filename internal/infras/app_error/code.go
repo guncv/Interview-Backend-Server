@@ -11,6 +11,7 @@ const (
 	ErrCodeGeneralResourceNotFound    ErrorCode = "ONX0104"
 	ErrCodeGeneralDatabaseConnection  ErrorCode = "ONX0105"
 	ErrCodeGeneralConstraintViolation ErrorCode = "ONX0106"
+	ErrCodeGeneralInvalidUUID         ErrorCode = "ONX0107"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"

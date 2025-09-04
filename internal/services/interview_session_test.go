@@ -2007,14 +2007,9 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
-				assert.Panics(t, func() {
-					svc := NewInterviewSessionService(
-						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-					)
-					svc.UpdateInterviewSessionStatus(ctx, &entities.UpdateInterviewSessionStatusReq{
-						SessionID: "invalid-uuid",
-					})
-				})
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
 			},
 		},
 		{
@@ -2039,30 +2034,15 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
-				assert.Panics(t, func() {
-					svc := NewInterviewSessionService(
-						nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-					)
-					svc.UpdateInterviewSessionStatus(ctx, &entities.UpdateInterviewSessionStatusReq{
-						SessionID: "",
-					})
-				})
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
 			},
 		},
 	}
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			if tC.name == "Error - Invalid session ID format" || tC.name == "Error - Empty session ID" {
-				assert.Panics(t, func() {
-					svc := NewInterviewSessionService(
-						lgr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-					)
-					svc.UpdateInterviewSessionStatus(ctx, tC.input)
-				})
-				return
-			}
-
 			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient := tC.setup()
 			defer func() {
 				if mockResumeService != nil {

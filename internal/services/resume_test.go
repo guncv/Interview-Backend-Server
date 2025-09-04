@@ -467,7 +467,7 @@ func TestResumeService_ListResume(t *testing.T) {
 			},
 		},
 		{
-			name:  "Error - Default resume fetch failure causes service failure",
+			name:  "Error_DefaultResumeFetchFailure_CausesServiceFailure",
 			input: &entities.ListResumeRequest{},
 			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)

@@ -279,7 +279,13 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidVerifyEmailCode)
 	}
 
-	user, err := s.userRepo.CheckIsUserExistsByID(ctx, uuid.MustParse(payload.UserID))
+	userID, err := uuid.Parse(payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error checking if email exists", "error", err)
 		return err
@@ -534,7 +540,13 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 		userID = resetToken.UserID.String()
 	}
 
-	user, err := s.userRepo.CheckIsUserExistsByID(ctx, uuid.MustParse(userID))
+	userIDReq, err := uuid.Parse(userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userIDReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error checking if user exists", err)
 		return err
@@ -553,7 +565,7 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 	}
 
 	resetUserReq := &repositories.ResetUserPasswordTxModel{
-		UserID:       uuid.MustParse(userID),
+		UserID:       userIDReq,
 		PasswordHash: newHashedPassword,
 		ResetToken:   hashedToken,
 		UpdatedAt:    time.Now(),

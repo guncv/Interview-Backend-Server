@@ -1133,12 +1133,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock Redis delete operations
@@ -1178,12 +1178,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock Redis delete operations
@@ -1223,12 +1223,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock Redis delete operations
@@ -1327,7 +1327,7 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check returns already verified user
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
 
 				return mockUserRepo, mockJwtToken, mockRedisClient
@@ -1495,7 +1495,7 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check fails
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil, mockErr)
 
 				return mockUserRepo, mockJwtToken, mockRedisClient
@@ -1531,12 +1531,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification fails
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(mockErr)
 
 				return mockUserRepo, mockJwtToken, mockRedisClient
@@ -1572,12 +1572,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock Redis delete operations fail
@@ -1618,12 +1618,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock first Redis delete operation succeeds
@@ -1709,12 +1709,12 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 				// Mock user existence check
 				mockUserRepo := new(repositories.MockUserRepository)
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
 				// Mock email verification
 				mockUserRepo.EXPECT().
-					VerifyEmail(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
 				// Mock Redis delete operations
@@ -3151,11 +3151,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
@@ -3205,7 +3205,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation fails
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("", mockErr)
+					Return("550e8400-e29b-41d4-a716-446655440000", mockErr)
 
 				// Mock reset token retrieval (fallback to database when Redis fails)
 				mockResetTokenRepo.EXPECT().
@@ -3218,7 +3218,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
@@ -3281,7 +3281,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "550e8400-e29b-41d4-a716-446655440000").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
@@ -3401,11 +3401,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check fails
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil, mockErr)
 
 				return mockUserRepo, nil, nil, mockJwtToken, mockRedisClient
@@ -3435,11 +3435,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (same as old password)
@@ -3473,11 +3473,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
@@ -3517,11 +3517,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
@@ -3566,11 +3566,11 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock Redis get operation returns user ID
 				mockRedisClient.EXPECT().
 					Get(ctx, "hashed_token").
-					Return("user-123", nil)
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
 
 				// Mock user existence check
 				mockUserRepo.EXPECT().
-					CheckIsUserExistsByID(ctx, "user-123").
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
 
 				// Mock password check (different from new password)
