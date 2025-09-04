@@ -9,6 +9,7 @@ const (
 	ErrMessageGeneralResourceNotFound    ErrorMessage = "The requested resource was not found."
 	ErrMessageGeneralDatabaseConnection  ErrorMessage = "Database connection error. Please try again."
 	ErrMessageGeneralConstraintViolation ErrorMessage = "The data violates database constraints."
+	ErrMessageGeneralInvalidUUID         ErrorMessage = "The UUID is invalid. Please try again."
 
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."

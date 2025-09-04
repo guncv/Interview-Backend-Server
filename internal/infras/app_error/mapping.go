@@ -7,6 +7,7 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralResourceNotFound:    ErrHttpCodeNotFound,
 	ErrCodeGeneralDatabaseConnection:  ErrHttpCodeInternalServerError,
 	ErrCodeGeneralConstraintViolation: ErrHttpCodeBadRequest,
+	ErrCodeGeneralInvalidUUID:         ErrHttpCodeBadRequest,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
@@ -62,6 +63,7 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralResourceNotFound:    ErrMessageGeneralResourceNotFound,
 	ErrCodeGeneralDatabaseConnection:  ErrMessageGeneralDatabaseConnection,
 	ErrCodeGeneralConstraintViolation: ErrMessageGeneralConstraintViolation,
+	ErrCodeGeneralInvalidUUID:         ErrMessageGeneralInvalidUUID,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
