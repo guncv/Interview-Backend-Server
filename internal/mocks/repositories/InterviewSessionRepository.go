@@ -272,22 +272,22 @@ func (_c *MockInterviewSessionRepository_EndInterviewSession_Call) RunAndReturn(
 }
 
 // GetMaxTurnNoBySessionID provides a mock function with given fields: ctx, sessionID
-func (_m *MockInterviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int32, error) {
+func (_m *MockInterviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
 	ret := _m.Called(ctx, sessionID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetMaxTurnNoBySessionID")
 	}
 
-	var r0 int32
+	var r0 int64
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int32, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int64, error)); ok {
 		return rf(ctx, sessionID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) int32); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) int64); ok {
 		r0 = rf(ctx, sessionID)
 	} else {
-		r0 = ret.Get(0).(int32)
+		r0 = ret.Get(0).(int64)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -318,12 +318,12 @@ func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) Run(run f
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) Return(_a0 int32, _a1 error) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
+func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) Return(_a0 int64, _a1 error) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (int32, error)) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
+func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (int64, error)) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

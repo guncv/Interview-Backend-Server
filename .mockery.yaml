@@ -49,4 +49,10 @@ packages:
       dir: ./internal/mocks/websocket
       filename: "{{.InterfaceName}}.go"
       outpkg: websocket
+      recursive: 
+  gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc:
+    config:
+      dir: ./internal/mocks/db/sqlc
+      filename: "{{.InterfaceName}}.go"
+      outpkg: sqlc
       recursive: true

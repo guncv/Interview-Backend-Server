@@ -203,15 +203,18 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		return
 	}
 
-	request := map[string]interface{}{
-		"type":       req.Type,
-		"author":     req.Author,
-		"session_id": req.SessionID,
-		"segment_id": req.SegmentID,
-		"transcript": req.Transcript,
+	createSessionTurnReq := &entities.CreateSessionTurnBySessionIDReq{
+		SessionID:  req.SessionID,
+		Actor:      req.Author,
+		Transcript: req.Transcript,
 	}
 
-	s.writeJSON(ctx, client, request)
+	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error creating session turn", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {

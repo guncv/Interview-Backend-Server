@@ -57,13 +57,13 @@ type UpdateInterviewSessionStatusReq struct {
 }
 
 type SetSessionStartTimeReq struct {
-	SessionID string  `json:"session_id" binding:"required"`
-	StartedAt float64 `json:"started_at" binding:"required"`
+	SessionID string `json:"session_id" binding:"required"`
+	StartedAt string `json:"started_at" binding:"required"`
 }
 
 type SetSessionEndTimeReq struct {
-	SessionID string  `json:"session_id" binding:"required"`
-	EndedAt   float64 `json:"ended_at" binding:"required"`
+	SessionID string `json:"session_id" binding:"required"`
+	EndedAt   string `json:"ended_at" binding:"required"`
 }
 
 type IsSessionValidReq struct {

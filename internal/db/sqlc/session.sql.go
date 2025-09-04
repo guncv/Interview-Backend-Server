@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createSession = `-- name: CreateSession :one
+const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (
     id,
     user_id,
@@ -23,7 +23,7 @@ INSERT INTO sessions (
     expires_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, user_id, refresh_token_hash, user_agent, ip_address, login_time, last_active, expires_at, is_revoked, created_at, updated_at
+)
 `
 
 type CreateSessionParams struct {
@@ -36,8 +36,8 @@ type CreateSessionParams struct {
 	ExpiresAt        sql.NullTime `json:"expires_at"`
 }
 
-func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error) {
-	row := q.db.QueryRowContext(ctx, createSession,
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession,
 		arg.ID,
 		arg.UserID,
 		arg.RefreshTokenHash,
@@ -46,21 +46,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.LastActive,
 		arg.ExpiresAt,
 	)
-	var i Sessions
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.RefreshTokenHash,
-		&i.UserAgent,
-		&i.IpAddress,
-		&i.LoginTime,
-		&i.LastActive,
-		&i.ExpiresAt,
-		&i.IsRevoked,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
 const getSessionByID = `-- name: GetSessionByID :one

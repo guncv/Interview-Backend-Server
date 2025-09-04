@@ -3210,7 +3210,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval (fallback to database when Redis fails)
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_token").
-					Return(db.ResetTokens{
+					Return(&db.ResetTokens{
 						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
 						Used:      false,
 						ExpiresAt: time.Now().Add(time.Hour),
@@ -3273,7 +3273,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_token").
-					Return(db.ResetTokens{
+					Return(&db.ResetTokens{
 						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
 						Used:      false,
 						ExpiresAt: time.Now().Add(time.Hour),
@@ -3334,7 +3334,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval returns used token
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_used_token").
-					Return(db.ResetTokens{
+					Return(&db.ResetTokens{
 						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
 						Used:      true,
 						ExpiresAt: time.Now().Add(time.Hour),
@@ -3370,7 +3370,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval returns expired token
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_expired_token").
-					Return(db.ResetTokens{
+					Return(&db.ResetTokens{
 						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
 						Used:      false,
 						ExpiresAt: time.Now().Add(-time.Hour),
@@ -3624,7 +3624,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval fails
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_token").
-					Return(db.ResetTokens{}, mockErr)
+					Return(&db.ResetTokens{}, mockErr)
 
 				return nil, mockResetTokenRepo, nil, mockJwtToken, mockRedisClient
 			},

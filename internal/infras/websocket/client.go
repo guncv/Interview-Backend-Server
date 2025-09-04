@@ -295,11 +295,12 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			case constants.WebSocketMessageTypeUserFullTranscript:
 				var msg MsgUserFullTranscript
 
-				if json.Unmarshal(data, &msg) == nil {
-					c.cb.OnUserFullTranscript(ctx, msg)
+				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)
 					return
 				}
+
+				c.cb.OnUserFullTranscript(ctx, msg)
 			}
 
 		case websocket.BinaryMessage:

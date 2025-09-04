@@ -166,9 +166,6 @@ func (s *webSocketServer) HandleConnection(
 		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Locking sessions", map[string]any{
-		"session_id": client.sessionID,
-	})
 	s.mu.Lock()
 	s.sessions[client.sessionID] = client
 	if s.userSessions[client.userID] == nil {
@@ -177,9 +174,6 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.sessionID] = true
 	s.mu.Unlock()
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Initializing client", map[string]any{
-		"session_id": client.sessionID,
-	})
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
@@ -191,10 +185,6 @@ func (s *webSocketServer) HandleConnection(
 		Status:    constants.StatusOnGoing,
 	}
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Updating interview session status", map[string]any{
-		"session_id": client.sessionID,
-	})
-
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
 		s.Disconnect(ctx, client)
@@ -203,9 +193,6 @@ func (s *webSocketServer) HandleConnection(
 
 	s.writeJSON(ctx, client, map[string]any{
 		"type": "connection_established", "session_id": client.sessionID,
-	})
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Connected to interview session", map[string]any{
-		"session_id": client.sessionID,
 	})
 
 	go s.pingLoop(ctx, client)
@@ -345,8 +332,16 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
+
 	s.mu.Lock()
 	delete(s.sessions, client.sessionID)
+	if set := s.userSessions[client.userID]; set != nil {
+		delete(set, client.sessionID)
+		if len(set) == 0 {
+			delete(s.userSessions, client.userID)
+		}
+	}
+	s.mu.Unlock()
 
 	s.writeJSON(ctx, client, map[string]any{
 		"type":    "disconnect",
@@ -354,23 +349,14 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
 	})
 
-	if set := s.userSessions[client.userID]; set != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error deleting user session", fmt.Errorf("user session not found for user %s", client.userID))
-		delete(set, client.sessionID)
-		if len(set) == 0 {
-			delete(s.userSessions, client.userID)
-		}
-	}
-
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{
 			"session_id": client.sessionID,
 		})
 		_ = agentClient.Close(ctx)
 	}
-
 	s.clientManager.DeleteClientBySessionID(ctx, client.sessionID)
-	s.mu.Unlock()
+
 	_ = client.conn.Close()
 
 	client.mu.Lock()
@@ -387,7 +373,6 @@ func (s *webSocketServer) writeJSON(ctx context.Context, c *Client, v any) {
 	err := c.conn.WriteJSON(v)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Error writing JSON", err)
-		s.Disconnect(ctx, c)
 	}
 }
 

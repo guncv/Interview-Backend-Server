@@ -29,7 +29,7 @@ INSERT INTO interview_turns (
 type CreateInterviewTurnParams struct {
 	ID             uuid.UUID      `json:"id"`
 	SessionID      uuid.UUID      `json:"session_id"`
-	TurnNo         int32          `json:"turn_no"`
+	TurnNo         int64          `json:"turn_no"`
 	Actor          string         `json:"actor"`
 	TranscriptText sql.NullString `json:"transcript_text"`
 	StartAt        string         `json:"start_at"`

@@ -313,11 +313,11 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID)
 
-	var maxTurnNo int32
+	var maxTurnNo int64
 
-	maxTurnNoStr, err := s.redisClient.Get(ctx, redisKey)
+	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
 	if err == redis.Nil {
-		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(ctx, uuid.MustParse(req.SessionID))
+		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), uuid.MustParse(req.SessionID))
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Failed to get max turn from DB", err)
 			return err
@@ -326,33 +326,33 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Redis error", err)
 		return err
 	} else {
-		maxTurnNoInt64, err := strconv.ParseInt(maxTurnNoStr, 10, 32)
+		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Failed to parse turn no from Redis", err)
 			return err
 		}
-		maxTurnNo = int32(maxTurnNoInt64)
 	}
 
 	maxTurnNo++
 
 	redisKey = fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
-	timeDuration, err := s.redisClient.HGetAll(ctx, redisKey)
+	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Error getting interview session start end time", err)
 		return err
-	} else if timeDuration == nil {
+	} else if len(timeDuration) == 0 {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Interview session start end time not found")
-		return err
+		return app_error.New(constants.ErrInterviewSessionStartEndTimeNotFound, app_error.ErrCodeInterviewSessionStartEndTimeNotFound)
 	} else if timeDuration["started_at"] == "" {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Interview session start time not found")
-		return err
+		return app_error.New(constants.ErrInterviewSessionStartTimeNotFound, app_error.ErrCodeInterviewSessionStartTimeNotFound)
 	} else if timeDuration["ended_at"] == "" {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Interview session end time not found")
-		return err
+		return app_error.New(constants.ErrInterviewSessionEndTimeNotFound, app_error.ErrCodeInterviewSessionEndTimeNotFound)
 	}
 
 	dbReq := &db.CreateInterviewTurnParams{
+		ID:             s.generator.GenerateUUID(ctx),
 		SessionID:      uuid.MustParse(req.SessionID),
 		TurnNo:         maxTurnNo,
 		Actor:          req.Actor,
@@ -361,18 +361,18 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 		EndAt:          timeDuration["ended_at"],
 	}
 
-	if err := s.interviewSessionRepo.CreateSessionTurnBySessionID(ctx, dbReq); err != nil {
+	if err := s.interviewSessionRepo.CreateSessionTurnBySessionID(context.Background(), dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Error creating session turn by session ID", err)
 		return err
 	}
 
 	redisPayload := database.RedisPayload{
-		Key:   redisKey,
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID),
 		Value: maxTurnNo,
 		TTL:   constants.RedisTTLInterviewTurn,
 	}
 
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+	if err := s.redisClient.Set(context.Background(), redisPayload); err != nil {
 		s.log.WarnWithID(ctx, "[Service: CreateSessionTurnBySessionID] Error creating interview turn redis key", err)
 	}
 

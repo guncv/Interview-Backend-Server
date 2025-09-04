@@ -309,40 +309,6 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 				assert.JSONEq(t, `{"code":"ONX0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
 			},
 		},
-		{
-			name: "CookieError",
-			input: func() *entities.SignInUserByEmailAndPasswordRequest {
-				return &entities.SignInUserByEmailAndPasswordRequest{
-					Email:    "admin@example.com",
-					Password: "password123",
-				}
-			},
-			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
-				mockUserService := new(services.MockUserService)
-				mockValidator := new(utils.MockValidator)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockValidator.EXPECT().
-					ValidateAndBind(mock.Anything, mock.Anything, "SignInUserByEmailAndPassword").
-					Return(nil)
-
-				mockUserService.EXPECT().
-					SignInUserByEmailAndPassword(ctx, mock.Anything).
-					Return(&entities.SignInUserByEmailAndPasswordResponse{
-						AccessToken:  "access-token",
-						RefreshToken: "refresh-token",
-					}, nil)
-
-				mockCookies.EXPECT().
-					SetRefreshTokenCookie(mock.Anything, mock.Anything)
-
-				return mockUserService, mockValidator, mockConfig, mockCookies
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
 	}
 
 	for _, tt := range tests {

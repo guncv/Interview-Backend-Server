@@ -251,7 +251,7 @@ func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *Sig
 		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	return &session, nil
+	return session, nil
 }
 
 func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token string, session *db.Sessions) error {

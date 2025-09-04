@@ -13,7 +13,7 @@ import (
 type InterviewSessionRepository interface {
 	CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error)
 	UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error
-	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int32, error)
+	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error)
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
 	EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
@@ -65,7 +65,7 @@ func (r *interviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Co
 	return nil
 }
 
-func (r *interviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int32, error) {
+func (r *interviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
 	r.log.InfoWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Called")
 
 	turnNo, err := r.db.GetMaxTurnNoBySessionID(ctx, sessionID)
@@ -74,7 +74,7 @@ func (r *interviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context
 		return 0, app_error.HandleDatabaseError(err)
 	}
 
-	return turnNo.(int32), nil
+	return turnNo.(int64), nil
 }
 
 func (r *interviewSessionRepository) CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error {
@@ -132,6 +132,8 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			JobRequirements: req.JobRequirements,
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
+			CreatedAt:       req.CreatedAt,
+			UpdatedAt:       req.UpdatedAt,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
@@ -156,7 +158,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
-		return app_error.HandleDatabaseError(err)
+		return err
 	}
 
 	return nil
@@ -175,6 +177,8 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(
 			JobRequirements: req.JobRequirements,
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
+			CreatedAt:       req.CreatedAt,
+			UpdatedAt:       req.UpdatedAt,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
 			return app_error.HandleDatabaseError(err)

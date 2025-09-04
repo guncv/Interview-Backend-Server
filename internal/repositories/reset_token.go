@@ -12,7 +12,7 @@ import (
 
 type ResetTokenRepository interface {
 	CreateResetToken(ctx context.Context, req *db.CreateResetTokenParams) error
-	GetResetToken(ctx context.Context, token string) (db.ResetTokens, error)
+	GetResetToken(ctx context.Context, token string) (*db.ResetTokens, error)
 }
 
 type resetTokenRepository struct {
@@ -38,18 +38,18 @@ func (r *resetTokenRepository) CreateResetToken(ctx context.Context, req *db.Cre
 	return nil
 }
 
-func (r *resetTokenRepository) GetResetToken(ctx context.Context, token string) (db.ResetTokens, error) {
+func (r *resetTokenRepository) GetResetToken(ctx context.Context, token string) (*db.ResetTokens, error) {
 	r.log.InfoWithID(ctx, "[Repository: GetResetToken] Called")
 
 	resetToken, err := r.db.GetResetToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			r.log.ErrorWithID(ctx, "[Repository: GetResetToken] Reset token not found", err)
-			return db.ResetTokens{}, app_error.New(err, app_error.ErrCodeAuthResetTokenNotFound)
+			return nil, app_error.New(err, app_error.ErrCodeAuthResetTokenNotFound)
 		}
 		r.log.ErrorWithID(ctx, "[Repository: GetResetToken] Error getting reset token", err)
-		return db.ResetTokens{}, app_error.HandleDatabaseError(err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return resetToken, nil
+	return &resetToken, nil
 }
