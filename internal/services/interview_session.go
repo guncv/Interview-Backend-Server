@@ -114,16 +114,16 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	key, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
-		return nil, err
-	}
-
 	userID, err := uuid.Parse(authCtx.Payload.UserID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error parsing user ID", err)
+		return nil, err
+	}
+
+	key, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
 		return nil, err
 	}
 
@@ -173,7 +173,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		}
 
 		if err := s.publisher.PublishTaskDeleteFile(ctx, deleteFilePayload); err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error deleting resume file", err)
+			s.log.WarnWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error deleting resume file", err)
 		}
 		return nil, err
 	}

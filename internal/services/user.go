@@ -249,6 +249,12 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 		return err
 	}
 
+	userID, err := uuid.Parse(payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	code, err := s.redisClient.Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token))
 	if err != nil {
 		if err == redis.Nil {
@@ -277,12 +283,6 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 
 		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid code", "attempt", newAttempts)
 		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidVerifyEmailCode)
-	}
-
-	userID, err := uuid.Parse(payload.UserID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid user ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
 	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userID)

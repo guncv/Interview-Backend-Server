@@ -1151,6 +1151,32 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
 			},
+		}, {
+			name: "Error_InvalidUserID",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "invalid-user-id",
+						Email:  "user@example.com",
+					}, nil)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
 		},
 		{
 			name: "Success_WithDeleteRedisFailed",
@@ -3380,6 +3406,35 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_InvalidUserID",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("invalid-user-id", nil)
+
+				return mockUserRepo, nil, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
 			},
 		},
 		{

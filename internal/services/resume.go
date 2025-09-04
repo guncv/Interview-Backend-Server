@@ -280,18 +280,18 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 		return err
 	}
 
+	userID, err := uuid.Parse(authCtx.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	var defaultResume db.Resumes
 	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, authCtx.Payload.UserID)
 	defaultResumeFromRedis, err := s.redisClient.Get(ctx, defaultResumeKey)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			s.log.InfoWithID(ctx, "[Service: SwitchDefaultResume] Default resume not in Redis, creating new default resume")
-
-			userID, err := uuid.Parse(authCtx.Payload.UserID)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Invalid user ID", err)
-				return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-			}
 
 			defaultResume, err = s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
@@ -305,12 +305,6 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	} else {
 		if err := json.Unmarshal([]byte(defaultResumeFromRedis), &defaultResume); err != nil {
 			s.log.WarnWithID(ctx, "[Service: SwitchDefaultResume] Error unmarshalling default resume from Redis", err)
-
-			userID, err := uuid.Parse(authCtx.Payload.UserID)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Invalid user ID", err)
-				return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-			}
 
 			defaultResume, err = s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {

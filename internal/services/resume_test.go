@@ -77,6 +77,34 @@ func TestResumeService_ListResume(t *testing.T) {
 			},
 		},
 		{
+			name:  "Error_Invalid user ID",
+			input: &entities.ListResumeRequest{},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				invalidUserID := "invalid-user-id"
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: invalidUserID,
+						},
+					}, nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
 			name:  "Error - Redis hit but fetch list Resume First Page failed",
 			input: &entities.ListResumeRequest{},
 			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
@@ -1221,6 +1249,40 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 			},
 		},
 		{
+			name: "Error_RedisHit_Invalid Resume ID",
+			input: &entities.SwitchDefaultResumeRequest{
+				ResumeID: "invalid-resume-id",
+			},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				defaultResume := db.Resumes{
+					ID: uuid.New(),
+				}
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
 			name: "Success - Redis miss, fetch from DB",
 			input: &entities.SwitchDefaultResumeRequest{
 				ResumeID: resumeID.String(),
@@ -1293,6 +1355,35 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Equal(t, "auth failed", gotErr.Error())
+			},
+		},
+		{
+			name: "Error_RedisMiss_Invalid user ID",
+			input: &entities.SwitchDefaultResumeRequest{
+				ResumeID: resumeID.String(),
+			},
+			setup: func() (*mockResume.MockResumeReposity, *mockMiddleware.MockAuthContext, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				invalidUserID := "invalid-user-id"
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: invalidUserID,
+						},
+					}, nil)
+
+				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
 			},
 		},
 		{
