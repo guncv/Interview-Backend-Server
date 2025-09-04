@@ -70,22 +70,24 @@ func (_c *MockResetTokenRepository_CreateResetToken_Call) RunAndReturn(run func(
 }
 
 // GetResetToken provides a mock function with given fields: ctx, token
-func (_m *MockResetTokenRepository) GetResetToken(ctx context.Context, token string) (db.ResetTokens, error) {
+func (_m *MockResetTokenRepository) GetResetToken(ctx context.Context, token string) (*db.ResetTokens, error) {
 	ret := _m.Called(ctx, token)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetResetToken")
 	}
 
-	var r0 db.ResetTokens
+	var r0 *db.ResetTokens
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (db.ResetTokens, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*db.ResetTokens, error)); ok {
 		return rf(ctx, token)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) db.ResetTokens); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *db.ResetTokens); ok {
 		r0 = rf(ctx, token)
 	} else {
-		r0 = ret.Get(0).(db.ResetTokens)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.ResetTokens)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -116,12 +118,12 @@ func (_c *MockResetTokenRepository_GetResetToken_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockResetTokenRepository_GetResetToken_Call) Return(_a0 db.ResetTokens, _a1 error) *MockResetTokenRepository_GetResetToken_Call {
+func (_c *MockResetTokenRepository_GetResetToken_Call) Return(_a0 *db.ResetTokens, _a1 error) *MockResetTokenRepository_GetResetToken_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockResetTokenRepository_GetResetToken_Call) RunAndReturn(run func(context.Context, string) (db.ResetTokens, error)) *MockResetTokenRepository_GetResetToken_Call {
+func (_c *MockResetTokenRepository_GetResetToken_Call) RunAndReturn(run func(context.Context, string) (*db.ResetTokens, error)) *MockResetTokenRepository_GetResetToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

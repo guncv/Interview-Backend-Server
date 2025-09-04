@@ -25,15 +25,13 @@ type UserRepository interface {
 
 type userRepository struct {
 	log *log.Logger
-	db  db.Queries
-	tx  db.Store
+	db  db.Store
 }
 
-func NewUserRepository(l *log.Logger, db db.Queries, tx db.Store) UserRepository {
+func NewUserRepository(l *log.Logger, db db.Store) UserRepository {
 	return &userRepository{
 		log: l,
 		db:  db,
-		tx:  tx,
 	}
 }
 
@@ -112,7 +110,7 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID string) error {
 func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error {
 	r.log.InfoWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Called")
 
-	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 		userReq := db.SignInUserByEmailAndPasswordParams{
 			Email:              req.Email,
 			LastLoginAt:        sql.NullTime{Time: req.LastLoginAt, Valid: true},
@@ -163,7 +161,7 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 func (r *userRepository) ResetUserPasswordAndUpdateResetTokenTx(ctx context.Context, req *ResetUserPasswordTxModel) error {
 	r.log.InfoWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Called")
 
-	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		rowAffected, err := q.ResetUserPassword(ctx, db.ResetUserPasswordParams{
 			ID:           uuid.MustParse(req.UserID),

@@ -22,19 +22,16 @@ type InterviewSessionRepository interface {
 
 type interviewSessionRepository struct {
 	log *log.Logger
-	db  db.Queries
-	tx  db.Store
+	db  db.Store
 }
 
 func NewInterviewSessionRepository(
 	log *log.Logger,
-	db db.Queries,
-	tx db.Store,
+	db db.Store,
 ) InterviewSessionRepository {
 	return &interviewSessionRepository{
 		log: log,
 		db:  db,
-		tx:  tx,
 	}
 }
 
@@ -112,7 +109,7 @@ func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, re
 func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Called")
 
-	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.CreateResume(ctx, db.CreateResumeParams{
 			ID:         req.ResumeID,
 			UserID:     req.UserID,
@@ -170,7 +167,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Called")
 
-	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.CreateJobRequirement(ctx, db.CreateJobRequirementParams{
 			ID:              req.JobRequirementID,
 			UserID:          req.UserID,

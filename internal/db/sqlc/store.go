@@ -9,18 +9,21 @@ import (
 )
 
 type Store interface {
+	Querier
 	ExecTx(ctx context.Context, fn func(*Queries) error) error
 }
 
 type SQLStore struct {
+	*Queries
 	log *log.Logger
 	db  *sql.DB
 }
 
 func NewStore(db *sql.DB, log *log.Logger) Store {
 	return &SQLStore{
-		db:  db,
-		log: log,
+		Queries: New(db),
+		db:      db,
+		log:     log,
 	}
 }
 
