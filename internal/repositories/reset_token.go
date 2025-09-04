@@ -17,10 +17,10 @@ type ResetTokenRepository interface {
 
 type resetTokenRepository struct {
 	log *log.Logger
-	db  db.Store
+	db  db.Queries
 }
 
-func NewResetTokenRepository(l *log.Logger, db db.Store) ResetTokenRepository {
+func NewResetTokenRepository(l *log.Logger, db db.Queries) ResetTokenRepository {
 	return &resetTokenRepository{
 		log: l,
 		db:  db,

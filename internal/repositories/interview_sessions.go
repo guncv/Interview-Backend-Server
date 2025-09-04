@@ -22,16 +22,19 @@ type InterviewSessionRepository interface {
 
 type interviewSessionRepository struct {
 	log *log.Logger
-	db  db.Store
+	db  db.Queries
+	tx  db.Store
 }
 
 func NewInterviewSessionRepository(
 	log *log.Logger,
-	db db.Store,
+	db db.Queries,
+	tx db.Store,
 ) InterviewSessionRepository {
 	return &interviewSessionRepository{
 		log: log,
 		db:  db,
+		tx:  tx,
 	}
 }
 
@@ -109,7 +112,7 @@ func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, re
 func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Called")
 
-	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.CreateResume(ctx, db.CreateResumeParams{
 			ID:         req.ResumeID,
 			UserID:     req.UserID,
@@ -132,6 +135,8 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			JobRequirements: req.JobRequirements,
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
+			CreatedAt:       req.CreatedAt,
+			UpdatedAt:       req.UpdatedAt,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
@@ -156,7 +161,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
-		return app_error.HandleDatabaseError(err)
+		return err
 	}
 
 	return nil
@@ -165,7 +170,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Called")
 
-	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.CreateJobRequirement(ctx, db.CreateJobRequirementParams{
 			ID:              req.JobRequirementID,
 			UserID:          req.UserID,
@@ -175,6 +180,8 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(
 			JobRequirements: req.JobRequirements,
 			InterviewType:   req.InterviewType,
 			Language:        req.Language,
+			CreatedAt:       req.CreatedAt,
+			UpdatedAt:       req.UpdatedAt,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
 			return app_error.HandleDatabaseError(err)

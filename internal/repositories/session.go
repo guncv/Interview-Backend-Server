@@ -19,10 +19,10 @@ type SessionRepository interface {
 
 type sessionRepository struct {
 	log *log.Logger
-	db  db.Store
+	db  db.Queries
 }
 
-func NewSessionRepository(l *log.Logger, db db.Store) SessionRepository {
+func NewSessionRepository(l *log.Logger, db db.Queries) SessionRepository {
 	return &sessionRepository{
 		log: l,
 		db:  db,

@@ -16,12 +16,12 @@ type JobRequirementRepository interface {
 
 type jobRequirementRepository struct {
 	log *log.Logger
-	db  db.Store
+	db  db.Queries
 }
 
 func NewJobRequirementRepository(
 	log *log.Logger,
-	db db.Store,
+	db db.Queries,
 ) JobRequirementRepository {
 	return &jobRequirementRepository{
 		log: log,

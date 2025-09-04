@@ -31,15 +31,17 @@ type ResumeReposity interface {
 
 type resumeRepository struct {
 	log *log.Logger
-	db  db.Store
+	db  db.Queries
 	cfg *config.Config
+	tx  db.Store
 }
 
-func NewResumeRepository(l *log.Logger, db db.Store, cfg *config.Config) ResumeReposity {
+func NewResumeRepository(l *log.Logger, db db.Queries, cfg *config.Config, tx db.Store) ResumeReposity {
 	return &resumeRepository{
 		log: l,
 		db:  db,
 		cfg: cfg,
+		tx:  tx,
 	}
 }
 
@@ -121,7 +123,7 @@ func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID 
 func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error {
 	r.log.InfoWithID(ctx, "[Repository: SwitchDefaultResume] Called")
 
-	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
+	err := r.tx.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.UnsetDefaultResume(ctx, oldID); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: SwitchDefaultResume] Error switching default resume", err)
 			return app_error.HandleDatabaseError(err)
