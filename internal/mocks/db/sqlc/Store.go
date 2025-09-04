@@ -582,31 +582,21 @@ func (_c *MockStore_CreateResume_Call) RunAndReturn(run func(context.Context, db
 }
 
 // CreateSession provides a mock function with given fields: ctx, arg
-func (_m *MockStore) CreateSession(ctx context.Context, arg db.CreateSessionParams) (db.Sessions, error) {
+func (_m *MockStore) CreateSession(ctx context.Context, arg db.CreateSessionParams) error {
 	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateSession")
 	}
 
-	var r0 db.Sessions
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateSessionParams) (db.Sessions, error)); ok {
-		return rf(ctx, arg)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateSessionParams) db.Sessions); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateSessionParams) error); ok {
 		r0 = rf(ctx, arg)
 	} else {
-		r0 = ret.Get(0).(db.Sessions)
+		r0 = ret.Error(0)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, db.CreateSessionParams) error); ok {
-		r1 = rf(ctx, arg)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // MockStore_CreateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSession'
@@ -628,12 +618,12 @@ func (_c *MockStore_CreateSession_Call) Run(run func(ctx context.Context, arg db
 	return _c
 }
 
-func (_c *MockStore_CreateSession_Call) Return(_a0 db.Sessions, _a1 error) *MockStore_CreateSession_Call {
-	_c.Call.Return(_a0, _a1)
+func (_c *MockStore_CreateSession_Call) Return(_a0 error) *MockStore_CreateSession_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockStore_CreateSession_Call) RunAndReturn(run func(context.Context, db.CreateSessionParams) (db.Sessions, error)) *MockStore_CreateSession_Call {
+func (_c *MockStore_CreateSession_Call) RunAndReturn(run func(context.Context, db.CreateSessionParams) error) *MockStore_CreateSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

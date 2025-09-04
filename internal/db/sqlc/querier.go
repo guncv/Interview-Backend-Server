@@ -22,7 +22,7 @@ type Querier interface {
 	CreateJobRequirement(ctx context.Context, arg CreateJobRequirementParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
-	CreateSession(ctx context.Context, arg CreateSessionParams) (Sessions, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	DeleteJobRequirement(ctx context.Context, id uuid.UUID) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)

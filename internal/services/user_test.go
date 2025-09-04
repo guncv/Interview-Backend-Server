@@ -3624,7 +3624,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 				// Mock reset token retrieval fails
 				mockResetTokenRepo.EXPECT().
 					GetResetToken(ctx, "hashed_token").
-					Return(nil, mockErr)
+					Return(&db.ResetTokens{}, mockErr)
 
 				return nil, mockResetTokenRepo, nil, mockJwtToken, mockRedisClient
 			},

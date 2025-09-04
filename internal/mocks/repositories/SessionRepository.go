@@ -72,22 +72,24 @@ func (_c *MockSessionRepository_CreateSession_Call) RunAndReturn(run func(contex
 }
 
 // GetSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
+func (_m *MockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (*db.Sessions, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSessionByID")
 	}
 
-	var r0 db.Sessions
+	var r0 *db.Sessions
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.Sessions, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.Sessions, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.Sessions); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.Sessions); ok {
 		r0 = rf(ctx, id)
 	} else {
-		r0 = ret.Get(0).(db.Sessions)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Sessions)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -118,12 +120,12 @@ func (_c *MockSessionRepository_GetSessionByID_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockSessionRepository_GetSessionByID_Call) Return(_a0 db.Sessions, _a1 error) *MockSessionRepository_GetSessionByID_Call {
+func (_c *MockSessionRepository_GetSessionByID_Call) Return(_a0 *db.Sessions, _a1 error) *MockSessionRepository_GetSessionByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockSessionRepository_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.Sessions, error)) *MockSessionRepository_GetSessionByID_Call {
+func (_c *MockSessionRepository_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.Sessions, error)) *MockSessionRepository_GetSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
-	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
 )
 
 func TestCreateAndVerifyTokens(t *testing.T) {
@@ -591,7 +591,7 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 
 	logger := log.Initialize(constants.TestAppEnv)
 
-	mockSessionRepo := &mockSessionRepository{}
+	mockSessionRepo := &repositories.MockSessionRepository{}
 
 	jwtMaker := NewJwtToken(cfg, logger, mockSessionRepo)
 	ctx := context.Background()
@@ -677,18 +677,4 @@ func TestTokenPayload_GraceWindow(t *testing.T) {
 		assert.NoError(t, err)
 
 	})
-}
-
-type mockSessionRepository struct{}
-
-func (m *mockSessionRepository) CreateSession(ctx context.Context, arg *db.CreateSessionParams) error {
-	return nil
-}
-
-func (m *mockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
-	return db.Sessions{}, nil
-}
-
-func (m *mockSessionRepository) RevokeSessionByID(ctx context.Context, id uuid.UUID) error {
-	return nil
 }

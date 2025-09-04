@@ -14,11 +14,11 @@ import (
 
 type UserRepository interface {
 	HealthCheck(ctx context.Context) (string, error)
-	CheckIsUserExistsByID(ctx context.Context, id string) (*db.Users, error)
+	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (*db.Users, error)
 	CheckIsEmailExists(ctx context.Context, email string) (*db.Users, error)
 	CreateUser(ctx context.Context, req *db.CreateUserParams) (*db.Users, error)
 	UpdateUser(ctx context.Context, req *db.UpdateUserParams) (*db.Users, error)
-	VerifyEmail(ctx context.Context, userID string) error
+	VerifyEmail(ctx context.Context, userID uuid.UUID) error
 	SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error
 	ResetUserPasswordAndUpdateResetTokenTx(ctx context.Context, req *ResetUserPasswordTxModel) error
 }
@@ -51,9 +51,9 @@ func (r *userRepository) CreateUser(ctx context.Context, req *db.CreateUserParam
 	return &user, nil
 }
 
-func (r *userRepository) CheckIsUserExistsByID(ctx context.Context, id string) (*db.Users, error) {
+func (r *userRepository) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (*db.Users, error) {
 
-	user, err := r.db.CheckIsUserExistsByID(ctx, uuid.MustParse(id))
+	user, err := r.db.CheckIsUserExistsByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
@@ -70,7 +70,7 @@ func (r *userRepository) CheckIsEmailExists(ctx context.Context, email string) (
 	user, err := r.db.CheckIsEmailExists(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
@@ -84,7 +84,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 	user, err := r.db.UpdateUser(ctx, *req)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
@@ -92,10 +92,10 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 	return &user, nil
 }
 
-func (r *userRepository) VerifyEmail(ctx context.Context, userID string) error {
+func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) error {
 	r.log.InfoWithID(ctx, "[Repository: VerifyEmail] Called")
 
-	rowsAffected, err := r.db.VerifyEmail(ctx, uuid.MustParse(userID))
+	rowsAffected, err := r.db.VerifyEmail(ctx, userID)
 	if err != nil {
 		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
@@ -141,7 +141,7 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 			ExpiresAt:        sql.NullTime{Time: req.ExpiresAt, Valid: true},
 		}
 
-		_, err = q.CreateSession(ctx, sessionReq)
+		err = q.CreateSession(ctx, sessionReq)
 		if err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Error creating session", err)
 			return app_error.HandleDatabaseError(err)
@@ -152,7 +152,7 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Transaction failed", err)
-		return app_error.HandleDatabaseError(err)
+		return err
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func (r *userRepository) ResetUserPasswordAndUpdateResetTokenTx(ctx context.Cont
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		rowAffected, err := q.ResetUserPassword(ctx, db.ResetUserPasswordParams{
-			ID:           uuid.MustParse(req.UserID),
+			ID:           req.UserID,
 			PasswordHash: req.PasswordHash,
 			UpdatedAt:    sql.NullTime{Time: req.UpdatedAt, Valid: true},
 		})

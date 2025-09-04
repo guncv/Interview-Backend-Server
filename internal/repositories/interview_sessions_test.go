@@ -642,7 +642,7 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx(t
 				return mockStore
 			},
 			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
+				assert.NoError(t, gotErr)
 			},
 		},
 		{

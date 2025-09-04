@@ -23,7 +23,7 @@ type SignInUserByEmailAndPasswordTxModel struct {
 }
 
 type ResetUserPasswordTxModel struct {
-	UserID       string
+	UserID       uuid.UUID
 	PasswordHash string
 	ResetToken   string
 	UpdatedAt    time.Time
