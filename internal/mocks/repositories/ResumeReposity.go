@@ -130,6 +130,53 @@ func (_c *MockResumeReposity_CreateResume_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// ExtractResumeJsonForRAG provides a mock function with given fields: ctx, req
+func (_m *MockResumeReposity) ExtractResumeJsonForRAG(ctx context.Context, req *repositories.ExtractResumeJsonForRAGReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExtractResumeJsonForRAG")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.ExtractResumeJsonForRAGReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockResumeReposity_ExtractResumeJsonForRAG_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExtractResumeJsonForRAG'
+type MockResumeReposity_ExtractResumeJsonForRAG_Call struct {
+	*mock.Call
+}
+
+// ExtractResumeJsonForRAG is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *repositories.ExtractResumeJsonForRAGReq
+func (_e *MockResumeReposity_Expecter) ExtractResumeJsonForRAG(ctx interface{}, req interface{}) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+	return &MockResumeReposity_ExtractResumeJsonForRAG_Call{Call: _e.mock.On("ExtractResumeJsonForRAG", ctx, req)}
+}
+
+func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) Run(run func(ctx context.Context, req *repositories.ExtractResumeJsonForRAGReq)) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*repositories.ExtractResumeJsonForRAGReq))
+	})
+	return _c
+}
+
+func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) Return(_a0 error) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) RunAndReturn(run func(context.Context, *repositories.ExtractResumeJsonForRAGReq) error) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDefaultResumeByUserID provides a mock function with given fields: ctx, userID
 func (_m *MockResumeReposity) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
 	ret := _m.Called(ctx, userID)
@@ -242,65 +289,6 @@ func (_c *MockResumeReposity_GetResumeByID_Call) Return(_a0 *db.Resumes, _a1 err
 }
 
 func (_c *MockResumeReposity_GetResumeByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.Resumes, error)) *MockResumeReposity_GetResumeByID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetResumeJsonWithSummaryData provides a mock function with given fields: ctx, req
-func (_m *MockResumeReposity) GetResumeJsonWithSummaryData(ctx context.Context, req *repositories.GetResumeJsonWithSummaryDataReq) (*repositories.GetResumeJsonWithSummaryDataResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetResumeJsonWithSummaryData")
-	}
-
-	var r0 *repositories.GetResumeJsonWithSummaryDataResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *repositories.GetResumeJsonWithSummaryDataReq) (*repositories.GetResumeJsonWithSummaryDataResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *repositories.GetResumeJsonWithSummaryDataReq) *repositories.GetResumeJsonWithSummaryDataResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*repositories.GetResumeJsonWithSummaryDataResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *repositories.GetResumeJsonWithSummaryDataReq) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockResumeReposity_GetResumeJsonWithSummaryData_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResumeJsonWithSummaryData'
-type MockResumeReposity_GetResumeJsonWithSummaryData_Call struct {
-	*mock.Call
-}
-
-// GetResumeJsonWithSummaryData is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *repositories.GetResumeJsonWithSummaryDataReq
-func (_e *MockResumeReposity_Expecter) GetResumeJsonWithSummaryData(ctx interface{}, req interface{}) *MockResumeReposity_GetResumeJsonWithSummaryData_Call {
-	return &MockResumeReposity_GetResumeJsonWithSummaryData_Call{Call: _e.mock.On("GetResumeJsonWithSummaryData", ctx, req)}
-}
-
-func (_c *MockResumeReposity_GetResumeJsonWithSummaryData_Call) Run(run func(ctx context.Context, req *repositories.GetResumeJsonWithSummaryDataReq)) *MockResumeReposity_GetResumeJsonWithSummaryData_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*repositories.GetResumeJsonWithSummaryDataReq))
-	})
-	return _c
-}
-
-func (_c *MockResumeReposity_GetResumeJsonWithSummaryData_Call) Return(_a0 *repositories.GetResumeJsonWithSummaryDataResponse, _a1 error) *MockResumeReposity_GetResumeJsonWithSummaryData_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockResumeReposity_GetResumeJsonWithSummaryData_Call) RunAndReturn(run func(context.Context, *repositories.GetResumeJsonWithSummaryDataReq) (*repositories.GetResumeJsonWithSummaryDataResponse, error)) *MockResumeReposity_GetResumeJsonWithSummaryData_Call {
 	_c.Call.Return(run)
 	return _c
 }

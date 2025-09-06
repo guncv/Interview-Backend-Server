@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -252,21 +251,11 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 	byteSize := int32(100)
 	isDefault := false
 
-	jobRequirementID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	position := "test"
-	companyName := "test"
-	workType := "test"
-	jobRequirements := "test"
-	interviewType := "test"
-	language := "test"
-	createdAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
-	updatedAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
-
 	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	position := "test"
 	status := "active"
 	modality := "test"
 	isConsent := true
-	promptJsonBytes := []byte("test")
 
 	input := &CreateInterviewSessionTxReq{
 		ResumeID:   resumeID,
@@ -277,21 +266,11 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 		ByteSize:   byteSize,
 		IsDefault:  isDefault,
 
-		JobRequirementID: jobRequirementID,
-		Position:         position,
-		CompanyName:      companyName,
-		WorkType:         workType,
-		JobRequirements:  jobRequirements,
-		InterviewType:    interviewType,
-		Language:         language,
-		CreatedAt:        sql.NullTime{Time: createdAt, Valid: true},
-		UpdatedAt:        sql.NullTime{Time: updatedAt, Valid: true},
-
-		SessionID:  sessionID,
-		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
-		Status:     status,
-		Modality:   modality,
-		IsConsent:  isConsent,
+		SessionID: sessionID,
+		Position:  position,
+		Status:    status,
+		Modality:  modality,
+		IsConsent: isConsent,
 	}
 
 	testCases := []struct {
@@ -324,15 +303,32 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 							mimeType,
 							byteSize,
 							isDefault).
-						Return(nil, errors.New("database error")).Once()
+						Return(nil, nil).Once()
+
+					// Mock CreateInterviewSession
+					mockDBTX.EXPECT().
+						ExecContext(
+							mock.AnythingOfType("context.backgroundCtx"),
+							mock.AnythingOfType("string"),
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything,
+							mock.Anything).
+						Return(nil, nil).Once()
 
 					fn(queries)
-				}).Return(errors.New("database error"))
+				}).Return(nil)
 
 				return mockStore
 			},
 			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
+				assert.NoError(t, gotErr)
 			},
 		},
 		{
@@ -359,90 +355,6 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 							mimeType,
 							byteSize,
 							isDefault).
-						Return(nil, nil).Once()
-
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything).
-						Return(nil, nil).Once()
-
-					// Mock CreateInterviewSession
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything).
-						Return(nil, nil).Once()
-
-					fn(queries)
-				}).Return(nil)
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.NoError(t, gotErr)
-			},
-		},
-		{
-			name:  "Error - Create interview session with new job requirement",
-			input: input,
-			setup: func() *mockSqlc.MockStore {
-				mockDBTX := new(mockSqlc.MockDBTX)
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().ExecTx(ctx, mock.MatchedBy(func(fn func(*db.Queries) error) bool {
-					return true
-				})).Run(func(ctx context.Context, fn func(*db.Queries) error) {
-					queries := db.New(mockDBTX)
-
-					// Mock CreateResume
-					mockDBTX.EXPECT().
-						ExecContext(mock.AnythingOfType(
-							"context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							resumeID,
-							userID,
-							fileName,
-							storageKey,
-							mimeType,
-							byteSize,
-							isDefault).
-						Return(nil, nil).Once()
-
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything).
 						Return(nil, errors.New("database error")).Once()
 
 					fn(queries)
@@ -480,28 +392,12 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 							isDefault).
 						Return(nil, nil).Once()
 
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything).
-						Return(nil, nil).Once()
-
 					// Mock CreateInterviewSession
 					mockDBTX.EXPECT().
 						ExecContext(
 							mock.AnythingOfType("context.backgroundCtx"),
 							mock.AnythingOfType("string"),
+							mock.Anything,
 							mock.Anything,
 							mock.Anything,
 							mock.Anything,
@@ -536,221 +432,6 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 			svc := NewInterviewSessionRepository(lgr, mockStore)
 
 			gotErr := svc.CreateInterviewSessionWithNewResumeTx(ctx, tC.input)
-
-			tC.verify(t, gotErr)
-		})
-	}
-}
-
-func TestInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-
-	resumeID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-
-	jobRequirementID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	position := "test"
-	companyName := "test"
-	workType := "test"
-	jobRequirements := "test"
-	interviewType := "test"
-	language := "test"
-	createdAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
-	updatedAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
-
-	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	status := "active"
-	modality := "test"
-	isConsent := true
-	promptJsonBytes := []byte("test")
-
-	input := &CreateInterviewSessionWithExistingResumeTxReq{
-		ResumeID: resumeID,
-		UserID:   userID,
-
-		JobRequirementID: jobRequirementID,
-		Position:         position,
-		CompanyName:      companyName,
-		WorkType:         workType,
-		JobRequirements:  jobRequirements,
-		InterviewType:    interviewType,
-		Language:         language,
-		CreatedAt:        sql.NullTime{Time: createdAt, Valid: true},
-		UpdatedAt:        sql.NullTime{Time: updatedAt, Valid: true},
-
-		SessionID:  sessionID,
-		PromptJson: pqtype.NullRawMessage{RawMessage: promptJsonBytes, Valid: true},
-		Status:     status,
-		Modality:   modality,
-		IsConsent:  isConsent,
-	}
-
-	testCases := []struct {
-		name   string
-		input  *CreateInterviewSessionWithExistingResumeTxReq
-		setup  func() *mockSqlc.MockStore
-		verify func(t *testing.T, gotErr error)
-	}{
-		{
-			name:  "Success",
-			input: input,
-			setup: func() *mockSqlc.MockStore {
-				mockDBTX := new(mockSqlc.MockDBTX)
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().ExecTx(ctx, mock.MatchedBy(func(fn func(*db.Queries) error) bool {
-					return true
-				})).Run(func(ctx context.Context, fn func(*db.Queries) error) {
-					queries := db.New(mockDBTX)
-
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-						).Return(nil, nil).Once()
-
-					// Mock CreateInterviewSession
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-						).Return(nil, nil).Once()
-
-					fn(queries)
-				}).Return(nil)
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.NoError(t, gotErr)
-			},
-		},
-		{
-			name:  "Error - Create job requirement",
-			input: input,
-			setup: func() *mockSqlc.MockStore {
-				mockDBTX := new(mockSqlc.MockDBTX)
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().ExecTx(ctx, mock.MatchedBy(func(fn func(*db.Queries) error) bool {
-					return true
-				})).Run(func(ctx context.Context, fn func(*db.Queries) error) {
-					queries := db.New(mockDBTX)
-
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-						).Return(nil, errors.New("database error")).Once()
-
-					fn(queries)
-				}).Return(errors.New("database error"))
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
-			},
-		},
-		{
-			name:  "Error - Create interview session",
-			input: input,
-			setup: func() *mockSqlc.MockStore {
-				mockDBTX := new(mockSqlc.MockDBTX)
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().ExecTx(ctx, mock.MatchedBy(func(fn func(*db.Queries) error) bool {
-					return true
-				})).Run(func(ctx context.Context, fn func(*db.Queries) error) {
-					queries := db.New(mockDBTX)
-
-					// Mock CreateJobRequirement
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-						).Return(nil, nil).Once()
-
-					// Mock CreateInterviewSession
-					mockDBTX.EXPECT().
-						ExecContext(
-							mock.AnythingOfType("context.backgroundCtx"),
-							mock.AnythingOfType("string"),
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-							mock.Anything,
-						).Return(nil, errors.New("database error")).Once()
-
-					fn(queries)
-				}).Return(errors.New("database error"))
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockStore := tC.setup()
-
-			defer func() {
-				if mockStore != nil {
-					mockStore.AssertExpectations(t)
-				}
-			}()
-
-			svc := NewInterviewSessionRepository(lgr, mockStore)
-
-			gotErr := svc.CreateInterviewSessionWithExistingResumeTx(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

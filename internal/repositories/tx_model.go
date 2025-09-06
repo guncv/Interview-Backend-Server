@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 )
 
@@ -29,19 +28,11 @@ type ResetUserPasswordTxModel struct {
 	UpdatedAt    time.Time
 }
 
-type GetResumeJsonWithSummaryDataReq struct {
-	SessionID       uuid.UUID
-	Position        string
-	Company         string
-	WorkType        string
-	JobRequirements string
-	InterviewType   string
-	Language        string
-	ResumeFile      *aws.CustomFileHeader
-}
-
-type GetResumeJsonWithSummaryDataResponse struct {
-	ParsedJson PromptInfo `mapstructure:"parsed_json" json:"parsed_json"`
+type ExtractResumeJsonForRAGReq struct {
+	SessionID  string
+	UserID     string
+	ResumeID   string
+	ResumeFile *aws.CustomFileHeader
 }
 
 type Experience struct {
@@ -103,40 +94,9 @@ type CreateInterviewSessionTxReq struct {
 	ByteSize   int32
 	IsDefault  bool
 
-	JobRequirementID uuid.UUID
-	Position         string
-	CompanyName      string
-	WorkType         string
-	JobRequirements  string
-	InterviewType    string
-	Language         string
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
-
-	SessionID  uuid.UUID
-	PromptJson pqtype.NullRawMessage
-	Status     string
-	Modality   string
-	IsConsent  bool
-}
-
-type CreateInterviewSessionWithExistingResumeTxReq struct {
-	ResumeID uuid.UUID
-	UserID   uuid.UUID
-
-	JobRequirementID uuid.UUID
-	Position         string
-	CompanyName      string
-	WorkType         string
-	JobRequirements  string
-	InterviewType    string
-	Language         string
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
-
-	SessionID  uuid.UUID
-	PromptJson pqtype.NullRawMessage
-	Status     string
-	Modality   string
-	IsConsent  bool
+	SessionID uuid.UUID
+	Position  string
+	Status    string
+	Modality  string
+	IsConsent bool
 }

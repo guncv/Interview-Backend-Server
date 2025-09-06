@@ -116,53 +116,6 @@ func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteFile_Call) RunAndReturn(run fun
 	return _c
 }
 
-// ConsumeTaskDeleteJobRequirement provides a mock function with given fields: ctx, task
-func (_m *MockRedisTaskConsumer) ConsumeTaskDeleteJobRequirement(ctx context.Context, task *asynq.Task) error {
-	ret := _m.Called(ctx, task)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ConsumeTaskDeleteJobRequirement")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
-		r0 = rf(ctx, task)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskDeleteJobRequirement'
-type MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call struct {
-	*mock.Call
-}
-
-// ConsumeTaskDeleteJobRequirement is a helper method to define mock.On call
-//   - ctx context.Context
-//   - task *asynq.Task
-func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskDeleteJobRequirement(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call {
-	return &MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call{Call: _e.mock.On("ConsumeTaskDeleteJobRequirement", ctx, task)}
-}
-
-func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*asynq.Task))
-	})
-	return _c
-}
-
-func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskDeleteJobRequirement_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // ConsumeTaskDeleteRedis provides a mock function with given fields: ctx, task
 func (_m *MockRedisTaskConsumer) ConsumeTaskDeleteRedis(ctx context.Context, task *asynq.Task) error {
 	ret := _m.Called(ctx, task)

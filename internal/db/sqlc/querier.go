@@ -19,12 +19,10 @@ type Querier interface {
 	CreateEvaluationRubric(ctx context.Context, arg CreateEvaluationRubricParams) error
 	CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
-	CreateJobRequirement(ctx context.Context, arg CreateJobRequirementParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
-	DeleteJobRequirement(ctx context.Context, id uuid.UUID) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)

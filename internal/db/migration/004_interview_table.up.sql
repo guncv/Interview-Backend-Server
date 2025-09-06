@@ -1,28 +1,13 @@
-CREATE TABLE job_requirements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    position VARCHAR(150) NOT NULL,
-    company_name VARCHAR(150) NOT NULL,
-    work_type VARCHAR(50) NOT NULL,
-    job_requirements TEXT NOT NULL,
-    interview_type VARCHAR(50) NOT NULL,
-    language VARCHAR(50) NOT NULL CHECK (language IN ('thai','english')),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now(),
-    deleted_at TIMESTAMPTZ
-);
-
 CREATE TABLE interview_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     resume_id UUID NOT NULL REFERENCES resumes(id) ON DELETE CASCADE,
-    requirement_id UUID NOT NULL REFERENCES job_requirements(id) ON DELETE CASCADE,
+    position VARCHAR(150) NOT NULL,
 
     modality VARCHAR(20) NOT NULL DEFAULT 'voice_chat'
             CHECK (modality IN ('voice_chat')),
     status VARCHAR(20) NOT NULL DEFAULT 'pending'
             CHECK (status IN ('pending','on_going','completed','aborted','cancelled','timed_out')),
-    prompt_json JSONB,
 
     is_consent BOOLEAN NOT NULL DEFAULT TRUE,
     started_at TIMESTAMPTZ DEFAULT now(),

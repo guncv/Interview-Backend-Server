@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -26,7 +25,7 @@ type ResumeReposity interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
-	GetResumeJsonWithSummaryData(ctx context.Context, req *GetResumeJsonWithSummaryDataReq) (*GetResumeJsonWithSummaryDataResponse, error)
+	ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error
 }
 
 type resumeRepository struct {
@@ -143,102 +142,80 @@ func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID
 	return nil
 }
 
-func (r *resumeRepository) GetResumeJsonWithSummaryData(ctx context.Context, req *GetResumeJsonWithSummaryDataReq) (*GetResumeJsonWithSummaryDataResponse, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Called")
+func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error {
+	r.log.InfoWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Called")
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	if err := writer.WriteField("session_id", req.SessionID.String()); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write session_id field", err)
-		return nil, err
+	if err := writer.WriteField("session_id", req.SessionID); err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write session_id field", err)
+		return err
 	}
-	if err := writer.WriteField("position", req.Position); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write position field", err)
-		return nil, err
+	if err := writer.WriteField("user_id", req.UserID); err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write user_id field", err)
+		return err
 	}
-	if err := writer.WriteField("company", req.Company); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write company field", err)
-		return nil, err
-	}
-	if err := writer.WriteField("work_type", req.WorkType); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write work_type field", err)
-		return nil, err
-	}
-	if err := writer.WriteField("job_requirements", req.JobRequirements); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write job_requirements field", err)
-		return nil, err
-	}
-	if err := writer.WriteField("interview_type", req.InterviewType); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write interview_type field", err)
-		return nil, err
-	}
-	if err := writer.WriteField("language", req.Language); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write language field", err)
-		return nil, err
+	if err := writer.WriteField("resume_id", req.ResumeID); err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write resume_id field", err)
+		return err
 	}
 
 	if req.ResumeFile != nil {
 		part, err := writer.CreateFormFile("resume_file", req.ResumeFile.Filename)
 		if err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to create form file", err)
-			return nil, err
+			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to create form file", err)
+			return err
 		}
 
 		file, err := req.ResumeFile.Open()
 		if err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to open uploaded file", err)
-			return nil, err
+			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to open uploaded file", err)
+			return err
 		}
 		defer file.Close()
 
 		if _, err := io.Copy(part, file); err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to write resume file data", err)
-			return nil, err
+			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write resume file data", err)
+			return err
 		}
 	}
 
 	if err := writer.Close(); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to close multipart writer", err)
-		return nil, err
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to close multipart writer", err)
+		return err
 	}
 
 	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + "/api/v1/interview/requirements"
 	httpReq, err := http.NewRequest("POST", endpoint, &body)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to create HTTP request", err)
-		return nil, err
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to create HTTP request", err)
+		return err
 	}
 
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := &http.Client{Timeout: 20 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] HTTP request failed", err)
-		return nil, err
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)
+		return err
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to read response body", err)
-		return nil, err
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to read response body", err)
+		return err
 	}
 
-	r.log.InfoWithID(ctx, fmt.Sprintf("[Repository: GetResumeJsonWithSummaryData] Response: %s | Body: %s", resp.Status, string(bodyBytes)))
+	r.log.InfoWithID(ctx, fmt.Sprintf("[Repository: ExtractResumeJsonForRAG] Response: %s | Body: %s", resp.Status, string(bodyBytes)))
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusNoContent {
 		err := fmt.Errorf("interview agent returned status: %s | body: %s", resp.Status, string(bodyBytes))
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] HTTP request failed", err)
-		return nil, err
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)
+		return err
 	}
 
-	var response GetResumeJsonWithSummaryDataResponse
-	if err := json.Unmarshal(bodyBytes, &response); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetResumeJsonWithSummaryData] Failed to unmarshal response", err)
-		return nil, err
-	}
-
-	return &response, nil
+	return nil
 }

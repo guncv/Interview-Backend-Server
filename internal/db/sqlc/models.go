@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 )
 
 type EvaluationCriteria struct {
@@ -59,22 +58,21 @@ type Evaluations struct {
 }
 
 type InterviewSessions struct {
-	ID            uuid.UUID             `json:"id"`
-	UserID        uuid.UUID             `json:"user_id"`
-	ResumeID      uuid.UUID             `json:"resume_id"`
-	RequirementID uuid.UUID             `json:"requirement_id"`
-	Modality      string                `json:"modality"`
-	Status        string                `json:"status"`
-	PromptJson    pqtype.NullRawMessage `json:"prompt_json"`
-	IsConsent     bool                  `json:"is_consent"`
-	StartedAt     sql.NullTime          `json:"started_at"`
-	EndedAt       sql.NullTime          `json:"ended_at"`
-	OverallScore  sql.NullString        `json:"overall_score"`
-	SummaryMd     sql.NullString        `json:"summary_md"`
-	CreatedAt     sql.NullTime          `json:"created_at"`
-	UpdatedAt     sql.NullTime          `json:"updated_at"`
-	DeletedAt     sql.NullTime          `json:"deleted_at"`
-	SoftDelete    sql.NullBool          `json:"soft_delete"`
+	ID           uuid.UUID      `json:"id"`
+	UserID       uuid.UUID      `json:"user_id"`
+	ResumeID     uuid.UUID      `json:"resume_id"`
+	Position     string         `json:"position"`
+	Modality     string         `json:"modality"`
+	Status       string         `json:"status"`
+	IsConsent    bool           `json:"is_consent"`
+	StartedAt    sql.NullTime   `json:"started_at"`
+	EndedAt      sql.NullTime   `json:"ended_at"`
+	OverallScore sql.NullString `json:"overall_score"`
+	SummaryMd    sql.NullString `json:"summary_md"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	DeletedAt    sql.NullTime   `json:"deleted_at"`
+	SoftDelete   sql.NullBool   `json:"soft_delete"`
 }
 
 type InterviewTurns struct {
@@ -89,20 +87,6 @@ type InterviewTurns struct {
 	StartAt        string         `json:"start_at"`
 	EndAt          string         `json:"end_at"`
 	CreatedAt      sql.NullTime   `json:"created_at"`
-}
-
-type JobRequirements struct {
-	ID              uuid.UUID    `json:"id"`
-	UserID          uuid.UUID    `json:"user_id"`
-	Position        string       `json:"position"`
-	CompanyName     string       `json:"company_name"`
-	WorkType        string       `json:"work_type"`
-	JobRequirements string       `json:"job_requirements"`
-	InterviewType   string       `json:"interview_type"`
-	Language        string       `json:"language"`
-	CreatedAt       sql.NullTime `json:"created_at"`
-	UpdatedAt       sql.NullTime `json:"updated_at"`
-	DeletedAt       sql.NullTime `json:"deleted_at"`
 }
 
 type ResetTokens struct {

@@ -17,7 +17,7 @@ type InterviewSessionRepository interface {
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
 	EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
-	CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error
+	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
 }
 
 type interviewSessionRepository struct {
@@ -123,31 +123,14 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			return app_error.HandleDatabaseError(err)
 		}
 
-		if err := q.CreateJobRequirement(ctx, db.CreateJobRequirementParams{
-			ID:              req.JobRequirementID,
-			UserID:          req.UserID,
-			Position:        req.Position,
-			CompanyName:     req.CompanyName,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-			CreatedAt:       req.CreatedAt,
-			UpdatedAt:       req.UpdatedAt,
-		}); err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
-			return app_error.HandleDatabaseError(err)
-		}
-
 		if err := q.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
-			ID:            req.SessionID,
-			UserID:        req.UserID,
-			ResumeID:      req.ResumeID,
-			RequirementID: req.JobRequirementID,
-			PromptJson:    req.PromptJson,
-			Status:        req.Status,
-			Modality:      req.Modality,
-			IsConsent:     req.IsConsent,
+			ID:        req.SessionID,
+			UserID:    req.UserID,
+			ResumeID:  req.ResumeID,
+			Position:  req.Position,
+			Status:    req.Status,
+			Modality:  req.Modality,
+			IsConsent: req.IsConsent,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
@@ -164,44 +147,18 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 	return nil
 }
 
-func (r *interviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *CreateInterviewSessionWithExistingResumeTxReq) error {
+func (r *interviewSessionRepository) CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Called")
 
-	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
-		if err := q.CreateJobRequirement(ctx, db.CreateJobRequirementParams{
-			ID:              req.JobRequirementID,
-			UserID:          req.UserID,
-			Position:        req.Position,
-			CompanyName:     req.CompanyName,
-			WorkType:        req.WorkType,
-			JobRequirements: req.JobRequirements,
-			InterviewType:   req.InterviewType,
-			Language:        req.Language,
-			CreatedAt:       req.CreatedAt,
-			UpdatedAt:       req.UpdatedAt,
-		}); err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
-			return app_error.HandleDatabaseError(err)
-		}
-
-		if err := q.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
-			ID:            req.SessionID,
-			UserID:        req.UserID,
-			ResumeID:      req.ResumeID,
-			RequirementID: req.JobRequirementID,
-			PromptJson:    req.PromptJson,
-			Status:        req.Status,
-			Modality:      req.Modality,
-			IsConsent:     req.IsConsent,
-		}); err != nil {
-			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
-			return app_error.HandleDatabaseError(err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
+	if err := r.db.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
+		ID:        req.ID,
+		UserID:    req.UserID,
+		ResumeID:  req.ResumeID,
+		Position:  req.Position,
+		Status:    req.Status,
+		Modality:  req.Modality,
+		IsConsent: req.IsConsent,
+	}); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
 		return app_error.HandleDatabaseError(err)
 	}

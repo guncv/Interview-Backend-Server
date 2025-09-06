@@ -83,16 +83,16 @@ func (_c *MockInterviewSessionRepository_CheckInterviewSessionExists_Call) RunAn
 	return _c
 }
 
-// CreateInterviewSessionWithExistingResumeTx provides a mock function with given fields: ctx, req
-func (_m *MockInterviewSessionRepository) CreateInterviewSessionWithExistingResumeTx(ctx context.Context, req *repositories.CreateInterviewSessionWithExistingResumeTxReq) error {
+// CreateInterviewSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateInterviewSessionWithExistingResumeTx")
+		panic("no return value specified for CreateInterviewSession")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *repositories.CreateInterviewSessionWithExistingResumeTxReq) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *db.CreateInterviewSessionParams) error); ok {
 		r0 = rf(ctx, req)
 	} else {
 		r0 = ret.Error(0)
@@ -101,31 +101,31 @@ func (_m *MockInterviewSessionRepository) CreateInterviewSessionWithExistingResu
 	return r0
 }
 
-// MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInterviewSessionWithExistingResumeTx'
-type MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call struct {
+// MockInterviewSessionRepository_CreateInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInterviewSession'
+type MockInterviewSessionRepository_CreateInterviewSession_Call struct {
 	*mock.Call
 }
 
-// CreateInterviewSessionWithExistingResumeTx is a helper method to define mock.On call
+// CreateInterviewSession is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *repositories.CreateInterviewSessionWithExistingResumeTxReq
-func (_e *MockInterviewSessionRepository_Expecter) CreateInterviewSessionWithExistingResumeTx(ctx interface{}, req interface{}) *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call {
-	return &MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call{Call: _e.mock.On("CreateInterviewSessionWithExistingResumeTx", ctx, req)}
+//   - req *db.CreateInterviewSessionParams
+func (_e *MockInterviewSessionRepository_Expecter) CreateInterviewSession(ctx interface{}, req interface{}) *MockInterviewSessionRepository_CreateInterviewSession_Call {
+	return &MockInterviewSessionRepository_CreateInterviewSession_Call{Call: _e.mock.On("CreateInterviewSession", ctx, req)}
 }
 
-func (_c *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call) Run(run func(ctx context.Context, req *repositories.CreateInterviewSessionWithExistingResumeTxReq)) *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call {
+func (_c *MockInterviewSessionRepository_CreateInterviewSession_Call) Run(run func(ctx context.Context, req *db.CreateInterviewSessionParams)) *MockInterviewSessionRepository_CreateInterviewSession_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*repositories.CreateInterviewSessionWithExistingResumeTxReq))
+		run(args[0].(context.Context), args[1].(*db.CreateInterviewSessionParams))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call) Return(_a0 error) *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call {
+func (_c *MockInterviewSessionRepository_CreateInterviewSession_Call) Return(_a0 error) *MockInterviewSessionRepository_CreateInterviewSession_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call) RunAndReturn(run func(context.Context, *repositories.CreateInterviewSessionWithExistingResumeTxReq) error) *MockInterviewSessionRepository_CreateInterviewSessionWithExistingResumeTx_Call {
+func (_c *MockInterviewSessionRepository_CreateInterviewSession_Call) RunAndReturn(run func(context.Context, *db.CreateInterviewSessionParams) error) *MockInterviewSessionRepository_CreateInterviewSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

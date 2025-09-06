@@ -440,53 +440,6 @@ func (_c *MockQuerier_CreateInterviewTurn_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
-// CreateJobRequirement provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) CreateJobRequirement(ctx context.Context, arg db.CreateJobRequirementParams) error {
-	ret := _m.Called(ctx, arg)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateJobRequirement")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateJobRequirementParams) error); ok {
-		r0 = rf(ctx, arg)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockQuerier_CreateJobRequirement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobRequirement'
-type MockQuerier_CreateJobRequirement_Call struct {
-	*mock.Call
-}
-
-// CreateJobRequirement is a helper method to define mock.On call
-//   - ctx context.Context
-//   - arg db.CreateJobRequirementParams
-func (_e *MockQuerier_Expecter) CreateJobRequirement(ctx interface{}, arg interface{}) *MockQuerier_CreateJobRequirement_Call {
-	return &MockQuerier_CreateJobRequirement_Call{Call: _e.mock.On("CreateJobRequirement", ctx, arg)}
-}
-
-func (_c *MockQuerier_CreateJobRequirement_Call) Run(run func(ctx context.Context, arg db.CreateJobRequirementParams)) *MockQuerier_CreateJobRequirement_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.CreateJobRequirementParams))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_CreateJobRequirement_Call) Return(_a0 error) *MockQuerier_CreateJobRequirement_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockQuerier_CreateJobRequirement_Call) RunAndReturn(run func(context.Context, db.CreateJobRequirementParams) error) *MockQuerier_CreateJobRequirement_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateResetToken provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateResetToken(ctx context.Context, arg db.CreateResetTokenParams) error {
 	ret := _m.Called(ctx, arg)
@@ -681,53 +634,6 @@ func (_c *MockQuerier_CreateUser_Call) Return(_a0 db.Users, _a1 error) *MockQuer
 }
 
 func (_c *MockQuerier_CreateUser_Call) RunAndReturn(run func(context.Context, db.CreateUserParams) (db.Users, error)) *MockQuerier_CreateUser_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// DeleteJobRequirement provides a mock function with given fields: ctx, id
-func (_m *MockQuerier) DeleteJobRequirement(ctx context.Context, id uuid.UUID) error {
-	ret := _m.Called(ctx, id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteJobRequirement")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockQuerier_DeleteJobRequirement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteJobRequirement'
-type MockQuerier_DeleteJobRequirement_Call struct {
-	*mock.Call
-}
-
-// DeleteJobRequirement is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id uuid.UUID
-func (_e *MockQuerier_Expecter) DeleteJobRequirement(ctx interface{}, id interface{}) *MockQuerier_DeleteJobRequirement_Call {
-	return &MockQuerier_DeleteJobRequirement_Call{Call: _e.mock.On("DeleteJobRequirement", ctx, id)}
-}
-
-func (_c *MockQuerier_DeleteJobRequirement_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_DeleteJobRequirement_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_DeleteJobRequirement_Call) Return(_a0 error) *MockQuerier_DeleteJobRequirement_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockQuerier_DeleteJobRequirement_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockQuerier_DeleteJobRequirement_Call {
 	_c.Call.Return(run)
 	return _c
 }

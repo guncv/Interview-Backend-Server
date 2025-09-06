@@ -1279,7 +1279,9 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
-				assert.NoError(t, gotErr)
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
 			},
 		},
 		{

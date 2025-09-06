@@ -27,7 +27,6 @@ import (
 	mockRepositories "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
 	mockServices "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/services"
 	mockUtils "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	utilsPkg "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
 
@@ -40,7 +39,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 	testCases := []struct {
 		name   string
 		input  *entities.CreateInterviewSessionWithNewResumeRequest
-		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
+		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
 		verify func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error)
 	}{
 		{
@@ -59,7 +58,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -67,7 +66,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -85,34 +83,16 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock generator for UUIDs
 				sessionID := uuid.New()
 				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
@@ -139,7 +119,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -163,7 +143,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -171,7 +151,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -189,34 +168,17 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock generator for UUIDs
 				sessionID := uuid.New()
 				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
@@ -243,7 +205,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -267,7 +229,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -275,7 +237,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -285,7 +246,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -309,7 +270,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -317,7 +278,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -332,16 +292,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(nil, errors.New("JSON generation failed"))
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(errors.New("JSON generation failed"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -365,7 +328,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -373,7 +336,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -387,6 +349,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 							Role:   "user",
 						},
 					}, nil)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
 
 				// Mock generator for UUIDs
 				sessionID := uuid.New()
@@ -394,32 +358,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
-
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
 						InterviewSessionTokenTTL: 24 * time.Hour,
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -444,7 +391,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -452,7 +399,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -467,28 +413,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -496,7 +429,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -520,7 +453,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -528,7 +461,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -543,28 +475,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -576,7 +495,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -600,7 +519,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -608,7 +527,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -623,28 +541,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -653,13 +558,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
-
-				// Mock generator for remaining UUIDs
-				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 
 				mockInterviewSessionRepo.EXPECT().
 					CreateInterviewSessionWithNewResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionTxReq")).
@@ -672,7 +570,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -696,7 +594,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -704,7 +602,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -719,28 +616,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -750,13 +634,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
 
-				// Mock generator for remaining UUIDs
-				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				mockInterviewSessionRepo.EXPECT().
@@ -773,7 +651,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -797,7 +675,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -805,7 +683,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -819,18 +696,20 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 						},
 					}, nil)
 
-				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				// Mock resume repository to return error
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(nil, errors.New("resume processing failed"))
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(errors.New("resume processing failed"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -854,7 +733,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -862,7 +741,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -876,29 +754,15 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 						},
 					}, nil)
 
-				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -907,13 +771,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
-
-				// Mock generator for remaining UUIDs
-				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 
 				mockInterviewSessionRepo.EXPECT().
 					CreateInterviewSessionWithNewResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionTxReq")).
@@ -934,7 +791,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -958,7 +815,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -966,7 +823,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -981,16 +837,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					}, nil)
 
 				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
 				sessionID := uuid.New()
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(nil, errors.New("invalid file: file is nil or corrupted"))
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(errors.New("invalid file: file is nil or corrupted"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1014,7 +873,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1022,7 +881,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1040,34 +898,16 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock generator for UUIDs
 				sessionID := uuid.New()
 				resumeID := uuid.New()
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				// Mock resume repository for JSON generation with successful file conversion
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
@@ -1094,7 +934,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -1106,7 +946,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient := tC.setup()
+			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient := tC.setup()
 			defer func() {
 				if mockResumeService != nil {
 					mockResumeService.AssertExpectations(t)
@@ -1129,9 +969,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				if mockS3Storage != nil {
 					mockS3Storage.AssertExpectations(t)
 				}
-				if mockJobRequirementRepo != nil {
-					mockJobRequirementRepo.AssertExpectations(t)
-				}
 				if mockPublisher != nil {
 					mockPublisher.AssertExpectations(t)
 				}
@@ -1150,7 +987,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockJwtMaker,
 				config,
 				mockS3Storage,
-				mockJobRequirementRepo,
 				mockPublisher,
 				mockRedisClient,
 			)
@@ -1173,7 +1009,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 	testCases := []struct {
 		name   string
 		input  *entities.CreateInterviewSessionWithExistingResumeReq
-		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
+		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
 		verify func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error)
 	}{
 		{
@@ -1188,7 +1024,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1196,7 +1032,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1238,37 +1073,19 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				// Mock generator for UUIDs
 				sessionID := uuid.New()
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				// Mock interview session repository
 				mockInterviewSessionRepo.EXPECT().
-					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
 					Return(nil)
 
 				// Mock Redis client
@@ -1282,7 +1099,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -1302,7 +1119,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1310,7 +1127,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1320,7 +1136,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1340,7 +1156,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1348,7 +1164,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1369,7 +1184,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1389,7 +1204,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1397,7 +1212,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1417,7 +1231,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1437,7 +1251,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1445,7 +1259,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1479,7 +1292,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1499,7 +1312,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1507,7 +1320,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1549,12 +1361,12 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(nil, errors.New("JSON generation failed"))
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(errors.New("JSON generation failed"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1574,7 +1386,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1582,7 +1394,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1624,38 +1435,17 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
-
-				// Mock generator for remaining UUIDs
-				jobRequirementID := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				// Mock interview session repository to return error
 				mockInterviewSessionRepo.EXPECT().
-					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
 					Return(errors.New("database transaction failed"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1675,7 +1465,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1683,7 +1473,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1727,24 +1516,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
@@ -1752,7 +1525,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1772,7 +1545,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1780,7 +1553,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1822,37 +1594,16 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
-
-				// Mock generator for remaining UUIDs
-				jobRequirementID := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				mockInterviewSessionRepo.EXPECT().
-					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
 					Return(errors.New("transaction failed"))
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1872,7 +1623,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1880,7 +1631,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -1922,32 +1672,13 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				// Mock generator for remaining UUIDs
-				jobRequirementID := uuid.New()
-
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 
 				mockInterviewSessionRepo.EXPECT().
-					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
 					Return(nil)
 
 				// Mock generator for token key
@@ -1965,7 +1696,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1985,7 +1716,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				Language:        "English",
 				IsConsent:       true,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -1993,7 +1724,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -2035,34 +1765,16 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
 
 				mockResumeRepo.EXPECT().
-					GetResumeJsonWithSummaryData(ctx, mock.AnythingOfType("*repositories.GetResumeJsonWithSummaryDataReq")).
-					Return(&repositories.GetResumeJsonWithSummaryDataResponse{
-						ParsedJson: repositories.PromptInfo{
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john@example.com",
-							Experience: []repositories.Experience{
-								{
-									Company:     "Tech Corp",
-									Position:    "Software Engineer",
-									StartDate:   "2020-01-01",
-									EndDate:     "2021-01-01",
-									Description: "Software Engineer at Tech Corp",
-								},
-							},
-							Skills: []string{"Go", "Docker", "AWS"},
-						},
-					}, nil)
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
 
 				// Mock generator for remaining UUIDs
-				jobRequirementID := uuid.New()
 				tokenKey := uuid.New()
 
-				mockGenerator.EXPECT().GenerateUUID(ctx).Return(jobRequirementID).Times(1)
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(tokenKey).Times(1)
 
 				mockInterviewSessionRepo.EXPECT().
-					CreateInterviewSessionWithExistingResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionWithExistingResumeTxReq")).
+					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
 					Return(nil)
 
 				mockRedisClient.EXPECT().
@@ -2075,7 +1787,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 					},
 				}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2087,7 +1799,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient := tC.setup()
+			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient := tC.setup()
 			defer func() {
 				if mockResumeService != nil {
 					mockResumeService.AssertExpectations(t)
@@ -2110,9 +1822,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				if mockS3Storage != nil {
 					mockS3Storage.AssertExpectations(t)
 				}
-				if mockJobRequirementRepo != nil {
-					mockJobRequirementRepo.AssertExpectations(t)
-				}
 				if mockPublisher != nil {
 					mockPublisher.AssertExpectations(t)
 				}
@@ -2131,7 +1840,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockJwtMaker,
 				config,
 				mockS3Storage,
-				mockJobRequirementRepo,
 				mockPublisher,
 				mockRedisClient,
 			)
@@ -2152,7 +1860,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.UpdateInterviewSessionStatusReq
-		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
+		setup  func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
@@ -2160,7 +1868,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: sessionID.String(),
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -2168,7 +1876,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -2178,7 +1885,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2189,7 +1896,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: invalidSessionID,
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -2197,13 +1904,12 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2216,7 +1922,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: sessionID.String(),
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -2224,7 +1930,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
@@ -2234,7 +1939,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2246,7 +1951,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: "invalid-uuid",
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -2254,13 +1959,12 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2273,7 +1977,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			input: &entities.UpdateInterviewSessionStatusReq{
 				SessionID: "",
 			},
-			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *mockRepositories.MockJobRequirementRepository, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
 				mockAuthContext := new(mockMiddleware.MockAuthContext)
 				mockResumeRepo := new(mockRepositories.MockResumeReposity)
@@ -2281,13 +1985,12 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 				mockJwtMaker := new(mockUtils.MockJwtToken)
 				mockS3Storage := new(mockAws.MockS3Storage)
-				mockJobRequirementRepo := new(mockRepositories.MockJobRequirementRepository)
 				mockPublisher := new(queue.MockRedisTaskPublisher)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				config := &config.Config{}
 
-				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2299,7 +2002,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockJobRequirementRepo, mockPublisher, mockRedisClient := tC.setup()
+			mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient := tC.setup()
 			defer func() {
 				if mockResumeService != nil {
 					mockResumeService.AssertExpectations(t)
@@ -2322,9 +2025,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				if mockS3Storage != nil {
 					mockS3Storage.AssertExpectations(t)
 				}
-				if mockJobRequirementRepo != nil {
-					mockJobRequirementRepo.AssertExpectations(t)
-				}
 				if mockPublisher != nil {
 					mockPublisher.AssertExpectations(t)
 				}
@@ -2343,7 +2043,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockJwtMaker,
 				config,
 				mockS3Storage,
-				mockJobRequirementRepo,
 				mockPublisher,
 				mockRedisClient,
 			)
@@ -2562,7 +2261,6 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewSessionRepo,
-				nil,
 				nil,
 				nil,
 				nil,
@@ -3026,7 +2724,6 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 				nil,
 				mockGenerator,
 				mockInterviewSessionRepo,
-				nil,
 				nil,
 				nil,
 				nil,

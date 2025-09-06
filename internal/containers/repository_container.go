@@ -25,7 +25,4 @@ func (c *Container) RepositoryProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(repositories.NewJobRequirementRepository); err != nil {
-		c.Error = err
-	}
 }

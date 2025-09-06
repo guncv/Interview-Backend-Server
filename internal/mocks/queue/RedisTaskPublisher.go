@@ -12,8 +12,6 @@ import (
 
 	email "gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 
-	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -136,68 +134,6 @@ func (_c *MockRedisTaskPublisher_PublishTaskDeleteFile_Call) Return(_a0 error) *
 }
 
 func (_c *MockRedisTaskPublisher_PublishTaskDeleteFile_Call) RunAndReturn(run func(context.Context, *aws.DeleteFilePayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskDeleteFile_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// PublishTaskDeleteJobRequirement provides a mock function with given fields: ctx, payload, opts
-func (_m *MockRedisTaskPublisher) PublishTaskDeleteJobRequirement(ctx context.Context, payload *entities.DeleteJobRequirementPayload, opts ...asynq.Option) error {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, payload)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PublishTaskDeleteJobRequirement")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.DeleteJobRequirementPayload, ...asynq.Option) error); ok {
-		r0 = rf(ctx, payload, opts...)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskDeleteJobRequirement'
-type MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call struct {
-	*mock.Call
-}
-
-// PublishTaskDeleteJobRequirement is a helper method to define mock.On call
-//   - ctx context.Context
-//   - payload *entities.DeleteJobRequirementPayload
-//   - opts ...asynq.Option
-func (_e *MockRedisTaskPublisher_Expecter) PublishTaskDeleteJobRequirement(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call {
-	return &MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call{Call: _e.mock.On("PublishTaskDeleteJobRequirement",
-		append([]interface{}{ctx, payload}, opts...)...)}
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call) Run(run func(ctx context.Context, payload *entities.DeleteJobRequirementPayload, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]asynq.Option, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(asynq.Option)
-			}
-		}
-		run(args[0].(context.Context), args[1].(*entities.DeleteJobRequirementPayload), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call) RunAndReturn(run func(context.Context, *entities.DeleteJobRequirementPayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskDeleteJobRequirement_Call {
 	_c.Call.Return(run)
 	return _c
 }

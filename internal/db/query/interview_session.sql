@@ -3,13 +3,12 @@ INSERT INTO interview_sessions (
     id,
     user_id,
     resume_id,
-    requirement_id,
+    position,
     modality,
     status,
-    is_consent,
-    prompt_json
+    is_consent
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: EndInterviewSession :execrows
