@@ -24,7 +24,7 @@ type WebSocketClient interface {
 
 	SendMessage(ctx context.Context, data map[string]interface{}) error
 	SendBinaryMessage(ctx context.Context, data []byte) error
-	SendSessionInfo(ctx context.Context, sessionID, userID string) error
+	SendSessionInfo(ctx context.Context, sessionID, userID, resumeID string) error
 	IsConnected() bool
 	SetCallbacks(callbacks WebSocketClientCallbacks)
 }
@@ -35,6 +35,7 @@ type webSocketClient struct {
 	sessionID        string
 	userID           string
 	currentSegmentID string
+	resumeID         string
 
 	conn         *websocket.Conn
 	connected    bool
@@ -225,10 +226,11 @@ func (c *webSocketClient) SendBinaryMessage(ctx context.Context, data []byte) er
 	return c.conn.WriteMessage(websocket.BinaryMessage, data)
 }
 
-func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID string) error {
+func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID, resumeID string) error {
 	c.log.InfoWithID(ctx, "[WebSocketClient: SendSessionInfo] Called:", sessionID, userID)
 	c.sessionID = sessionID
 	c.userID = userID
+	c.resumeID = resumeID
 
 	return c.SendMessage(ctx, map[string]interface{}{
 		"session_id": sessionID,

@@ -26,6 +26,7 @@ type Client struct {
 	mu               sync.Mutex
 	userID           string
 	sessionID        string
+	resumeID         string
 	currentSegmentID string
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
@@ -144,6 +145,7 @@ func (s *webSocketServer) HandleConnection(
 		conn:         conn,
 		userID:       session.UserID,
 		sessionID:    session.SessionID,
+		resumeID:     session.ResumeID,
 		lastPongTime: time.Now(),
 		pongReceived: make(chan struct{}, 1),
 		connected:    true,
@@ -207,6 +209,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
 		SessionID: client.sessionID,
+		ResumeID:  client.resumeID,
 		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 	})
 	if err != nil {
@@ -236,7 +239,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 		return err
 	}
 
-	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID)
+	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID, client.resumeID)
 	s.clientManager.SetClientBySessionID(ctx, client.sessionID, agentClient)
 
 	return nil
