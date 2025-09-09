@@ -28,6 +28,7 @@ type Client struct {
 	sessionID        string
 	resumeID         string
 	currentSegmentID string
+	startSessionTime time.Time
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
 	connected        bool
@@ -47,7 +48,6 @@ type webSocketServer struct {
 	userSessions            map[string]map[string]bool
 	mu                      sync.RWMutex
 	upgrader                websocket.Upgrader
-	redisClient             database.RedisClient
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
 	aiAgentConnected        bool
@@ -65,6 +65,7 @@ func NewWebSocketServer(
 	clientManager *ClientManager,
 	cfg *config.Config,
 	jwtMaker utils.JwtToken,
+	generator utils.Generator,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -77,7 +78,6 @@ func NewWebSocketServer(
 	server := &webSocketServer{
 		log:                     log,
 		upgrader:                upgrader,
-		redisClient:             redisClient,
 		sessions:                make(map[string]*Client),
 		userSessions:            make(map[string]map[string]bool),
 		authContext:             authContext,
@@ -95,6 +95,8 @@ func NewWebSocketServer(
 		server.writeJSON,
 		clientManager,
 		interviewSessionService,
+		redisClient,
+		generator,
 	)
 
 	server.logic = logic
@@ -142,13 +144,14 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	client := &Client{
-		conn:         conn,
-		userID:       session.UserID,
-		sessionID:    session.SessionID,
-		resumeID:     session.ResumeID,
-		lastPongTime: time.Now(),
-		pongReceived: make(chan struct{}, 1),
-		connected:    true,
+		conn:             conn,
+		userID:           session.UserID,
+		sessionID:        session.SessionID,
+		resumeID:         session.ResumeID,
+		startSessionTime: time.Now(),
+		lastPongTime:     time.Now(),
+		pongReceived:     make(chan struct{}, 1),
+		connected:        true,
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{

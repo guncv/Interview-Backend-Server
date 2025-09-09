@@ -22,6 +22,53 @@ func (_m *MockInterviewSessionService) EXPECT() *MockInterviewSessionService_Exp
 	return &MockInterviewSessionService_Expecter{mock: &_m.Mock}
 }
 
+// CalculateTurnScore provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CalculateTurnScore")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CalculateTurnScoreReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_CalculateTurnScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CalculateTurnScore'
+type MockInterviewSessionService_CalculateTurnScore_Call struct {
+	*mock.Call
+}
+
+// CalculateTurnScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.CalculateTurnScoreReq
+func (_e *MockInterviewSessionService_Expecter) CalculateTurnScore(ctx interface{}, req interface{}) *MockInterviewSessionService_CalculateTurnScore_Call {
+	return &MockInterviewSessionService_CalculateTurnScore_Call{Call: _e.mock.On("CalculateTurnScore", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_CalculateTurnScore_Call) Run(run func(ctx context.Context, req *entities.CalculateTurnScoreReq)) *MockInterviewSessionService_CalculateTurnScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.CalculateTurnScoreReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CalculateTurnScore_Call) Return(_a0 error) *MockInterviewSessionService_CalculateTurnScore_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CalculateTurnScore_Call) RunAndReturn(run func(context.Context, *entities.CalculateTurnScoreReq) error) *MockInterviewSessionService_CalculateTurnScore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateInterviewSessionWithExistingResume provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error) {
 	ret := _m.Called(ctx, req)
@@ -140,16 +187,16 @@ func (_c *MockInterviewSessionService_CreateInterviewSessionWithNewResume_Call) 
 	return _c
 }
 
-// CreateSessionTurnBySessionID provides a mock function with given fields: ctx, req
-func (_m *MockInterviewSessionService) CreateSessionTurnBySessionID(ctx context.Context, req *entities.CreateSessionTurnBySessionIDReq) error {
+// CreateInterviewerSessionTurnBySessionID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateSessionTurnBySessionID")
+		panic("no return value specified for CreateInterviewerSessionTurnBySessionID")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateSessionTurnBySessionIDReq) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateInterviewerSessionTurnBySessionIDReq) error); ok {
 		r0 = rf(ctx, req)
 	} else {
 		r0 = ret.Error(0)
@@ -158,31 +205,78 @@ func (_m *MockInterviewSessionService) CreateSessionTurnBySessionID(ctx context.
 	return r0
 }
 
-// MockInterviewSessionService_CreateSessionTurnBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSessionTurnBySessionID'
-type MockInterviewSessionService_CreateSessionTurnBySessionID_Call struct {
+// MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateInterviewerSessionTurnBySessionID'
+type MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call struct {
 	*mock.Call
 }
 
-// CreateSessionTurnBySessionID is a helper method to define mock.On call
+// CreateInterviewerSessionTurnBySessionID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *entities.CreateSessionTurnBySessionIDReq
-func (_e *MockInterviewSessionService_Expecter) CreateSessionTurnBySessionID(ctx interface{}, req interface{}) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
-	return &MockInterviewSessionService_CreateSessionTurnBySessionID_Call{Call: _e.mock.On("CreateSessionTurnBySessionID", ctx, req)}
+//   - req *entities.CreateInterviewerSessionTurnBySessionIDReq
+func (_e *MockInterviewSessionService_Expecter) CreateInterviewerSessionTurnBySessionID(ctx interface{}, req interface{}) *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call {
+	return &MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call{Call: _e.mock.On("CreateInterviewerSessionTurnBySessionID", ctx, req)}
 }
 
-func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) Run(run func(ctx context.Context, req *entities.CreateSessionTurnBySessionIDReq)) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+func (_c *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call) Run(run func(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq)) *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.CreateSessionTurnBySessionIDReq))
+		run(args[0].(context.Context), args[1].(*entities.CreateInterviewerSessionTurnBySessionIDReq))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) Return(_a0 error) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+func (_c *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call) Return(_a0 error) *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockInterviewSessionService_CreateSessionTurnBySessionID_Call) RunAndReturn(run func(context.Context, *entities.CreateSessionTurnBySessionIDReq) error) *MockInterviewSessionService_CreateSessionTurnBySessionID_Call {
+func (_c *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call) RunAndReturn(run func(context.Context, *entities.CreateInterviewerSessionTurnBySessionIDReq) error) *MockInterviewSessionService_CreateInterviewerSessionTurnBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateUserSessionTurnBySessionID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) CreateUserSessionTurnBySessionID(ctx context.Context, req *entities.CreateUserSessionTurnBySessionIDReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserSessionTurnBySessionID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateUserSessionTurnBySessionIDReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserSessionTurnBySessionID'
+type MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call struct {
+	*mock.Call
+}
+
+// CreateUserSessionTurnBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.CreateUserSessionTurnBySessionIDReq
+func (_e *MockInterviewSessionService_Expecter) CreateUserSessionTurnBySessionID(ctx interface{}, req interface{}) *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call {
+	return &MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call{Call: _e.mock.On("CreateUserSessionTurnBySessionID", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) Run(run func(ctx context.Context, req *entities.CreateUserSessionTurnBySessionIDReq)) *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.CreateUserSessionTurnBySessionIDReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) Return(_a0 error) *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) RunAndReturn(run func(context.Context, *entities.CreateUserSessionTurnBySessionIDReq) error) *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

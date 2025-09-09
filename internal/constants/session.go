@@ -22,6 +22,7 @@ const (
 	WebSocketMessageTypeError                 = "error"
 	WebSocketMessageTypeUserPartialTranscript = "user_partial_transcript"
 	WebSocketMessageTypeUserFullTranscript    = "user_full_transcript"
+	WebSocketMessageTypeInterviewerResponse   = "interviewer_response"
 
 	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"
@@ -35,6 +36,10 @@ const (
 	WebSocketReadTimeout            = 6 * time.Second
 	WebSocketPongTimeout            = 4 * time.Second
 	WebSocketClientHandshakeTimeout = 2 * time.Second
+
+	// Interviewer Constants
+	ActorInterviewer = "interviewer"
+	ActorUser        = "user"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -44,7 +44,7 @@ type userService struct {
 	authContext        middleware.AuthContext
 	resetTokenRepo     repositories.ResetTokenRepository
 	redisClient        database.RedisClient
-	redisTaskPublisher queue.RedisTaskPublisher
+	redisTaskPublisher publisher.RedisTaskPublisher
 	password           utils.PasswordUtil
 	generator          utils.Generator
 }
@@ -58,7 +58,7 @@ func NewUserService(l *log.Logger,
 	authContext middleware.AuthContext,
 	resetTokenRepository repositories.ResetTokenRepository,
 	redisClient database.RedisClient,
-	redisTaskPublisher queue.RedisTaskPublisher,
+	redisTaskPublisher publisher.RedisTaskPublisher,
 	password utils.PasswordUtil,
 	generator utils.Generator,
 ) UserService {

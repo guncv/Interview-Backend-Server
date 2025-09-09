@@ -45,10 +45,18 @@ type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
 }
 
-type CreateSessionTurnBySessionIDReq struct {
+type CreateUserSessionTurnBySessionIDReq struct {
+	TurnID     string `json:"turn_id" binding:"required"`
 	SessionID  string `json:"session_id" binding:"required"`
-	Actor      string `json:"actor" binding:"required"`
 	Transcript string `json:"transcript" binding:"required"`
+}
+
+type CreateInterviewerSessionTurnBySessionIDReq struct {
+	TurnID     string `json:"turn_id" binding:"required"`
+	SessionID  string `json:"session_id" binding:"required"`
+	Transcript string `json:"transcript" binding:"required"`
+	StartedAt  string `json:"started_at" binding:"required"`
+	EndedAt    string `json:"ended_at" binding:"required"`
 }
 
 type UpdateInterviewSessionStatusReq struct {
@@ -69,6 +77,13 @@ type SetSessionEndTimeReq struct {
 type IsSessionValidReq struct {
 	SessionToken string `json:"session_token" binding:"required"`
 	UserID       string `json:"user_id" binding:"required"`
+}
+
+type CalculateTurnScoreReq struct {
+	SessionID          string `json:"session_id" binding:"required"`
+	UserTurnID         string `json:"user_turn_id" binding:"required"`
+	UserMessage        string `json:"user_message" binding:"required"`
+	InterviewerMessage string `json:"interviewer_message" binding:"required"`
 }
 
 type IsSessionValidResp struct {

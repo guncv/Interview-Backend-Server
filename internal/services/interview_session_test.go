@@ -2283,15 +2283,14 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *entities.CreateSessionTurnBySessionIDReq
+		input  *entities.CreateUserSessionTurnBySessionIDReq
 		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
 			name: "Success - TurnRedisTriggered",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2341,9 +2340,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error_Invalid session ID",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  invalidSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2358,9 +2356,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Success - TurnRedisNotTriggered",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2414,9 +2411,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Success - With Warning Set Redis Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2466,9 +2462,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - Redis Get Turn error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2486,9 +2481,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetMaxTurnRepo Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2511,9 +2505,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - ParseIntTurnNo Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2531,9 +2524,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetStartEndTime Redis Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2555,9 +2547,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetStartEndTime Redis Nil",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2579,9 +2570,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetStartEndTime Not Found Any Field",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2604,9 +2594,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetStartEndTime StartedAt Not Found Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2631,9 +2620,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - GetStartEndTime EndedAt Not Found Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2658,9 +2646,8 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 		},
 		{
 			name: "Error - CreateSessionTurnBySessionID Error",
-			input: &entities.CreateSessionTurnBySessionIDReq{
+			input: &entities.CreateUserSessionTurnBySessionIDReq{
 				SessionID:  correctSessionID,
-				Actor:      "user",
 				Transcript: "transcript",
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
@@ -2731,7 +2718,7 @@ func TestInterviewSessionService_CreateSessionTurnBySessionID(t *testing.T) {
 				mockRedisClient,
 			)
 
-			gotErr := svc.CreateSessionTurnBySessionID(ctx, tC.input)
+			gotErr := svc.CreateUserSessionTurnBySessionID(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

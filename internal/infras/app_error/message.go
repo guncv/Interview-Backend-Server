@@ -10,6 +10,8 @@ const (
 	ErrMessageGeneralDatabaseConnection  ErrorMessage = "Database connection error. Please try again."
 	ErrMessageGeneralConstraintViolation ErrorMessage = "The data violates database constraints."
 	ErrMessageGeneralInvalidUUID         ErrorMessage = "The UUID is invalid. Please try again."
+	ErrMessageGeneralRedisSetFailed      ErrorMessage = "Failed to set the value in Redis. Please try again."
+	ErrMessageGeneralRedisGetFailed      ErrorMessage = "Failed to get the value from Redis. Please try again."
 
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."
@@ -58,4 +60,6 @@ const (
 	ErrMessageInterviewSessionStartEndTimeNotFound  ErrorMessage = "Interview session start and end time not found. Please try again."
 	ErrMessageInterviewSessionStartTimeNotFound     ErrorMessage = "Interview session start time not found. Please try again."
 	ErrMessageInterviewSessionEndTimeNotFound       ErrorMessage = "Interview session end time not found. Please try again."
+	ErrMessageWebSocketInvalidSegmentID             ErrorMessage = "The segment ID is invalid or expired. Please try again."
+	ErrMessageWebSocketInvalidSessionID             ErrorMessage = "The session ID is invalid. Please try again."
 )

@@ -17,7 +17,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -35,7 +35,7 @@ type resumeService struct {
 	authContext middleware.AuthContext
 	s3Storage   aws.S3Storage
 	validator   utils.Validator
-	queue       queue.RedisTaskPublisher
+	queue       publisher.RedisTaskPublisher
 	redisClient database.RedisClient
 	generator   utils.Generator
 }
@@ -46,7 +46,7 @@ func NewResumeService(
 	authContext middleware.AuthContext,
 	s3Storage aws.S3Storage,
 	validator utils.Validator,
-	queue queue.RedisTaskPublisher,
+	queue publisher.RedisTaskPublisher,
 	redisClient database.RedisClient,
 	generator utils.Generator,
 ) ResumeService {

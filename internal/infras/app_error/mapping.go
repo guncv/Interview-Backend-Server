@@ -8,6 +8,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralDatabaseConnection:  ErrHttpCodeInternalServerError,
 	ErrCodeGeneralConstraintViolation: ErrHttpCodeBadRequest,
 	ErrCodeGeneralInvalidUUID:         ErrHttpCodeBadRequest,
+	ErrCodeGeneralRedisSetFailed:      ErrHttpCodeInternalServerError,
+	ErrCodeGeneralRedisGetFailed:      ErrHttpCodeInternalServerError,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
@@ -54,6 +56,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeInterviewSessionStartEndTimeNotFound:  ErrHttpCodeNotFound,
 	ErrCodeInterviewSessionStartTimeNotFound:     ErrHttpCodeNotFound,
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrHttpCodeNotFound,
+	ErrCodeWebSocketInvalidSegmentID:             ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidSessionID:             ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -64,7 +68,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralDatabaseConnection:  ErrMessageGeneralDatabaseConnection,
 	ErrCodeGeneralConstraintViolation: ErrMessageGeneralConstraintViolation,
 	ErrCodeGeneralInvalidUUID:         ErrMessageGeneralInvalidUUID,
-
+	ErrCodeGeneralRedisSetFailed:      ErrMessageGeneralRedisSetFailed,
+	ErrCodeGeneralRedisGetFailed:      ErrMessageGeneralRedisGetFailed,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,
@@ -110,4 +115,6 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeInterviewSessionStartEndTimeNotFound:  ErrMessageInterviewSessionStartEndTimeNotFound,
 	ErrCodeInterviewSessionStartTimeNotFound:     ErrMessageInterviewSessionStartTimeNotFound,
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrMessageInterviewSessionEndTimeNotFound,
+	ErrCodeWebSocketInvalidSegmentID:             ErrMessageWebSocketInvalidSegmentID,
+	ErrCodeWebSocketInvalidSessionID:             ErrMessageWebSocketInvalidSessionID,
 }

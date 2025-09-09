@@ -10,11 +10,13 @@ const (
 	RedisPrefixInterviewSegmentMapping = "interview:segment:mapping:"
 	RedisPrefixInterviewMaxTurnNo      = "interview:max_turn_no:"
 	RedisPrefixInterviewStartEndTime   = "interview:start_end_time:"
+	RedisPrefixInterviewLastMessage    = "interview:last_message:"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour
 
-	RedisTTLInterviewSegmentMapping = 10 * time.Minute
+	RedisTTLInterviewSegmentMapping = 5 * time.Minute
+	RedisTTLInterviewLastMessage    = 2 * time.Minute
 	RedisTTLInterviewTurn           = 10 * time.Minute
 	RedisTTLInterviewStartEndTime   = 1 * time.Hour
 )

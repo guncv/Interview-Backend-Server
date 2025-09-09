@@ -270,7 +270,6 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 		case websocket.TextMessage:
 			var base struct {
 				Type      string `json:"type"`
-				SegmentID string `json:"segment_id"`
 				SessionID string `json:"session_id"`
 			}
 			if json.Unmarshal(data, &base) != nil {
@@ -303,6 +302,14 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				}
 
 				c.cb.OnUserFullTranscript(ctx, msg)
+			case constants.WebSocketMessageTypeInterviewerResponse:
+				var msg MsgInterviewerResp
+
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
+				}
+				c.cb.OnInterviewerResp(ctx, msg)
 			}
 
 		case websocket.BinaryMessage:

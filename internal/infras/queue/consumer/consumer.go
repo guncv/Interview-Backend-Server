@@ -1,4 +1,4 @@
-package queue
+package consumer
 
 import (
 	"context"
@@ -8,11 +8,13 @@ import (
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
 
 type RedisTaskConsumer interface {
@@ -23,14 +25,16 @@ type RedisTaskConsumer interface {
 	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskSetRedis(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteRedis(ctx context.Context, task *asynq.Task) error
+	ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
-	server      *asynq.Server
-	log         *log.Logger
-	emailSender email.EmailSender
-	s3Storage   aws.S3Storage
-	redisClient database.RedisClient
+	server                  *asynq.Server
+	log                     *log.Logger
+	emailSender             email.EmailSender
+	s3Storage               aws.S3Storage
+	redisClient             database.RedisClient
+	interviewSessionService services.InterviewSessionService
 }
 
 func NewRedisTaskConsumer(
@@ -39,6 +43,7 @@ func NewRedisTaskConsumer(
 	emailSender email.EmailSender,
 	s3Storage aws.S3Storage,
 	redisClient database.RedisClient,
+	interviewSessionService services.InterviewSessionService,
 ) RedisTaskConsumer {
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%s", cfg.RedisConfig.Host, cfg.RedisConfig.Port),
@@ -59,11 +64,12 @@ func NewRedisTaskConsumer(
 	})
 
 	return &redisTaskConsumer{
-		server:      server,
-		log:         log,
-		emailSender: emailSender,
-		s3Storage:   s3Storage,
-		redisClient: redisClient,
+		server:                  server,
+		log:                     log,
+		emailSender:             emailSender,
+		s3Storage:               s3Storage,
+		redisClient:             redisClient,
+		interviewSessionService: interviewSessionService,
 	}
 }
 
@@ -75,6 +81,7 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 	mux.HandleFunc(constants.TaskSetRedis, c.ConsumeTaskSetRedis)
 	mux.HandleFunc(constants.TaskDeleteRedis, c.ConsumeTaskDeleteRedis)
+	mux.HandleFunc(constants.TaskCalculateTurnScore, c.ConsumeTaskCalculateTurnScore)
 
 	if err := c.server.Start(mux); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
@@ -188,5 +195,23 @@ func (c *redisTaskConsumer) ConsumeTaskDeleteRedis(ctx context.Context, task *as
 	}
 
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteRedis] Successfully deleted redis", nil)
+	return nil
+}
+
+func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error {
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Processing calculate turn score task")
+
+	var payload entities.CalculateTurnScoreReq
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid calculate turn score payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.interviewSessionService.CalculateTurnScore(ctx, &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to calculate turn score", err)
+		return app_error.New(fmt.Errorf("failed to calculate turn score: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Successfully deleted redis", nil)
 	return nil
 }

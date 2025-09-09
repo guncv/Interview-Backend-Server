@@ -8,6 +8,7 @@ var (
 	TaskSetRedis               = "task:set_redis"
 	TaskDeleteRedis            = "task:delete_redis"
 	TaskDeleteJobRequirement   = "task:delete_job_requirement"
+	TaskCalculateTurnScore     = "task:calculate_turn_score"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"

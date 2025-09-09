@@ -12,6 +12,8 @@ const (
 	ErrCodeGeneralDatabaseConnection  ErrorCode = "ONX0105"
 	ErrCodeGeneralConstraintViolation ErrorCode = "ONX0106"
 	ErrCodeGeneralInvalidUUID         ErrorCode = "ONX0107"
+	ErrCodeGeneralRedisSetFailed      ErrorCode = "ONX0108"
+	ErrCodeGeneralRedisGetFailed      ErrorCode = "ONX0109"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"
@@ -58,6 +60,8 @@ const (
 	ErrCodeInterviewSessionStartEndTimeNotFound  ErrorCode = "ONX0412"
 	ErrCodeInterviewSessionStartTimeNotFound     ErrorCode = "ONX0413"
 	ErrCodeInterviewSessionEndTimeNotFound       ErrorCode = "ONX0414"
+	ErrCodeWebSocketInvalidSegmentID             ErrorCode = "ONX0415"
+	ErrCodeWebSocketInvalidSessionID             ErrorCode = "ONX0416"
 )
 
 func (c ErrorCode) Message() string {
