@@ -8,6 +8,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralDatabaseConnection:  ErrHttpCodeInternalServerError,
 	ErrCodeGeneralConstraintViolation: ErrHttpCodeBadRequest,
 	ErrCodeGeneralInvalidUUID:         ErrHttpCodeBadRequest,
+	ErrCodeGeneralRedisSetFailed:      ErrHttpCodeInternalServerError,
+	ErrCodeGeneralRedisGetFailed:      ErrHttpCodeInternalServerError,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
@@ -66,7 +68,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralDatabaseConnection:  ErrMessageGeneralDatabaseConnection,
 	ErrCodeGeneralConstraintViolation: ErrMessageGeneralConstraintViolation,
 	ErrCodeGeneralInvalidUUID:         ErrMessageGeneralInvalidUUID,
-
+	ErrCodeGeneralRedisSetFailed:      ErrMessageGeneralRedisSetFailed,
+	ErrCodeGeneralRedisGetFailed:      ErrMessageGeneralRedisGetFailed,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,

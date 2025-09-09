@@ -12,6 +12,8 @@ import (
 
 	email "gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 
+	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -72,6 +74,68 @@ func (_c *MockRedisTaskPublisher_DefineTaskOptions_Call) Return(_a0 []asynq.Opti
 }
 
 func (_c *MockRedisTaskPublisher_DefineTaskOptions_Call) RunAndReturn(run func(string) []asynq.Option) *MockRedisTaskPublisher_DefineTaskOptions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PublishTaskCalculateTurnScore provides a mock function with given fields: ctx, payload, opts
+func (_m *MockRedisTaskPublisher) PublishTaskCalculateTurnScore(ctx context.Context, payload *entities.CalculateTurnScoreReq, opts ...asynq.Option) error {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, payload)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PublishTaskCalculateTurnScore")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CalculateTurnScoreReq, ...asynq.Option) error); ok {
+		r0 = rf(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskCalculateTurnScore'
+type MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call struct {
+	*mock.Call
+}
+
+// PublishTaskCalculateTurnScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload *entities.CalculateTurnScoreReq
+//   - opts ...asynq.Option
+func (_e *MockRedisTaskPublisher_Expecter) PublishTaskCalculateTurnScore(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call {
+	return &MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call{Call: _e.mock.On("PublishTaskCalculateTurnScore",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call) Run(run func(ctx context.Context, payload *entities.CalculateTurnScoreReq, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]asynq.Option, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(asynq.Option)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*entities.CalculateTurnScoreReq), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call) RunAndReturn(run func(context.Context, *entities.CalculateTurnScoreReq, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskCalculateTurnScore_Call {
 	_c.Call.Return(run)
 	return _c
 }

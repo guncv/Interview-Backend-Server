@@ -1,9 +1,7 @@
 package containers
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -11,7 +9,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/server"
 	ws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -83,28 +81,12 @@ func (c *Container) InfrastructureProvider() {
 		c.Error = err
 	}
 
-	if err := c.Container.Provide(queue.NewRedisTaskPublisher); err != nil {
+	if err := c.Container.Provide(publisher.NewRedisTaskPublisher); err != nil {
 		c.Error = err
 	}
 
 	if err := c.Container.Provide(aws.NewS3Storage); err != nil {
 		c.Error = err
-	}
-
-	if err := c.Container.Provide(queue.NewRedisTaskConsumer); err != nil {
-		c.Error = err
-	}
-
-	if err := c.Container.Invoke(func(consumer queue.RedisTaskConsumer) {
-		if err := consumer.CleanupQueue(context.Background()); err != nil {
-			panic(fmt.Sprintf("Failed to cleanup queue: %v", err))
-		}
-
-		if err := consumer.Start(context.Background()); err != nil {
-			panic(err)
-		}
-	}); err != nil {
-		panic(err)
 	}
 
 	if err := c.Container.Provide(utils.NewGenerator); err != nil {

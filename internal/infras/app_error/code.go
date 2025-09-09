@@ -12,6 +12,8 @@ const (
 	ErrCodeGeneralDatabaseConnection  ErrorCode = "ONX0105"
 	ErrCodeGeneralConstraintViolation ErrorCode = "ONX0106"
 	ErrCodeGeneralInvalidUUID         ErrorCode = "ONX0107"
+	ErrCodeGeneralRedisSetFailed      ErrorCode = "ONX0108"
+	ErrCodeGeneralRedisGetFailed      ErrorCode = "ONX0109"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"

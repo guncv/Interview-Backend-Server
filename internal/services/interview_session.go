@@ -19,7 +19,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -33,6 +33,7 @@ type InterviewSessionService interface {
 	SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error
 	SetSessionEndTime(ctx context.Context, req *entities.SetSessionEndTimeReq) error
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
+	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 }
 
 type interviewSessionService struct {
@@ -45,7 +46,7 @@ type interviewSessionService struct {
 	jwtMaker             utils.JwtToken
 	config               *config.Config
 	s3Storage            aws.S3Storage
-	publisher            queue.RedisTaskPublisher
+	publisher            publisher.RedisTaskPublisher
 	redisClient          database.RedisClient
 }
 
@@ -59,7 +60,7 @@ func NewInterviewSessionService(
 	jwtMaker utils.JwtToken,
 	config *config.Config,
 	s3Storage aws.S3Storage,
-	publisher queue.RedisTaskPublisher,
+	publisher publisher.RedisTaskPublisher,
 	redisClient database.RedisClient,
 ) InterviewSessionService {
 	return &interviewSessionService{
@@ -456,6 +457,12 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 	}
 
 	return resp, nil
+}
+
+func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
+	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

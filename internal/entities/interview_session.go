@@ -72,6 +72,13 @@ type IsSessionValidReq struct {
 	UserID       string `json:"user_id" binding:"required"`
 }
 
+type CalculateTurnScoreReq struct {
+	SessionID          string `json:"session_id" binding:"required"`
+	UserTurnID         string `json:"user_turn_id" binding:"required"`
+	UserMessage        string `json:"user_message" binding:"required"`
+	InterviewerMessage string `json:"interviewer_message" binding:"required"`
+}
+
 type IsSessionValidResp struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`

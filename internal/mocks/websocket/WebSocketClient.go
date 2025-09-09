@@ -349,17 +349,17 @@ func (_c *MockWebSocketClient_SendMessage_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
-// SendSessionInfo provides a mock function with given fields: ctx, sessionID, userID
-func (_m *MockWebSocketClient) SendSessionInfo(ctx context.Context, sessionID string, userID string) error {
-	ret := _m.Called(ctx, sessionID, userID)
+// SendSessionInfo provides a mock function with given fields: ctx, sessionID, userID, resumeID
+func (_m *MockWebSocketClient) SendSessionInfo(ctx context.Context, sessionID string, userID string, resumeID string) error {
+	ret := _m.Called(ctx, sessionID, userID, resumeID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SendSessionInfo")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, sessionID, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, sessionID, userID, resumeID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -376,13 +376,14 @@ type MockWebSocketClient_SendSessionInfo_Call struct {
 //   - ctx context.Context
 //   - sessionID string
 //   - userID string
-func (_e *MockWebSocketClient_Expecter) SendSessionInfo(ctx interface{}, sessionID interface{}, userID interface{}) *MockWebSocketClient_SendSessionInfo_Call {
-	return &MockWebSocketClient_SendSessionInfo_Call{Call: _e.mock.On("SendSessionInfo", ctx, sessionID, userID)}
+//   - resumeID string
+func (_e *MockWebSocketClient_Expecter) SendSessionInfo(ctx interface{}, sessionID interface{}, userID interface{}, resumeID interface{}) *MockWebSocketClient_SendSessionInfo_Call {
+	return &MockWebSocketClient_SendSessionInfo_Call{Call: _e.mock.On("SendSessionInfo", ctx, sessionID, userID, resumeID)}
 }
 
-func (_c *MockWebSocketClient_SendSessionInfo_Call) Run(run func(ctx context.Context, sessionID string, userID string)) *MockWebSocketClient_SendSessionInfo_Call {
+func (_c *MockWebSocketClient_SendSessionInfo_Call) Run(run func(ctx context.Context, sessionID string, userID string, resumeID string)) *MockWebSocketClient_SendSessionInfo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})
 	return _c
 }
@@ -392,7 +393,7 @@ func (_c *MockWebSocketClient_SendSessionInfo_Call) Return(_a0 error) *MockWebSo
 	return _c
 }
 
-func (_c *MockWebSocketClient_SendSessionInfo_Call) RunAndReturn(run func(context.Context, string, string) error) *MockWebSocketClient_SendSessionInfo_Call {
+func (_c *MockWebSocketClient_SendSessionInfo_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MockWebSocketClient_SendSessionInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }

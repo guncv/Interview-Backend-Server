@@ -10,6 +10,8 @@ const (
 	ErrMessageGeneralDatabaseConnection  ErrorMessage = "Database connection error. Please try again."
 	ErrMessageGeneralConstraintViolation ErrorMessage = "The data violates database constraints."
 	ErrMessageGeneralInvalidUUID         ErrorMessage = "The UUID is invalid. Please try again."
+	ErrMessageGeneralRedisSetFailed      ErrorMessage = "Failed to set the value in Redis. Please try again."
+	ErrMessageGeneralRedisGetFailed      ErrorMessage = "Failed to get the value from Redis. Please try again."
 
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."

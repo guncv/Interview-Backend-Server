@@ -3,9 +3,9 @@
 package queue
 
 import (
-	context "context"
-
 	asynq "github.com/hibiken/asynq"
+
+	context "context"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -65,6 +65,53 @@ func (_c *MockRedisTaskConsumer_CleanupQueue_Call) Return(_a0 error) *MockRedisT
 }
 
 func (_c *MockRedisTaskConsumer_CleanupQueue_Call) RunAndReturn(run func(context.Context) error) *MockRedisTaskConsumer_CleanupQueue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ConsumeTaskCalculateTurnScore provides a mock function with given fields: ctx, task
+func (_m *MockRedisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error {
+	ret := _m.Called(ctx, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConsumeTaskCalculateTurnScore")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
+		r0 = rf(ctx, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskCalculateTurnScore'
+type MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call struct {
+	*mock.Call
+}
+
+// ConsumeTaskCalculateTurnScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - task *asynq.Task
+func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskCalculateTurnScore(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call {
+	return &MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call{Call: _e.mock.On("ConsumeTaskCalculateTurnScore", ctx, task)}
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*asynq.Task))
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskCalculateTurnScore_Call {
 	_c.Call.Return(run)
 	return _c
 }

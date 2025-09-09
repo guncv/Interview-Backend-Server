@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -195,6 +196,22 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		}
 	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, client.sessionID)
+	lastMessage, err := s.redisClient.Get(context.Background(), redisKey)
+	if err != nil {
+		if err == redis.Nil {
+			s.log.WarnWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Last message not found", err)
+		} else {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error getting last message", err)
+			s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisGetFailed)
+			return
+		}
+	} else {
+		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Last message retrieved", map[string]any{
+			"last_message": lastMessage,
+		})
+	}
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeUserPartialTranscript(ctx context.Context, client *Client, req MsgUserPartialTranscript) {
@@ -272,6 +289,18 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, req.SessionID)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: req.Message,
+		TTL:   constants.RedisTTLInterviewLastMessage,
+	}
+	if err := s.redisClient.Set(context.Background(), redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating last message", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisSetFailed)
 		return
 	}
 }

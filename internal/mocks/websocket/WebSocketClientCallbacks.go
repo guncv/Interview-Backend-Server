@@ -90,6 +90,40 @@ func (_c *MockWebSocketClientCallbacks_OnDisconnect_Call) RunAndReturn(run func(
 	return _c
 }
 
+// OnInterviewerResp provides a mock function with given fields: ctx, req
+func (_m *MockWebSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req websocket.MsgAIResponse) {
+	_m.Called(ctx, req)
+}
+
+// MockWebSocketClientCallbacks_OnInterviewerResp_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OnInterviewerResp'
+type MockWebSocketClientCallbacks_OnInterviewerResp_Call struct {
+	*mock.Call
+}
+
+// OnInterviewerResp is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req websocket.MsgAIResponse
+func (_e *MockWebSocketClientCallbacks_Expecter) OnInterviewerResp(ctx interface{}, req interface{}) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+	return &MockWebSocketClientCallbacks_OnInterviewerResp_Call{Call: _e.mock.On("OnInterviewerResp", ctx, req)}
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) Run(run func(ctx context.Context, req websocket.MsgAIResponse)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(websocket.MsgAIResponse))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) Return() *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) RunAndReturn(run func(context.Context, websocket.MsgAIResponse)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+	_c.Run(run)
+	return _c
+}
+
 // OnUserFullTranscript provides a mock function with given fields: ctx, req
 func (_m *MockWebSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req websocket.MsgUserFullTranscript) {
 	_m.Called(ctx, req)
