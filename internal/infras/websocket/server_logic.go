@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -129,10 +130,11 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentStart(ctx context.Context, 
 		return
 	}
 
+	startTime := time.Since(client.startSessionTime)
 	m.SegmentID = segmentMapping
 	setStartTimeReq := &entities.SetSessionStartTimeReq{
 		SessionID: client.sessionID,
-		StartedAt: m.StartedAt,
+		StartedAt: utils.FormatSecondsToMMSS(startTime.Seconds()),
 	}
 
 	if err := s.interviewSessionService.SetSessionStartTime(ctx, setStartTimeReq); err != nil {
@@ -179,9 +181,10 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 		return
 	}
 
+	endedTime := time.Since(client.startSessionTime)
 	setEndTimeReq := &entities.SetSessionEndTimeReq{
 		SessionID: client.sessionID,
-		EndedAt:   m.EndedAt,
+		EndedAt:   utils.FormatSecondsToMMSS(endedTime.Seconds()),
 	}
 
 	if err := s.interviewSessionService.SetSessionEndTime(ctx, setEndTimeReq); err != nil {
@@ -255,22 +258,26 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		return
 	}
 
-	createSessionTurnReq := &entities.CreateSessionTurnBySessionIDReq{
+	createSessionTurnReq := &entities.CreateUserSessionTurnBySessionIDReq{
 		TurnID:     req.SegmentID,
 		SessionID:  req.SessionID,
-		Actor:      req.Author,
 		Transcript: req.Transcript,
 	}
 
-	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+	if err := s.interviewSessionService.CreateUserSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
 }
 
-func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Context, client *Client, req MsgAIResponse) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called")
+func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Context, client *Client, req MsgInterviewerResp) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called: ", map[string]any{
+		"session_id": req.SessionID,
+		"message":    req.Message,
+		"started_at": req.StartedAt,
+		"ended_at":   req.EndedAt,
+	})
 
 	if client.sessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Security violation: Session ID mismatch")
@@ -279,14 +286,29 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 	}
 
 	turnID := s.generator.GenerateUUID(ctx).String()
-	createSessionTurnReq := &entities.CreateSessionTurnBySessionIDReq{
-		TurnID:     turnID,
-		SessionID:  req.SessionID,
-		Actor:      req.Author,
-		Transcript: req.Message,
+	startedAt, err := utils.ParseAndFormatDurationSince(req.StartedAt, client.startSessionTime)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error parsing started at", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
 	}
 
-	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+	endedAt, err := utils.ParseAndFormatDurationSince(req.EndedAt, client.startSessionTime)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error parsing ended at", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	createSessionTurnReq := &entities.CreateInterviewerSessionTurnBySessionIDReq{
+		TurnID:     turnID,
+		SessionID:  req.SessionID,
+		Transcript: req.Message,
+		StartedAt:  startedAt,
+		EndedAt:    endedAt,
+	}
+
+	if err := s.interviewSessionService.CreateInterviewerSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return

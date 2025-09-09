@@ -36,6 +36,10 @@ const (
 	WebSocketReadTimeout            = 6 * time.Second
 	WebSocketPongTimeout            = 4 * time.Second
 	WebSocketClientHandshakeTimeout = 2 * time.Second
+
+	// Interviewer Constants
+	ActorInterviewer = "interviewer"
+	ActorUser        = "user"
 )
 
 const (

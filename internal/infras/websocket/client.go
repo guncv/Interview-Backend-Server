@@ -303,7 +303,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 
 				c.cb.OnUserFullTranscript(ctx, msg)
 			case constants.WebSocketMessageTypeInterviewerResponse:
-				var msg MsgAIResponse
+				var msg MsgInterviewerResp
 
 				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)

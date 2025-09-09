@@ -28,6 +28,7 @@ type Client struct {
 	sessionID        string
 	resumeID         string
 	currentSegmentID string
+	startSessionTime time.Time
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
 	connected        bool
@@ -143,13 +144,14 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	client := &Client{
-		conn:         conn,
-		userID:       session.UserID,
-		sessionID:    session.SessionID,
-		resumeID:     session.ResumeID,
-		lastPongTime: time.Now(),
-		pongReceived: make(chan struct{}, 1),
-		connected:    true,
+		conn:             conn,
+		userID:           session.UserID,
+		sessionID:        session.SessionID,
+		resumeID:         session.ResumeID,
+		startSessionTime: time.Now(),
+		lastPongTime:     time.Now(),
+		pongReceived:     make(chan struct{}, 1),
+		connected:        true,
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{

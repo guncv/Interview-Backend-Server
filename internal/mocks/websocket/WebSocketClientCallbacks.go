@@ -91,7 +91,7 @@ func (_c *MockWebSocketClientCallbacks_OnDisconnect_Call) RunAndReturn(run func(
 }
 
 // OnInterviewerResp provides a mock function with given fields: ctx, req
-func (_m *MockWebSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req websocket.MsgAIResponse) {
+func (_m *MockWebSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req websocket.MsgInterviewerResp) {
 	_m.Called(ctx, req)
 }
 
@@ -102,14 +102,14 @@ type MockWebSocketClientCallbacks_OnInterviewerResp_Call struct {
 
 // OnInterviewerResp is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req websocket.MsgAIResponse
+//   - req websocket.MsgInterviewerResp
 func (_e *MockWebSocketClientCallbacks_Expecter) OnInterviewerResp(ctx interface{}, req interface{}) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
 	return &MockWebSocketClientCallbacks_OnInterviewerResp_Call{Call: _e.mock.On("OnInterviewerResp", ctx, req)}
 }
 
-func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) Run(run func(ctx context.Context, req websocket.MsgAIResponse)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) Run(run func(ctx context.Context, req websocket.MsgInterviewerResp)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(websocket.MsgAIResponse))
+		run(args[0].(context.Context), args[1].(websocket.MsgInterviewerResp))
 	})
 	return _c
 }
@@ -119,7 +119,7 @@ func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) Return() *MockWeb
 	return _c
 }
 
-func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) RunAndReturn(run func(context.Context, websocket.MsgAIResponse)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
+func (_c *MockWebSocketClientCallbacks_OnInterviewerResp_Call) RunAndReturn(run func(context.Context, websocket.MsgInterviewerResp)) *MockWebSocketClientCallbacks_OnInterviewerResp_Call {
 	_c.Run(run)
 	return _c
 }

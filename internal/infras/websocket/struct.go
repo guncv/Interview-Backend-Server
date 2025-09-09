@@ -17,14 +17,12 @@ type MsgSegmentStart struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
-	StartedAt string `json:"started_at"`
 }
 
 type MsgSegmentEnd struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
-	EndedAt   string `json:"ended_at"`
 }
 
 type MsgUserPartialTranscript struct {
@@ -43,11 +41,13 @@ type MsgUserFullTranscript struct {
 	Transcript string `json:"transcript"`
 }
 
-type MsgAIResponse struct {
+type MsgInterviewerResp struct {
 	Type      string `json:"type"`
 	Author    string `json:"author"`
 	SessionID string `json:"session_id"`
 	Message   string `json:"message"`
+	StartedAt string `json:"started_at,omitempty"`
+	EndedAt   string `json:"ended_at,omitempty"`
 }
 
 type ConversationTurn struct {
@@ -59,7 +59,7 @@ type ConversationTurn struct {
 	Encoding   string    `json:"encoding,omitempty"`
 	SampleRate int       `json:"sample_rate,omitempty"`
 	Channels   int       `json:"channels,omitempty"`
-	StartedAt  time.Time `json:"started_at"`
+	StartedAt  time.Time `json:"started_at,omitempty"`
 	EndedAt    time.Time `json:"ended_at,omitempty"`
 }
 

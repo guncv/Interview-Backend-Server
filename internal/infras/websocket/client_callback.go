@@ -11,7 +11,7 @@ type WebSocketClientCallbacks interface {
 	OnDisconnect(ctx context.Context, sessionID string)
 	OnUserPartialTranscript(ctx context.Context, req MsgUserPartialTranscript)
 	OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript)
-	OnInterviewerResp(ctx context.Context, req MsgAIResponse)
+	OnInterviewerResp(ctx context.Context, req MsgInterviewerResp)
 }
 
 type webSocketClientCallbacks struct {
@@ -102,7 +102,7 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 	w.logic.sendMessageTypeUserFullTranscript(ctx, w.client, req)
 }
 
-func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req MsgAIResponse) {
+func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req MsgInterviewerResp) {
 	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Agent sent AI response", map[string]any{
 		"session_id": req.SessionID,
 		"message":    req.Message,

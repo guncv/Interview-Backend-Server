@@ -45,11 +45,18 @@ type DeleteJobRequirementPayload struct {
 	JobRequirementID uuid.UUID `json:"job_requirement_id"`
 }
 
-type CreateSessionTurnBySessionIDReq struct {
+type CreateUserSessionTurnBySessionIDReq struct {
 	TurnID     string `json:"turn_id" binding:"required"`
 	SessionID  string `json:"session_id" binding:"required"`
-	Actor      string `json:"actor" binding:"required"`
 	Transcript string `json:"transcript" binding:"required"`
+}
+
+type CreateInterviewerSessionTurnBySessionIDReq struct {
+	TurnID     string `json:"turn_id" binding:"required"`
+	SessionID  string `json:"session_id" binding:"required"`
+	Transcript string `json:"transcript" binding:"required"`
+	StartedAt  string `json:"started_at" binding:"required"`
+	EndedAt    string `json:"ended_at" binding:"required"`
 }
 
 type UpdateInterviewSessionStatusReq struct {
