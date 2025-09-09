@@ -25,7 +25,7 @@ CREATE TABLE interview_turns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID NOT NULL REFERENCES interview_sessions(id) ON DELETE CASCADE,
     turn_no BIGINT NOT NULL,
-    actor VARCHAR(10) NOT NULL CHECK (actor IN ('user','interviewer')),
+    actor VARCHAR(15) NOT NULL CHECK (actor IN ('user','interviewer')),
     content TEXT,
     transcript_text TEXT,
     stt_confidence NUMERIC(4,3),

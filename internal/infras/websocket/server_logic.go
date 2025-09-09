@@ -76,6 +76,9 @@ func (s *WebSocketServerLogic) handleAudioBinaryMessage(ctx context.Context, cli
 		return
 	}
 
+	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Segment ID", map[string]any{
+		"segment_id": header.SegmentID,
+	})
 	segmentMapping, err := s.getSegmentMapping(ctx, header.SegmentID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error getting segment mapping", err)
@@ -119,13 +122,13 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentStart(ctx context.Context, 
 	segmentMapping := s.generator.GenerateUUID(ctx).String()
 
 	client.currentSegmentID = segmentMapping
-	m.SegmentID = segmentMapping
 	if err := s.createSegmentMapping(ctx, m.SegmentID, segmentMapping); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Error creating segment mapping", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentID)
 		return
 	}
 
+	m.SegmentID = segmentMapping
 	setStartTimeReq := &entities.SetSessionStartTimeReq{
 		SessionID: client.sessionID,
 		StartedAt: m.StartedAt,
@@ -247,7 +250,30 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
+}
 
+func (s *WebSocketServerLogic) sendMessageTypeAIResponse(ctx context.Context, client *Client, req MsgAIResponse) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Called")
+
+	if client.sessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	turnID := s.generator.GenerateUUID(ctx).String()
+	createSessionTurnReq := &entities.CreateSessionTurnBySessionIDReq{
+		TurnID:     turnID,
+		SessionID:  req.SessionID,
+		Actor:      req.Author,
+		Transcript: req.Message,
+	}
+
+	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Error creating session turn", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {
@@ -267,7 +293,7 @@ func (s *WebSocketServerLogic) createSegmentMapping(ctx context.Context, fromSeg
 
 	key := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSegmentMapping, fromSegmentID)
 
-	if err := s.redisClient.Set(ctx, database.RedisPayload{
+	if err := s.redisClient.Set(context.Background(), database.RedisPayload{
 		Key:   key,
 		Value: toSegmentID,
 		TTL:   constants.RedisTTLInterviewSegmentMapping,
@@ -284,7 +310,7 @@ func (s *WebSocketServerLogic) getSegmentMapping(ctx context.Context, fromSegmen
 
 	key := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSegmentMapping, fromSegmentID)
 
-	value, err := s.redisClient.Get(ctx, key)
+	value, err := s.redisClient.Get(context.Background(), key)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: getSegmentMapping] Error getting segment mapping", err)
 		return "", err
