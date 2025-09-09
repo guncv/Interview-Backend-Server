@@ -11,7 +11,7 @@ type WebSocketClientCallbacks interface {
 	OnDisconnect(ctx context.Context, sessionID string)
 	OnUserPartialTranscript(ctx context.Context, req MsgUserPartialTranscript)
 	OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript)
-	OnAIResponse(ctx context.Context, req MsgAIResponse)
+	OnInterviewerResp(ctx context.Context, req MsgAIResponse)
 }
 
 type webSocketClientCallbacks struct {
@@ -102,19 +102,19 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 	w.logic.sendMessageTypeUserFullTranscript(ctx, w.client, req)
 }
 
-func (w *webSocketClientCallbacks) OnAIResponse(ctx context.Context, req MsgAIResponse) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnAIResponse] Agent sent AI response", map[string]any{
+func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req MsgAIResponse) {
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Agent sent AI response", map[string]any{
 		"session_id": req.SessionID,
 		"message":    req.Message,
 	})
 
 	if req.SessionID != w.client.sessionID {
-		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnAIResponse] Security violation: Session ID mismatch", map[string]any{
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})
 		w.server.Disconnect(ctx, w.client)
 		return
 	}
 
-	w.logic.sendMessageTypeAIResponse(ctx, w.client, req)
+	w.logic.sendMessageTypeInterviewerResp(ctx, w.client, req)
 }

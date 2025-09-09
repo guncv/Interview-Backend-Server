@@ -252,11 +252,11 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 	}
 }
 
-func (s *WebSocketServerLogic) sendMessageTypeAIResponse(ctx context.Context, client *Client, req MsgAIResponse) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Called")
+func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Context, client *Client, req MsgAIResponse) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called")
 
 	if client.sessionID != req.SessionID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Security violation: Session ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
 		return
 	}
@@ -270,7 +270,7 @@ func (s *WebSocketServerLogic) sendMessageTypeAIResponse(ctx context.Context, cl
 	}
 
 	if err := s.interviewSessionService.CreateSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeAIResponse] Error creating session turn", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}

@@ -285,7 +285,6 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 					return
 				}
 				c.cb.OnConnectionEstablished(ctx, msg.SessionID)
-
 			case constants.WebSocketMessageTypeUserPartialTranscript:
 				var msg MsgUserPartialTranscript
 
@@ -294,7 +293,6 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 					return
 				}
 				c.cb.OnUserPartialTranscript(ctx, msg)
-
 			case constants.WebSocketMessageTypeUserFullTranscript:
 				var msg MsgUserFullTranscript
 
@@ -304,15 +302,14 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				}
 
 				c.cb.OnUserFullTranscript(ctx, msg)
-
-			case constants.WebSocketMessageTypeAIResponse:
+			case constants.WebSocketMessageTypeInterviewerResponse:
 				var msg MsgAIResponse
 
 				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)
 					return
 				}
-				c.cb.OnAIResponse(ctx, msg)
+				c.cb.OnInterviewerResp(ctx, msg)
 			}
 
 		case websocket.BinaryMessage:
