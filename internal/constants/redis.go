@@ -14,7 +14,7 @@ const (
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour
 
-	RedisTTLInterviewSegmentMapping = 10 * time.Minute
+	RedisTTLInterviewSegmentMapping = 5 * time.Minute
 	RedisTTLInterviewTurn           = 10 * time.Minute
 	RedisTTLInterviewStartEndTime   = 1 * time.Hour
 )

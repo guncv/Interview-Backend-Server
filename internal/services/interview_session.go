@@ -289,6 +289,12 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 
 	var maxTurnNo int64
 
+	segmentID, err := uuid.Parse(req.TurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Invalid segment ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateSessionTurnBySessionID] Invalid session ID", err)
@@ -332,7 +338,7 @@ func (s *interviewSessionService) CreateSessionTurnBySessionID(ctx context.Conte
 	}
 
 	dbReq := &db.CreateInterviewTurnParams{
-		ID:             s.generator.GenerateUUID(ctx),
+		ID:             segmentID,
 		SessionID:      sessionID,
 		TurnNo:         maxTurnNo,
 		Actor:          req.Actor,

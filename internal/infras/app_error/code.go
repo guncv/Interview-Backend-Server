@@ -58,6 +58,8 @@ const (
 	ErrCodeInterviewSessionStartEndTimeNotFound  ErrorCode = "ONX0412"
 	ErrCodeInterviewSessionStartTimeNotFound     ErrorCode = "ONX0413"
 	ErrCodeInterviewSessionEndTimeNotFound       ErrorCode = "ONX0414"
+	ErrCodeWebSocketInvalidSegmentID             ErrorCode = "ONX0415"
+	ErrCodeWebSocketInvalidSessionID             ErrorCode = "ONX0416"
 )
 
 func (c ErrorCode) Message() string {

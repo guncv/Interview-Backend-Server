@@ -54,6 +54,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeInterviewSessionStartEndTimeNotFound:  ErrHttpCodeNotFound,
 	ErrCodeInterviewSessionStartTimeNotFound:     ErrHttpCodeNotFound,
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrHttpCodeNotFound,
+	ErrCodeWebSocketInvalidSegmentID:             ErrHttpCodeBadRequest,
+	ErrCodeWebSocketInvalidSessionID:             ErrHttpCodeBadRequest,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -110,4 +112,6 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeInterviewSessionStartEndTimeNotFound:  ErrMessageInterviewSessionStartEndTimeNotFound,
 	ErrCodeInterviewSessionStartTimeNotFound:     ErrMessageInterviewSessionStartTimeNotFound,
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrMessageInterviewSessionEndTimeNotFound,
+	ErrCodeWebSocketInvalidSegmentID:             ErrMessageWebSocketInvalidSegmentID,
+	ErrCodeWebSocketInvalidSessionID:             ErrMessageWebSocketInvalidSessionID,
 }

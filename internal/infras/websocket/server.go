@@ -47,7 +47,6 @@ type webSocketServer struct {
 	userSessions            map[string]map[string]bool
 	mu                      sync.RWMutex
 	upgrader                websocket.Upgrader
-	redisClient             database.RedisClient
 	authContext             middleware.AuthContext
 	interviewSessionService services.InterviewSessionService
 	aiAgentConnected        bool
@@ -65,6 +64,7 @@ func NewWebSocketServer(
 	clientManager *ClientManager,
 	cfg *config.Config,
 	jwtMaker utils.JwtToken,
+	generator utils.Generator,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -77,7 +77,6 @@ func NewWebSocketServer(
 	server := &webSocketServer{
 		log:                     log,
 		upgrader:                upgrader,
-		redisClient:             redisClient,
 		sessions:                make(map[string]*Client),
 		userSessions:            make(map[string]map[string]bool),
 		authContext:             authContext,
@@ -95,6 +94,8 @@ func NewWebSocketServer(
 		server.writeJSON,
 		clientManager,
 		interviewSessionService,
+		redisClient,
+		generator,
 	)
 
 	server.logic = logic

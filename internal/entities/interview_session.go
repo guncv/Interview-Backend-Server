@@ -46,6 +46,7 @@ type DeleteJobRequirementPayload struct {
 }
 
 type CreateSessionTurnBySessionIDReq struct {
+	TurnID     string `json:"turn_id" binding:"required"`
 	SessionID  string `json:"session_id" binding:"required"`
 	Actor      string `json:"actor" binding:"required"`
 	Transcript string `json:"transcript" binding:"required"`

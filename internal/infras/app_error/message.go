@@ -58,4 +58,6 @@ const (
 	ErrMessageInterviewSessionStartEndTimeNotFound  ErrorMessage = "Interview session start and end time not found. Please try again."
 	ErrMessageInterviewSessionStartTimeNotFound     ErrorMessage = "Interview session start time not found. Please try again."
 	ErrMessageInterviewSessionEndTimeNotFound       ErrorMessage = "Interview session end time not found. Please try again."
+	ErrMessageWebSocketInvalidSegmentID             ErrorMessage = "The segment ID is invalid or expired. Please try again."
+	ErrMessageWebSocketInvalidSessionID             ErrorMessage = "The session ID is invalid. Please try again."
 )
