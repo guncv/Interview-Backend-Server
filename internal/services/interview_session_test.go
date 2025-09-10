@@ -1063,6 +1063,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithNewResume(ctx, tC.input)
@@ -1916,6 +1918,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithExistingResume(ctx, tC.input)
@@ -2119,6 +2123,8 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotErr := svc.UpdateInterviewSessionStatus(ctx, tC.input)
@@ -2340,6 +2346,8 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 				nil,
 				nil,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.IsSessionValid(ctx, tC.input)
@@ -2810,6 +2818,8 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				nil,
 				nil,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotErr := svc.CreateUserSessionTurnBySessionID(ctx, tC.input)
@@ -3145,6 +3155,8 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 				nil,
 				nil,
 				mockRedisClient,
+				nil,
+				nil,
 			)
 
 			gotErr := svc.CreateInterviewerSessionTurnBySessionID(ctx, tC.input)

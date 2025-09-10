@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -49,6 +50,8 @@ type interviewSessionService struct {
 	s3Storage            aws.S3Storage
 	publisher            publisher.RedisTaskPublisher
 	redisClient          database.RedisClient
+	evaluationService    EvaluationService
+	evaluationScoresRepo repositories.EvaluationScoresRepository
 }
 
 func NewInterviewSessionService(
@@ -63,6 +66,8 @@ func NewInterviewSessionService(
 	s3Storage aws.S3Storage,
 	publisher publisher.RedisTaskPublisher,
 	redisClient database.RedisClient,
+	evaluationService EvaluationService,
+	evaluationScoresRepo repositories.EvaluationScoresRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -76,6 +81,8 @@ func NewInterviewSessionService(
 		s3Storage:            s3Storage,
 		publisher:            publisher,
 		redisClient:          redisClient,
+		evaluationService:    evaluationService,
+		evaluationScoresRepo: evaluationScoresRepo,
 	}
 }
 
@@ -521,7 +528,95 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
 	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
 
-	return nil
+	rubric, err := s.evaluationService.GetRubricWithCriteriaByName(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting rubric with criteria by name", err)
+		return err
+	}
+
+	interviewFeedbackAndScoreReq := &repositories.InterviewFeedbackAndScoreReq{
+		UserMessage:         req.UserMessage,
+		InterviewerMessage:  req.InterviewerMessage,
+		RubricName:          rubric.RubricName,
+		RubricDescriptionMd: rubric.RubricDescriptionMd,
+		Criteria:            rubric.Criteria,
+	}
+
+	result, err := s.interviewSessionRepo.InterviewFeedbackAndScore(ctx, interviewFeedbackAndScoreReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error interviewing feedback and score", err)
+		return err
+	}
+
+	evaluationID := s.generator.GenerateUUID(ctx)
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userTurnID, err := uuid.Parse(req.UserTurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user turn ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	rubricID, err := uuid.Parse(rubric.RubricID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid rubric ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	criteria := make([]repositories.CreateScoreTxReq, len(result.CriteriaScores))
+	for i, criterion := range result.CriteriaScores {
+		criterionID, err := uuid.Parse(criterion.CriterionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid criterion ID", err)
+			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		}
+
+		criteria[i] = repositories.CreateScoreTxReq{
+			ID:          s.generator.GenerateUUID(ctx),
+			CriterionID: criterionID,
+			Score:       criterion.CriterionScore,
+			CommentMd:   criterion.CriterionFeedback,
+		}
+	}
+
+	createEvaluationAndScoreTxReq := &repositories.CreateEvaluationAndScoreTxReq{
+		EvaluationID: evaluationID,
+		SessionID:    sessionID,
+		TurnID:       userTurnID,
+		RubricID:     rubricID,
+		UserID:       userID,
+		OverallScore: result.OverallScore,
+		SummaryMd:    result.OverallFeedback,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+		Criteria:     criteria,
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
+		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreTx(ctx, createEvaluationAndScoreTxReq)
+		if err == nil {
+			return nil
+		}
+
+		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
+		lastErr = err
+
+		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
+	}
+
+	return lastErr
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

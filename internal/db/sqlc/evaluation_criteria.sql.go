@@ -54,34 +54,3 @@ func (q *Queries) CreateEvaluationCriterion(ctx context.Context, arg CreateEvalu
 	)
 	return err
 }
-
-const updateEvaluationCriterion = `-- name: UpdateEvaluationCriterion :execrows
-UPDATE evaluation_criteria
-SET name = $2,
-    description_md = $3,
-    weight = $4,
-    max_score = $5
-WHERE id = $1
-`
-
-type UpdateEvaluationCriterionParams struct {
-	ID            uuid.UUID      `json:"id"`
-	Name          string         `json:"name"`
-	DescriptionMd sql.NullString `json:"description_md"`
-	Weight        string         `json:"weight"`
-	MaxScore      string         `json:"max_score"`
-}
-
-func (q *Queries) UpdateEvaluationCriterion(ctx context.Context, arg UpdateEvaluationCriterionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEvaluationCriterion,
-		arg.ID,
-		arg.Name,
-		arg.DescriptionMd,
-		arg.Weight,
-		arg.MaxScore,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -66,6 +67,7 @@ func NewWebSocketServer(
 	cfg *config.Config,
 	jwtMaker utils.JwtToken,
 	generator utils.Generator,
+	publisher publisher.RedisTaskPublisher,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -97,6 +99,7 @@ func NewWebSocketServer(
 		interviewSessionService,
 		redisClient,
 		generator,
+		publisher,
 	)
 
 	server.logic = logic

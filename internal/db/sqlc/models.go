@@ -36,29 +36,29 @@ type EvaluationRubrics struct {
 }
 
 type EvaluationScores struct {
-	ID           uuid.UUID      `json:"id"`
-	EvaluationID uuid.UUID      `json:"evaluation_id"`
-	CriterionID  uuid.UUID      `json:"criterion_id"`
-	Score        int32          `json:"score"`
-	CommentMd    sql.NullString `json:"comment_md"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
-	DeletedAt    sql.NullTime   `json:"deleted_at"`
-	SoftDelete   sql.NullBool   `json:"soft_delete"`
+	ID           uuid.UUID    `json:"id"`
+	EvaluationID uuid.UUID    `json:"evaluation_id"`
+	CriterionID  uuid.UUID    `json:"criterion_id"`
+	Score        int32        `json:"score"`
+	CommentMd    string       `json:"comment_md"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
+	DeletedAt    sql.NullTime `json:"deleted_at"`
+	SoftDelete   sql.NullBool `json:"soft_delete"`
 }
 
 type Evaluations struct {
-	ID              uuid.UUID      `json:"id"`
-	SessionID       uuid.UUID      `json:"session_id"`
-	TurnID          uuid.UUID      `json:"turn_id"`
-	RubricID        uuid.UUID      `json:"rubric_id"`
-	EvaluatorUserID uuid.NullUUID  `json:"evaluator_user_id"`
-	OverallScore    int32          `json:"overall_score"`
-	SummaryMd       sql.NullString `json:"summary_md"`
-	CreatedAt       sql.NullTime   `json:"created_at"`
-	UpdatedAt       sql.NullTime   `json:"updated_at"`
-	DeletedAt       sql.NullTime   `json:"deleted_at"`
-	SoftDelete      sql.NullBool   `json:"soft_delete"`
+	ID              uuid.UUID    `json:"id"`
+	SessionID       uuid.UUID    `json:"session_id"`
+	TurnID          uuid.UUID    `json:"turn_id"`
+	RubricID        uuid.UUID    `json:"rubric_id"`
+	EvaluatorUserID uuid.UUID    `json:"evaluator_user_id"`
+	OverallScore    int32        `json:"overall_score"`
+	SummaryMd       string       `json:"summary_md"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
+	DeletedAt       sql.NullTime `json:"deleted_at"`
+	SoftDelete      sql.NullBool `json:"soft_delete"`
 }
 
 type InterviewSessions struct {

@@ -14,6 +14,7 @@ const (
 	ErrCodeGeneralInvalidUUID         ErrorCode = "ONX0107"
 	ErrCodeGeneralRedisSetFailed      ErrorCode = "ONX0108"
 	ErrCodeGeneralRedisGetFailed      ErrorCode = "ONX0109"
+	ErrCodeGeneralUnmarshalFailed     ErrorCode = "ONX0110"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"
@@ -62,6 +63,10 @@ const (
 	ErrCodeInterviewSessionEndTimeNotFound       ErrorCode = "ONX0414"
 	ErrCodeWebSocketInvalidSegmentID             ErrorCode = "ONX0415"
 	ErrCodeWebSocketInvalidSessionID             ErrorCode = "ONX0416"
+
+	// Evaluation
+	ErrCodeEvaluationRubricNotFound         ErrorCode = "ONX0500"
+	ErrCodeEvaluationRubricCriteriaNotFound ErrorCode = "ONX0501"
 )
 
 func (c ErrorCode) Message() string {

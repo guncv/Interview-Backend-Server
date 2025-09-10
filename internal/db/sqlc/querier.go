@@ -38,7 +38,6 @@ type Querier interface {
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
-	UpdateEvaluationCriterion(ctx context.Context, arg UpdateEvaluationCriterionParams) (int64, error)
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)

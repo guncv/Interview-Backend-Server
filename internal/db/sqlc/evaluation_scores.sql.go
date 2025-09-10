@@ -29,13 +29,13 @@ VALUES (
 `
 
 type CreateEvaluationScoreParams struct {
-	ID           uuid.UUID      `json:"id"`
-	EvaluationID uuid.UUID      `json:"evaluation_id"`
-	CriterionID  uuid.UUID      `json:"criterion_id"`
-	Score        int32          `json:"score"`
-	CommentMd    sql.NullString `json:"comment_md"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ID           uuid.UUID    `json:"id"`
+	EvaluationID uuid.UUID    `json:"evaluation_id"`
+	CriterionID  uuid.UUID    `json:"criterion_id"`
+	Score        int32        `json:"score"`
+	CommentMd    string       `json:"comment_md"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
 }
 
 func (q *Queries) CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error {

@@ -9,9 +9,9 @@ CREATE TABLE evaluations (
     turn_id UUID NOT NULL REFERENCES interview_turns(id) ON DELETE CASCADE,
     rubric_id UUID NOT NULL REFERENCES evaluation_rubrics(id) ON DELETE RESTRICT,
 
-    evaluator_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    evaluator_user_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
     overall_score INTEGER NOT NULL CHECK (overall_score BETWEEN 0 AND 5),
-    summary_md TEXT,
+    summary_md TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ,
@@ -26,7 +26,7 @@ CREATE TABLE evaluation_scores (
     evaluation_id UUID NOT NULL REFERENCES evaluations(id) ON DELETE CASCADE,
     criterion_id UUID NOT NULL REFERENCES evaluation_criteria(id) ON DELETE RESTRICT,
     score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 5),
-    comment_md TEXT,
+    comment_md TEXT NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),

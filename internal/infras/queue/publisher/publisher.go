@@ -172,15 +172,10 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueCritical),
 		}
-	case constants.TaskCalculateTurnScore:
-		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueCritical),
-		}
 	case constants.TaskSendVerifyEmail:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueDefault),
+			asynq.Queue(constants.QueueCritical),
 		}
 	case constants.TaskDeleteFile:
 		return []asynq.Option{
@@ -197,9 +192,14 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueDefault),
 		}
+	case constants.TaskCalculateTurnScore:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueDefault),
+		}
 	}
 	return []asynq.Option{
 		asynq.MaxRetry(constants.MaxRetry),
-		asynq.Queue(constants.QueueCritical),
+		asynq.Queue(constants.QueueDefault),
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
@@ -25,6 +26,7 @@ type WebSocketServerLogic struct {
 	interviewSessionService services.InterviewSessionService
 	redisClient             database.RedisClient
 	generator               utils.Generator
+	publisher               publisher.RedisTaskPublisher
 }
 
 func NewWebSocketServerLogic(
@@ -35,6 +37,7 @@ func NewWebSocketServerLogic(
 	interviewSessionService services.InterviewSessionService,
 	redisClient database.RedisClient,
 	generator utils.Generator,
+	publisher publisher.RedisTaskPublisher,
 ) *WebSocketServerLogic {
 
 	return &WebSocketServerLogic{
@@ -45,6 +48,7 @@ func NewWebSocketServerLogic(
 		interviewSessionService: interviewSessionService,
 		redisClient:             redisClient,
 		generator:               generator,
+		publisher:               publisher,
 	}
 }
 
@@ -268,6 +272,33 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, req.SessionID)
+	lastMessage, err := s.redisClient.Get(context.Background(), redisKey)
+	if err == redis.Nil {
+		s.log.WarnWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Last message not found", err)
+		return
+	} else if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error getting last message", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisGetFailed)
+		return
+	} else {
+		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Last message retrieved")
+
+		calculateTurnScoreReq := &entities.CalculateTurnScoreReq{
+			SessionID:          client.SessionID,
+			UserTurnID:         req.SegmentID,
+			UserID:             client.userID,
+			UserMessage:        req.Transcript,
+			InterviewerMessage: lastMessage,
+		}
+
+		if err := s.publisher.PublishTaskCalculateTurnScore(context.Background(), calculateTurnScoreReq); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error publishing task calculate turn score", err)
+			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+			return
+		}
 	}
 }
 

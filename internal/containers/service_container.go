@@ -21,6 +21,10 @@ func (c *Container) ServiceProvider() {
 		c.Error = err
 	}
 
+	if err := c.Container.Provide(services.NewEvaluationService); err != nil {
+		c.Error = err
+	}
+
 	// Register consumer after services are available
 	if err := c.Container.Provide(consumer.NewRedisTaskConsumer); err != nil {
 		c.Error = err

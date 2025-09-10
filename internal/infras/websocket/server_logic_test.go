@@ -16,6 +16,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/websocket"
 	mockDatabase "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/database"
+	mockPublisher "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/queue"
 	mockServices "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/services"
 	mockUtils "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -32,7 +33,7 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 		name    string
 		payload []byte
 		client  *websocket.Client
-		setup   func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any))
+		setup   func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, *mockPublisher.MockRedisTaskPublisher, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any))
 		verify  func(t *testing.T, disconnectCalled bool, errorSent bool, sentError interface{})
 	}{
 		{
@@ -50,10 +51,11 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 				CurrentSegmentID: segmentID,
 				StartSessionTime: time.Now(),
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, *mockPublisher.MockRedisTaskPublisher, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
 				mockGen := mockUtils.NewMockGenerator(t)
 				mockRedis := mockDatabase.NewMockRedisClient(t)
 				mockInterviewSvc := mockServices.NewMockInterviewSessionService(t)
+				mockPublisher := mockPublisher.NewMockRedisTaskPublisher(t)
 
 				mockGen.EXPECT().GenerateUUID(ctx).Return(segmentMapping)
 
@@ -70,7 +72,7 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 					StartedAt: utils.FormatSecondsToMMSS(time.Since(time.Now()).Seconds()),
 				}).Return(nil)
 
-				return mockGen, mockRedis, mockInterviewSvc, nil, nil
+				return mockGen, mockRedis, mockInterviewSvc, mockPublisher, nil, nil
 			},
 			verify: func(t *testing.T, disconnectCalled bool, errorSent bool, sentError interface{}) {
 				assert.False(t, disconnectCalled, "Should not disconnect on valid message")
@@ -81,15 +83,15 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 			name:    "Error - Invalid JSON payload",
 			payload: []byte("invalid json"),
 			client:  &websocket.Client{},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, *mockPublisher.MockRedisTaskPublisher, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
 				mockGen := mockUtils.NewMockGenerator(t)
 				mockRedis := mockDatabase.NewMockRedisClient(t)
 				mockInterviewSvc := mockServices.NewMockInterviewSessionService(t)
-
+				mockPublisher := mockPublisher.NewMockRedisTaskPublisher(t)
 				disconnectFunc := func(ctx context.Context, client *websocket.Client) {}
 				writeJSONFunc := func(ctx context.Context, client *websocket.Client, data any) {}
 
-				return mockGen, mockRedis, mockInterviewSvc, disconnectFunc, writeJSONFunc
+				return mockGen, mockRedis, mockInterviewSvc, mockPublisher, disconnectFunc, writeJSONFunc
 			},
 			verify: func(t *testing.T, disconnectCalled bool, errorSent bool, sentError interface{}) {
 				if errMsg, ok := sentError.(map[string]interface{}); ok {
@@ -109,15 +111,15 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 				return payload
 			}(),
 			client: &websocket.Client{},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, *mockPublisher.MockRedisTaskPublisher, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
 				mockGen := mockUtils.NewMockGenerator(t)
 				mockRedis := mockDatabase.NewMockRedisClient(t)
 				mockInterviewSvc := mockServices.NewMockInterviewSessionService(t)
-
+				mockPublisher := mockPublisher.NewMockRedisTaskPublisher(t)
 				disconnectFunc := func(ctx context.Context, client *websocket.Client) {}
 				writeJSONFunc := func(ctx context.Context, client *websocket.Client, data any) {}
 
-				return mockGen, mockRedis, mockInterviewSvc, disconnectFunc, writeJSONFunc
+				return mockGen, mockRedis, mockInterviewSvc, mockPublisher, disconnectFunc, writeJSONFunc
 			},
 			verify: func(t *testing.T, disconnectCalled bool, errorSent bool, sentError interface{}) {
 				assert.True(t, disconnectCalled, "Should disconnect on empty segment ID")
@@ -135,18 +137,18 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 				return payload
 			}(),
 			client: &websocket.Client{}, // sessionID will be empty, causing mismatch
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockServices.MockInterviewSessionService, *mockPublisher.MockRedisTaskPublisher, func(context.Context, *websocket.Client), func(context.Context, *websocket.Client, any)) {
 				mockGen := mockUtils.NewMockGenerator(t)
 				mockRedis := mockDatabase.NewMockRedisClient(t)
 				mockInterviewSvc := mockServices.NewMockInterviewSessionService(t)
-
+				mockPublisher := mockPublisher.NewMockRedisTaskPublisher(t)
 				disconnectFunc := func(ctx context.Context, client *websocket.Client) {
 				}
 
 				writeJSONFunc := func(ctx context.Context, client *websocket.Client, data any) {
 				}
 
-				return mockGen, mockRedis, mockInterviewSvc, disconnectFunc, writeJSONFunc
+				return mockGen, mockRedis, mockInterviewSvc, mockPublisher, disconnectFunc, writeJSONFunc
 			},
 			verify: func(t *testing.T, disconnectCalled bool, errorSent bool, sentError interface{}) {
 				assert.True(t, disconnectCalled, "Should disconnect on session ID mismatch")
@@ -157,7 +159,7 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockGen, mockRedis, mockInterviewSvc, disconnectFunc, writeJSONFunc := tC.setup()
+			mockGen, mockRedis, mockInterviewSvc, mockPublisher, disconnectFunc, writeJSONFunc := tC.setup()
 			clientManager := websocket.NewClientManager(lgr)
 
 			var disconnectCalled bool
@@ -195,6 +197,7 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 				mockInterviewSvc,
 				mockRedis,
 				mockGen,
+				mockPublisher,
 			)
 
 			logic.SendMessageTypeSegmentStart(ctx, tC.client, tC.payload)

@@ -10,6 +10,7 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralInvalidUUID:         ErrHttpCodeBadRequest,
 	ErrCodeGeneralRedisSetFailed:      ErrHttpCodeInternalServerError,
 	ErrCodeGeneralRedisGetFailed:      ErrHttpCodeInternalServerError,
+	ErrCodeGeneralUnmarshalFailed:     ErrHttpCodeInternalServerError,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
@@ -58,6 +59,10 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrHttpCodeNotFound,
 	ErrCodeWebSocketInvalidSegmentID:             ErrHttpCodeBadRequest,
 	ErrCodeWebSocketInvalidSessionID:             ErrHttpCodeBadRequest,
+
+	// Evaluation
+	ErrCodeEvaluationRubricNotFound:         ErrHttpCodeNotFound,
+	ErrCodeEvaluationRubricCriteriaNotFound: ErrHttpCodeNotFound,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -70,6 +75,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralInvalidUUID:         ErrMessageGeneralInvalidUUID,
 	ErrCodeGeneralRedisSetFailed:      ErrMessageGeneralRedisSetFailed,
 	ErrCodeGeneralRedisGetFailed:      ErrMessageGeneralRedisGetFailed,
+	ErrCodeGeneralUnmarshalFailed:     ErrMessageGeneralUnmarshalFailed,
+
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,
@@ -117,4 +124,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeInterviewSessionEndTimeNotFound:       ErrMessageInterviewSessionEndTimeNotFound,
 	ErrCodeWebSocketInvalidSegmentID:             ErrMessageWebSocketInvalidSegmentID,
 	ErrCodeWebSocketInvalidSessionID:             ErrMessageWebSocketInvalidSessionID,
+
+	// Evaluation
+	ErrCodeEvaluationRubricNotFound:         ErrMessageEvaluationRubricNotFound,
+	ErrCodeEvaluationRubricCriteriaNotFound: ErrMessageEvaluationRubricCriteriaNotFound,
 }
