@@ -111,7 +111,7 @@ type InterviewFeedbackAndScoreReq struct {
 }
 
 type InterviewFeedbackAndScoreResp struct {
-	OverallScore    int             `json:"overall_score"`
+	OverallScore    float64         `json:"overall_score"`
 	OverallFeedback string          `json:"overall_feedback"`
 	CriteriaScores  []CriteriaScore `json:"criteria_scores"`
 }
@@ -130,7 +130,7 @@ type CreateEvaluationAndScoreTxReq struct {
 	TurnID       uuid.UUID
 	RubricID     uuid.UUID
 	UserID       uuid.UUID
-	OverallScore int
+	OverallScore string
 	SummaryMd    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time

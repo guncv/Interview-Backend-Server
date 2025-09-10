@@ -10,7 +10,7 @@ CREATE TABLE evaluations (
     rubric_id UUID NOT NULL REFERENCES evaluation_rubrics(id) ON DELETE RESTRICT,
 
     evaluator_user_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
-    overall_score INTEGER NOT NULL CHECK (overall_score BETWEEN 0 AND 5),
+    overall_score NUMERIC(3,2) NOT NULL CHECK (overall_score BETWEEN 0 AND 5),
     summary_md TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),

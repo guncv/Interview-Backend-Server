@@ -36,7 +36,7 @@ func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ctx con
 			TurnID:          req.TurnID,
 			RubricID:        req.RubricID,
 			EvaluatorUserID: req.UserID,
-			OverallScore:    int32(req.OverallScore),
+			OverallScore:    req.OverallScore,
 			SummaryMd:       req.SummaryMd,
 			CreatedAt:       sql.NullTime{Time: req.CreatedAt, Valid: true},
 			UpdatedAt:       sql.NullTime{Time: req.UpdatedAt, Valid: true},

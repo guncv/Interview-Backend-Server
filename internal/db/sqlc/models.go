@@ -53,7 +53,7 @@ type Evaluations struct {
 	TurnID          uuid.UUID    `json:"turn_id"`
 	RubricID        uuid.UUID    `json:"rubric_id"`
 	EvaluatorUserID uuid.UUID    `json:"evaluator_user_id"`
-	OverallScore    int32        `json:"overall_score"`
+	OverallScore    string       `json:"overall_score"`
 	SummaryMd       string       `json:"summary_md"`
 	CreatedAt       sql.NullTime `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`
