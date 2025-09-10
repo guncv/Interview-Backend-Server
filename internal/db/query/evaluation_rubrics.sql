@@ -1,10 +1,17 @@
--- name: CreateEvaluationRubric :exec
-INSERT INTO evaluation_rubrics (
-    id,
-    name,
-    description_md,
-    version_label,
-    created_at
-) VALUES (
-    $1, $2, $3, $4, $5
-);
+-- name: GetRubricWithCriteriaByName :many
+SELECT
+    r.id AS rubric_id,
+    r.name AS rubric_name,
+    r.description_md AS rubric_description_md,
+    r.version_label AS rubric_version_label,
+    c.id AS criterion_id,
+    c.code AS criterion_code,
+    c.name AS criterion_name,
+    c.description_md AS criterion_description_md,
+    c.weight AS criterion_weight,
+    c.max_score AS criterion_max_score
+FROM evaluation_rubrics r
+JOIN evaluation_criteria c ON r.id = c.rubric_id
+WHERE r.name = $1
+    AND r.soft_delete = FALSE
+ORDER BY c.code;

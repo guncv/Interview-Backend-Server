@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -109,7 +110,9 @@ func TestInterviewSessionRepository_UpdateInterviewSessionStatus(t *testing.T) {
 				}
 			}()
 
-			svc := NewInterviewSessionRepository(lgr, mockStore)
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
 			gotErr := svc.UpdateInterviewSessionStatus(ctx, tC.input)
 
 			tC.verify(t, gotErr)
@@ -230,7 +233,9 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 				}
 			}()
 
-			svc := NewInterviewSessionRepository(lgr, mockStore)
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
 
 			gotErr := svc.EndInterviewSession(ctx, tC.input)
 
@@ -429,7 +434,9 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 				}
 			}()
 
-			svc := NewInterviewSessionRepository(lgr, mockStore)
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
 
 			gotErr := svc.CreateInterviewSessionWithNewResumeTx(ctx, tC.input)
 

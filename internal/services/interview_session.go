@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -49,6 +50,8 @@ type interviewSessionService struct {
 	s3Storage            aws.S3Storage
 	publisher            publisher.RedisTaskPublisher
 	redisClient          database.RedisClient
+	evaluationService    EvaluationService
+	evaluationScoresRepo repositories.EvaluationScoresRepository
 }
 
 func NewInterviewSessionService(
@@ -63,6 +66,8 @@ func NewInterviewSessionService(
 	s3Storage aws.S3Storage,
 	publisher publisher.RedisTaskPublisher,
 	redisClient database.RedisClient,
+	evaluationService EvaluationService,
+	evaluationScoresRepo repositories.EvaluationScoresRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -76,6 +81,8 @@ func NewInterviewSessionService(
 		s3Storage:            s3Storage,
 		publisher:            publisher,
 		redisClient:          redisClient,
+		evaluationService:    evaluationService,
+		evaluationScoresRepo: evaluationScoresRepo,
 	}
 }
 
@@ -289,8 +296,6 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID)
 
-	var maxTurnNo int64
-
 	segmentID, err := uuid.Parse(req.TurnID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Invalid segment ID", err)
@@ -303,25 +308,12 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
-	if err == redis.Nil {
-		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Failed to get max turn from DB", err)
-			return err
-		}
-	} else if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Redis error", err)
+	maxTurnNo, err := s.increaseMaxTurnNo(ctx, sessionID, redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error getting max turn no", err)
 		return err
-	} else {
-		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Failed to parse turn no from Redis", err)
-			return err
-		}
 	}
 
-	maxTurnNo++
 	dbReq := &db.CreateInterviewTurnParams{
 		ID:             segmentID,
 		SessionID:      sessionID,
@@ -337,16 +329,7 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		return err
 	}
 
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID),
-		Value: maxTurnNo,
-		TTL:   constants.RedisTTLInterviewTurn,
-	}
-
-	if err := s.redisClient.Set(context.Background(), redisPayload); err != nil {
-		s.log.WarnWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Error creating interview turn redis key", err)
-	}
-
+	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
 }
 
@@ -354,8 +337,6 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 	s.log.InfoWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID)
-
-	var maxTurnNo int64
 
 	segmentID, err := uuid.Parse(req.TurnID)
 	if err != nil {
@@ -369,25 +350,11 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
-	if err == redis.Nil {
-		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Failed to get max turn from DB", err)
-			return err
-		}
-	} else if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Redis error", err)
+	maxTurnNo, err := s.increaseMaxTurnNo(ctx, sessionID, redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error getting max turn no", err)
 		return err
-	} else {
-		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Failed to parse turn no from Redis", err)
-			return err
-		}
 	}
-
-	maxTurnNo++
 
 	redisKey = fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
 	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
@@ -420,17 +387,49 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return err
 	}
 
+	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
+	return nil
+}
+
+func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, sessionID uuid.UUID, redisKey string) (int64, error) {
+	s.log.InfoWithID(ctx, "[Service: IncreaseMaxTurnNo] Called")
+
+	var maxTurnNo int64
+	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
+
+	if err == redis.Nil {
+		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to get max turn from DB", err)
+			return 0, err
+		}
+	} else if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Redis error", err)
+		return 0, err
+	} else {
+		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to parse turn no from Redis", err)
+			return 0, err
+		}
+	}
+
+	maxTurnNo++
+	return maxTurnNo, nil
+}
+
+func (s *interviewSessionService) cacheMaxTurnNo(ctx context.Context, sessionID string, maxTurnNo int64) {
+	s.log.InfoWithID(ctx, "[Service: cacheMaxTurnNo] Called")
+
 	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID),
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, sessionID),
 		Value: maxTurnNo,
 		TTL:   constants.RedisTTLInterviewTurn,
 	}
 
-	if err := s.redisClient.Set(context.Background(), redisPayload); err != nil {
-		s.log.WarnWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error creating interview turn redis key", err)
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.WarnWithID(ctx, "[Service: cacheMaxTurnNo] Failed to cache", err)
 	}
-
-	return nil
 }
 
 func (s *interviewSessionService) SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error {
@@ -529,7 +528,95 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
 	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
 
-	return nil
+	rubric, err := s.evaluationService.GetRubricWithCriteriaByName(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting rubric with criteria by name", err)
+		return err
+	}
+
+	interviewFeedbackAndScoreReq := &repositories.InterviewFeedbackAndScoreReq{
+		UserMessage:         req.UserMessage,
+		InterviewerMessage:  req.InterviewerMessage,
+		RubricName:          rubric.RubricName,
+		RubricDescriptionMd: rubric.RubricDescriptionMd,
+		Criteria:            rubric.Criteria,
+	}
+
+	result, err := s.interviewSessionRepo.InterviewFeedbackAndScore(ctx, interviewFeedbackAndScoreReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error interviewing feedback and score", err)
+		return err
+	}
+
+	evaluationID := s.generator.GenerateUUID(ctx)
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userTurnID, err := uuid.Parse(req.UserTurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user turn ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	rubricID, err := uuid.Parse(rubric.RubricID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid rubric ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	criteria := make([]repositories.CreateScoreTxReq, len(result.CriteriaScores))
+	for i, criterion := range result.CriteriaScores {
+		criterionID, err := uuid.Parse(criterion.CriterionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid criterion ID", err)
+			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		}
+
+		criteria[i] = repositories.CreateScoreTxReq{
+			ID:          s.generator.GenerateUUID(ctx),
+			CriterionID: criterionID,
+			Score:       criterion.CriterionScore,
+			CommentMd:   criterion.CriterionFeedback,
+		}
+	}
+
+	createEvaluationAndScoreTxReq := &repositories.CreateEvaluationAndScoreTxReq{
+		EvaluationID: evaluationID,
+		SessionID:    sessionID,
+		TurnID:       userTurnID,
+		RubricID:     rubricID,
+		UserID:       userID,
+		OverallScore: fmt.Sprintf("%f", result.OverallScore),
+		SummaryMd:    result.OverallFeedback,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+		Criteria:     criteria,
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
+		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreTx(ctx, createEvaluationAndScoreTxReq)
+		if err == nil {
+			return nil
+		}
+
+		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
+		lastErr = err
+
+		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
+	}
+
+	return lastErr
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

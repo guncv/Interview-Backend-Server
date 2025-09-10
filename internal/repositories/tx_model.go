@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 )
 
@@ -99,4 +100,47 @@ type CreateInterviewSessionTxReq struct {
 	Status    string
 	Modality  string
 	IsConsent bool
+}
+
+type InterviewFeedbackAndScoreReq struct {
+	UserMessage         string                 `json:"user_message"`
+	InterviewerMessage  string                 `json:"interviewer_message"`
+	RubricName          string                 `json:"rubric_name"`
+	RubricDescriptionMd string                 `json:"rubric_description_md"`
+	Criteria            []entities.CritetiaRow `json:"criteria"`
+}
+
+type InterviewFeedbackAndScoreResp struct {
+	OverallScore    float64         `json:"overall_score"`
+	OverallFeedback string          `json:"overall_feedback"`
+	CriteriaScores  []CriteriaScore `json:"criteria_scores"`
+}
+
+type CriteriaScore struct {
+	CriterionID       string `json:"criterion_id"`
+	CriterionCode     string `json:"criterion_code"`
+	CriterionName     string `json:"criterion_name"`
+	CriterionScore    int    `json:"criterion_score"`
+	CriterionFeedback string `json:"criterion_feedback"`
+}
+
+type CreateEvaluationAndScoreTxReq struct {
+	EvaluationID uuid.UUID
+	SessionID    uuid.UUID
+	TurnID       uuid.UUID
+	RubricID     uuid.UUID
+	UserID       uuid.UUID
+	OverallScore string
+	SummaryMd    string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+
+	Criteria []CreateScoreTxReq
+}
+
+type CreateScoreTxReq struct {
+	ID          uuid.UUID
+	CriterionID uuid.UUID
+	Score       int
+	CommentMd   string
 }

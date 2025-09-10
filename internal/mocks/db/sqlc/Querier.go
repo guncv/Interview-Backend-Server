@@ -252,6 +252,53 @@ func (_c *MockQuerier_CheckIsUserExistsByID_Call) RunAndReturn(run func(context.
 	return _c
 }
 
+// CreateEvaluation provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateEvaluation(ctx context.Context, arg db.CreateEvaluationParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateEvaluation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_CreateEvaluation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluation'
+type MockQuerier_CreateEvaluation_Call struct {
+	*mock.Call
+}
+
+// CreateEvaluation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateEvaluationParams
+func (_e *MockQuerier_Expecter) CreateEvaluation(ctx interface{}, arg interface{}) *MockQuerier_CreateEvaluation_Call {
+	return &MockQuerier_CreateEvaluation_Call{Call: _e.mock.On("CreateEvaluation", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateEvaluation_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationParams)) *MockQuerier_CreateEvaluation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateEvaluationParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateEvaluation_Call) Return(_a0 error) *MockQuerier_CreateEvaluation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_CreateEvaluation_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationParams) error) *MockQuerier_CreateEvaluation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateEvaluationCriterion provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateEvaluationCriterion(ctx context.Context, arg db.CreateEvaluationCriterionParams) error {
 	ret := _m.Called(ctx, arg)
@@ -299,16 +346,16 @@ func (_c *MockQuerier_CreateEvaluationCriterion_Call) RunAndReturn(run func(cont
 	return _c
 }
 
-// CreateEvaluationRubric provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) CreateEvaluationRubric(ctx context.Context, arg db.CreateEvaluationRubricParams) error {
+// CreateEvaluationScore provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateEvaluationScore(ctx context.Context, arg db.CreateEvaluationScoreParams) error {
 	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateEvaluationRubric")
+		panic("no return value specified for CreateEvaluationScore")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationRubricParams) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationScoreParams) error); ok {
 		r0 = rf(ctx, arg)
 	} else {
 		r0 = ret.Error(0)
@@ -317,31 +364,31 @@ func (_m *MockQuerier) CreateEvaluationRubric(ctx context.Context, arg db.Create
 	return r0
 }
 
-// MockQuerier_CreateEvaluationRubric_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationRubric'
-type MockQuerier_CreateEvaluationRubric_Call struct {
+// MockQuerier_CreateEvaluationScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationScore'
+type MockQuerier_CreateEvaluationScore_Call struct {
 	*mock.Call
 }
 
-// CreateEvaluationRubric is a helper method to define mock.On call
+// CreateEvaluationScore is a helper method to define mock.On call
 //   - ctx context.Context
-//   - arg db.CreateEvaluationRubricParams
-func (_e *MockQuerier_Expecter) CreateEvaluationRubric(ctx interface{}, arg interface{}) *MockQuerier_CreateEvaluationRubric_Call {
-	return &MockQuerier_CreateEvaluationRubric_Call{Call: _e.mock.On("CreateEvaluationRubric", ctx, arg)}
+//   - arg db.CreateEvaluationScoreParams
+func (_e *MockQuerier_Expecter) CreateEvaluationScore(ctx interface{}, arg interface{}) *MockQuerier_CreateEvaluationScore_Call {
+	return &MockQuerier_CreateEvaluationScore_Call{Call: _e.mock.On("CreateEvaluationScore", ctx, arg)}
 }
 
-func (_c *MockQuerier_CreateEvaluationRubric_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationRubricParams)) *MockQuerier_CreateEvaluationRubric_Call {
+func (_c *MockQuerier_CreateEvaluationScore_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationScoreParams)) *MockQuerier_CreateEvaluationScore_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.CreateEvaluationRubricParams))
+		run(args[0].(context.Context), args[1].(db.CreateEvaluationScoreParams))
 	})
 	return _c
 }
 
-func (_c *MockQuerier_CreateEvaluationRubric_Call) Return(_a0 error) *MockQuerier_CreateEvaluationRubric_Call {
+func (_c *MockQuerier_CreateEvaluationScore_Call) Return(_a0 error) *MockQuerier_CreateEvaluationScore_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockQuerier_CreateEvaluationRubric_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationRubricParams) error) *MockQuerier_CreateEvaluationRubric_Call {
+func (_c *MockQuerier_CreateEvaluationScore_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationScoreParams) error) *MockQuerier_CreateEvaluationScore_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -925,6 +972,65 @@ func (_c *MockQuerier_GetResumeByID_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, name
+func (_m *MockQuerier) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]db.GetRubricWithCriteriaByNameRow, error) {
+	ret := _m.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRubricWithCriteriaByName")
+	}
+
+	var r0 []db.GetRubricWithCriteriaByNameRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
+		return rf(ctx, name)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.GetRubricWithCriteriaByNameRow); ok {
+		r0 = rf(ctx, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetRubricWithCriteriaByNameRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetRubricWithCriteriaByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRubricWithCriteriaByName'
+type MockQuerier_GetRubricWithCriteriaByName_Call struct {
+	*mock.Call
+}
+
+// GetRubricWithCriteriaByName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockQuerier_Expecter) GetRubricWithCriteriaByName(ctx interface{}, name interface{}) *MockQuerier_GetRubricWithCriteriaByName_Call {
+	return &MockQuerier_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, name)}
+}
+
+func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, name string)) *MockQuerier_GetRubricWithCriteriaByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) Return(_a0 []db.GetRubricWithCriteriaByNameRow, _a1 error) *MockQuerier_GetRubricWithCriteriaByName_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockQuerier_GetRubricWithCriteriaByName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSessionByID provides a mock function with given fields: ctx, id
 func (_m *MockQuerier) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
 	ret := _m.Called(ctx, id)
@@ -1351,63 +1457,6 @@ func (_c *MockQuerier_UnsetDefaultResume_Call) Return(_a0 error) *MockQuerier_Un
 }
 
 func (_c *MockQuerier_UnsetDefaultResume_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockQuerier_UnsetDefaultResume_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// UpdateEvaluationCriterion provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) UpdateEvaluationCriterion(ctx context.Context, arg db.UpdateEvaluationCriterionParams) (int64, error) {
-	ret := _m.Called(ctx, arg)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateEvaluationCriterion")
-	}
-
-	var r0 int64
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateEvaluationCriterionParams) (int64, error)); ok {
-		return rf(ctx, arg)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateEvaluationCriterionParams) int64); ok {
-		r0 = rf(ctx, arg)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateEvaluationCriterionParams) error); ok {
-		r1 = rf(ctx, arg)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockQuerier_UpdateEvaluationCriterion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateEvaluationCriterion'
-type MockQuerier_UpdateEvaluationCriterion_Call struct {
-	*mock.Call
-}
-
-// UpdateEvaluationCriterion is a helper method to define mock.On call
-//   - ctx context.Context
-//   - arg db.UpdateEvaluationCriterionParams
-func (_e *MockQuerier_Expecter) UpdateEvaluationCriterion(ctx interface{}, arg interface{}) *MockQuerier_UpdateEvaluationCriterion_Call {
-	return &MockQuerier_UpdateEvaluationCriterion_Call{Call: _e.mock.On("UpdateEvaluationCriterion", ctx, arg)}
-}
-
-func (_c *MockQuerier_UpdateEvaluationCriterion_Call) Run(run func(ctx context.Context, arg db.UpdateEvaluationCriterionParams)) *MockQuerier_UpdateEvaluationCriterion_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.UpdateEvaluationCriterionParams))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_UpdateEvaluationCriterion_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateEvaluationCriterion_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockQuerier_UpdateEvaluationCriterion_Call) RunAndReturn(run func(context.Context, db.UpdateEvaluationCriterionParams) (int64, error)) *MockQuerier_UpdateEvaluationCriterion_Call {
 	_c.Call.Return(run)
 	return _c
 }

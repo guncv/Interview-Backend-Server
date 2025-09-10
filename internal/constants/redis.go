@@ -11,6 +11,7 @@ const (
 	RedisPrefixInterviewMaxTurnNo      = "interview:max_turn_no:"
 	RedisPrefixInterviewStartEndTime   = "interview:start_end_time:"
 	RedisPrefixInterviewLastMessage    = "interview:last_message:"
+	RedisPrefixEvaluationRubric        = "evaluation:rubric:general:"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour
@@ -19,4 +20,5 @@ const (
 	RedisTTLInterviewLastMessage    = 2 * time.Minute
 	RedisTTLInterviewTurn           = 10 * time.Minute
 	RedisTTLInterviewStartEndTime   = 1 * time.Hour
+	RedisTTLEvaluationRubric        = 1 * time.Hour
 )

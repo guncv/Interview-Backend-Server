@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -186,7 +187,7 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 		return err
 	}
 
-	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + "/api/v1/interview/requirements"
+	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathExtractResumeRAGAgent
 	httpReq, err := http.NewRequest("POST", endpoint, &body)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to create HTTP request", err)

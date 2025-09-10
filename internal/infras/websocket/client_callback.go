@@ -56,7 +56,7 @@ func (w *webSocketClientCallbacks) OnUserPartialTranscript(ctx context.Context, 
 		"transcript": req.Transcript,
 	})
 
-	if req.SessionID != w.client.sessionID {
+	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserPartialTranscript] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})
@@ -64,7 +64,7 @@ func (w *webSocketClientCallbacks) OnUserPartialTranscript(ctx context.Context, 
 		return
 	}
 
-	if req.SegmentID != w.client.currentSegmentID {
+	if req.SegmentID != w.client.CurrentSegmentID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserPartialTranscript] Security violation: Segment ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 			"segment_id": req.SegmentID,
@@ -82,7 +82,7 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 		"transcript": req.Transcript,
 	})
 
-	if req.SessionID != w.client.sessionID {
+	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})
@@ -90,7 +90,7 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 		return
 	}
 
-	if req.SegmentID != w.client.currentSegmentID {
+	if req.SegmentID != w.client.CurrentSegmentID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Security violation: Segment ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 			"segment_id": req.SegmentID,
@@ -108,7 +108,7 @@ func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req Ms
 		"message":    req.Message,
 	})
 
-	if req.SessionID != w.client.sessionID {
+	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})

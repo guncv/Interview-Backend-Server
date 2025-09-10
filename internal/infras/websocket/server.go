@@ -16,6 +16,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
@@ -25,10 +26,10 @@ type Client struct {
 	conn             *websocket.Conn
 	mu               sync.Mutex
 	userID           string
-	sessionID        string
+	SessionID        string
 	resumeID         string
-	currentSegmentID string
-	startSessionTime time.Time
+	CurrentSegmentID string
+	StartSessionTime time.Time
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
 	connected        bool
@@ -66,6 +67,7 @@ func NewWebSocketServer(
 	cfg *config.Config,
 	jwtMaker utils.JwtToken,
 	generator utils.Generator,
+	publisher publisher.RedisTaskPublisher,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -97,6 +99,7 @@ func NewWebSocketServer(
 		interviewSessionService,
 		redisClient,
 		generator,
+		publisher,
 	)
 
 	server.logic = logic
@@ -146,16 +149,16 @@ func (s *webSocketServer) HandleConnection(
 	client := &Client{
 		conn:             conn,
 		userID:           session.UserID,
-		sessionID:        session.SessionID,
+		SessionID:        session.SessionID,
 		resumeID:         session.ResumeID,
-		startSessionTime: time.Now(),
+		StartSessionTime: time.Now(),
 		lastPongTime:     time.Now(),
 		pongReceived:     make(chan struct{}, 1),
 		connected:        true,
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
-		"session_id": client.sessionID,
+		"session_id": client.SessionID,
 	})
 	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	client.conn.SetPongHandler(func(string) error {
@@ -172,11 +175,11 @@ func (s *webSocketServer) HandleConnection(
 	})
 
 	s.mu.Lock()
-	s.sessions[client.sessionID] = client
+	s.sessions[client.SessionID] = client
 	if s.userSessions[client.userID] == nil {
 		s.userSessions[client.userID] = map[string]bool{}
 	}
-	s.userSessions[client.userID][client.sessionID] = true
+	s.userSessions[client.userID][client.SessionID] = true
 	s.mu.Unlock()
 
 	if err := s.initClient(ctx, client); err != nil {
@@ -186,7 +189,7 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	interviewReq := &entities.UpdateInterviewSessionStatusReq{
-		SessionID: client.sessionID,
+		SessionID: client.SessionID,
 		Status:    constants.StatusOnGoing,
 	}
 
@@ -197,7 +200,7 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	s.writeJSON(ctx, client, map[string]any{
-		"type": "connection_established", "session_id": client.sessionID,
+		"type": "connection_established", "session_id": client.SessionID,
 	})
 
 	go s.pingLoop(ctx, client)
@@ -211,7 +214,7 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
 		UserID:    client.userID,
-		SessionID: client.sessionID,
+		SessionID: client.SessionID,
 		ResumeID:  client.resumeID,
 		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 	})
@@ -242,8 +245,8 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 		return err
 	}
 
-	_ = agentClient.SendSessionInfo(ctx, client.sessionID, client.userID, client.resumeID)
-	s.clientManager.SetClientBySessionID(ctx, client.sessionID, agentClient)
+	_ = agentClient.SendSessionInfo(ctx, client.SessionID, client.userID, client.resumeID)
+	s.clientManager.SetClientBySessionID(ctx, client.SessionID, agentClient)
 
 	return nil
 }
@@ -275,7 +278,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			switch m.Type {
 
 			case constants.WebSocketMessageTypeSegmentStart:
-				s.logic.sendMessageTypeSegmentStart(ctx, c, payload)
+				s.logic.SendMessageTypeSegmentStart(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeSegmentEnd:
@@ -284,7 +287,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 			case constants.WebSocketMessageTypeClose:
 				s.log.InfoWithID(ctx, "[WebSocketServer] Received close message from client", map[string]any{
-					"session_id": c.sessionID,
+					"session_id": c.SessionID,
 					"user_id":    c.userID,
 				})
 				s.Disconnect(ctx, c)
@@ -317,7 +320,7 @@ func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 
 		if timeSinceLastPong > constants.WebSocketPongTimeout {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
-				"session_id":           client.sessionID,
+				"session_id":           client.SessionID,
 				"time_since_last_pong": timeSinceLastPong,
 				"timeout":              constants.WebSocketPongTimeout,
 			})
@@ -340,9 +343,9 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 
 	s.mu.Lock()
-	delete(s.sessions, client.sessionID)
+	delete(s.sessions, client.SessionID)
 	if set := s.userSessions[client.userID]; set != nil {
-		delete(set, client.sessionID)
+		delete(set, client.SessionID)
 		if len(set) == 0 {
 			delete(s.userSessions, client.userID)
 		}
@@ -355,13 +358,13 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
 	})
 
-	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.sessionID); exists {
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{
-			"session_id": client.sessionID,
+			"session_id": client.SessionID,
 		})
 		_ = agentClient.Close(ctx)
 	}
-	s.clientManager.DeleteClientBySessionID(ctx, client.sessionID)
+	s.clientManager.DeleteClientBySessionID(ctx, client.SessionID)
 
 	_ = client.conn.Close()
 

@@ -252,6 +252,53 @@ func (_c *MockStore_CheckIsUserExistsByID_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// CreateEvaluation provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateEvaluation(ctx context.Context, arg db.CreateEvaluationParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateEvaluation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_CreateEvaluation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluation'
+type MockStore_CreateEvaluation_Call struct {
+	*mock.Call
+}
+
+// CreateEvaluation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateEvaluationParams
+func (_e *MockStore_Expecter) CreateEvaluation(ctx interface{}, arg interface{}) *MockStore_CreateEvaluation_Call {
+	return &MockStore_CreateEvaluation_Call{Call: _e.mock.On("CreateEvaluation", ctx, arg)}
+}
+
+func (_c *MockStore_CreateEvaluation_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationParams)) *MockStore_CreateEvaluation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateEvaluationParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreateEvaluation_Call) Return(_a0 error) *MockStore_CreateEvaluation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_CreateEvaluation_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationParams) error) *MockStore_CreateEvaluation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateEvaluationCriterion provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateEvaluationCriterion(ctx context.Context, arg db.CreateEvaluationCriterionParams) error {
 	ret := _m.Called(ctx, arg)
@@ -299,16 +346,16 @@ func (_c *MockStore_CreateEvaluationCriterion_Call) RunAndReturn(run func(contex
 	return _c
 }
 
-// CreateEvaluationRubric provides a mock function with given fields: ctx, arg
-func (_m *MockStore) CreateEvaluationRubric(ctx context.Context, arg db.CreateEvaluationRubricParams) error {
+// CreateEvaluationScore provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateEvaluationScore(ctx context.Context, arg db.CreateEvaluationScoreParams) error {
 	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateEvaluationRubric")
+		panic("no return value specified for CreateEvaluationScore")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationRubricParams) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateEvaluationScoreParams) error); ok {
 		r0 = rf(ctx, arg)
 	} else {
 		r0 = ret.Error(0)
@@ -317,31 +364,31 @@ func (_m *MockStore) CreateEvaluationRubric(ctx context.Context, arg db.CreateEv
 	return r0
 }
 
-// MockStore_CreateEvaluationRubric_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationRubric'
-type MockStore_CreateEvaluationRubric_Call struct {
+// MockStore_CreateEvaluationScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationScore'
+type MockStore_CreateEvaluationScore_Call struct {
 	*mock.Call
 }
 
-// CreateEvaluationRubric is a helper method to define mock.On call
+// CreateEvaluationScore is a helper method to define mock.On call
 //   - ctx context.Context
-//   - arg db.CreateEvaluationRubricParams
-func (_e *MockStore_Expecter) CreateEvaluationRubric(ctx interface{}, arg interface{}) *MockStore_CreateEvaluationRubric_Call {
-	return &MockStore_CreateEvaluationRubric_Call{Call: _e.mock.On("CreateEvaluationRubric", ctx, arg)}
+//   - arg db.CreateEvaluationScoreParams
+func (_e *MockStore_Expecter) CreateEvaluationScore(ctx interface{}, arg interface{}) *MockStore_CreateEvaluationScore_Call {
+	return &MockStore_CreateEvaluationScore_Call{Call: _e.mock.On("CreateEvaluationScore", ctx, arg)}
 }
 
-func (_c *MockStore_CreateEvaluationRubric_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationRubricParams)) *MockStore_CreateEvaluationRubric_Call {
+func (_c *MockStore_CreateEvaluationScore_Call) Run(run func(ctx context.Context, arg db.CreateEvaluationScoreParams)) *MockStore_CreateEvaluationScore_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.CreateEvaluationRubricParams))
+		run(args[0].(context.Context), args[1].(db.CreateEvaluationScoreParams))
 	})
 	return _c
 }
 
-func (_c *MockStore_CreateEvaluationRubric_Call) Return(_a0 error) *MockStore_CreateEvaluationRubric_Call {
+func (_c *MockStore_CreateEvaluationScore_Call) Return(_a0 error) *MockStore_CreateEvaluationScore_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockStore_CreateEvaluationRubric_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationRubricParams) error) *MockStore_CreateEvaluationRubric_Call {
+func (_c *MockStore_CreateEvaluationScore_Call) RunAndReturn(run func(context.Context, db.CreateEvaluationScoreParams) error) *MockStore_CreateEvaluationScore_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -972,6 +1019,65 @@ func (_c *MockStore_GetResumeByID_Call) RunAndReturn(run func(context.Context, u
 	return _c
 }
 
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, name
+func (_m *MockStore) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]db.GetRubricWithCriteriaByNameRow, error) {
+	ret := _m.Called(ctx, name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRubricWithCriteriaByName")
+	}
+
+	var r0 []db.GetRubricWithCriteriaByNameRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
+		return rf(ctx, name)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.GetRubricWithCriteriaByNameRow); ok {
+		r0 = rf(ctx, name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetRubricWithCriteriaByNameRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetRubricWithCriteriaByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRubricWithCriteriaByName'
+type MockStore_GetRubricWithCriteriaByName_Call struct {
+	*mock.Call
+}
+
+// GetRubricWithCriteriaByName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *MockStore_Expecter) GetRubricWithCriteriaByName(ctx interface{}, name interface{}) *MockStore_GetRubricWithCriteriaByName_Call {
+	return &MockStore_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, name)}
+}
+
+func (_c *MockStore_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, name string)) *MockStore_GetRubricWithCriteriaByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetRubricWithCriteriaByName_Call) Return(_a0 []db.GetRubricWithCriteriaByNameRow, _a1 error) *MockStore_GetRubricWithCriteriaByName_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockStore_GetRubricWithCriteriaByName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSessionByID provides a mock function with given fields: ctx, id
 func (_m *MockStore) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
 	ret := _m.Called(ctx, id)
@@ -1398,63 +1504,6 @@ func (_c *MockStore_UnsetDefaultResume_Call) Return(_a0 error) *MockStore_UnsetD
 }
 
 func (_c *MockStore_UnsetDefaultResume_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockStore_UnsetDefaultResume_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// UpdateEvaluationCriterion provides a mock function with given fields: ctx, arg
-func (_m *MockStore) UpdateEvaluationCriterion(ctx context.Context, arg db.UpdateEvaluationCriterionParams) (int64, error) {
-	ret := _m.Called(ctx, arg)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateEvaluationCriterion")
-	}
-
-	var r0 int64
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateEvaluationCriterionParams) (int64, error)); ok {
-		return rf(ctx, arg)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateEvaluationCriterionParams) int64); ok {
-		r0 = rf(ctx, arg)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateEvaluationCriterionParams) error); ok {
-		r1 = rf(ctx, arg)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockStore_UpdateEvaluationCriterion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateEvaluationCriterion'
-type MockStore_UpdateEvaluationCriterion_Call struct {
-	*mock.Call
-}
-
-// UpdateEvaluationCriterion is a helper method to define mock.On call
-//   - ctx context.Context
-//   - arg db.UpdateEvaluationCriterionParams
-func (_e *MockStore_Expecter) UpdateEvaluationCriterion(ctx interface{}, arg interface{}) *MockStore_UpdateEvaluationCriterion_Call {
-	return &MockStore_UpdateEvaluationCriterion_Call{Call: _e.mock.On("UpdateEvaluationCriterion", ctx, arg)}
-}
-
-func (_c *MockStore_UpdateEvaluationCriterion_Call) Run(run func(ctx context.Context, arg db.UpdateEvaluationCriterionParams)) *MockStore_UpdateEvaluationCriterion_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.UpdateEvaluationCriterionParams))
-	})
-	return _c
-}
-
-func (_c *MockStore_UpdateEvaluationCriterion_Call) Return(_a0 int64, _a1 error) *MockStore_UpdateEvaluationCriterion_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockStore_UpdateEvaluationCriterion_Call) RunAndReturn(run func(context.Context, db.UpdateEvaluationCriterionParams) (int64, error)) *MockStore_UpdateEvaluationCriterion_Call {
 	_c.Call.Return(run)
 	return _c
 }
