@@ -1,6 +1,4 @@
-CREATE INDEX idx_rubric_soft_delete ON evaluation_rubrics (soft_delete);
-CREATE INDEX idx_criteria_rubric_id ON evaluation_criteria (rubric_id);
-CREATE INDEX idx_criteria_code ON evaluation_criteria (code);
+CREATE INDEX idx_rubrics_name_softdelete ON evaluation_rubrics (name, soft_delete);
 
 WITH inserted_rubric AS (
     INSERT INTO evaluation_rubrics (
@@ -11,7 +9,7 @@ WITH inserted_rubric AS (
     )
     VALUES (
         gen_random_uuid(),
-        'Technical Interview Rubric (v1)',
+        'General Interview Rubric (v1)',
         'Evaluates technical interview answers on clarity, correctness, communication, and depth.',
         'v1.0'
     )

@@ -15,7 +15,9 @@ type Querier interface {
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
+	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
+	CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error
 	CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
