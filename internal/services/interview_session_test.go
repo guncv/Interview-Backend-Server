@@ -1065,6 +1065,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockRedisClient,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithNewResume(ctx, tC.input)
@@ -1920,6 +1921,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockRedisClient,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithExistingResume(ctx, tC.input)
@@ -2123,6 +2125,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 			)
@@ -2348,6 +2351,7 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 				mockRedisClient,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.IsSessionValid(ctx, tC.input)
@@ -2363,24 +2367,27 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 	correctSessionID := uuid.New().String()
 	correctTurnID := uuid.New().String()
 	invalidID := "invalid-id"
+	currentState := "Greeting"
 
 	testCases := []struct {
 		name   string
 		input  *entities.CreateUserSessionTurnBySessionIDReq
-		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository)
+		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
 			name: "Success - TurnRedisTriggered",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
@@ -2393,11 +2400,12 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"ended_at":   "2.34",
 					}, nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(ctx, mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 2 &&
+							req.CurrentState == currentState &&
 							req.Actor == "user" &&
 							req.TranscriptText.String == "transcript" &&
 							req.StartAt == "0.01" &&
@@ -2413,7 +2421,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					}).
 					Return(nil)
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2426,9 +2434,9 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				TurnID:     invalidID,
 				Transcript: "transcript",
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2440,13 +2448,14 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error_Invalid turn ID",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  invalidID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    invalidID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2457,20 +2466,22 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Success - TurnRedisNotTriggered",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", redis.Nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					GetMaxTurnNoBySessionID(ctx, uuid.MustParse(correctSessionID)).
 					Return(int64(2), nil)
 
@@ -2481,7 +2492,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"ended_at":   "2.34",
 					}, nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(ctx, mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -2501,7 +2512,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					}).
 					Return(nil)
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2510,14 +2521,16 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Success - With Warning Set Redis Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
@@ -2530,7 +2543,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"ended_at":   "2.34",
 					}, nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(ctx, mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -2550,7 +2563,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					}).
 					Return(errors.New("redis error"))
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2559,18 +2572,19 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - Redis Get Turn error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", errors.New("redis error"))
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2579,23 +2593,25 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - GetMaxTurnRepo Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", redis.Nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					GetMaxTurnNoBySessionID(ctx, uuid.MustParse(correctSessionID)).
 					Return(0, errors.New("database error"))
 
-				return nil, mockRedisClient, mockInterviewSessionRepo
+				return nil, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2604,18 +2620,19 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - ParseIntTurnNo Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("invalid_turn_no", nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2624,11 +2641,12 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - GetStartEndTime Redis Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
@@ -2639,7 +2657,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					HGetAll(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, correctSessionID)).
 					Return(nil, errors.New("redis error"))
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2648,11 +2666,12 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - GetStartEndTime Redis Nil",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
@@ -2663,7 +2682,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					HGetAll(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, correctSessionID)).
 					Return(nil, redis.Nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2672,11 +2691,12 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - GetStartEndTime Not Found Any Field",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
@@ -2687,7 +2707,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					HGetAll(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, correctSessionID)).
 					Return(map[string]string{}, nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2697,11 +2717,12 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - GetStartEndTime StartedAt Not Found Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
@@ -2714,7 +2735,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"ended_at": "2.34",
 					}, nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2728,7 +2749,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				TurnID:     correctTurnID,
 				Transcript: "transcript",
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
@@ -2741,7 +2762,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"started_at": "0.01",
 					}, nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2751,14 +2772,16 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 		{
 			name: "Error - CreateSessionTurnBySessionID Error",
 			input: &entities.CreateUserSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
@@ -2771,7 +2794,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 						"ended_at":   "2.34",
 					}, nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(ctx, mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -2783,7 +2806,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 					})).
 					Return(errors.New("database error"))
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2793,7 +2816,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockGenerator, mockRedisClient, mockInterviewSessionRepo := tC.setup()
+			mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo := tC.setup()
 			defer func() {
 				if mockGenerator != nil {
 					mockGenerator.AssertExpectations(t)
@@ -2803,6 +2826,9 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				}
 				if mockInterviewSessionRepo != nil {
 					mockInterviewSessionRepo.AssertExpectations(t)
+				}
+				if mockInterviewTurnsRepo != nil {
+					mockInterviewTurnsRepo.AssertExpectations(t)
 				}
 			}()
 
@@ -2820,6 +2846,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				mockRedisClient,
 				nil,
 				nil,
+				mockInterviewTurnsRepo,
 			)
 
 			gotErr := svc.CreateUserSessionTurnBySessionID(ctx, tC.input)
@@ -2837,32 +2864,35 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 	invalidID := "invalid-id"
 	correctStartedAt := "0.01"
 	correctEndedAt := "2.34"
+	currentState := "Greeting"
 
 	testCases := []struct {
 		name   string
 		input  *entities.CreateInterviewerSessionTurnBySessionIDReq
-		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository)
+		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
 			name: "Success - TurnRedisTriggered",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("1", nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(context.Background(), mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -2882,7 +2912,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					}).
 					Return(nil)
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2891,15 +2921,16 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error_Invalid session ID",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     invalidID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       invalidID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2911,15 +2942,16 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error_Invalid turn ID",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  invalidID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    invalidID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -2930,26 +2962,28 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Success - TurnRedisNotTriggered",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", redis.Nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					GetMaxTurnNoBySessionID(ctx, uuid.MustParse(correctSessionID)).
 					Return(int64(2), nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(context.Background(), mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -2969,7 +3003,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					}).
 					Return(nil)
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -2978,22 +3012,24 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Success - With Warning Set Redis Error",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("1", nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(context.Background(), mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -3013,7 +3049,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					}).
 					Return(errors.New("redis error"))
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -3022,20 +3058,21 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error - Redis Get Turn error",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", errors.New("redis error"))
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3044,25 +3081,27 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error - GetMaxTurnRepo Error",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("", redis.Nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					GetMaxTurnNoBySessionID(ctx, uuid.MustParse(correctSessionID)).
 					Return(0, errors.New("database error"))
 
-				return nil, mockRedisClient, mockInterviewSessionRepo
+				return nil, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3071,20 +3110,21 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error - ParseIntTurnNo Error",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("invalid_turn_no", nil)
 
-				return nil, mockRedisClient, nil
+				return nil, mockRedisClient, nil, nil
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3093,22 +3133,24 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 		{
 			name: "Error - CreateSessionTurnBySessionID Error",
 			input: &entities.CreateInterviewerSessionTurnBySessionIDReq{
-				SessionID:  correctSessionID,
-				TurnID:     correctTurnID,
-				Transcript: "transcript",
-				StartedAt:  correctStartedAt,
-				EndedAt:    correctEndedAt,
+				SessionID:    correctSessionID,
+				TurnID:       correctTurnID,
+				Transcript:   "transcript",
+				StartedAt:    correctStartedAt,
+				EndedAt:      correctEndedAt,
+				CurrentState: currentState,
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewTurnsRepository) {
 				mockGenerator := new(mockUtils.MockGenerator)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, correctSessionID)).
 					Return("0", nil)
 
-				mockInterviewSessionRepo.EXPECT().
+				mockInterviewTurnsRepo.EXPECT().
 					CreateSessionTurnBySessionID(context.Background(), mock.MatchedBy(func(req *db.CreateInterviewTurnParams) bool {
 						return req.SessionID.String() == correctSessionID &&
 							req.ID.String() == correctTurnID &&
@@ -3120,7 +3162,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					})).
 					Return(errors.New("database error"))
 
-				return mockGenerator, mockRedisClient, mockInterviewSessionRepo
+				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3130,7 +3172,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockGenerator, mockRedisClient, mockInterviewSessionRepo := tC.setup()
+			mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo := tC.setup()
 			defer func() {
 				if mockGenerator != nil {
 					mockGenerator.AssertExpectations(t)
@@ -3140,6 +3182,9 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 				}
 				if mockInterviewSessionRepo != nil {
 					mockInterviewSessionRepo.AssertExpectations(t)
+				}
+				if mockInterviewTurnsRepo != nil {
+					mockInterviewTurnsRepo.AssertExpectations(t)
 				}
 			}()
 
@@ -3157,6 +3202,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 				mockRedisClient,
 				nil,
 				nil,
+				mockInterviewTurnsRepo,
 			)
 
 			gotErr := svc.CreateInterviewerSessionTurnBySessionID(ctx, tC.input)

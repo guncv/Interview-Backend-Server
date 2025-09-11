@@ -52,6 +52,27 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 	return err
 }
 
+const getInterviewerLastMessage = `-- name: GetInterviewerLastMessage :one
+SELECT current_state, transcript_text
+FROM interview_turns
+WHERE session_id = $1
+AND actor = 'interviewer'
+ORDER BY turn_no DESC
+LIMIT 1
+`
+
+type GetInterviewerLastMessageRow struct {
+	CurrentState   string         `json:"current_state"`
+	TranscriptText sql.NullString `json:"transcript_text"`
+}
+
+func (q *Queries) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error) {
+	row := q.db.QueryRowContext(ctx, getInterviewerLastMessage, sessionID)
+	var i GetInterviewerLastMessageRow
+	err := row.Scan(&i.CurrentState, &i.TranscriptText)
+	return i, err
+}
+
 const getMaxTurnNoBySessionID = `-- name: GetMaxTurnNoBySessionID :one
 SELECT COALESCE(MAX(turn_no), 0) AS max_turn_no
 FROM interview_turns

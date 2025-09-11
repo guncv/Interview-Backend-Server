@@ -21,8 +21,6 @@ import (
 type InterviewSessionRepository interface {
 	CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error)
 	UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error
-	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error)
-	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
 	EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
@@ -72,29 +70,6 @@ func (r *interviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Co
 		err := errors.New("interview session not found")
 		r.log.ErrorWithID(ctx, "[Repository: UpdateInterviewSessionStatus] Interview session not found", err)
 		return app_error.New(err, app_error.ErrCodeSessionNotFound)
-	}
-
-	return nil
-}
-
-func (r *interviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Called")
-
-	turnNo, err := r.db.GetMaxTurnNoBySessionID(ctx, sessionID)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Error getting max turn no by session ID", err)
-		return 0, app_error.HandleDatabaseError(err)
-	}
-
-	return turnNo.(int64), nil
-}
-
-func (r *interviewSessionRepository) CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateSessionTurnBySessionID] Called")
-
-	if err := r.db.CreateInterviewTurn(ctx, *req); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: CreateSessionTurnBySessionID] Error creating session turn by session ID", err)
-		return app_error.HandleDatabaseError(err)
 	}
 
 	return nil

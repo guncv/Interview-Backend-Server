@@ -35,6 +35,7 @@ type InterviewSessionService interface {
 	SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error
 	SetSessionEndTime(ctx context.Context, req *entities.SetSessionEndTimeReq) error
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
+	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 }
 
@@ -52,6 +53,7 @@ type interviewSessionService struct {
 	redisClient          database.RedisClient
 	evaluationService    EvaluationService
 	evaluationScoresRepo repositories.EvaluationScoresRepository
+	interviewTurnsRepo   repositories.InterviewTurnsRepository
 }
 
 func NewInterviewSessionService(
@@ -68,6 +70,7 @@ func NewInterviewSessionService(
 	redisClient database.RedisClient,
 	evaluationService EvaluationService,
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
+	interviewTurnsRepo repositories.InterviewTurnsRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -83,6 +86,7 @@ func NewInterviewSessionService(
 		redisClient:          redisClient,
 		evaluationService:    evaluationService,
 		evaluationScoresRepo: evaluationScoresRepo,
+		interviewTurnsRepo:   interviewTurnsRepo,
 	}
 }
 
@@ -319,12 +323,13 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		SessionID:      sessionID,
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorInterviewer,
+		CurrentState:   req.CurrentState,
 		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
 		StartAt:        req.StartedAt,
 		EndAt:          req.EndedAt,
 	}
 
-	if err := s.interviewSessionRepo.CreateSessionTurnBySessionID(context.Background(), dbReq); err != nil {
+	if err := s.interviewTurnsRepo.CreateSessionTurnBySessionID(context.Background(), dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Error creating session turn by session ID", err)
 		return err
 	}
@@ -377,12 +382,13 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		SessionID:      sessionID,
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorUser,
+		CurrentState:   req.CurrentState,
 		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
 		StartAt:        timeDuration["started_at"],
 		EndAt:          timeDuration["ended_at"],
 	}
 
-	if err := s.interviewSessionRepo.CreateSessionTurnBySessionID(context.Background(), dbReq); err != nil {
+	if err := s.interviewTurnsRepo.CreateSessionTurnBySessionID(context.Background(), dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error creating session turn by session ID", err)
 		return err
 	}
@@ -398,7 +404,7 @@ func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, session
 	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
 
 	if err == redis.Nil {
-		maxTurnNo, err = s.interviewSessionRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
+		maxTurnNo, err = s.interviewTurnsRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to get max turn from DB", err)
 			return 0, err
@@ -617,6 +623,43 @@ func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *e
 	}
 
 	return lastErr
+}
+
+func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewerLastMessage] Called")
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, req.SessionID)
+	lastMessage, err := s.redisClient.Get(context.Background(), redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewerLastMessage] Last message not found")
+
+		sessionID, err := uuid.Parse(req.SessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewerLastMessage] Invalid session ID", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		}
+
+		lastMessage, err := s.interviewTurnsRepo.GetInterviewerLastMessage(context.Background(), sessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewerLastMessage] Error getting last message", err)
+			return nil, err
+		}
+
+		resp := &entities.GetInterviewerLastMessageResp{
+			Message:      lastMessage.TranscriptText.String,
+			CurrentState: lastMessage.CurrentState,
+		}
+
+		return resp, nil
+	}
+
+	var resp entities.GetInterviewerLastMessageResp
+	if err := json.Unmarshal([]byte(lastMessage), &resp); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewerLastMessage] Error unmarshalling last message", err)
+		return nil, app_error.New(err, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	return &resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

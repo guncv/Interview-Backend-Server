@@ -63,6 +63,9 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrHttpCodeNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrHttpCodeNotFound,
+
+	// Interview Turns
+	ErrCodeInterviewTurnsLastMessageNotFound: ErrHttpCodeNotFound,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -128,4 +131,7 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrMessageEvaluationRubricNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrMessageEvaluationRubricCriteriaNotFound,
+
+	// Interview Turns
+	ErrCodeInterviewTurnsLastMessageNotFound: ErrMessageInterviewTurnsLastMessageNotFound,
 }

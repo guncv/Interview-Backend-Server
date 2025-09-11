@@ -45,4 +45,6 @@ WHERE name = 'General Rubric';
 
 ALTER TABLE interview_turns
 DROP COLUMN current_state;
+
+DROP INDEX IF EXISTS idx_interview_turns_session_actor_turn
 COMMIT;

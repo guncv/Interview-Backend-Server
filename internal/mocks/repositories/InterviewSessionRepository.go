@@ -177,53 +177,6 @@ func (_c *MockInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx_C
 	return _c
 }
 
-// CreateSessionTurnBySessionID provides a mock function with given fields: ctx, req
-func (_m *MockInterviewSessionRepository) CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateSessionTurnBySessionID")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *db.CreateInterviewTurnParams) error); ok {
-		r0 = rf(ctx, req)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSessionTurnBySessionID'
-type MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call struct {
-	*mock.Call
-}
-
-// CreateSessionTurnBySessionID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *db.CreateInterviewTurnParams
-func (_e *MockInterviewSessionRepository_Expecter) CreateSessionTurnBySessionID(ctx interface{}, req interface{}) *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call {
-	return &MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call{Call: _e.mock.On("CreateSessionTurnBySessionID", ctx, req)}
-}
-
-func (_c *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call) Run(run func(ctx context.Context, req *db.CreateInterviewTurnParams)) *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*db.CreateInterviewTurnParams))
-	})
-	return _c
-}
-
-func (_c *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call) Return(_a0 error) *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call) RunAndReturn(run func(context.Context, *db.CreateInterviewTurnParams) error) *MockInterviewSessionRepository_CreateSessionTurnBySessionID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // EndInterviewSession provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error {
 	ret := _m.Called(ctx, req)
@@ -267,63 +220,6 @@ func (_c *MockInterviewSessionRepository_EndInterviewSession_Call) Return(_a0 er
 }
 
 func (_c *MockInterviewSessionRepository_EndInterviewSession_Call) RunAndReturn(run func(context.Context, *db.EndInterviewSessionParams) error) *MockInterviewSessionRepository_EndInterviewSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetMaxTurnNoBySessionID provides a mock function with given fields: ctx, sessionID
-func (_m *MockInterviewSessionRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
-	ret := _m.Called(ctx, sessionID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetMaxTurnNoBySessionID")
-	}
-
-	var r0 int64
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int64, error)); ok {
-		return rf(ctx, sessionID)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) int64); ok {
-		r0 = rf(ctx, sessionID)
-	} else {
-		r0 = ret.Get(0).(int64)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, sessionID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetMaxTurnNoBySessionID'
-type MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call struct {
-	*mock.Call
-}
-
-// GetMaxTurnNoBySessionID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - sessionID uuid.UUID
-func (_e *MockInterviewSessionRepository_Expecter) GetMaxTurnNoBySessionID(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
-	return &MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call{Call: _e.mock.On("GetMaxTurnNoBySessionID", ctx, sessionID)}
-}
-
-func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) Return(_a0 int64, _a1 error) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (int64, error)) *MockInterviewSessionRepository_GetMaxTurnNoBySessionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

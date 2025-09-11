@@ -67,6 +67,9 @@ const (
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound         ErrorCode = "ONX0500"
 	ErrCodeEvaluationRubricCriteriaNotFound ErrorCode = "ONX0501"
+
+	// Interview Turns
+	ErrCodeInterviewTurnsLastMessageNotFound ErrorCode = "ONX0600"
 )
 
 func (c ErrorCode) Message() string {

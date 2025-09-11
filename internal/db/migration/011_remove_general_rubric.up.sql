@@ -32,4 +32,8 @@ FROM inserted_rubric,
 
 ALTER TABLE interview_turns
 ADD COLUMN current_state VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN';
+
+CREATE INDEX idx_interview_turns_session_actor_turn
+ON interview_turns (session_id, actor, turn_no DESC);
+
 COMMIT;

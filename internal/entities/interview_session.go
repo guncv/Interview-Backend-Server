@@ -46,17 +46,19 @@ type DeleteJobRequirementPayload struct {
 }
 
 type CreateUserSessionTurnBySessionIDReq struct {
-	TurnID     string `json:"turn_id" binding:"required"`
-	SessionID  string `json:"session_id" binding:"required"`
-	Transcript string `json:"transcript" binding:"required"`
+	TurnID       string `json:"turn_id" binding:"required"`
+	SessionID    string `json:"session_id" binding:"required"`
+	CurrentState string `json:"current_state" binding:"required"`
+	Transcript   string `json:"transcript" binding:"required"`
 }
 
 type CreateInterviewerSessionTurnBySessionIDReq struct {
-	TurnID     string `json:"turn_id" binding:"required"`
-	SessionID  string `json:"session_id" binding:"required"`
-	Transcript string `json:"transcript" binding:"required"`
-	StartedAt  string `json:"started_at" binding:"required"`
-	EndedAt    string `json:"ended_at" binding:"required"`
+	TurnID       string `json:"turn_id" binding:"required"`
+	SessionID    string `json:"session_id" binding:"required"`
+	Transcript   string `json:"transcript" binding:"required"`
+	StartedAt    string `json:"started_at" binding:"required"`
+	EndedAt      string `json:"ended_at" binding:"required"`
+	CurrentState string `json:"current_state" binding:"required"`
 }
 
 type UpdateInterviewSessionStatusReq struct {
@@ -87,6 +89,15 @@ type CalculateTurnScoreReq struct {
 	InterviewerMessage string `json:"interviewer_message" binding:"required"`
 }
 
+type GetInterviewerLastMessageReq struct {
+	SessionID string `json:"session_id" binding:"required"`
+}
+
+type GetInterviewerLastMessageResp struct {
+	Message      string `json:"message"`
+	CurrentState string `json:"current_state"`
+}
+
 type IsSessionValidResp struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`
@@ -98,4 +109,9 @@ type WebSocketSessionReq struct {
 	SessionID string        `json:"session_id"`
 	ResumeID  string        `json:"resume_id"`
 	Duration  time.Duration `json:"duration"`
+}
+
+type RedisLastMessagePayload struct {
+	Message      string `json:"message"`
+	CurrentState string `json:"current_state"`
 }
