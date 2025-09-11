@@ -7,6 +7,11 @@ type MsgConnectionEstablished struct {
 	SessionID string `json:"session_id"`
 }
 
+type MsgStartSessionConversation struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
 type MsgAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`

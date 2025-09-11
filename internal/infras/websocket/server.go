@@ -203,6 +203,7 @@ func (s *webSocketServer) HandleConnection(
 		"type": "connection_established", "session_id": client.SessionID,
 	})
 
+	s.logic.sendStartSessionConversationMessage(ctx, client)
 	go s.pingLoop(ctx, client)
 	go s.readLoop(ctx, client)
 

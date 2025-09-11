@@ -52,6 +52,26 @@ func NewWebSocketServerLogic(
 	}
 }
 
+func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.Context, client *Client) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Called")
+
+	go func() {
+		time.Sleep(2 * time.Second)
+
+		openingMsg := MsgStartSessionConversation{
+			Type:      constants.WebSocketMessageTypeStartSessionConversation,
+			SessionID: client.SessionID,
+		}
+
+		if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
+			if err := agentClient.StartSessionConversation(ctx, openingMsg); err != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Error forwarding audio to AI agent", err)
+				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+			}
+		}
+	}()
+}
+
 func (s *WebSocketServerLogic) handleAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Called")
 

@@ -15,14 +15,15 @@ const (
 
 	ModalityVoiceChat = "voice_chat"
 
-	WebSocketMessageTypeHello                 = "hello"
-	WebSocketMessageTypeSegmentStart          = "segment_start"
-	WebSocketMessageTypeSegmentEnd            = "segment_end"
-	WebSocketBineryTypeAudioChunk             = "audio_chunk"
-	WebSocketMessageTypeError                 = "error"
-	WebSocketMessageTypeUserPartialTranscript = "user_partial_transcript"
-	WebSocketMessageTypeUserFullTranscript    = "user_full_transcript"
-	WebSocketMessageTypeInterviewerResponse   = "interviewer_response"
+	WebSocketMessageTypeHello                    = "hello"
+	WebSocketMessageTypeStartSessionConversation = "start_session_conversation"
+	WebSocketMessageTypeSegmentStart             = "segment_start"
+	WebSocketMessageTypeSegmentEnd               = "segment_end"
+	WebSocketBineryTypeAudioChunk                = "audio_chunk"
+	WebSocketMessageTypeError                    = "error"
+	WebSocketMessageTypeUserPartialTranscript    = "user_partial_transcript"
+	WebSocketMessageTypeUserFullTranscript       = "user_full_transcript"
+	WebSocketMessageTypeInterviewerResponse      = "interviewer_response"
 
 	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"
@@ -34,7 +35,7 @@ const (
 	WebSocketPingInterval           = 2 * time.Second
 	WebSocketPingDuration           = 2 * time.Second
 	WebSocketReadTimeout            = 6 * time.Second
-	WebSocketPongTimeout            = 4 * time.Second
+	WebSocketPongTimeout            = 6 * time.Second
 	WebSocketClientHandshakeTimeout = 2 * time.Second
 
 	// Interviewer Constants
