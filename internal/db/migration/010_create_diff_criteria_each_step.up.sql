@@ -1,13 +1,5 @@
 BEGIN;
 
-DELETE FROM evaluation_criteria
-WHERE rubric_id IN (
-    SELECT id FROM evaluation_rubrics
-    WHERE name = 'General Interview Rubric (v1)'
-);
-
-DROP INDEX IF EXISTS idx_rubrics_name_softdelete;
-
 -- GREETING RUBRIC
 WITH inserted_rubric AS (
     INSERT INTO evaluation_rubrics (id, name, description_md, version_label)
