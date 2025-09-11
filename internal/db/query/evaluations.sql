@@ -5,6 +5,7 @@ INSERT INTO evaluations (
     turn_id,
     rubric_id,
     evaluator_user_id,
+    step,
     overall_score,
     summary_md,
     
@@ -12,5 +13,5 @@ INSERT INTO evaluations (
     updated_at
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 );

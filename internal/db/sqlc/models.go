@@ -59,6 +59,7 @@ type Evaluations struct {
 	UpdatedAt       sql.NullTime `json:"updated_at"`
 	DeletedAt       sql.NullTime `json:"deleted_at"`
 	SoftDelete      sql.NullBool `json:"soft_delete"`
+	Step            string       `json:"step"`
 }
 
 type InterviewSessions struct {

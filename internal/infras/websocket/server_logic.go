@@ -375,6 +375,8 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating last message", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisSetFailed)
 		return
+	} else {
+		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Last message created")
 	}
 }
 

@@ -17,7 +17,7 @@ const (
 	RedisTTLDefault       = 1 * time.Hour
 
 	RedisTTLInterviewSegmentMapping = 5 * time.Minute
-	RedisTTLInterviewLastMessage    = 2 * time.Minute
+	RedisTTLInterviewLastMessage    = 5 * time.Minute
 	RedisTTLInterviewTurn           = 10 * time.Minute
 	RedisTTLInterviewStartEndTime   = 1 * time.Hour
 	RedisTTLEvaluationRubric        = 1 * time.Hour

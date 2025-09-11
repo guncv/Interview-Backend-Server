@@ -53,6 +53,7 @@ type MsgInterviewerResp struct {
 	Message   string `json:"message"`
 	StartedAt string `json:"started_at,omitempty"`
 	EndedAt   string `json:"ended_at,omitempty"`
+	Step      string `json:"step,omitempty"`
 }
 
 type ConversationTurn struct {
