@@ -478,6 +478,53 @@ func (_c *MockWebSocketClient_Start_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
+// StartSessionConversation provides a mock function with given fields: ctx, msg
+func (_m *MockWebSocketClient) StartSessionConversation(ctx context.Context, msg websocket.MsgStartSessionConversation) error {
+	ret := _m.Called(ctx, msg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StartSessionConversation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, websocket.MsgStartSessionConversation) error); ok {
+		r0 = rf(ctx, msg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketClient_StartSessionConversation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StartSessionConversation'
+type MockWebSocketClient_StartSessionConversation_Call struct {
+	*mock.Call
+}
+
+// StartSessionConversation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - msg websocket.MsgStartSessionConversation
+func (_e *MockWebSocketClient_Expecter) StartSessionConversation(ctx interface{}, msg interface{}) *MockWebSocketClient_StartSessionConversation_Call {
+	return &MockWebSocketClient_StartSessionConversation_Call{Call: _e.mock.On("StartSessionConversation", ctx, msg)}
+}
+
+func (_c *MockWebSocketClient_StartSessionConversation_Call) Run(run func(ctx context.Context, msg websocket.MsgStartSessionConversation)) *MockWebSocketClient_StartSessionConversation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(websocket.MsgStartSessionConversation))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClient_StartSessionConversation_Call) Return(_a0 error) *MockWebSocketClient_StartSessionConversation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketClient_StartSessionConversation_Call) RunAndReturn(run func(context.Context, websocket.MsgStartSessionConversation) error) *MockWebSocketClient_StartSessionConversation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockWebSocketClient creates a new instance of MockWebSocketClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockWebSocketClient(t interface {

@@ -19,6 +19,7 @@ INSERT INTO evaluations (
     turn_id,
     rubric_id,
     evaluator_user_id,
+    current_state,
     overall_score,
     summary_md,
     
@@ -26,7 +27,7 @@ INSERT INTO evaluations (
     updated_at
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 `
 
@@ -36,6 +37,7 @@ type CreateEvaluationParams struct {
 	TurnID          uuid.UUID    `json:"turn_id"`
 	RubricID        uuid.UUID    `json:"rubric_id"`
 	EvaluatorUserID uuid.UUID    `json:"evaluator_user_id"`
+	CurrentState    string       `json:"current_state"`
 	OverallScore    string       `json:"overall_score"`
 	SummaryMd       string       `json:"summary_md"`
 	CreatedAt       sql.NullTime `json:"created_at"`
@@ -49,6 +51,7 @@ func (q *Queries) CreateEvaluation(ctx context.Context, arg CreateEvaluationPara
 		arg.TurnID,
 		arg.RubricID,
 		arg.EvaluatorUserID,
+		arg.CurrentState,
 		arg.OverallScore,
 		arg.SummaryMd,
 		arg.CreatedAt,

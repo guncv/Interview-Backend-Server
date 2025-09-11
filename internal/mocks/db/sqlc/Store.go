@@ -846,6 +846,63 @@ func (_c *MockStore_GetDefaultResumeByUserID_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// GetInterviewerLastMessage provides a mock function with given fields: ctx, sessionID
+func (_m *MockStore) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (db.GetInterviewerLastMessageRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetInterviewerLastMessage")
+	}
+
+	var r0 db.GetInterviewerLastMessageRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetInterviewerLastMessageRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetInterviewerLastMessageRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		r0 = ret.Get(0).(db.GetInterviewerLastMessageRow)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetInterviewerLastMessage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewerLastMessage'
+type MockStore_GetInterviewerLastMessage_Call struct {
+	*mock.Call
+}
+
+// GetInterviewerLastMessage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockStore_Expecter) GetInterviewerLastMessage(ctx interface{}, sessionID interface{}) *MockStore_GetInterviewerLastMessage_Call {
+	return &MockStore_GetInterviewerLastMessage_Call{Call: _e.mock.On("GetInterviewerLastMessage", ctx, sessionID)}
+}
+
+func (_c *MockStore_GetInterviewerLastMessage_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockStore_GetInterviewerLastMessage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetInterviewerLastMessage_Call) Return(_a0 db.GetInterviewerLastMessageRow, _a1 error) *MockStore_GetInterviewerLastMessage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetInterviewerLastMessage_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetInterviewerLastMessageRow, error)) *MockStore_GetInterviewerLastMessage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetMaxTurnNoBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockStore) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error) {
 	ret := _m.Called(ctx, sessionID)
@@ -1019,9 +1076,9 @@ func (_c *MockStore_GetResumeByID_Call) RunAndReturn(run func(context.Context, u
 	return _c
 }
 
-// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, name
-func (_m *MockStore) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]db.GetRubricWithCriteriaByNameRow, error) {
-	ret := _m.Called(ctx, name)
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, arg
+func (_m *MockStore) GetRubricWithCriteriaByName(ctx context.Context, arg db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error) {
+	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRubricWithCriteriaByName")
@@ -1029,19 +1086,19 @@ func (_m *MockStore) GetRubricWithCriteriaByName(ctx context.Context, name strin
 
 	var r0 []db.GetRubricWithCriteriaByNameRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
-		return rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
+		return rf(ctx, arg)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []db.GetRubricWithCriteriaByNameRow); ok {
-		r0 = rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetRubricWithCriteriaByNameParams) []db.GetRubricWithCriteriaByNameRow); ok {
+		r0 = rf(ctx, arg)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]db.GetRubricWithCriteriaByNameRow)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, name)
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetRubricWithCriteriaByNameParams) error); ok {
+		r1 = rf(ctx, arg)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1056,14 +1113,14 @@ type MockStore_GetRubricWithCriteriaByName_Call struct {
 
 // GetRubricWithCriteriaByName is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *MockStore_Expecter) GetRubricWithCriteriaByName(ctx interface{}, name interface{}) *MockStore_GetRubricWithCriteriaByName_Call {
-	return &MockStore_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, name)}
+//   - arg db.GetRubricWithCriteriaByNameParams
+func (_e *MockStore_Expecter) GetRubricWithCriteriaByName(ctx interface{}, arg interface{}) *MockStore_GetRubricWithCriteriaByName_Call {
+	return &MockStore_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, arg)}
 }
 
-func (_c *MockStore_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, name string)) *MockStore_GetRubricWithCriteriaByName_Call {
+func (_c *MockStore_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, arg db.GetRubricWithCriteriaByNameParams)) *MockStore_GetRubricWithCriteriaByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(db.GetRubricWithCriteriaByNameParams))
 	})
 	return _c
 }
@@ -1073,7 +1130,7 @@ func (_c *MockStore_GetRubricWithCriteriaByName_Call) Return(_a0 []db.GetRubricW
 	return _c
 }
 
-func (_c *MockStore_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockStore_GetRubricWithCriteriaByName_Call {
+func (_c *MockStore_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockStore_GetRubricWithCriteriaByName_Call {
 	_c.Call.Return(run)
 	return _c
 }

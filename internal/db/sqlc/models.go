@@ -28,7 +28,7 @@ type EvaluationRubrics struct {
 	ID            uuid.UUID      `json:"id"`
 	Name          string         `json:"name"`
 	DescriptionMd sql.NullString `json:"description_md"`
-	VersionLabel  sql.NullString `json:"version_label"`
+	VersionLabel  string         `json:"version_label"`
 	CreatedAt     sql.NullTime   `json:"created_at"`
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 	DeletedAt     sql.NullTime   `json:"deleted_at"`
@@ -59,6 +59,7 @@ type Evaluations struct {
 	UpdatedAt       sql.NullTime `json:"updated_at"`
 	DeletedAt       sql.NullTime `json:"deleted_at"`
 	SoftDelete      sql.NullBool `json:"soft_delete"`
+	CurrentState    string       `json:"current_state"`
 }
 
 type InterviewSessions struct {
@@ -91,6 +92,7 @@ type InterviewTurns struct {
 	StartAt        string         `json:"start_at"`
 	EndAt          string         `json:"end_at"`
 	CreatedAt      sql.NullTime   `json:"created_at"`
+	CurrentState   string         `json:"current_state"`
 }
 
 type ResetTokens struct {

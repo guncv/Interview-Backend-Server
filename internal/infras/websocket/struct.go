@@ -7,6 +7,11 @@ type MsgConnectionEstablished struct {
 	SessionID string `json:"session_id"`
 }
 
+type MsgStartSessionConversation struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
 type MsgAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
@@ -42,12 +47,13 @@ type MsgUserFullTranscript struct {
 }
 
 type MsgInterviewerResp struct {
-	Type      string `json:"type"`
-	Author    string `json:"author"`
-	SessionID string `json:"session_id"`
-	Message   string `json:"message"`
-	StartedAt string `json:"started_at,omitempty"`
-	EndedAt   string `json:"ended_at,omitempty"`
+	Type         string `json:"type"`
+	Author       string `json:"author"`
+	SessionID    string `json:"session_id"`
+	Message      string `json:"message"`
+	StartedAt    string `json:"started_at,omitempty"`
+	EndedAt      string `json:"ended_at,omitempty"`
+	CurrentState string `json:"current_state,omitempty"`
 }
 
 type ConversationTurn struct {

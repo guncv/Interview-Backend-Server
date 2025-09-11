@@ -11,41 +11,48 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 )
 
 type EvaluationService interface {
-	GetRubricWithCriteriaByName(ctx context.Context) (*entities.GetRubricWithCriteriaByNameResp, error)
+	GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error)
 }
 
 type evaluationService struct {
-	log         *log.Logger
-	db          db.Store
-	redisClient database.RedisClient
+	log                   *log.Logger
+	redisClient           database.RedisClient
+	evaluationRubricsRepo repositories.EvaluationRubricsRepository
 }
 
 func NewEvaluationService(
 	log *log.Logger,
-	db db.Store,
 	redisClient database.RedisClient,
+	evaluationRubricsRepo repositories.EvaluationRubricsRepository,
 ) EvaluationService {
 	return &evaluationService{
-		log:         log,
-		db:          db,
-		redisClient: redisClient,
+		log:                   log,
+		evaluationRubricsRepo: evaluationRubricsRepo,
+		redisClient:           redisClient,
 	}
 }
 
-func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context) (*entities.GetRubricWithCriteriaByNameResp, error) {
+func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetRubricWithCriteriaByName] Called")
 
 	var resp entities.GetRubricWithCriteriaByNameResp
-	redisKey := fmt.Sprintf("%s:%s", constants.RedisPrefixEvaluationRubric, constants.RubricNameGeneralInterview)
+	redisKey := fmt.Sprintf("%s:%s", constants.RedisPrefixEvaluationRubric, rubricName)
 
 	redisValue, err := s.redisClient.Get(ctx, redisKey)
 	if err != nil {
 		s.log.WarnWithID(ctx, "[Service: GetRubricWithCriteriaByName] Redis miss or error, falling back to DB", err)
 
-		dbRows, err := s.db.GetRubricWithCriteriaByName(ctx, constants.RubricNameGeneralInterview)
+		criteriaNameMapping := constants.StateToCriteriaStateMap[rubricName]
+		req := &db.GetRubricWithCriteriaByNameParams{
+			Name:         criteriaNameMapping,
+			VersionLabel: constants.CurrentCriteriaVersion,
+		}
+
+		dbRows, err := s.evaluationRubricsRepo.GetRubricWithCriteriaByName(ctx, req)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: GetRubricWithCriteriaByName] DB error after Redis fail", err)
 			return nil, err
@@ -72,7 +79,7 @@ func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context) (*e
 			RubricID:            dbRows[0].RubricID.String(),
 			RubricName:          dbRows[0].RubricName,
 			RubricDescriptionMd: dbRows[0].RubricDescriptionMd.String,
-			RubricVersionLabel:  dbRows[0].RubricVersionLabel.String,
+			RubricVersionLabel:  dbRows[0].RubricVersionLabel,
 			Criteria:            criteria,
 		}
 

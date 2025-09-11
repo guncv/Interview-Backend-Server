@@ -3,7 +3,7 @@ package constants
 import "time"
 
 const (
-	RubricNameGeneralInterview = "General Interview Rubric (v1)"
+	RubricNameGeneralInterview = "General Rubric"
 
 	MaxRetryDbEvaluationTx   = 3
 	RetryDelayDbEvaluationTx = 200 * time.Millisecond

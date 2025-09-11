@@ -22,9 +22,9 @@ func (_m *MockEvaluationService) EXPECT() *MockEvaluationService_Expecter {
 	return &MockEvaluationService_Expecter{mock: &_m.Mock}
 }
 
-// GetRubricWithCriteriaByName provides a mock function with given fields: ctx
-func (_m *MockEvaluationService) GetRubricWithCriteriaByName(ctx context.Context) (*entities.GetRubricWithCriteriaByNameResp, error) {
-	ret := _m.Called(ctx)
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, rubricName
+func (_m *MockEvaluationService) GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error) {
+	ret := _m.Called(ctx, rubricName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRubricWithCriteriaByName")
@@ -32,19 +32,19 @@ func (_m *MockEvaluationService) GetRubricWithCriteriaByName(ctx context.Context
 
 	var r0 *entities.GetRubricWithCriteriaByNameResp
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) (*entities.GetRubricWithCriteriaByNameResp, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*entities.GetRubricWithCriteriaByNameResp, error)); ok {
+		return rf(ctx, rubricName)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) *entities.GetRubricWithCriteriaByNameResp); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *entities.GetRubricWithCriteriaByNameResp); ok {
+		r0 = rf(ctx, rubricName)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*entities.GetRubricWithCriteriaByNameResp)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, rubricName)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -59,13 +59,14 @@ type MockEvaluationService_GetRubricWithCriteriaByName_Call struct {
 
 // GetRubricWithCriteriaByName is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockEvaluationService_Expecter) GetRubricWithCriteriaByName(ctx interface{}) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
-	return &MockEvaluationService_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx)}
+//   - rubricName string
+func (_e *MockEvaluationService_Expecter) GetRubricWithCriteriaByName(ctx interface{}, rubricName interface{}) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
+	return &MockEvaluationService_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, rubricName)}
 }
 
-func (_c *MockEvaluationService_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context)) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
+func (_c *MockEvaluationService_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, rubricName string)) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -75,7 +76,7 @@ func (_c *MockEvaluationService_GetRubricWithCriteriaByName_Call) Return(_a0 *en
 	return _c
 }
 
-func (_c *MockEvaluationService_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context) (*entities.GetRubricWithCriteriaByNameResp, error)) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
+func (_c *MockEvaluationService_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) (*entities.GetRubricWithCriteriaByNameResp, error)) *MockEvaluationService_GetRubricWithCriteriaByName_Call {
 	_c.Call.Return(run)
 	return _c
 }

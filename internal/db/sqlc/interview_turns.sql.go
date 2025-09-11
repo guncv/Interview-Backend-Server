@@ -18,11 +18,12 @@ INSERT INTO interview_turns (
     session_id,
     turn_no,
     actor,
+    current_state,
     transcript_text,
     start_at,
     end_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
@@ -31,6 +32,7 @@ type CreateInterviewTurnParams struct {
 	SessionID      uuid.UUID      `json:"session_id"`
 	TurnNo         int64          `json:"turn_no"`
 	Actor          string         `json:"actor"`
+	CurrentState   string         `json:"current_state"`
 	TranscriptText sql.NullString `json:"transcript_text"`
 	StartAt        string         `json:"start_at"`
 	EndAt          string         `json:"end_at"`
@@ -42,11 +44,33 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 		arg.SessionID,
 		arg.TurnNo,
 		arg.Actor,
+		arg.CurrentState,
 		arg.TranscriptText,
 		arg.StartAt,
 		arg.EndAt,
 	)
 	return err
+}
+
+const getInterviewerLastMessage = `-- name: GetInterviewerLastMessage :one
+SELECT current_state, transcript_text
+FROM interview_turns
+WHERE session_id = $1
+AND actor = 'interviewer'
+ORDER BY turn_no DESC
+LIMIT 1
+`
+
+type GetInterviewerLastMessageRow struct {
+	CurrentState   string         `json:"current_state"`
+	TranscriptText sql.NullString `json:"transcript_text"`
+}
+
+func (q *Queries) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error) {
+	row := q.db.QueryRowContext(ctx, getInterviewerLastMessage, sessionID)
+	var i GetInterviewerLastMessageRow
+	err := row.Scan(&i.CurrentState, &i.TranscriptText)
+	return i, err
 }
 
 const getMaxTurnNoBySessionID = `-- name: GetMaxTurnNoBySessionID :one

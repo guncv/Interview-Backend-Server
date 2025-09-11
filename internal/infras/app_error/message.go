@@ -67,4 +67,7 @@ const (
 	// Evaluation
 	ErrMessageEvaluationRubricNotFound         ErrorMessage = "The rubric was not found. Please try again."
 	ErrMessageEvaluationRubricCriteriaNotFound ErrorMessage = "The rubric criteria was not found. Please try again."
+
+	// Interview Turns
+	ErrMessageInterviewTurnsLastMessageNotFound ErrorMessage = "The interviewer last message was not found. Please try again."
 )

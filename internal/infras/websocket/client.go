@@ -18,6 +18,7 @@ type WebSocketClient interface {
 	Start(ctx context.Context, url string) error
 	Close(ctx context.Context) error
 
+	StartSessionConversation(ctx context.Context, msg MsgStartSessionConversation) error
 	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
 	SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error
 	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
@@ -101,6 +102,27 @@ func (c *webSocketClient) Close(ctx context.Context) error {
 		c.log.InfoWithID(ctx, "[WebSocketClient: Close] Closing connection")
 		return c.conn.Close()
 	}
+	return nil
+}
+
+func (c *webSocketClient) StartSessionConversation(ctx context.Context, msg MsgStartSessionConversation) error {
+	c.log.InfoWithID(ctx, "[WebSocketClient: StartSessionConversation] Called:", msg)
+
+	if c.sessionID != msg.SessionID {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: StartSessionConversation] Session ID mismatch")
+		return errors.New("session ID mismatch")
+	}
+
+	message := map[string]interface{}{
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+	}
+
+	if err := c.SendMessage(ctx, message); err != nil {
+		c.log.ErrorWithID(ctx, "[WebSocketClient: StartSessionConversation] Error sending session info", err)
+		return err
+	}
+
 	return nil
 }
 

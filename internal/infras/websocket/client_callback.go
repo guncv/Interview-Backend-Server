@@ -103,10 +103,7 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 }
 
 func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req MsgInterviewerResp) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Agent sent AI response", map[string]any{
-		"session_id": req.SessionID,
-		"message":    req.Message,
-	})
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Called")
 
 	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Security violation: Session ID mismatch", map[string]any{
