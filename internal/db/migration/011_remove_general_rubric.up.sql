@@ -30,4 +30,6 @@ FROM inserted_rubric,
         ('depth', 'Technical Depth', 'Did the answer show deep understanding, reasoning, or examples?', 0.25, 5.0)
     ) AS criteria(code, name, description_md, weight, max_score);
 
+ALTER TABLE interview_turns
+ADD COLUMN current_state VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN';
 COMMIT;

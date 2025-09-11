@@ -18,11 +18,12 @@ INSERT INTO interview_turns (
     session_id,
     turn_no,
     actor,
+    current_state,
     transcript_text,
     start_at,
     end_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
@@ -31,6 +32,7 @@ type CreateInterviewTurnParams struct {
 	SessionID      uuid.UUID      `json:"session_id"`
 	TurnNo         int64          `json:"turn_no"`
 	Actor          string         `json:"actor"`
+	CurrentState   string         `json:"current_state"`
 	TranscriptText sql.NullString `json:"transcript_text"`
 	StartAt        string         `json:"start_at"`
 	EndAt          string         `json:"end_at"`
@@ -42,6 +44,7 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 		arg.SessionID,
 		arg.TurnNo,
 		arg.Actor,
+		arg.CurrentState,
 		arg.TranscriptText,
 		arg.StartAt,
 		arg.EndAt,

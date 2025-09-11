@@ -43,4 +43,6 @@ WHERE rubric_id IN (
 DELETE FROM evaluation_rubrics
 WHERE name = 'General Rubric';
 
+ALTER TABLE interview_turns
+DROP COLUMN current_state;
 COMMIT;

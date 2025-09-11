@@ -5,7 +5,7 @@ INSERT INTO evaluations (
     turn_id,
     rubric_id,
     evaluator_user_id,
-    step,
+    current_state,
     overall_score,
     summary_md,
     

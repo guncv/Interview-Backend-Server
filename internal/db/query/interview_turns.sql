@@ -4,11 +4,12 @@ INSERT INTO interview_turns (
     session_id,
     turn_no,
     actor,
+    current_state,
     transcript_text,
     start_at,
     end_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 );
 
 -- name: GetMaxTurnNoBySessionID :one
