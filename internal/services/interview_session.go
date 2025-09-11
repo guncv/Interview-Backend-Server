@@ -534,7 +534,7 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
 	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
 
-	rubric, err := s.evaluationService.GetRubricWithCriteriaByName(ctx)
+	rubric, err := s.evaluationService.GetRubricWithCriteriaByName(ctx, req.CurrentState)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting rubric with criteria by name", err)
 		return err

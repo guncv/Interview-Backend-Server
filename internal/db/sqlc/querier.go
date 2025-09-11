@@ -30,7 +30,7 @@ type Querier interface {
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
-	GetRubricWithCriteriaByName(ctx context.Context, name string) ([]GetRubricWithCriteriaByNameRow, error)
+	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)

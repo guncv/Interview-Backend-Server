@@ -27,15 +27,21 @@ SELECT
 FROM evaluation_rubrics r
 JOIN evaluation_criteria c ON r.id = c.rubric_id
 WHERE r.name = $1
+    AND r.version_label = $2
     AND r.soft_delete = FALSE
 ORDER BY c.code
 `
+
+type GetRubricWithCriteriaByNameParams struct {
+	Name         string `json:"name"`
+	VersionLabel string `json:"version_label"`
+}
 
 type GetRubricWithCriteriaByNameRow struct {
 	RubricID               uuid.UUID      `json:"rubric_id"`
 	RubricName             string         `json:"rubric_name"`
 	RubricDescriptionMd    sql.NullString `json:"rubric_description_md"`
-	RubricVersionLabel     sql.NullString `json:"rubric_version_label"`
+	RubricVersionLabel     string         `json:"rubric_version_label"`
 	CriterionID            uuid.UUID      `json:"criterion_id"`
 	CriterionCode          string         `json:"criterion_code"`
 	CriterionName          string         `json:"criterion_name"`
@@ -44,8 +50,8 @@ type GetRubricWithCriteriaByNameRow struct {
 	CriterionMaxScore      string         `json:"criterion_max_score"`
 }
 
-func (q *Queries) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]GetRubricWithCriteriaByNameRow, error) {
-	rows, err := q.db.QueryContext(ctx, getRubricWithCriteriaByName, name)
+func (q *Queries) GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRubricWithCriteriaByName, arg.Name, arg.VersionLabel)
 	if err != nil {
 		return nil, err
 	}

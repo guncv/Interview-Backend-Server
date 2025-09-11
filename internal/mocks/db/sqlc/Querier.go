@@ -1029,9 +1029,9 @@ func (_c *MockQuerier_GetResumeByID_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, name
-func (_m *MockQuerier) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]db.GetRubricWithCriteriaByNameRow, error) {
-	ret := _m.Called(ctx, name)
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) GetRubricWithCriteriaByName(ctx context.Context, arg db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error) {
+	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRubricWithCriteriaByName")
@@ -1039,19 +1039,19 @@ func (_m *MockQuerier) GetRubricWithCriteriaByName(ctx context.Context, name str
 
 	var r0 []db.GetRubricWithCriteriaByNameRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
-		return rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
+		return rf(ctx, arg)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []db.GetRubricWithCriteriaByNameRow); ok {
-		r0 = rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetRubricWithCriteriaByNameParams) []db.GetRubricWithCriteriaByNameRow); ok {
+		r0 = rf(ctx, arg)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]db.GetRubricWithCriteriaByNameRow)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, name)
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetRubricWithCriteriaByNameParams) error); ok {
+		r1 = rf(ctx, arg)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1066,14 +1066,14 @@ type MockQuerier_GetRubricWithCriteriaByName_Call struct {
 
 // GetRubricWithCriteriaByName is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *MockQuerier_Expecter) GetRubricWithCriteriaByName(ctx interface{}, name interface{}) *MockQuerier_GetRubricWithCriteriaByName_Call {
-	return &MockQuerier_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, name)}
+//   - arg db.GetRubricWithCriteriaByNameParams
+func (_e *MockQuerier_Expecter) GetRubricWithCriteriaByName(ctx interface{}, arg interface{}) *MockQuerier_GetRubricWithCriteriaByName_Call {
+	return &MockQuerier_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, arg)}
 }
 
-func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, name string)) *MockQuerier_GetRubricWithCriteriaByName_Call {
+func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, arg db.GetRubricWithCriteriaByNameParams)) *MockQuerier_GetRubricWithCriteriaByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(db.GetRubricWithCriteriaByNameParams))
 	})
 	return _c
 }
@@ -1083,7 +1083,7 @@ func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) Return(_a0 []db.GetRubri
 	return _c
 }
 
-func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockQuerier_GetRubricWithCriteriaByName_Call {
+func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockQuerier_GetRubricWithCriteriaByName_Call {
 	_c.Call.Return(run)
 	return _c
 }

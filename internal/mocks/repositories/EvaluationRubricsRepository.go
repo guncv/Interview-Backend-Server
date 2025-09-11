@@ -22,9 +22,9 @@ func (_m *MockEvaluationRubricsRepository) EXPECT() *MockEvaluationRubricsReposi
 	return &MockEvaluationRubricsRepository_Expecter{mock: &_m.Mock}
 }
 
-// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, name
-func (_m *MockEvaluationRubricsRepository) GetRubricWithCriteriaByName(ctx context.Context, name string) ([]db.GetRubricWithCriteriaByNameRow, error) {
-	ret := _m.Called(ctx, name)
+// GetRubricWithCriteriaByName provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationRubricsRepository) GetRubricWithCriteriaByName(ctx context.Context, req *db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error) {
+	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRubricWithCriteriaByName")
@@ -32,19 +32,19 @@ func (_m *MockEvaluationRubricsRepository) GetRubricWithCriteriaByName(ctx conte
 
 	var r0 []db.GetRubricWithCriteriaByNameRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
-		return rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)); ok {
+		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []db.GetRubricWithCriteriaByNameRow); ok {
-		r0 = rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetRubricWithCriteriaByNameParams) []db.GetRubricWithCriteriaByNameRow); ok {
+		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]db.GetRubricWithCriteriaByNameRow)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, name)
+	if rf, ok := ret.Get(1).(func(context.Context, *db.GetRubricWithCriteriaByNameParams) error); ok {
+		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -59,14 +59,14 @@ type MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call struct {
 
 // GetRubricWithCriteriaByName is a helper method to define mock.On call
 //   - ctx context.Context
-//   - name string
-func (_e *MockEvaluationRubricsRepository_Expecter) GetRubricWithCriteriaByName(ctx interface{}, name interface{}) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
-	return &MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, name)}
+//   - req *db.GetRubricWithCriteriaByNameParams
+func (_e *MockEvaluationRubricsRepository_Expecter) GetRubricWithCriteriaByName(ctx interface{}, req interface{}) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
+	return &MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call{Call: _e.mock.On("GetRubricWithCriteriaByName", ctx, req)}
 }
 
-func (_c *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, name string)) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
+func (_c *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call) Run(run func(ctx context.Context, req *db.GetRubricWithCriteriaByNameParams)) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(*db.GetRubricWithCriteriaByNameParams))
 	})
 	return _c
 }
@@ -76,7 +76,7 @@ func (_c *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call) Retu
 	return _c
 }
 
-func (_c *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, string) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
+func (_c *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(context.Context, *db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)) *MockEvaluationRubricsRepository_GetRubricWithCriteriaByName_Call {
 	_c.Call.Return(run)
 	return _c
 }

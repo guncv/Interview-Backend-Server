@@ -28,7 +28,7 @@ type EvaluationRubrics struct {
 	ID            uuid.UUID      `json:"id"`
 	Name          string         `json:"name"`
 	DescriptionMd sql.NullString `json:"description_md"`
-	VersionLabel  sql.NullString `json:"version_label"`
+	VersionLabel  string         `json:"version_label"`
 	CreatedAt     sql.NullTime   `json:"created_at"`
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
 	DeletedAt     sql.NullTime   `json:"deleted_at"`

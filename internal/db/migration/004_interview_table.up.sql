@@ -41,7 +41,7 @@ CREATE TABLE evaluation_rubrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(120) NOT NULL,
     description_md TEXT,
-    version_label VARCHAR(40),
+    version_label VARCHAR(20) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ,

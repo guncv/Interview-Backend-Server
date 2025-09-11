@@ -13,5 +13,6 @@ SELECT
 FROM evaluation_rubrics r
 JOIN evaluation_criteria c ON r.id = c.rubric_id
 WHERE r.name = $1
+    AND r.version_label = $2
     AND r.soft_delete = FALSE
 ORDER BY c.code;

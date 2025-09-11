@@ -312,6 +312,7 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		UserID:             client.userID,
 		UserMessage:        req.Transcript,
 		InterviewerMessage: lastMessage.Message,
+		CurrentState:       lastMessage.CurrentState,
 	}
 
 	if err := s.publisher.PublishTaskCalculateTurnScore(context.Background(), calculateTurnScoreReq); err != nil {

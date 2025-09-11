@@ -87,6 +87,7 @@ type CalculateTurnScoreReq struct {
 	UserID             string `json:"user_id" binding:"required"`
 	UserMessage        string `json:"user_message" binding:"required"`
 	InterviewerMessage string `json:"interviewer_message" binding:"required"`
+	CurrentState       string `json:"current_state" binding:"required"`
 }
 
 type GetInterviewerLastMessageReq struct {

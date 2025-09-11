@@ -25,26 +25,14 @@ const (
 	CriteriaInterviewStateUnknown                = "General Rubric"
 )
 
-const (
-	CriteriaInterviewStepGreeting   = "greeting"
-	CriteriaInterviewStepIntro      = "intro"
-	CriteriaInterviewStepExperience = "experience"
-	CriteriaInterviewStepProject    = "project"
-	CriteriaInterviewStepTechnical  = "technical"
-	CriteriaInterviewStepBehavioral = "behavioral"
-	CriteriaInterviewStepWrapUp     = "wrap_up"
-	CriteriaInterviewStepUnknown    = "unknown"
-)
-
 var StateToCriteriaStateMap = map[string]string{
-	InterviewStateGreeting:           CriteriaInterviewStepGreeting,
-	InterviewStateIntro:              CriteriaInterviewStepIntro,
-	InterviewStateExperience:         CriteriaInterviewStepExperience,
-	InterviewStateProject:            CriteriaInterviewStepProject,
-	InterviewStateTechnicalQuestion:  CriteriaInterviewStepTechnical,
-	InterviewStateBehavioralQuestion: CriteriaInterviewStepBehavioral,
-	InterviewStateWrapUp:             CriteriaInterviewStepWrapUp,
-	InterviewStateUnknown:            CriteriaInterviewStepUnknown,
+	InterviewStateGreeting:           CriteriaInterviewStateGreetingName,
+	InterviewStateIntro:              CriteriaInterviewStateIntroName,
+	InterviewStateExperience:         CriteriaInterviewStateExperienceName,
+	InterviewStateProject:            CriteriaInterviewStateProjectName,
+	InterviewStateTechnicalQuestion:  CriteriaInterviewStateTechnicalQuestionName,
+	InterviewStateBehavioralQuestion: CriteriaInterviewStateBehavioralQuestionName,
+	InterviewStateUnknown:            CriteriaInterviewStateUnknown,
 }
 
 func GetCriteriaStateFromState(step string) string {
@@ -52,5 +40,5 @@ func GetCriteriaStateFromState(step string) string {
 		return criteriaState
 	}
 
-	return CriteriaInterviewStepUnknown
+	return CriteriaInterviewStateUnknown
 }
