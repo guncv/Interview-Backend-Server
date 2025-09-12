@@ -290,7 +290,6 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 
-	// Test data
 	sessionID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
 	userID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
 	resumeID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
@@ -307,8 +306,6 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 		),
 	}
 
-	// Mock config - will be overridden in test cases
-
 	testCases := []struct {
 		name           string
 		input          *ExtractResumeJsonForRAGReq
@@ -320,23 +317,20 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			name:  "Success - With resume file",
 			input: validReq,
 			setup: func() *mockSqlc.MockStore {
-				return new(mockSqlc.MockStore)
+				return nil
 			},
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "POST", r.Method)
 				assert.Equal(t, "/api/v1/interview/requirements", r.URL.Path)
 				assert.Contains(t, r.Header.Get("Content-Type"), "multipart/form-data")
 
-				// Parse multipart form
-				err := r.ParseMultipartForm(10 << 20) // 10 MB
+				err := r.ParseMultipartForm(10 << 20)
 				assert.NoError(t, err)
 
-				// Verify form fields
 				assert.Equal(t, sessionID.String(), r.FormValue("session_id"))
 				assert.Equal(t, userID.String(), r.FormValue("user_id"))
 				assert.Equal(t, resumeID.String(), r.FormValue("resume_id"))
 
-				// Verify file upload
 				file, header, err := r.FormFile("resume_file")
 				assert.NoError(t, err)
 				assert.Equal(t, "resume.pdf", header.Filename)
@@ -359,10 +353,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				ResumeFile: nil,
 			},
 			setup: func() *mockSqlc.MockStore {
-				return new(mockSqlc.MockStore)
+				return nil
 			},
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
-				// Verify the request
 				assert.Equal(t, "POST", r.Method)
 				assert.Equal(t, "/api/v1/interview/requirements", r.URL.Path)
 
@@ -374,7 +367,7 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				assert.Equal(t, resumeID.String(), r.FormValue("resume_id"))
 
 				_, _, err = r.FormFile("resume_file")
-				assert.Error(t, err) // Should error because no file was uploaded
+				assert.Error(t, err)
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusNoContent)
@@ -388,7 +381,7 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			name:  "Error - HTTP request failed",
 			input: validReq,
 			setup: func() *mockSqlc.MockStore {
-				return new(mockSqlc.MockStore)
+				return nil
 			},
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -403,7 +396,7 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			name:  "Error - Bad request",
 			input: validReq,
 			setup: func() *mockSqlc.MockStore {
-				return new(mockSqlc.MockStore)
+				return nil
 			},
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
@@ -436,98 +429,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			}()
 
 			repo := NewResumeRepository(lgr, mockStore, testConfig)
-
 			gotErr := repo.ExtractResumeJsonForRAG(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})
 	}
-}
-
-func TestResumeRepository_GetResumeJsonWithSummaryData_FileErrors(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"parsed_json": map[string]interface{}{
-				"first_name": "John",
-				"last_name":  "Doe",
-			},
-		})
-	}))
-	defer server.Close()
-
-	validFile := aws.NewCustomFileHeader(
-		"test.pdf",
-		1024,
-		make(map[string][]string),
-		[]byte("mock file content"),
-	)
-
-	req := &ExtractResumeJsonForRAGReq{
-		SessionID:  uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		UserID:     uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		ResumeID:   uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		ResumeFile: validFile,
-	}
-
-	mockConfig := &config.Config{
-		InterviewSessionConfig: config.InterviewSessionConfig{
-			InterviewAgentURL: server.URL,
-		},
-	}
-
-	mockStore := new(mockSqlc.MockStore)
-	repo := NewResumeRepository(lgr, mockStore, mockConfig)
-
-	gotErr := repo.ExtractResumeJsonForRAG(ctx, req)
-
-	assert.NoError(t, gotErr)
-}
-
-func TestResumeRepository_GetResumeJsonWithSummaryData_FileCopyErrors(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNoContent)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"parsed_json": map[string]interface{}{
-				"first_name": "John",
-				"last_name":  "Doe",
-			},
-		})
-	}))
-	defer server.Close()
-
-	validFile := aws.NewCustomFileHeader(
-		"test.pdf",
-		1024,
-		make(map[string][]string),
-		[]byte("mock file content"),
-	)
-
-	req := &ExtractResumeJsonForRAGReq{
-		SessionID:  uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		UserID:     uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		ResumeID:   uuid.MustParse("123e4567-e89b-12d3-a456-426614174000").String(),
-		ResumeFile: validFile,
-	}
-
-	mockConfig := &config.Config{
-		InterviewSessionConfig: config.InterviewSessionConfig{
-			InterviewAgentURL: server.URL,
-		},
-	}
-
-	mockStore := new(mockSqlc.MockStore)
-	repo := NewResumeRepository(lgr, mockStore, mockConfig)
-
-	gotErr := repo.ExtractResumeJsonForRAG(ctx, req)
-
-	assert.NoError(t, gotErr)
 }

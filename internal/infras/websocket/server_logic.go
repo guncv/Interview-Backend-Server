@@ -323,7 +323,7 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Context, client *Client, req MsgInterviewerResp) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called")
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called: ", req)
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Security violation: Session ID mismatch")

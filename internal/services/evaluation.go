@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -60,7 +61,7 @@ func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rub
 
 		if len(dbRows) == 0 {
 			s.log.ErrorWithID(ctx, "[Service: GetRubricWithCriteriaByName] No rubric/criteria found in DB")
-			return nil, app_error.New(err, app_error.ErrCodeEvaluationRubricCriteriaNotFound)
+			return nil, app_error.New(errors.New("no rubric/criteria found"), app_error.ErrCodeEvaluationRubricCriteriaNotFound)
 		}
 
 		criteria := make([]entities.CritetiaRow, 0, len(dbRows))

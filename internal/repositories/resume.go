@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
@@ -196,7 +195,7 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := &http.Client{Timeout: constants.TimeoutHTTP}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)

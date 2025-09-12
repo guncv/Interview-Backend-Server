@@ -61,6 +61,7 @@ const (
 // Timeout content
 const (
 	TimeoutContext = 10 * time.Second
+	TimeoutHTTP    = 15 * time.Second
 )
 
 // S3 Constants

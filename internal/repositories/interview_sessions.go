@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
@@ -164,7 +163,7 @@ func (r *interviewSessionRepository) InterviewFeedbackAndScore(ctx context.Conte
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := &http.Client{Timeout: constants.TimeoutHTTP}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] HTTP request failed", err)

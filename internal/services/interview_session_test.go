@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"mime/multipart"
@@ -27,6 +29,7 @@ import (
 	mockRepositories "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
 	mockServices "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/services"
 	mockUtils "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 	utilsPkg "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
 
@@ -3208,6 +3211,759 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 			gotErr := svc.CreateInterviewerSessionTurnBySessionID(ctx, tC.input)
 
 			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	correctSessionID := "550e8400-e29b-41d4-a716-446655440000"
+	correctTurnID := "550e8400-e29b-41d4-a716-446655440000"
+	correctUserID := "550e8400-e29b-41d4-a716-446655440000"
+	correctRubricID := "550e8400-e29b-41d4-a716-446655440001"
+	correctCriterionID := "550e8400-e29b-41d4-a716-446655440002"
+	currentState := "Greeting"
+
+	validReq := &entities.CalculateTurnScoreReq{
+		SessionID:          correctSessionID,
+		UserTurnID:         correctTurnID,
+		UserID:             correctUserID,
+		UserMessage:        "user message",
+		InterviewerMessage: "interviewer message",
+		CurrentState:       currentState,
+	}
+
+	invalidSessionID := "invalid-session-id"
+	invalidTurnID := "invalid-turn-id"
+	invalidUserID := "invalid-user-id"
+	invalidRubricID := "invalid-rubric-id"
+
+	testCases := []struct {
+		name   string
+		input  *entities.CalculateTurnScoreReq
+		setup  func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				mockEvaluationScoresRepo.EXPECT().
+					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+						return req.EvaluationID == evaluationID &&
+							req.SessionID.String() == correctSessionID &&
+							req.TurnID.String() == correctTurnID &&
+							req.UserID.String() == correctUserID &&
+							req.RubricID.String() == correctRubricID &&
+							req.CurrentState == validReq.CurrentState &&
+							req.OverallScore == "0.000000" &&
+							req.SummaryMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(nil)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Success - WithHavingCriteriaList",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria: []entities.CritetiaRow{
+							{
+								CriterionID:            correctCriterionID,
+								CriterionCode:          "test",
+								CriterionName:          "test",
+								CriterionDescriptionMd: "test",
+								CriterionWeight:        "test",
+								CriterionMaxScore:      "test",
+							},
+						},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 1
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores: []repositories.CriteriaScore{
+							{
+								CriterionID:       correctCriterionID,
+								CriterionCode:     "test",
+								CriterionName:     "test",
+								CriterionScore:    0,
+								CriterionFeedback: "test",
+							},
+						},
+					}, nil)
+
+				mockEvaluationScoresRepo.EXPECT().
+					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+						return req.EvaluationID == evaluationID &&
+							req.SessionID.String() == correctSessionID &&
+							req.TurnID.String() == correctTurnID &&
+							req.UserID.String() == correctUserID &&
+							req.RubricID.String() == correctRubricID &&
+							req.CurrentState == validReq.CurrentState &&
+							req.OverallScore == "0.000000" &&
+							req.SummaryMd == "test" &&
+							len(req.Criteria) == 1
+					})).
+					Return(nil)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error - WithGetRubricWithCriteriaByNameError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(nil, errors.New("database error"))
+
+				return nil, mockEvaluationService, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name:  "Error - WithInterviewFeedbackAndScoreError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(nil, errors.New("database error"))
+
+				return nil, mockEvaluationService, nil, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error - WithParseSessionIDError",
+			input: &entities.CalculateTurnScoreReq{
+				SessionID:          invalidSessionID,
+				UserTurnID:         validReq.UserTurnID,
+				UserID:             validReq.UserID,
+				UserMessage:        validReq.UserMessage,
+				InterviewerMessage: validReq.InterviewerMessage,
+				CurrentState:       validReq.CurrentState,
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name: "Error - WithParseUserTurnIDError",
+			input: &entities.CalculateTurnScoreReq{
+				SessionID:          validReq.SessionID,
+				UserTurnID:         invalidTurnID,
+				UserID:             validReq.UserID,
+				UserMessage:        validReq.UserMessage,
+				InterviewerMessage: validReq.InterviewerMessage,
+				CurrentState:       validReq.CurrentState,
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name: "Error - WithParseUserIDError",
+			input: &entities.CalculateTurnScoreReq{
+				SessionID:          validReq.SessionID,
+				UserTurnID:         validReq.UserTurnID,
+				UserID:             invalidUserID,
+				UserMessage:        validReq.UserMessage,
+				InterviewerMessage: validReq.InterviewerMessage,
+				CurrentState:       validReq.CurrentState,
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name: "Error - WithParseRubricIDError",
+			input: &entities.CalculateTurnScoreReq{
+				SessionID:          validReq.SessionID,
+				UserTurnID:         validReq.UserTurnID,
+				UserID:             validReq.UserID,
+				UserMessage:        validReq.UserMessage,
+				InterviewerMessage: validReq.InterviewerMessage,
+				CurrentState:       validReq.CurrentState,
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            invalidRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name:  "Error - WithParseCriterionIDError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria: []entities.CritetiaRow{
+							{
+								CriterionID:            "invalid-criterion-id",
+								CriterionCode:          "test",
+								CriterionName:          "test",
+								CriterionDescriptionMd: "test",
+								CriterionWeight:        "test",
+								CriterionMaxScore:      "test",
+							},
+						},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 1
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores: []repositories.CriteriaScore{
+							{
+								CriterionID:       "invalid-criterion-id",
+								CriterionCode:     "test",
+								CriterionName:     "test",
+								CriterionScore:    0,
+								CriterionFeedback: "test",
+							},
+						},
+					}, nil)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name:  "Error - WithCreateEvaluationWithCriteriaScoreTxError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockEvaluationService := new(mockServices.MockEvaluationService)
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				evaluationID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(evaluationID)
+
+				mockEvaluationService.EXPECT().
+					GetRubricWithCriteriaByName(ctx, validReq.CurrentState).
+					Return(&entities.GetRubricWithCriteriaByNameResp{
+						RubricID:            correctRubricID,
+						RubricName:          "test",
+						RubricDescriptionMd: "test",
+						Criteria:            []entities.CritetiaRow{},
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					InterviewFeedbackAndScore(ctx, mock.MatchedBy(func(req *repositories.InterviewFeedbackAndScoreReq) bool {
+						return req.UserMessage == validReq.UserMessage &&
+							req.InterviewerMessage == validReq.InterviewerMessage &&
+							req.RubricName == "test" &&
+							req.RubricDescriptionMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(&repositories.InterviewFeedbackAndScoreResp{
+						OverallScore:    0,
+						OverallFeedback: "test",
+						CriteriaScores:  []repositories.CriteriaScore{},
+					}, nil)
+
+				mockEvaluationScoresRepo.EXPECT().
+					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+						return req.EvaluationID == evaluationID &&
+							req.SessionID.String() == correctSessionID &&
+							req.TurnID.String() == correctTurnID &&
+							req.UserID.String() == correctUserID &&
+							req.RubricID.String() == correctRubricID &&
+							req.CurrentState == validReq.CurrentState &&
+							req.OverallScore == "0.000000" &&
+							req.SummaryMd == "test" &&
+							len(req.Criteria) == 0
+					})).
+					Return(errors.New("database error")).Times(3)
+
+				return mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "database error")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockGenerator, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo := tC.setup()
+			defer func() {
+				if mockGenerator != nil {
+					mockGenerator.AssertExpectations(t)
+				}
+				if mockEvaluationService != nil {
+					mockEvaluationService.AssertExpectations(t)
+				}
+				if mockEvaluationScoresRepo != nil {
+					mockEvaluationScoresRepo.AssertExpectations(t)
+				}
+				if mockInterviewSessionRepo != nil {
+					mockInterviewSessionRepo.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockGenerator,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockEvaluationService,
+				mockEvaluationScoresRepo,
+				nil,
+			)
+
+			gotErr := svc.CalculateTurnScore(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	currentState := "Greeting"
+	message := "message"
+	correctSessionID := "550e8400-e29b-41d4-a716-446655440000"
+
+	validResp := &entities.GetInterviewerLastMessageResp{
+		Message:      message,
+		CurrentState: currentState,
+	}
+
+	validRespBytes, err := json.Marshal(validResp)
+	if err != nil {
+		t.Fatalf("Error marshaling validResp: %v", err)
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.GetInterviewerLastMessageReq
+		setup  func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository)
+		verify func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp)
+	}{
+		{
+			name: "Success - WithRedisHit",
+			input: &entities.GetInterviewerLastMessageReq{
+				SessionID: correctSessionID,
+			},
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, correctSessionID)).
+					Return(string(validRespBytes), nil)
+
+				return mockRedisClient, nil
+			},
+			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Success - WithRedisMiss",
+			input: &entities.GetInterviewerLastMessageReq{
+				SessionID: correctSessionID,
+			},
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, correctSessionID)).
+					Return("", errors.New("redis error"))
+
+				mockInterviewTurnsRepo.EXPECT().
+					GetInterviewerLastMessage(ctx, uuid.MustParse(correctSessionID)).
+					Return(&db.GetInterviewerLastMessageRow{
+						TranscriptText: sql.NullString{String: message},
+						CurrentState:   currentState,
+					}, nil)
+
+				return mockRedisClient, mockInterviewTurnsRepo
+			},
+			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Error - WithInvalidSessionID",
+			input: &entities.GetInterviewerLastMessageReq{
+				SessionID: "invalid-session-id",
+			},
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, "invalid-session-id")).
+					Return("", errors.New("redis error"))
+
+				return mockRedisClient, mockInterviewTurnsRepo
+			},
+			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Success - WithInterviewTurnsRepoError",
+			input: &entities.GetInterviewerLastMessageReq{
+				SessionID: correctSessionID,
+			},
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, correctSessionID)).
+					Return("", errors.New("redis error"))
+
+				mockInterviewTurnsRepo.EXPECT().
+					GetInterviewerLastMessage(context.Background(), uuid.MustParse(correctSessionID)).
+					Return(nil, errors.New("interview turns repo error"))
+
+				return mockRedisClient, mockInterviewTurnsRepo
+			},
+			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error - WithRedisHitButUnmarshalError",
+			input: &entities.GetInterviewerLastMessageReq{
+				SessionID: correctSessionID,
+			},
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockInterviewTurnsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, correctSessionID)).
+					Return("invalid json", nil)
+
+				return mockRedisClient, nil
+			},
+			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockRedisClient, mockInterviewTurnsRepo := tC.setup()
+			defer func() {
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+				if mockInterviewTurnsRepo != nil {
+					mockInterviewTurnsRepo.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockRedisClient,
+				nil,
+				nil,
+				mockInterviewTurnsRepo,
+			)
+
+			gotResp, gotErr := svc.GetInterviewerLastMessage(ctx, tC.input)
+
+			tC.verify(t, gotErr, gotResp)
 		})
 	}
 }
