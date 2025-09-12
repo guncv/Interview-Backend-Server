@@ -130,6 +130,7 @@ type CreateEvaluationAndScoreTxReq struct {
 	TurnID       uuid.UUID
 	RubricID     uuid.UUID
 	UserID       uuid.UUID
+	CurrentState string
 	OverallScore string
 	SummaryMd    string
 	CreatedAt    time.Time

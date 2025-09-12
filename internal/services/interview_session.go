@@ -602,6 +602,7 @@ func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *e
 		TurnID:       userTurnID,
 		RubricID:     rubricID,
 		UserID:       userID,
+		CurrentState: req.CurrentState,
 		OverallScore: fmt.Sprintf("%f", result.OverallScore),
 		SummaryMd:    result.OverallFeedback,
 		CreatedAt:    time.Now(),
