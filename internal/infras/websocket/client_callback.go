@@ -2,6 +2,8 @@ package websocket
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/json"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -12,6 +14,7 @@ type WebSocketClientCallbacks interface {
 	OnUserPartialTranscript(ctx context.Context, req MsgUserPartialTranscript)
 	OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript)
 	OnInterviewerResp(ctx context.Context, req MsgInterviewerResp)
+	OnInterviewerAudioChunk(ctx context.Context, data []byte)
 }
 
 type webSocketClientCallbacks struct {
@@ -114,4 +117,42 @@ func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req Ms
 	}
 
 	w.logic.sendMessageTypeInterviewerResp(ctx, w.client, req)
+}
+
+func (w *webSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, data []byte) {
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Called: ")
+
+	if len(data) < 4 {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Invalid frame: too short")
+		return
+	}
+
+	headerLength := binary.BigEndian.Uint32(data[:4])
+	if int(headerLength)+4 > len(data) {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Invalid frame: header length too large")
+		return
+	}
+
+	headerBytes := data[4 : 4+headerLength]
+	var req MsgInterviewerAudioChunk
+	if err := json.Unmarshal(headerBytes, &req); err != nil {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Invalid header JSON", err)
+		return
+	}
+
+	if req.SessionID != w.client.SessionID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Security violation: Session ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
+	audioData := data[4+headerLength:]
+	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Audio chunk received", map[string]any{
+		"session_id": req.SessionID,
+		"audio_size": len(audioData),
+	})
+
+	w.logic.sendMessageTypeInterviewerAudioChunk(ctx, w.client, req, audioData)
 }

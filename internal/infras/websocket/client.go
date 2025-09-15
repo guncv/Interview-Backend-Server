@@ -20,7 +20,7 @@ type WebSocketClient interface {
 
 	StartSessionConversation(ctx context.Context, msg MsgStartSessionConversation) error
 	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
-	SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error
+	SendUserAudio(ctx context.Context, msg MsgUserAudioChunk, audioData []byte) error
 	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
 
 	SendMessage(ctx context.Context, data map[string]interface{}) error
@@ -150,7 +150,7 @@ func (c *webSocketClient) SegmentStart(ctx context.Context, msg MsgSegmentStart)
 	return nil
 }
 
-func (c *webSocketClient) SendAudio(ctx context.Context, msg MsgAudioChunk, audioData []byte) error {
+func (c *webSocketClient) SendUserAudio(ctx context.Context, msg MsgUserAudioChunk, audioData []byte) error {
 	c.log.InfoWithID(ctx, "[WebSocketClient: SendAudio] Called:", msg)
 
 	if c.sessionID != msg.SessionID {
@@ -299,6 +299,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			}
 
 			switch base.Type {
+
 			case constants.WebSocketMessageTypeConnectionEstablished:
 				var msg MsgConnectionEstablished
 
@@ -307,6 +308,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 					return
 				}
 				c.cb.OnConnectionEstablished(ctx, msg.SessionID)
+
 			case constants.WebSocketMessageTypeUserPartialTranscript:
 				var msg MsgUserPartialTranscript
 
@@ -315,6 +317,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 					return
 				}
 				c.cb.OnUserPartialTranscript(ctx, msg)
+
 			case constants.WebSocketMessageTypeUserFullTranscript:
 				var msg MsgUserFullTranscript
 
@@ -324,6 +327,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				}
 
 				c.cb.OnUserFullTranscript(ctx, msg)
+
 			case constants.WebSocketMessageTypeInterviewerResponse:
 				var msg MsgInterviewerResp
 
@@ -335,7 +339,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			}
 
 		case websocket.BinaryMessage:
-
+			c.cb.OnInterviewerAudioChunk(ctx, data)
 		}
 	}
 }

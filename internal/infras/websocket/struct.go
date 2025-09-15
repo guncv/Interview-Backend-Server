@@ -12,10 +12,15 @@ type MsgStartSessionConversation struct {
 	SessionID string `json:"session_id"`
 }
 
-type MsgAudioChunk struct {
+type MsgUserAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
+}
+
+type MsgInterviewerAudioChunk struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
 }
 
 type MsgSegmentStart struct {

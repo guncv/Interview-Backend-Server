@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -72,49 +73,49 @@ func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.C
 	}()
 }
 
-func (s *WebSocketServerLogic) handleAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Called")
+func (s *WebSocketServerLogic) handleUserAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Called")
 
 	if len(payload) < 4 {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Invalid frame: too short")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Invalid frame: too short")
 		return
 	}
 
 	headerLength := binary.BigEndian.Uint32(payload[:4])
 
 	if int(headerLength)+4 > len(payload) {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Invalid frame: header length too large")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Invalid frame: header length too large")
 		return
 	}
 
 	headerBytes := payload[4 : 4+headerLength]
 
-	var header MsgAudioChunk
+	var header MsgUserAudioChunk
 	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Invalid header JSON", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Invalid header JSON", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
 
 	if header.SessionID != client.SessionID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Security violation: Session ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
 		return
 	}
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Segment ID", map[string]any{
+	s.log.InfoWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Segment ID", map[string]any{
 		"segment_id": header.SegmentID,
 	})
 	segmentMapping, err := s.getSegmentMapping(ctx, header.SegmentID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error getting segment mapping", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Error getting segment mapping", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentID)
 		return
 	}
 
 	header.SegmentID = segmentMapping
 	if client.CurrentSegmentID != segmentMapping {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Security violation: Segment ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Security violation: Segment ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentID)
 		return
 	}
@@ -122,8 +123,8 @@ func (s *WebSocketServerLogic) handleAudioBinaryMessage(ctx context.Context, cli
 	audioData := payload[4+headerLength:]
 
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
-		if err := agentClient.SendAudio(ctx, header, audioData); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: handleAudioBinaryMessage] Error forwarding audio to AI agent", err)
+		if err := agentClient.SendUserAudio(ctx, header, audioData); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Error forwarding audio to AI agent", err)
 			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		}
 	}
@@ -387,6 +388,50 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 	} else {
 		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Last message created")
 	}
+}
+
+func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
+	ctx context.Context,
+	client *Client,
+	req MsgInterviewerAudioChunk,
+	audioData []byte,
+) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Called")
+
+	if client.SessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	header := map[string]interface{}{
+		"type":       req.Type,
+		"session_id": req.SessionID,
+	}
+
+	headerBytes, err := json.Marshal(header)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Error marshaling header", err)
+		return
+	}
+
+	headerLength := uint32(len(headerBytes))
+
+	payload := make([]byte, 4+len(headerBytes)+len(audioData))
+	binary.BigEndian.PutUint32(payload[:4], headerLength)
+	copy(payload[4:4+headerLength], headerBytes)
+	copy(payload[4+headerLength:], audioData)
+
+	if err := client.conn.WriteMessage(websocket.BinaryMessage, payload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Error sending binary audio", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Audio chunk sent", map[string]any{
+		"session_id": req.SessionID,
+		"audio_size": len(audioData),
+	})
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {

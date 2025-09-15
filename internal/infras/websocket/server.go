@@ -300,7 +300,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 			}
 
 		case websocket.BinaryMessage:
-			s.logic.handleAudioBinaryMessage(ctx, c, payload)
+			s.logic.handleUserAudioBinaryMessage(ctx, c, payload)
 
 		default:
 			s.log.InfoWithID(ctx, "[WebSocketServer] Ignoring frame type", map[string]any{"frame_type": mt})

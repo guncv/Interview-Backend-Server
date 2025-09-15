@@ -207,54 +207,6 @@ func (_c *MockWebSocketClient_SegmentStart_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
-// SendAudio provides a mock function with given fields: ctx, msg, audioData
-func (_m *MockWebSocketClient) SendAudio(ctx context.Context, msg websocket.MsgAudioChunk, audioData []byte) error {
-	ret := _m.Called(ctx, msg, audioData)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SendAudio")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, websocket.MsgAudioChunk, []byte) error); ok {
-		r0 = rf(ctx, msg, audioData)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockWebSocketClient_SendAudio_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendAudio'
-type MockWebSocketClient_SendAudio_Call struct {
-	*mock.Call
-}
-
-// SendAudio is a helper method to define mock.On call
-//   - ctx context.Context
-//   - msg websocket.MsgAudioChunk
-//   - audioData []byte
-func (_e *MockWebSocketClient_Expecter) SendAudio(ctx interface{}, msg interface{}, audioData interface{}) *MockWebSocketClient_SendAudio_Call {
-	return &MockWebSocketClient_SendAudio_Call{Call: _e.mock.On("SendAudio", ctx, msg, audioData)}
-}
-
-func (_c *MockWebSocketClient_SendAudio_Call) Run(run func(ctx context.Context, msg websocket.MsgAudioChunk, audioData []byte)) *MockWebSocketClient_SendAudio_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(websocket.MsgAudioChunk), args[2].([]byte))
-	})
-	return _c
-}
-
-func (_c *MockWebSocketClient_SendAudio_Call) Return(_a0 error) *MockWebSocketClient_SendAudio_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockWebSocketClient_SendAudio_Call) RunAndReturn(run func(context.Context, websocket.MsgAudioChunk, []byte) error) *MockWebSocketClient_SendAudio_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // SendBinaryMessage provides a mock function with given fields: ctx, data
 func (_m *MockWebSocketClient) SendBinaryMessage(ctx context.Context, data []byte) error {
 	ret := _m.Called(ctx, data)
@@ -394,6 +346,54 @@ func (_c *MockWebSocketClient_SendSessionInfo_Call) Return(_a0 error) *MockWebSo
 }
 
 func (_c *MockWebSocketClient_SendSessionInfo_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MockWebSocketClient_SendSessionInfo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendUserAudio provides a mock function with given fields: ctx, msg, audioData
+func (_m *MockWebSocketClient) SendUserAudio(ctx context.Context, msg websocket.MsgUserAudioChunk, audioData []byte) error {
+	ret := _m.Called(ctx, msg, audioData)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendUserAudio")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, websocket.MsgUserAudioChunk, []byte) error); ok {
+		r0 = rf(ctx, msg, audioData)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockWebSocketClient_SendUserAudio_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendUserAudio'
+type MockWebSocketClient_SendUserAudio_Call struct {
+	*mock.Call
+}
+
+// SendUserAudio is a helper method to define mock.On call
+//   - ctx context.Context
+//   - msg websocket.MsgUserAudioChunk
+//   - audioData []byte
+func (_e *MockWebSocketClient_Expecter) SendUserAudio(ctx interface{}, msg interface{}, audioData interface{}) *MockWebSocketClient_SendUserAudio_Call {
+	return &MockWebSocketClient_SendUserAudio_Call{Call: _e.mock.On("SendUserAudio", ctx, msg, audioData)}
+}
+
+func (_c *MockWebSocketClient_SendUserAudio_Call) Run(run func(ctx context.Context, msg websocket.MsgUserAudioChunk, audioData []byte)) *MockWebSocketClient_SendUserAudio_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(websocket.MsgUserAudioChunk), args[2].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClient_SendUserAudio_Call) Return(_a0 error) *MockWebSocketClient_SendUserAudio_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockWebSocketClient_SendUserAudio_Call) RunAndReturn(run func(context.Context, websocket.MsgUserAudioChunk, []byte) error) *MockWebSocketClient_SendUserAudio_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -90,6 +90,40 @@ func (_c *MockWebSocketClientCallbacks_OnDisconnect_Call) RunAndReturn(run func(
 	return _c
 }
 
+// OnInterviewerAudioChunk provides a mock function with given fields: ctx, data
+func (_m *MockWebSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, data []byte) {
+	_m.Called(ctx, data)
+}
+
+// MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OnInterviewerAudioChunk'
+type MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call struct {
+	*mock.Call
+}
+
+// OnInterviewerAudioChunk is a helper method to define mock.On call
+//   - ctx context.Context
+//   - data []byte
+func (_e *MockWebSocketClientCallbacks_Expecter) OnInterviewerAudioChunk(ctx interface{}, data interface{}) *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call {
+	return &MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call{Call: _e.mock.On("OnInterviewerAudioChunk", ctx, data)}
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call) Run(run func(ctx context.Context, data []byte)) *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call) Return() *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call) RunAndReturn(run func(context.Context, []byte)) *MockWebSocketClientCallbacks_OnInterviewerAudioChunk_Call {
+	_c.Run(run)
+	return _c
+}
+
 // OnInterviewerResp provides a mock function with given fields: ctx, req
 func (_m *MockWebSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req websocket.MsgInterviewerResp) {
 	_m.Called(ctx, req)
