@@ -148,6 +148,14 @@ type Sessions struct {
 	UpdatedAt        sql.NullTime `json:"updated_at"`
 }
 
+type UserTurnImprovements struct {
+	ID                uuid.UUID      `json:"id"`
+	InterviewTurnID   uuid.UUID      `json:"interview_turn_id"`
+	CorrectedSentence string         `json:"corrected_sentence"`
+	ModelVersion      sql.NullString `json:"model_version"`
+	CreatedAt         time.Time      `json:"created_at"`
+}
+
 type Users struct {
 	ID                 uuid.UUID      `json:"id"`
 	Email              string         `json:"email"`
