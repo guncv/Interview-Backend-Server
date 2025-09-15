@@ -12,7 +12,7 @@ CREATE TABLE evaluations (
     evaluator_user_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
     overall_score NUMERIC(3,2) NOT NULL CHECK (overall_score BETWEEN 0 AND 5),
     summary_md TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     soft_delete BOOLEAN DEFAULT FALSE,
@@ -28,7 +28,7 @@ CREATE TABLE evaluation_scores (
     score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 5),
     comment_md TEXT NOT NULL,
 
-    created_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     soft_delete BOOLEAN DEFAULT FALSE,

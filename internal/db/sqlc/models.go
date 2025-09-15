@@ -41,7 +41,7 @@ type EvaluationScores struct {
 	CriterionID  uuid.UUID    `json:"criterion_id"`
 	Score        int32        `json:"score"`
 	CommentMd    string       `json:"comment_md"`
-	CreatedAt    sql.NullTime `json:"created_at"`
+	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    sql.NullTime `json:"updated_at"`
 	DeletedAt    sql.NullTime `json:"deleted_at"`
 	SoftDelete   sql.NullBool `json:"soft_delete"`
@@ -55,7 +55,7 @@ type Evaluations struct {
 	EvaluatorUserID uuid.UUID    `json:"evaluator_user_id"`
 	OverallScore    string       `json:"overall_score"`
 	SummaryMd       string       `json:"summary_md"`
-	CreatedAt       sql.NullTime `json:"created_at"`
+	CreatedAt       time.Time    `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`
 	DeletedAt       sql.NullTime `json:"deleted_at"`
 	SoftDelete      sql.NullBool `json:"soft_delete"`
@@ -149,11 +149,11 @@ type Sessions struct {
 }
 
 type UserTurnImprovements struct {
-	ID                uuid.UUID      `json:"id"`
-	InterviewTurnID   uuid.UUID      `json:"interview_turn_id"`
-	CorrectedSentence string         `json:"corrected_sentence"`
-	ModelVersion      sql.NullString `json:"model_version"`
-	CreatedAt         time.Time      `json:"created_at"`
+	ID                uuid.UUID `json:"id"`
+	InterviewTurnID   uuid.UUID `json:"interview_turn_id"`
+	CorrectedSentence string    `json:"corrected_sentence"`
+	ModelVersion      string    `json:"model_version"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type Users struct {

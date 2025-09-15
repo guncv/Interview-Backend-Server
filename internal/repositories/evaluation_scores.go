@@ -10,7 +10,7 @@ import (
 )
 
 type EvaluationScoresRepository interface {
-	CreateEvaluationWithCriteriaScoreTx(ctx context.Context, req *CreateEvaluationAndScoreTxReq) error
+	CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx context.Context, req *CreateEvaluationAndScoreTxReq) error
 }
 
 type evaluationScoresRepository struct {
@@ -25,7 +25,7 @@ func NewEvaluationScoresRepository(l *log.Logger, db db.Store) EvaluationScoresR
 	}
 }
 
-func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ctx context.Context, req *CreateEvaluationAndScoreTxReq) error {
+func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx context.Context, req *CreateEvaluationAndScoreTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateEvaluationScore] Called")
 
 	if err := r.db.ExecTx(ctx, func(q *db.Queries) error {
@@ -39,12 +39,25 @@ func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ctx con
 			CurrentState:    req.CurrentState,
 			OverallScore:    req.OverallScore,
 			SummaryMd:       req.SummaryMd,
-			CreatedAt:       sql.NullTime{Time: req.CreatedAt, Valid: true},
+			CreatedAt:       req.CreatedAt,
 			UpdatedAt:       sql.NullTime{Time: req.UpdatedAt, Valid: true},
 		}
 
 		if err := q.CreateEvaluation(ctx, evaluationReq); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateEvaluationScore] Error creating evaluation", err)
+			return app_error.HandleDatabaseError(err)
+		}
+
+		improveSentenceReq := db.CreateUserTurnImprovementParams{
+			ID:                req.ImproveSentenceID,
+			InterviewTurnID:   req.TurnID,
+			CorrectedSentence: req.ImproveSentence,
+			ModelVersion:      req.LLmModel,
+			CreatedAt:         req.CreatedAt,
+		}
+
+		if err := q.CreateUserTurnImprovement(ctx, improveSentenceReq); err != nil {
+			r.log.ErrorWithID(ctx, "[Repository: CreateEvaluationScore] Error creating improve sentence", err)
 			return app_error.HandleDatabaseError(err)
 		}
 
@@ -55,7 +68,7 @@ func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ctx con
 				CriterionID:  criterion.CriterionID,
 				Score:        int32(criterion.Score),
 				CommentMd:    criterion.CommentMd,
-				CreatedAt:    sql.NullTime{Time: req.CreatedAt, Valid: true},
+				CreatedAt:    req.CreatedAt,
 				UpdatedAt:    sql.NullTime{Time: req.UpdatedAt, Valid: true},
 			}
 

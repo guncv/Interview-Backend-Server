@@ -608,11 +608,15 @@ func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *e
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		Criteria:     criteria,
+
+		ImproveSentenceID: s.generator.GenerateUUID(ctx),
+		ImproveSentence:   result.ImproveSentence,
+		LLmModel:          result.LLmModel,
 	}
 
 	var lastErr error
 	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
-		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreTx(ctx, createEvaluationAndScoreTxReq)
+		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
 		if err == nil {
 			return nil
 		}

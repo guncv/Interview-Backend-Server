@@ -685,6 +685,53 @@ func (_c *MockQuerier_CreateUser_Call) RunAndReturn(run func(context.Context, db
 	return _c
 }
 
+// CreateUserTurnImprovement provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateUserTurnImprovement(ctx context.Context, arg db.CreateUserTurnImprovementParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserTurnImprovement")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserTurnImprovementParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_CreateUserTurnImprovement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserTurnImprovement'
+type MockQuerier_CreateUserTurnImprovement_Call struct {
+	*mock.Call
+}
+
+// CreateUserTurnImprovement is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateUserTurnImprovementParams
+func (_e *MockQuerier_Expecter) CreateUserTurnImprovement(ctx interface{}, arg interface{}) *MockQuerier_CreateUserTurnImprovement_Call {
+	return &MockQuerier_CreateUserTurnImprovement_Call{Call: _e.mock.On("CreateUserTurnImprovement", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateUserTurnImprovement_Call) Run(run func(ctx context.Context, arg db.CreateUserTurnImprovementParams)) *MockQuerier_CreateUserTurnImprovement_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateUserTurnImprovementParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserTurnImprovement_Call) Return(_a0 error) *MockQuerier_CreateUserTurnImprovement_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserTurnImprovement_Call) RunAndReturn(run func(context.Context, db.CreateUserTurnImprovementParams) error) *MockQuerier_CreateUserTurnImprovement_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EndInterviewSession provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) EndInterviewSession(ctx context.Context, arg db.EndInterviewSessionParams) (int64, error) {
 	ret := _m.Called(ctx, arg)

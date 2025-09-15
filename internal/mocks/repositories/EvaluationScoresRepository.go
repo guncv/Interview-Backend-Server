@@ -22,12 +22,12 @@ func (_m *MockEvaluationScoresRepository) EXPECT() *MockEvaluationScoresReposito
 	return &MockEvaluationScoresRepository_Expecter{mock: &_m.Mock}
 }
 
-// CreateEvaluationWithCriteriaScoreTx provides a mock function with given fields: ctx, req
-func (_m *MockEvaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ctx context.Context, req *repositories.CreateEvaluationAndScoreTxReq) error {
+// CreateEvaluationWithCriteriaScoreAndImproveSentenceTx provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationScoresRepository) CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx context.Context, req *repositories.CreateEvaluationAndScoreTxReq) error {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateEvaluationWithCriteriaScoreTx")
+		panic("no return value specified for CreateEvaluationWithCriteriaScoreAndImproveSentenceTx")
 	}
 
 	var r0 error
@@ -40,31 +40,31 @@ func (_m *MockEvaluationScoresRepository) CreateEvaluationWithCriteriaScoreTx(ct
 	return r0
 }
 
-// MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationWithCriteriaScoreTx'
-type MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call struct {
+// MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateEvaluationWithCriteriaScoreAndImproveSentenceTx'
+type MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call struct {
 	*mock.Call
 }
 
-// CreateEvaluationWithCriteriaScoreTx is a helper method to define mock.On call
+// CreateEvaluationWithCriteriaScoreAndImproveSentenceTx is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *repositories.CreateEvaluationAndScoreTxReq
-func (_e *MockEvaluationScoresRepository_Expecter) CreateEvaluationWithCriteriaScoreTx(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call {
-	return &MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call{Call: _e.mock.On("CreateEvaluationWithCriteriaScoreTx", ctx, req)}
+func (_e *MockEvaluationScoresRepository_Expecter) CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call {
+	return &MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call{Call: _e.mock.On("CreateEvaluationWithCriteriaScoreAndImproveSentenceTx", ctx, req)}
 }
 
-func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call) Run(run func(ctx context.Context, req *repositories.CreateEvaluationAndScoreTxReq)) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call {
+func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call) Run(run func(ctx context.Context, req *repositories.CreateEvaluationAndScoreTxReq)) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(*repositories.CreateEvaluationAndScoreTxReq))
 	})
 	return _c
 }
 
-func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call) Return(_a0 error) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call {
+func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call) Return(_a0 error) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call) RunAndReturn(run func(context.Context, *repositories.CreateEvaluationAndScoreTxReq) error) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx_Call {
+func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call) RunAndReturn(run func(context.Context, *repositories.CreateEvaluationAndScoreTxReq) error) *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx_Call {
 	_c.Call.Return(run)
 	return _c
 }

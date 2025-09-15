@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -40,7 +41,7 @@ type CreateEvaluationParams struct {
 	CurrentState    string       `json:"current_state"`
 	OverallScore    string       `json:"overall_score"`
 	SummaryMd       string       `json:"summary_md"`
-	CreatedAt       sql.NullTime `json:"created_at"`
+	CreatedAt       time.Time    `json:"created_at"`
 	UpdatedAt       sql.NullTime `json:"updated_at"`
 }
 

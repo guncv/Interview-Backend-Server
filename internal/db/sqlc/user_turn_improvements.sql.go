@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,11 +25,11 @@ INSERT INTO user_turn_improvements (
 `
 
 type CreateUserTurnImprovementParams struct {
-	ID                uuid.UUID      `json:"id"`
-	InterviewTurnID   uuid.UUID      `json:"interview_turn_id"`
-	CorrectedSentence string         `json:"corrected_sentence"`
-	ModelVersion      sql.NullString `json:"model_version"`
-	CreatedAt         time.Time      `json:"created_at"`
+	ID                uuid.UUID `json:"id"`
+	InterviewTurnID   uuid.UUID `json:"interview_turn_id"`
+	CorrectedSentence string    `json:"corrected_sentence"`
+	ModelVersion      string    `json:"model_version"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 func (q *Queries) CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error {

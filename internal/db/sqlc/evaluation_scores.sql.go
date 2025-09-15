@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -34,7 +35,7 @@ type CreateEvaluationScoreParams struct {
 	CriterionID  uuid.UUID    `json:"criterion_id"`
 	Score        int32        `json:"score"`
 	CommentMd    string       `json:"comment_md"`
-	CreatedAt    sql.NullTime `json:"created_at"`
+	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    sql.NullTime `json:"updated_at"`
 }
 

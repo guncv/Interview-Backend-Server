@@ -3283,7 +3283,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 					}, nil)
 
 				mockEvaluationScoresRepo.EXPECT().
-					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+					CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
 						return req.EvaluationID == evaluationID &&
 							req.SessionID.String() == correctSessionID &&
 							req.TurnID.String() == correctTurnID &&
@@ -3357,7 +3357,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 					}, nil)
 
 				mockEvaluationScoresRepo.EXPECT().
-					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+					CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
 						return req.EvaluationID == evaluationID &&
 							req.SessionID.String() == correctSessionID &&
 							req.TurnID.String() == correctTurnID &&
@@ -3732,7 +3732,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 					}, nil)
 
 				mockEvaluationScoresRepo.EXPECT().
-					CreateEvaluationWithCriteriaScoreTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
+					CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, mock.MatchedBy(func(req *repositories.CreateEvaluationAndScoreTxReq) bool {
 						return req.EvaluationID == evaluationID &&
 							req.SessionID.String() == correctSessionID &&
 							req.TurnID.String() == correctTurnID &&

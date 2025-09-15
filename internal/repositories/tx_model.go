@@ -114,6 +114,8 @@ type InterviewFeedbackAndScoreResp struct {
 	OverallScore    float64         `json:"overall_score"`
 	OverallFeedback string          `json:"overall_feedback"`
 	CriteriaScores  []CriteriaScore `json:"criteria_scores"`
+	ImproveSentence string          `json:"improvement_sentence"`
+	LLmModel        string          `json:"llm_model"`
 }
 
 type CriteriaScore struct {
@@ -135,6 +137,10 @@ type CreateEvaluationAndScoreTxReq struct {
 	SummaryMd    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+
+	ImproveSentenceID uuid.UUID
+	ImproveSentence   string
+	LLmModel          string
 
 	Criteria []CreateScoreTxReq
 }

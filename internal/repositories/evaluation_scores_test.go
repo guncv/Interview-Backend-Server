@@ -16,12 +16,14 @@ import (
 	mockSqlc "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/db/sqlc"
 )
 
-func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testing.T) {
+func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 
 	globalID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-
+	improvementSentenceID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	improvementSentence := "test"
+	llmModel := "test"
 	evaluationID := globalID
 	sessionID := globalID
 	userID := globalID
@@ -48,17 +50,20 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 	}
 
 	input := &CreateEvaluationAndScoreTxReq{
-		EvaluationID: evaluationID,
-		SessionID:    sessionID,
-		UserID:       userID,
-		TurnID:       turnID,
-		RubricID:     rubricID,
-		CurrentState: currentState,
-		OverallScore: overallScore,
-		SummaryMd:    summaryMd,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
-		Criteria:     criteria,
+		EvaluationID:      evaluationID,
+		SessionID:         sessionID,
+		UserID:            userID,
+		TurnID:            turnID,
+		RubricID:          rubricID,
+		CurrentState:      currentState,
+		OverallScore:      overallScore,
+		SummaryMd:         summaryMd,
+		CreatedAt:         createdAt,
+		UpdatedAt:         updatedAt,
+		Criteria:          criteria,
+		ImproveSentenceID: improvementSentenceID,
+		ImproveSentence:   improvementSentence,
+		LLmModel:          llmModel,
 	}
 
 	testCases := []struct {
@@ -92,8 +97,21 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 							currentState,
 							overallScore,
 							summaryMd,
-							sql.NullTime{Time: createdAt, Valid: true},
+							createdAt,
 							sql.NullTime{Time: updatedAt, Valid: true},
+						).
+						Return(nil, nil).Once()
+
+					// Mock CreateImproveSentence
+					mockDBTX.EXPECT().
+						ExecContext(mock.AnythingOfType(
+							"context.backgroundCtx"),
+							mock.AnythingOfType("string"),
+							improvementSentenceID,
+							turnID,
+							improvementSentence,
+							llmModel,
+							createdAt,
 						).
 						Return(nil, nil).Once()
 
@@ -107,7 +125,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 							criteria[0].CriterionID,
 							int32(criteria[0].Score),
 							criteria[0].CommentMd,
-							sql.NullTime{Time: createdAt, Valid: true},
+							createdAt,
 							sql.NullTime{Time: updatedAt, Valid: true},
 						).
 						Return(nil, nil).Twice()
@@ -122,7 +140,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 			},
 		},
 		{
-			name:  "Error - Create evaluation",
+			name:  "Error - CreateEvaluationError",
 			input: input,
 			setup: func() *mockSqlc.MockStore {
 				mockDBTX := new(mockSqlc.MockDBTX)
@@ -145,7 +163,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 							currentState,
 							overallScore,
 							summaryMd,
-							sql.NullTime{Time: createdAt, Valid: true},
+							createdAt,
 							sql.NullTime{Time: updatedAt, Valid: true},
 						).
 						Return(nil, errors.New("database error")).Once()
@@ -160,7 +178,59 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 			},
 		},
 		{
-			name:  "Error - Create criteria score",
+			name:  "Error - CreateImproveSentenceError",
+			input: input,
+			setup: func() *mockSqlc.MockStore {
+				mockDBTX := new(mockSqlc.MockDBTX)
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().ExecTx(ctx, mock.MatchedBy(func(fn func(*db.Queries) error) bool {
+					return true
+				})).Run(func(ctx context.Context, fn func(*db.Queries) error) {
+					queries := db.New(mockDBTX)
+
+					// Mock CreateEvaluation
+					mockDBTX.EXPECT().
+						ExecContext(mock.AnythingOfType(
+							"context.backgroundCtx"),
+							mock.AnythingOfType("string"),
+							evaluationID,
+							sessionID,
+							turnID,
+							rubricID,
+							userID,
+							currentState,
+							overallScore,
+							summaryMd,
+							createdAt,
+							sql.NullTime{Time: updatedAt, Valid: true},
+						).
+						Return(nil, nil).Once()
+
+					// Mock CreateImproveSentence
+					mockDBTX.EXPECT().
+						ExecContext(mock.AnythingOfType(
+							"context.backgroundCtx"),
+							mock.AnythingOfType("string"),
+							improvementSentenceID,
+							turnID,
+							improvementSentence,
+							llmModel,
+							createdAt,
+						).
+						Return(nil, errors.New("database error")).Once()
+
+					fn(queries)
+				}).Return(errors.New("database error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name:  "Error - CreateEvaluationCriteriaScoreError",
 			input: input,
 			setup: func() *mockSqlc.MockStore {
 				mockDBTX := new(mockSqlc.MockDBTX)
@@ -183,8 +253,21 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 							currentState,
 							overallScore,
 							summaryMd,
-							sql.NullTime{Time: createdAt, Valid: true},
+							createdAt,
 							sql.NullTime{Time: updatedAt, Valid: true},
+						).
+						Return(nil, nil).Once()
+
+					// Mock CreateImproveSentence
+					mockDBTX.EXPECT().
+						ExecContext(mock.AnythingOfType(
+							"context.backgroundCtx"),
+							mock.AnythingOfType("string"),
+							improvementSentenceID,
+							turnID,
+							improvementSentence,
+							llmModel,
+							createdAt,
 						).
 						Return(nil, nil).Once()
 
@@ -197,7 +280,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 							criteria[0].CriterionID,
 							int32(criteria[0].Score),
 							criteria[0].CommentMd,
-							sql.NullTime{Time: createdAt, Valid: true},
+							createdAt,
 							sql.NullTime{Time: updatedAt, Valid: true},
 						).
 						Return(nil, errors.New("database error")).Once()
@@ -225,7 +308,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreTx(t *testi
 
 			svc := NewEvaluationScoresRepository(lgr, mockStore)
 
-			gotErr := svc.CreateEvaluationWithCriteriaScoreTx(ctx, tC.input)
+			gotErr := svc.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})
