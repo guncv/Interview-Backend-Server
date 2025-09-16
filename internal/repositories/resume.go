@@ -26,6 +26,7 @@ type ResumeReposity interface {
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
 	ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error
+	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 }
 
 type resumeRepository struct {
@@ -218,4 +219,16 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 	}
 
 	return nil
+}
+
+func (r *resumeRepository) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListAllResumesFileNameByUserID] Called")
+
+	resumes, err := r.db.ListAllResumesFileNameByUserID(ctx, userID)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListAllResumesFileNameByUserID] Error getting list resume", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resumes, nil
 }

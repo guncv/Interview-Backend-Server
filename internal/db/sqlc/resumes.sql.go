@@ -104,6 +104,34 @@ func (q *Queries) GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, err
 	return i, err
 }
 
+const listAllResumesFileNameByUserID = `-- name: ListAllResumesFileNameByUserID :many
+SELECT file_name FROM resumes
+WHERE user_id = $1
+`
+
+func (q *Queries) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listAllResumesFileNameByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var file_name string
+		if err := rows.Scan(&file_name); err != nil {
+			return nil, err
+		}
+		items = append(items, file_name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listResumeByUserIDFirstPage = `-- name: ListResumeByUserIDFirstPage :many
 SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes
 WHERE user_id = $1

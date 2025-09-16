@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_resumes_user_id;

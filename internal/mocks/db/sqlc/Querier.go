@@ -1192,6 +1192,65 @@ func (_c *MockQuerier_GetSessionByID_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
+// ListAllResumesFileNameByUserID provides a mock function with given fields: ctx, userID
+func (_m *MockQuerier) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAllResumesFileNameByUserID")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]string, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []string); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_ListAllResumesFileNameByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAllResumesFileNameByUserID'
+type MockQuerier_ListAllResumesFileNameByUserID_Call struct {
+	*mock.Call
+}
+
+// ListAllResumesFileNameByUserID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.UUID
+func (_e *MockQuerier_Expecter) ListAllResumesFileNameByUserID(ctx interface{}, userID interface{}) *MockQuerier_ListAllResumesFileNameByUserID_Call {
+	return &MockQuerier_ListAllResumesFileNameByUserID_Call{Call: _e.mock.On("ListAllResumesFileNameByUserID", ctx, userID)}
+}
+
+func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *MockQuerier_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) Return(_a0 []string, _a1 error) *MockQuerier_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]string, error)) *MockQuerier_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListResumeByUserIDFirstPage provides a mock function with given fields: ctx, userID
 func (_m *MockQuerier) ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
 	ret := _m.Called(ctx, userID)

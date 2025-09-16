@@ -33,6 +33,7 @@ type Querier interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
+	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)

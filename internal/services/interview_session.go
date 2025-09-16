@@ -126,6 +126,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	allUserResumes, err := s.resumeRepo.ListAllResumesFileNameByUserID(ctx, userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error getting all user resumes", err)
+		return nil, err
+	}
+
+	uniqueFilename := utils.GenerateUniqueFilename(req.File.Filename, allUserResumes)
+
 	key, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
@@ -141,7 +149,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
 		ResumeID:   resumeID,
 		UserID:     userID,
-		FileName:   req.File.Filename,
+		FileName:   uniqueFilename,
 		StorageKey: key,
 		MimeType:   req.File.Header.Get("Content-Type"),
 		ByteSize:   int32(req.File.Size),

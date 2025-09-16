@@ -11,6 +11,10 @@ INSERT INTO resumes (
     $1, $2, $3, $4, $5, $6, $7
 );
 
+-- name: ListAllResumesFileNameByUserID :many
+SELECT file_name FROM resumes
+WHERE user_id = $1;
+
 -- name: ListResumeByUserIDFirstPage :many
 SELECT * FROM resumes
 WHERE user_id = $1

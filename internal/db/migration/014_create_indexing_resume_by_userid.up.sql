@@ -1,0 +1,1 @@
+CREATE INDEX idx_resumes_user_id ON resumes(user_id);
