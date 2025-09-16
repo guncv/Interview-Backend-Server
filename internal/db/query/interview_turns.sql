@@ -24,3 +24,9 @@ LIMIT 1;
 SELECT COALESCE(MAX(turn_no), 0) AS max_turn_no
 FROM interview_turns
 WHERE session_id = $1;
+
+-- name: GetChatHistoryBySessionID :many
+SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
+FROM interview_turns
+WHERE session_id = $1
+ORDER BY turn_no ASC;

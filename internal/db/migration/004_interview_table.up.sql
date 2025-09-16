@@ -27,12 +27,12 @@ CREATE TABLE interview_turns (
     turn_no BIGINT NOT NULL,
     actor VARCHAR(15) NOT NULL CHECK (actor IN ('user','interviewer')),
     content TEXT,
-    transcript_text TEXT,
+    transcript_text TEXT NOT NULL,
     stt_confidence NUMERIC(4,3),
     was_interrupted BOOLEAN DEFAULT FALSE,
     start_at VARCHAR(10) NOT NULL,
     end_at VARCHAR(10) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     UNIQUE(session_id, turn_no)
 );

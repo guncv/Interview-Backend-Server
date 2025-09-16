@@ -70,7 +70,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
 		resumeRoutes(api_v1, resumeHandler, authMiddleware)
-		websocketRoutes(api_v1, interviewSessionHandler, authMiddleware)
+		websocketRoutes(api_v1, interviewSessionHandler)
 		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
@@ -109,10 +109,11 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 	{
 		interviewSessionMiddleRoutes.POST("", interviewSessionHandler.CreateInterviewSessionWithNewResume)
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
+		interviewSessionMiddleRoutes.GET("/chat-history/:session_token", interviewSessionHandler.GetChatHistoryBySessionToken)
 	}
 }
 
-func websocketRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.InterviewSessionHandler, authMiddleware middleware.AuthMiddleware) {
+func websocketRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.InterviewSessionHandler) {
 	websocketRoutes := eg.Group("/ws")
 
 	{

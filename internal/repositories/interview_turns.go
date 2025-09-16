@@ -13,6 +13,7 @@ type InterviewTurnsRepository interface {
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewerLastMessageRow, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error)
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
+	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)
 }
 
 type interviewTurnsRepository struct {
@@ -60,4 +61,16 @@ func (r *interviewTurnsRepository) CreateSessionTurnBySessionID(ctx context.Cont
 	}
 
 	return nil
+}
+
+func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionID] Called")
+
+	chatHistory, err := r.db.GetChatHistoryBySessionID(ctx, sessionID)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetChatHistoryBySessionID] Error getting chat history by session ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return chatHistory, nil
 }

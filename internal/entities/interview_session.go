@@ -8,14 +8,9 @@ import (
 )
 
 type CreateInterviewSessionWithNewResumeRequest struct {
-	File            *multipart.FileHeader `form:"file" binding:"required"`
-	Position        string                `form:"position" binding:"required"`
-	Company         string                `form:"company" binding:"required"`
-	WorkType        string                `form:"work_type" binding:"required"`
-	JobRequirements string                `form:"job_requirements" binding:"required"`
-	InterviewType   string                `form:"interview_type" binding:"required"`
-	Language        string                `form:"language" binding:"required"`
-	IsConsent       bool                  `form:"is_consent" binding:"required"`
+	File      *multipart.FileHeader `form:"file" binding:"required"`
+	Position  string                `form:"position" binding:"required"`
+	IsConsent bool                  `form:"is_consent" binding:"required"`
 }
 
 type CreateInterviewSessionWithNewResumeResponse struct {
@@ -23,14 +18,9 @@ type CreateInterviewSessionWithNewResumeResponse struct {
 }
 
 type CreateInterviewSessionWithExistingResumeReq struct {
-	ResumeID        string `json:"resume_id" binding:"required"`
-	Position        string `json:"position" binding:"required"`
-	Company         string `json:"company" binding:"required"`
-	WorkType        string `json:"work_type" binding:"required"`
-	JobRequirements string `json:"job_requirements" binding:"required"`
-	InterviewType   string `json:"interview_type" binding:"required"`
-	Language        string `json:"language" binding:"required"`
-	IsConsent       bool   `json:"is_consent" binding:"required"`
+	ResumeID  string `json:"resume_id" binding:"required"`
+	Position  string `json:"position" binding:"required"`
+	IsConsent bool   `json:"is_consent" binding:"required"`
 }
 
 type CreateInterviewSessionWithExistingResumeResp struct {
@@ -115,4 +105,22 @@ type WebSocketSessionReq struct {
 type RedisLastMessagePayload struct {
 	Message      string `json:"message"`
 	CurrentState string `json:"current_state"`
+}
+
+type GetChatHistoryBySessionTokenReq struct {
+	SessionToken string `json:"session_token" binding:"required"`
+}
+
+type GetChatHistoryBySessionTokenResp struct {
+	ChatHistory []ChatHistory `json:"chat_history"`
+}
+
+type ChatHistory struct {
+	ID             uuid.UUID `json:"id"`
+	TurnNo         int64     `json:"turn_no"`
+	Actor          string    `json:"actor"`
+	TranscriptText string    `json:"transcript_text"`
+	StartAt        string    `json:"start_at"`
+	EndAt          string    `json:"end_at"`
+	CreatedAt      string    `json:"created_at"`
 }

@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,6 +36,7 @@ type InterviewSessionService interface {
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
+	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 }
 
 type interviewSessionService struct {
@@ -126,6 +126,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	allUserResumes, err := s.resumeRepo.ListAllResumesFileNameByUserID(ctx, userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error getting all user resumes", err)
+		return nil, err
+	}
+
+	uniqueFilename := utils.GenerateUniqueFilename(req.File.Filename, allUserResumes)
+
 	key, err := s.s3Storage.UploadFile(ctx, req.File, constants.S3ResumeKey, authCtx.Payload.UserID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error uploading resume file", err)
@@ -141,7 +149,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
 		ResumeID:   resumeID,
 		UserID:     userID,
-		FileName:   req.File.Filename,
+		FileName:   uniqueFilename,
 		StorageKey: key,
 		MimeType:   req.File.Header.Get("Content-Type"),
 		ByteSize:   int32(req.File.Size),
@@ -180,8 +188,10 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, s.generator.GenerateUUID(ctx).String())
+
 	redisPayload := database.RedisPayload{
-		Key:   s.generator.GenerateUUID(ctx).String(),
+		Key:   redisKey,
 		Value: string(tokenReqJSON),
 		TTL:   s.config.InterviewSessionConfig.InterviewSessionDuration,
 	}
@@ -324,7 +334,7 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorInterviewer,
 		CurrentState:   req.CurrentState,
-		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
+		TranscriptText: req.Transcript,
 		StartAt:        req.StartedAt,
 		EndAt:          req.EndedAt,
 	}
@@ -383,7 +393,7 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorUser,
 		CurrentState:   req.CurrentState,
-		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
+		TranscriptText: req.Transcript,
 		StartAt:        timeDuration["started_at"],
 		EndAt:          timeDuration["ended_at"],
 	}
@@ -489,7 +499,9 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
 	s.log.InfoWithID(ctx, "[Service: IsSessionValid] Called")
 
-	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, req.SessionToken)
+
+	redisSessionToken, err := s.redisClient.Get(ctx, redisKey)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error getting redis session token", err)
 		return nil, app_error.New(err, app_error.ErrCodeSessionNotFound)
@@ -651,7 +663,7 @@ func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context,
 		}
 
 		resp := &entities.GetInterviewerLastMessageResp{
-			Message:      lastMessage.TranscriptText.String,
+			Message:      lastMessage.TranscriptText,
 			CurrentState: lastMessage.CurrentState,
 		}
 
@@ -665,6 +677,52 @@ func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context,
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting auth context", err)
+		return nil, err
+	}
+
+	sessionValidReq := &entities.IsSessionValidReq{
+		SessionToken: req.SessionToken,
+		UserID:       authContext.Payload.UserID,
+	}
+
+	sessionPayload, err := s.IsSessionValid(ctx, sessionValidReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error checking session valid", err)
+		return nil, err
+	}
+
+	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, uuid.MustParse(sessionPayload.SessionID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
+		return nil, err
+	}
+
+	chatHistoryResp := make([]entities.ChatHistory, len(chatHistory))
+	for i, chat := range chatHistory {
+		chatHistoryResp[i] = entities.ChatHistory{
+			ID:             chat.ID,
+			TurnNo:         chat.TurnNo,
+			Actor:          chat.Actor,
+			TranscriptText: chat.TranscriptText,
+			StartAt:        chat.StartAt,
+			EndAt:          chat.EndAt,
+			CreatedAt:      utils.FormatToBangkokTime(chat.CreatedAt),
+		}
+	}
+
+	resp := &entities.GetChatHistoryBySessionTokenResp{
+		ChatHistory: chatHistoryResp,
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

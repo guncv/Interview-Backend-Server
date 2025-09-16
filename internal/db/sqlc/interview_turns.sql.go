@@ -7,7 +7,7 @@ package db
 
 import (
 	"context"
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -28,14 +28,14 @@ INSERT INTO interview_turns (
 `
 
 type CreateInterviewTurnParams struct {
-	ID             uuid.UUID      `json:"id"`
-	SessionID      uuid.UUID      `json:"session_id"`
-	TurnNo         int64          `json:"turn_no"`
-	Actor          string         `json:"actor"`
-	CurrentState   string         `json:"current_state"`
-	TranscriptText sql.NullString `json:"transcript_text"`
-	StartAt        string         `json:"start_at"`
-	EndAt          string         `json:"end_at"`
+	ID             uuid.UUID `json:"id"`
+	SessionID      uuid.UUID `json:"session_id"`
+	TurnNo         int64     `json:"turn_no"`
+	Actor          string    `json:"actor"`
+	CurrentState   string    `json:"current_state"`
+	TranscriptText string    `json:"transcript_text"`
+	StartAt        string    `json:"start_at"`
+	EndAt          string    `json:"end_at"`
 }
 
 func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error {
@@ -52,6 +52,54 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 	return err
 }
 
+const getChatHistoryBySessionID = `-- name: GetChatHistoryBySessionID :many
+SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
+FROM interview_turns
+WHERE session_id = $1
+ORDER BY turn_no ASC
+`
+
+type GetChatHistoryBySessionIDRow struct {
+	ID             uuid.UUID `json:"id"`
+	TurnNo         int64     `json:"turn_no"`
+	Actor          string    `json:"actor"`
+	TranscriptText string    `json:"transcript_text"`
+	StartAt        string    `json:"start_at"`
+	EndAt          string    `json:"end_at"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatHistoryBySessionID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatHistoryBySessionIDRow{}
+	for rows.Next() {
+		var i GetChatHistoryBySessionIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TurnNo,
+			&i.Actor,
+			&i.TranscriptText,
+			&i.StartAt,
+			&i.EndAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInterviewerLastMessage = `-- name: GetInterviewerLastMessage :one
 SELECT current_state, transcript_text
 FROM interview_turns
@@ -62,8 +110,8 @@ LIMIT 1
 `
 
 type GetInterviewerLastMessageRow struct {
-	CurrentState   string         `json:"current_state"`
-	TranscriptText sql.NullString `json:"transcript_text"`
+	CurrentState   string `json:"current_state"`
+	TranscriptText string `json:"transcript_text"`
 }
 
 func (q *Queries) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error) {

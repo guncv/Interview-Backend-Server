@@ -281,6 +281,65 @@ func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) Run
 	return _c
 }
 
+// GetChatHistoryBySessionToken provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChatHistoryBySessionToken")
+	}
+
+	var r0 *entities.GetChatHistoryBySessionTokenResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetChatHistoryBySessionTokenReq) *entities.GetChatHistoryBySessionTokenResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GetChatHistoryBySessionTokenResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.GetChatHistoryBySessionTokenReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_GetChatHistoryBySessionToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChatHistoryBySessionToken'
+type MockInterviewSessionService_GetChatHistoryBySessionToken_Call struct {
+	*mock.Call
+}
+
+// GetChatHistoryBySessionToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.GetChatHistoryBySessionTokenReq
+func (_e *MockInterviewSessionService_Expecter) GetChatHistoryBySessionToken(ctx interface{}, req interface{}) *MockInterviewSessionService_GetChatHistoryBySessionToken_Call {
+	return &MockInterviewSessionService_GetChatHistoryBySessionToken_Call{Call: _e.mock.On("GetChatHistoryBySessionToken", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_GetChatHistoryBySessionToken_Call) Run(run func(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq)) *MockInterviewSessionService_GetChatHistoryBySessionToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.GetChatHistoryBySessionTokenReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetChatHistoryBySessionToken_Call) Return(_a0 *entities.GetChatHistoryBySessionTokenResp, _a1 error) *MockInterviewSessionService_GetChatHistoryBySessionToken_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetChatHistoryBySessionToken_Call) RunAndReturn(run func(context.Context, *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)) *MockInterviewSessionService_GetChatHistoryBySessionToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetInterviewerLastMessage provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
 	ret := _m.Called(ctx, req)
