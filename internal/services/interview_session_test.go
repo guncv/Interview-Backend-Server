@@ -93,6 +93,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Return(nil)
 
 				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
+
+				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
 
@@ -176,6 +180,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				// Mock S3 storage
 				mockS3Storage.EXPECT().
@@ -338,6 +346,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
+
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
 						InterviewSessionTokenTTL: 24 * time.Hour,
@@ -396,6 +405,67 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
 
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return(nil, errors.New("list all resumes file name by user ID failed"))
+
+				config := &config.Config{}
+
+				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
+			},
+			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithNewResumeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "list all resumes file name by user ID failed")
+			},
+		},
+		{
+			name: "Error - S3 upload failure",
+			input: &entities.CreateInterviewSessionWithNewResumeRequest{
+				File: &multipart.FileHeader{
+					Filename: "resume.pdf",
+					Size:     1024,
+					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
+				},
+				Position:  "Software Engineer",
+				IsConsent: true,
+			},
+			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
+				mockResumeService := new(mockServices.MockResumeService)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockResumeRepo := new(mockRepositories.MockResumeReposity)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+				mockJwtMaker := new(mockUtils.MockJwtToken)
+				mockS3Storage := new(mockAws.MockS3Storage)
+				mockPublisher := new(queue.MockRedisTaskPublisher)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   "user",
+						},
+					}, nil)
+
+				// Mock generator for UUID (called before JSON generation)
+				resumeID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(resumeID).Times(1)
+
+				sessionID := uuid.New()
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(sessionID).Times(1)
+
+				mockResumeRepo.EXPECT().
+					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
+					Return(nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
+
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
 					Return("", errors.New("S3 upload failed"))
@@ -452,6 +522,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -513,6 +587,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -584,6 +662,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
 
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
+
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
 					Return("s3-key-123", nil)
@@ -652,6 +734,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -780,6 +866,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
 					Return(nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				mockS3Storage.EXPECT().
 					UploadFile(ctx, mock.AnythingOfType("*multipart.FileHeader"), constants.S3ResumeKey, userID.String()).
@@ -919,6 +1009,10 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
 					Return(false, nil)
+
+				mockResumeRepo.EXPECT().
+					ListAllResumesFileNameByUserID(ctx, userID).
+					Return([]string{"resume.pdf"}, nil)
 
 				// Mock S3 storage
 				mockS3Storage.EXPECT().
