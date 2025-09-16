@@ -86,12 +86,12 @@ type InterviewTurns struct {
 	TurnNo         int64          `json:"turn_no"`
 	Actor          string         `json:"actor"`
 	Content        sql.NullString `json:"content"`
-	TranscriptText sql.NullString `json:"transcript_text"`
+	TranscriptText string         `json:"transcript_text"`
 	SttConfidence  sql.NullString `json:"stt_confidence"`
 	WasInterrupted sql.NullBool   `json:"was_interrupted"`
 	StartAt        string         `json:"start_at"`
 	EndAt          string         `json:"end_at"`
-	CreatedAt      sql.NullTime   `json:"created_at"`
+	CreatedAt      time.Time      `json:"created_at"`
 	CurrentState   string         `json:"current_state"`
 }
 

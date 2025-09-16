@@ -836,6 +836,65 @@ func (_c *MockStore_ExecTx_Call) RunAndReturn(run func(context.Context, func(*db
 	return _c
 }
 
+// GetChatHistoryBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockStore) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChatHistoryBySessionID")
+	}
+
+	var r0 []db.GetChatHistoryBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetChatHistoryBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetChatHistoryBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetChatHistoryBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChatHistoryBySessionID'
+type MockStore_GetChatHistoryBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetChatHistoryBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockStore_Expecter) GetChatHistoryBySessionID(ctx interface{}, sessionID interface{}) *MockStore_GetChatHistoryBySessionID_Call {
+	return &MockStore_GetChatHistoryBySessionID_Call{Call: _e.mock.On("GetChatHistoryBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockStore_GetChatHistoryBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockStore_GetChatHistoryBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetChatHistoryBySessionID_Call) Return(_a0 []db.GetChatHistoryBySessionIDRow, _a1 error) *MockStore_GetChatHistoryBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetChatHistoryBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)) *MockStore_GetChatHistoryBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDefaultResumeByUserID provides a mock function with given fields: ctx, userID
 func (_m *MockStore) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
 	ret := _m.Called(ctx, userID)

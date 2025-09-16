@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -191,4 +192,55 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 	}
 
 	c.Abort()
+}
+
+// OpenWsConnection godoc
+// @Summary Open WebSocket connection
+// @Description Get chat history by session token
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param session_token path string true "Session token"
+// @Param access_token query string true "Access token for authentication"
+// @Success 200 {object} entities.GetChatHistoryBySessionTokenResp "Chat history"
+// @Failure 400 {object} app_error.AppError "Invalid session token or request"
+// @Failure 401 {object} app_error.AppError "Unauthorized"
+// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Router /sessions/chat-history [get]
+func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Called")
+
+	sessionToken := c.Param("session_token")
+	if sessionToken == "" {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Session token is required")
+		utils.RespondWithError(c, app_error.New(errors.New("session token is required"), app_error.ErrCodeSessionInvalidToken))
+		return
+	}
+
+	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Invalid session token", err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeSessionInvalidToken))
+		return
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	req := entities.GetChatHistoryBySessionTokenReq{
+		SessionToken: sessionToken,
+	}
+
+	resp, err := h.interviewSessionService.GetChatHistoryBySessionToken(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Error getting chat history", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

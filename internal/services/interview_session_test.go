@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -2379,7 +2378,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 							req.TurnNo == 2 &&
 							req.CurrentState == currentState &&
 							req.Actor == "user" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == "0.01" &&
 							req.EndAt == "2.34"
 					})).
@@ -2470,7 +2469,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 3 &&
 							req.Actor == "user" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == "0.01" &&
 							req.EndAt == "2.34"
 					})).
@@ -2521,7 +2520,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 2 &&
 							req.Actor == "user" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == "0.01" &&
 							req.EndAt == "2.34"
 					})).
@@ -2772,7 +2771,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 1 &&
 							req.Actor == "user" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == "0.01" &&
 							req.EndAt == "2.34"
 					})).
@@ -2870,7 +2869,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 2 &&
 							req.Actor == "interviewer" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == correctStartedAt &&
 							req.EndAt == correctEndedAt
 					})).
@@ -2961,7 +2960,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 3 &&
 							req.Actor == "interviewer" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == correctStartedAt &&
 							req.EndAt == correctEndedAt
 					})).
@@ -3007,7 +3006,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 2 &&
 							req.Actor == "interviewer" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == correctStartedAt &&
 							req.EndAt == correctEndedAt
 					})).
@@ -3128,7 +3127,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 							req.ID.String() == correctTurnID &&
 							req.TurnNo == 1 &&
 							req.Actor == "interviewer" &&
-							req.TranscriptText.String == "transcript" &&
+							req.TranscriptText == "transcript" &&
 							req.StartAt == correctStartedAt &&
 							req.EndAt == correctEndedAt
 					})).
@@ -3823,7 +3822,7 @@ func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
 				mockInterviewTurnsRepo.EXPECT().
 					GetInterviewerLastMessage(ctx, uuid.MustParse(correctSessionID)).
 					Return(&db.GetInterviewerLastMessageRow{
-						TranscriptText: sql.NullString{String: message},
+						TranscriptText: message,
 						CurrentState:   currentState,
 					}, nil)
 

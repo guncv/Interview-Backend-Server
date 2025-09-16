@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,6 +36,7 @@ type InterviewSessionService interface {
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
+	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 }
 
 type interviewSessionService struct {
@@ -332,7 +332,7 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorInterviewer,
 		CurrentState:   req.CurrentState,
-		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
+		TranscriptText: req.Transcript,
 		StartAt:        req.StartedAt,
 		EndAt:          req.EndedAt,
 	}
@@ -391,7 +391,7 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		TurnNo:         maxTurnNo,
 		Actor:          constants.ActorUser,
 		CurrentState:   req.CurrentState,
-		TranscriptText: sql.NullString{String: req.Transcript, Valid: true},
+		TranscriptText: req.Transcript,
 		StartAt:        timeDuration["started_at"],
 		EndAt:          timeDuration["ended_at"],
 	}
@@ -659,7 +659,7 @@ func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context,
 		}
 
 		resp := &entities.GetInterviewerLastMessageResp{
-			Message:      lastMessage.TranscriptText.String,
+			Message:      lastMessage.TranscriptText,
 			CurrentState: lastMessage.CurrentState,
 		}
 
@@ -673,6 +673,58 @@ func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context,
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting auth context", err)
+		return nil, err
+	}
+
+	sessionValidReq := &entities.IsSessionValidReq{
+		SessionToken: req.SessionToken,
+		UserID:       authContext.Payload.UserID,
+	}
+
+	sessionPayload, err := s.IsSessionValid(ctx, sessionValidReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error checking session valid", err)
+		return nil, err
+	}
+
+	sessionID, err := uuid.Parse(sessionPayload.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
+		return nil, err
+	}
+
+	chatHistoryResp := make([]entities.ChatHistory, len(chatHistory))
+	for i, chat := range chatHistory {
+		chatHistoryResp[i] = entities.ChatHistory{
+			ID:             chat.ID,
+			TurnNo:         chat.TurnNo,
+			Actor:          chat.Actor,
+			TranscriptText: chat.TranscriptText,
+			StartAt:        chat.StartAt,
+			EndAt:          chat.EndAt,
+			CreatedAt:      utils.FormatToBangkokTime(chat.CreatedAt),
+		}
+	}
+
+	resp := &entities.GetChatHistoryBySessionTokenResp{
+		ChatHistory: chatHistoryResp,
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

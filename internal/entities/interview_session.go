@@ -106,3 +106,21 @@ type RedisLastMessagePayload struct {
 	Message      string `json:"message"`
 	CurrentState string `json:"current_state"`
 }
+
+type GetChatHistoryBySessionTokenReq struct {
+	SessionToken string `json:"session_token" binding:"required"`
+}
+
+type GetChatHistoryBySessionTokenResp struct {
+	ChatHistory []ChatHistory `json:"chat_history"`
+}
+
+type ChatHistory struct {
+	ID             uuid.UUID `json:"id"`
+	TurnNo         int64     `json:"turn_no"`
+	Actor          string    `json:"actor"`
+	TranscriptText string    `json:"transcript_text"`
+	StartAt        string    `json:"start_at"`
+	EndAt          string    `json:"end_at"`
+	CreatedAt      string    `json:"created_at"`
+}
