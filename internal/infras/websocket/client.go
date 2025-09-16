@@ -43,6 +43,7 @@ type webSocketClient struct {
 	mu           sync.Mutex
 	lastPongTime time.Time
 	pongReceived chan struct{}
+	cancelFunc   context.CancelFunc
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
@@ -75,6 +76,9 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 	c.connected = true
 	c.lastPongTime = time.Now()
 
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	c.cancelFunc = cancel
+
 	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	c.conn.SetPongHandler(func(string) error {
 		c.mu.Lock()
@@ -89,8 +93,10 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 		return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	})
 
-	go c.readLoop(ctx)
-	go c.pingLoop(ctx)
+	go c.readLoop(cancelCtx)
+	go c.pingLoop(cancelCtx)
+
+	defer cancel()
 	return nil
 }
 
@@ -382,6 +388,11 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 
 func (c *webSocketClient) disconnect(ctx context.Context) {
 	c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Disconnecting client")
+
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+		c.cancelFunc = nil
+	}
 
 	if err := c.conn.Close(); err != nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: disconnect] Error closing connection", err)

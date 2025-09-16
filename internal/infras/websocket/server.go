@@ -33,12 +33,12 @@ type Client struct {
 	lastPongTime     time.Time
 	pongReceived     chan struct{}
 	connected        bool
+	cancelFunc       context.CancelFunc
 }
 
 type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp) error
 	Start(ctx context.Context) error
-	Close(ctx context.Context) error
 	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
 	Disconnect(ctx context.Context, client *Client)
 }
@@ -114,24 +114,6 @@ func (s *webSocketServer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *webSocketServer) Close(ctx context.Context) error {
-	s.log.InfoWithID(ctx, "[WebSocketServer: Close] Closing WebSocket server")
-
-	s.mu.Lock()
-	for _, client := range s.sessions {
-		_ = client.conn.Close()
-	}
-
-	s.sessions = make(map[string]*Client)
-	s.userSessions = make(map[string]map[string]bool)
-	s.mu.Unlock()
-
-	s.clientManager.CloseAllClients(ctx)
-
-	s.aiAgentConnected = false
-	return nil
-}
-
 func (s *webSocketServer) HandleConnection(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -199,13 +181,16 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	client.cancelFunc = cancel
+
 	s.writeJSON(ctx, client, map[string]any{
 		"type": "connection_established", "session_id": client.SessionID,
 	})
 
 	s.logic.sendStartSessionConversationMessage(ctx, client)
-	go s.pingLoop(ctx, client)
-	go s.readLoop(ctx, client)
+	go s.pingLoop(cancelCtx, client)
+	go s.readLoop(cancelCtx, client)
 
 	return nil
 }
@@ -368,6 +353,11 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.clientManager.DeleteClientBySessionID(ctx, client.SessionID)
 
 	_ = client.conn.Close()
+
+	if client.cancelFunc != nil {
+		client.cancelFunc()
+		client.cancelFunc = nil
+	}
 
 	client.mu.Lock()
 	if client.connected {

@@ -188,7 +188,8 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, s.generator.GenerateUUID(ctx).String())
+	sessionToken := s.generator.GenerateUUID(ctx).String()
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, sessionToken)
 
 	redisPayload := database.RedisPayload{
 		Key:   redisKey,
@@ -203,7 +204,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	}
 
 	resp := &entities.CreateInterviewSessionWithNewResumeResponse{
-		SessionToken: redisPayload.Key,
+		SessionToken: sessionToken,
 	}
 
 	return resp, nil
@@ -287,8 +288,10 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
+	sessionToken := s.generator.GenerateUUID(ctx).String()
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, sessionToken)
 	redisPayload := database.RedisPayload{
-		Key:   s.generator.GenerateUUID(ctx).String(),
+		Key:   redisKey,
 		Value: string(tokenReqJSON),
 		TTL:   s.config.InterviewSessionConfig.InterviewSessionDuration,
 	}
@@ -299,7 +302,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	resp := &entities.CreateInterviewSessionWithExistingResumeResp{
-		SessionToken: redisPayload.Key,
+		SessionToken: sessionToken,
 	}
 
 	return resp, nil
