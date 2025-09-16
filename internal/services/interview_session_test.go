@@ -53,13 +53,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -138,13 +133,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -224,13 +214,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -265,13 +250,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -323,13 +303,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -386,13 +361,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -448,13 +418,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -514,13 +479,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -589,13 +549,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -663,13 +618,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -744,13 +694,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -802,13 +747,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -884,13 +824,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -942,13 +877,8 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					Size:     1024,
 					Header:   map[string][]string{"Content-Type": {"application/pdf"}},
 				},
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1095,14 +1025,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Success - Create interview session with existing resume",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1190,14 +1115,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Auth context failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1227,14 +1147,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error_Invalid Resume ID",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        invalidResumeID,
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  invalidResumeID,
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1275,14 +1190,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Get resume by ID failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1322,14 +1232,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - S3 download failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1383,14 +1288,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Get resume JSON failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1457,14 +1357,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Prompt JSON marshalling failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1536,14 +1431,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error_Invalid user ID",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1616,14 +1506,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Transaction failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1694,14 +1579,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Redis connection failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)
@@ -1787,14 +1667,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 		{
 			name: "Error - Redis set failure",
 			input: &entities.CreateInterviewSessionWithExistingResumeReq{
-				ResumeID:        resumeID.String(),
-				Position:        "Software Engineer",
-				Company:         "Tech Corp",
-				WorkType:        "Full-time",
-				JobRequirements: "Go, Docker, AWS",
-				InterviewType:   "Technical",
-				Language:        "English",
-				IsConsent:       true,
+				ResumeID:  resumeID.String(),
+				Position:  "Software Engineer",
+				IsConsent: true,
 			},
 			setup: func() (*mockServices.MockResumeService, *mockMiddleware.MockAuthContext, *mockRepositories.MockResumeReposity, *mockUtils.MockGenerator, *mockRepositories.MockInterviewSessionRepository, *mockUtils.MockJwtToken, *config.Config, *mockAws.MockS3Storage, *queue.MockRedisTaskPublisher, *mockDatabase.MockRedisClient) {
 				mockResumeService := new(mockServices.MockResumeService)

@@ -43,13 +43,8 @@ func TestInterviewSessionHandler_CreateInterviewSessionWithNewResume(t *testing.
 			name: "Success",
 			input: func() *entities.CreateInterviewSessionWithNewResumeRequest {
 				return &entities.CreateInterviewSessionWithNewResumeRequest{
-					Position:        "Software Engineer",
-					Company:         "Tech Corp",
-					WorkType:        "Full-time",
-					JobRequirements: "Go, REST APIs, Microservices",
-					InterviewType:   "Technical",
-					Language:        "English",
-					IsConsent:       true,
+					Position:  "Software Engineer",
+					IsConsent: true,
 				}
 			},
 			setup: func() (*services.MockInterviewSessionService, *utils.MockValidator, *middleware.MockAuthContext, websocket.WebSocketServerInterface) {
@@ -173,21 +168,7 @@ func TestInterviewSessionHandler_CreateInterviewSessionWithNewResume(t *testing.
 			if req.Position != "" {
 				writer.WriteField("position", req.Position)
 			}
-			if req.Company != "" {
-				writer.WriteField("company", req.Company)
-			}
-			if req.WorkType != "" {
-				writer.WriteField("work_type", req.WorkType)
-			}
-			if req.JobRequirements != "" {
-				writer.WriteField("job_requirements", req.JobRequirements)
-			}
-			if req.InterviewType != "" {
-				writer.WriteField("interview_type", req.InterviewType)
-			}
-			if req.Language != "" {
-				writer.WriteField("language", req.Language)
-			}
+
 			if req.IsConsent {
 				writer.WriteField("is_consent", "true")
 			}
@@ -231,14 +212,9 @@ func TestInterviewSessionHandler_CreateInterviewSessionWithExistingResume(t *tes
 			name: "Success",
 			input: func() *entities.CreateInterviewSessionWithExistingResumeReq {
 				return &entities.CreateInterviewSessionWithExistingResumeReq{
-					ResumeID:        "123e4567-e89b-12d3-a456-426614174000",
-					Position:        "Software Engineer",
-					Company:         "Tech Corp",
-					WorkType:        "Full-time",
-					JobRequirements: "Go, REST APIs, Microservices",
-					InterviewType:   "Technical",
-					Language:        "English",
-					IsConsent:       true,
+					ResumeID:  "123e4567-e89b-12d3-a456-426614174000",
+					Position:  "Software Engineer",
+					IsConsent: true,
 				}
 			},
 			setup: func() (*services.MockInterviewSessionService, *utils.MockValidator, *middleware.MockAuthContext, websocket.WebSocketServerInterface) {
