@@ -84,41 +84,6 @@
                 }
             }
         },
-        "/auth/refresh-token": {
-            "post": {
-                "description": "Get new access token using refresh token from cookie",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Refresh access token",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.RefreshTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid refresh token",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/reset-password": {
             "post": {
                 "description": "Reset user password using reset token",
@@ -653,6 +618,61 @@
                 }
             }
         },
+        "/sessions/chat-history/{session_token}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get chat history by session token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Get chat history by session token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session token",
+                        "name": "session_token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat history",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetChatHistoryBySessionTokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session token or request",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/sessions/existing": {
             "post": {
                 "security": [
@@ -712,11 +732,6 @@
         },
         "/ws/connect/{id}": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Establish a WebSocket connection for real-time interview communication",
                 "consumes": [
                     "application/json"
@@ -734,6 +749,13 @@
                         "description": "Session token",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Access token for authentication",
+                        "name": "access_token",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -764,41 +786,47 @@
         }
     },
     "definitions": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ChatHistory": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "start_at": {
+                    "type": "string"
+                },
+                "transcript_text": {
+                    "type": "string"
+                },
+                "turn_no": {
+                    "type": "integer"
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeReq": {
             "type": "object",
             "required": [
-                "company",
-                "interview_type",
                 "is_consent",
-                "job_requirements",
-                "language",
                 "position",
-                "resume_id",
-                "work_type"
+                "resume_id"
             ],
             "properties": {
-                "company": {
-                    "type": "string"
-                },
-                "interview_type": {
-                    "type": "string"
-                },
                 "is_consent": {
                     "type": "boolean"
-                },
-                "job_requirements": {
-                    "type": "string"
-                },
-                "language": {
-                    "type": "string"
                 },
                 "position": {
                     "type": "string"
                 },
                 "resume_id": {
-                    "type": "string"
-                },
-                "work_type": {
                     "type": "string"
                 }
             }
@@ -828,6 +856,17 @@
                 "email": {
                     "type": "string",
                     "maxLength": 100
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetChatHistoryBySessionTokenResp": {
+            "type": "object",
+            "properties": {
+                "chat_history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ChatHistory"
+                    }
                 }
             }
         },
@@ -899,14 +938,6 @@
                 },
                 "resume_content": {
                     "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResumeContent"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.RefreshTokenResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
                 }
             }
         },
@@ -1087,6 +1118,10 @@
                 "ONX0104",
                 "ONX0105",
                 "ONX0106",
+                "ONX0107",
+                "ONX0108",
+                "ONX0109",
+                "ONX0110",
                 "ONX0200",
                 "ONX0201",
                 "ONX0202",
@@ -1113,7 +1148,25 @@
                 "ONX0305",
                 "ONX0306",
                 "ONX0400",
-                "ONX0401"
+                "ONX0401",
+                "ONX0402",
+                "ONX0403",
+                "ONX0404",
+                "ONX0405",
+                "ONX0406",
+                "ONX0407",
+                "ONX0408",
+                "ONX0409",
+                "ONX0410",
+                "ONX0411",
+                "ONX0412",
+                "ONX0413",
+                "ONX0414",
+                "ONX0415",
+                "ONX0416",
+                "ONX0500",
+                "ONX0501",
+                "ONX0600"
             ],
             "x-enum-varnames": [
                 "ErrCodeGeneralServerUnavailable",
@@ -1121,6 +1174,10 @@
                 "ErrCodeGeneralResourceNotFound",
                 "ErrCodeGeneralDatabaseConnection",
                 "ErrCodeGeneralConstraintViolation",
+                "ErrCodeGeneralInvalidUUID",
+                "ErrCodeGeneralRedisSetFailed",
+                "ErrCodeGeneralRedisGetFailed",
+                "ErrCodeGeneralUnmarshalFailed",
                 "ErrCodeAuthInvalidToken",
                 "ErrCodeAuthExpiredToken",
                 "ErrCodeAuthInvalidRefreshToken",
@@ -1147,7 +1204,25 @@
                 "ErrCodeResumeInvalidID",
                 "ErrCodeResumeInvalidRequest",
                 "ErrCodeSessionInvalidToken",
-                "ErrCodeSessionNotFound"
+                "ErrCodeSessionNotFound",
+                "ErrCodeWebSocketInvalidHello",
+                "ErrCodeWebSocketInvalidSegmentStart",
+                "ErrCodeWebSocketInvalidSegmentEnd",
+                "ErrCodeWebSocketInvalidStopTTS",
+                "ErrCodeWebSocketInvalidDBAck",
+                "ErrCodeWebSocketInvalidError",
+                "ErrCodeWebSocketInvalidPing",
+                "ErrCodeWebSocketInvalidMessage",
+                "ErrCodeWebSocketInvalidUserPartialTranscript",
+                "ErrCodeWebSocketInvalidUserFullTranscript",
+                "ErrCodeInterviewSessionStartEndTimeNotFound",
+                "ErrCodeInterviewSessionStartTimeNotFound",
+                "ErrCodeInterviewSessionEndTimeNotFound",
+                "ErrCodeWebSocketInvalidSegmentID",
+                "ErrCodeWebSocketInvalidSessionID",
+                "ErrCodeEvaluationRubricNotFound",
+                "ErrCodeEvaluationRubricCriteriaNotFound",
+                "ErrCodeInterviewTurnsLastMessageNotFound"
             ]
         }
     },

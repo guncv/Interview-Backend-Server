@@ -44,9 +44,9 @@ func NewResumeHandler(
 // @Param updated_at query string false "Filter by updated date (RFC3339 format)"
 // @Security BearerAuth
 // @Success 200 {object} entities.ListResumeResponse
-// @Failure 400 {object} app_error.AppError "Invalid request parameters"
-// @Failure 401 {object} app_error.AppError "Unauthorized"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid request parameters"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /resumes/list [get]
 func (h *ResumeHandler) ListResume(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -91,9 +91,9 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 // @Param request body entities.SwitchDefaultResumeRequest true "Resume switch request"
 // @Security BearerAuth
 // @Success 200 "Default resume switched successfully"
-// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
-// @Failure 401 {object} app_error.AppError "Unauthorized"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /resumes/switch-default [post]
 func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -131,10 +131,10 @@ func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
 // @Param id path string true "Resume ID (UUID)"
 // @Security BearerAuth
 // @Success 200 {object} entities.GetResumeByIDResponse
-// @Failure 400 {object} app_error.AppError "Invalid resume ID"
-// @Failure 401 {object} app_error.AppError "Unauthorized"
-// @Failure 404 {object} app_error.AppError "Resume not found"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid resume ID"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Resume not found"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /resumes/{id} [get]
 func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	ctx := c.Request.Context()

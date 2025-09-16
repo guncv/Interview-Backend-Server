@@ -188,8 +188,10 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, s.generator.GenerateUUID(ctx).String())
+
 	redisPayload := database.RedisPayload{
-		Key:   s.generator.GenerateUUID(ctx).String(),
+		Key:   redisKey,
 		Value: string(tokenReqJSON),
 		TTL:   s.config.InterviewSessionConfig.InterviewSessionDuration,
 	}
@@ -497,7 +499,9 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
 	s.log.InfoWithID(ctx, "[Service: IsSessionValid] Called")
 
-	redisSessionToken, err := s.redisClient.Get(ctx, req.SessionToken)
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, req.SessionToken)
+
+	redisSessionToken, err := s.redisClient.Get(ctx, redisKey)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: IsSessionValid] Error getting redis session token", err)
 		return nil, app_error.New(err, app_error.ErrCodeSessionNotFound)
@@ -695,13 +699,7 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 		return nil, err
 	}
 
-	sessionID, err := uuid.Parse(sessionPayload.SessionID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Invalid session ID", err)
-		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, sessionID)
+	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, uuid.MustParse(sessionPayload.SessionID))
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
 		return nil, err

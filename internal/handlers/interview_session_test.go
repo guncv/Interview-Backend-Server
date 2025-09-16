@@ -717,3 +717,175 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 		})
 	}
 }
+
+func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+	err := errors.New("mock error")
+
+	tests := []struct {
+		name           string
+		sessionToken   string
+		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:         "Success",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionToken(mock.Anything, mock.Anything).
+					Return(&entities.GetChatHistoryBySessionTokenResp{
+						ChatHistory: []entities.ChatHistory{
+							{
+								ID:             uuid.New(),
+								TurnNo:         1,
+								Actor:          "user",
+								TranscriptText: "Hello, how are you?",
+							},
+						},
+					}, nil)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:         "Error - WithNonSessionTokenParam",
+			sessionToken: "",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The session token is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error With Validation",
+			sessionToken: "invalid-session-token",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The session token is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error - WithExtractAuthContextError",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				authErr := app_error.New(errors.New("extract auth context error"), app_error.ErrCodeAuthInvalidHeader)
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authErr)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+				assert.Contains(t, w.Body.String(), "Please log in to continue")
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:         "Error - WithGetChatHistoryBySessionTokenError",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeSessionNotFound)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionToken(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, w.Code)
+				assert.Contains(t, w.Body.String(), "The session was not found")
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			url := fmt.Sprintf("/api/v1/sessions/chat-history/%s", tt.sessionToken)
+
+			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
+			c.Params = gin.Params{{Key: "session_token", Value: tt.sessionToken}}
+
+			mockValidator, mockAuthContext, mockInterviewSessionService := tt.setup()
+			defer mockValidator.AssertExpectations(t)
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
+			handler.GetChatHistoryBySessionToken(c)
+
+			tt.verify(t, w)
+		})
+	}
+}

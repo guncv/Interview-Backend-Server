@@ -12,6 +12,7 @@ const (
 	RedisPrefixInterviewStartEndTime   = "interview:start_end_time:"
 	RedisPrefixInterviewLastMessage    = "interview:last_message:"
 	RedisPrefixEvaluationRubric        = "evaluation:rubric:general:"
+	RedisPrefixInterviewSessionToken   = "interview:session_token:"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour

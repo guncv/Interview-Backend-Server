@@ -68,8 +68,8 @@ func (h *UserHandler) HealthCheck(c *gin.Context) {
 // @Produce json
 // @Param request body entities.SignUpUserRequest true "User registration details"
 // @Success 200 {object} entities.SignUpUserResponse
-// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/sign-up [post]
 func (h *UserHandler) SignUpUser(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -100,8 +100,8 @@ func (h *UserHandler) SignUpUser(c *gin.Context) {
 // @Produce json
 // @Param request body entities.VerifyEmailRequest true "Email verification details"
 // @Success 204 "Email sent successfully"
-// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/verify-email [post]
 func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -132,8 +132,8 @@ func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 // @Produce json
 // @Param request body entities.ResetVerifyEmailCodeRequest true "Reset verification code request"
 // @Success 200 {object} entities.ResetVerifyEmailCodeResponse
-// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/reset-verify-email [post]
 func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -164,8 +164,8 @@ func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 // @Produce json
 // @Param request body entities.SignInUserByEmailAndPasswordRequest true "Login credentials"
 // @Success 200 {object} entities.SignInUserByEmailAndPasswordResponse
-// @Failure 400 {object} app_error.AppError "Validation error or invalid credentials"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid credentials"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/sign-in [post]
 func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -198,8 +198,8 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 // @Produce json
 // @Param request body entities.ForgotPasswordRequest true "Password reset request"
 // @Success 204 "Password reset email sent successfully"
-// @Failure 400 {object} app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/forgot-password [post]
 func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -230,8 +230,8 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 // @Produce json
 // @Param request body entities.ResetUserPasswordRequest true "Password reset details"
 // @Success 204 "Password reset successfully"
-// @Failure 400 {object} app_error.AppError "Validation error or invalid token"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid token"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/reset-password [post]
 func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -262,8 +262,8 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Success 204 "User signed out successfully"
-// @Failure 401 {object} app_error.AppError "Unauthorized"
-// @Failure 500 {object} app_error.AppError "Internal server error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/sign-out [post]
 func (h *UserHandler) SignOut(c *gin.Context) {
 	ctx := c.Request.Context()
