@@ -1145,7 +1145,7 @@ func TestResumeService_ListResume(t *testing.T) {
 				}
 			}()
 
-			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, nil, nil, mockRedisTaskPublisher, mockRedisClient, nil)
+			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, nil, nil, mockRedisTaskPublisher, mockRedisClient, nil, nil)
 
 			var testCtx context.Context
 			var cancel context.CancelFunc
@@ -1616,7 +1616,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				}
 			}()
 
-			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, nil, nil, mockRedisTaskPublisher, mockRedisClient, nil)
+			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, nil, nil, mockRedisTaskPublisher, mockRedisClient, nil, nil)
 			gotErr := svc.SwitchDefaultResume(ctx, tC.input)
 
 			tC.verify(t, gotErr)
@@ -1784,7 +1784,7 @@ func TestResumeService_GetResumeByID(t *testing.T) {
 				}
 			}()
 
-			svc := NewResumeService(lgr, mockResumeRepository, nil, mockS3Storage, nil, nil, nil, nil)
+			svc := NewResumeService(lgr, mockResumeRepository, nil, mockS3Storage, nil, nil, nil, nil, nil)
 			gotResp, gotErr := svc.GetResumeByID(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)

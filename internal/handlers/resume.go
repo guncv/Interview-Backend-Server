@@ -164,3 +164,55 @@ func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// DownloadResumeBySessionToken godoc
+// @Summary Download resume by session token
+// @Description Download a specific resume by its session token
+// @Tags Resumes
+// @Accept json
+// @Produce json
+// @Param session_token path string true "Session token (UUID)"
+// @Security BearerAuth
+// @Success 200 {object} entities.DownloadResumeBySessionTokenResp
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid session token"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Session not found"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /resumes/download/{session_token} [get]
+func (h *ResumeHandler) DownloadResumeBySessionToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: DownloadResumeBySessionToken] Called")
+
+	sessionToken := c.Param("session_token")
+	if sessionToken == "" {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Session token is required")
+		utils.RespondWithError(c, app_error.New(errors.New("session token is required"), app_error.ErrCodeResumeInvalidRequest))
+		return
+	}
+
+	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Invalid session token", err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeResumeInvalidRequest))
+		return
+	}
+
+	req := entities.DownloadResumeBySessionTokenReq{
+		SessionToken: sessionToken,
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.resumeService.DownloadResumeBySessionToken(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Error downloading resume", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

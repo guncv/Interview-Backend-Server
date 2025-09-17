@@ -27,17 +27,19 @@ type ResumeService interface {
 	ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error)
 	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
 	GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)
+	DownloadResumeBySessionToken(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error)
 }
 
 type resumeService struct {
-	log         *log.Logger
-	resumeRepo  repositories.ResumeReposity
-	authContext middleware.AuthContext
-	s3Storage   aws.S3Storage
-	validator   utils.Validator
-	queue       publisher.RedisTaskPublisher
-	redisClient database.RedisClient
-	generator   utils.Generator
+	log                     *log.Logger
+	resumeRepo              repositories.ResumeReposity
+	authContext             middleware.AuthContext
+	s3Storage               aws.S3Storage
+	validator               utils.Validator
+	queue                   publisher.RedisTaskPublisher
+	redisClient             database.RedisClient
+	generator               utils.Generator
+	interviewSessionService InterviewSessionService
 }
 
 func NewResumeService(
@@ -49,16 +51,18 @@ func NewResumeService(
 	queue publisher.RedisTaskPublisher,
 	redisClient database.RedisClient,
 	generator utils.Generator,
+	interviewSessionService InterviewSessionService,
 ) ResumeService {
 	return &resumeService{
-		log:         l,
-		resumeRepo:  resumeRepo,
-		authContext: authContext,
-		s3Storage:   s3Storage,
-		validator:   validator,
-		queue:       queue,
-		redisClient: redisClient,
-		generator:   generator,
+		log:                     l,
+		resumeRepo:              resumeRepo,
+		authContext:             authContext,
+		s3Storage:               s3Storage,
+		validator:               validator,
+		queue:                   queue,
+		redisClient:             redisClient,
+		generator:               generator,
+		interviewSessionService: interviewSessionService,
 	}
 }
 
@@ -366,4 +370,50 @@ func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResu
 	}
 
 	return &resp, nil
+}
+
+func (s *resumeService) DownloadResumeBySessionToken(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error) {
+	s.log.InfoWithID(ctx, "[Service: DownloadResumeBySessionToken] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting auth context", err)
+		return nil, err
+	}
+
+	sessionPayload, err := s.interviewSessionService.IsSessionValid(ctx, &entities.IsSessionValidReq{
+		SessionToken: req.SessionToken,
+		UserID:       authContext.Payload.UserID,
+	})
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Invalid session", err)
+		return nil, err
+	}
+
+	s.log.InfoWithID(ctx, "[Service: DownloadResumeBySessionToken] Session payload", sessionPayload)
+
+	resumeID, err := uuid.Parse(sessionPayload.ResumeID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Invalid resume ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	resume, err := s.resumeRepo.GetResumeByID(ctx, resumeID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting resume", err)
+		return nil, err
+	}
+
+	fileUrl, err := s.s3Storage.GeneratePresignedURL(ctx, resume.StorageKey, constants.S3PresignedURLTTL)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting file URL", err)
+		return nil, err
+	}
+
+	resp := &entities.DownloadResumeBySessionTokenResp{
+		FileUrl:  fileUrl,
+		FileName: resume.FileName,
+	}
+
+	return resp, nil
 }

@@ -43,7 +43,6 @@ type InterviewSessionService interface {
 type interviewSessionService struct {
 	log                  *log.Logger
 	authContext          middleware.AuthContext
-	resumeService        ResumeService
 	resumeRepo           repositories.ResumeReposity
 	generator            utils.Generator
 	interviewSessionRepo repositories.InterviewSessionRepository
@@ -60,7 +59,6 @@ type interviewSessionService struct {
 func NewInterviewSessionService(
 	log *log.Logger,
 	authContext middleware.AuthContext,
-	resumeService ResumeService,
 	resumeRepo repositories.ResumeReposity,
 	generator utils.Generator,
 	interviewSessionRepo repositories.InterviewSessionRepository,
@@ -76,7 +74,6 @@ func NewInterviewSessionService(
 	return &interviewSessionService{
 		log:                  log,
 		authContext:          authContext,
-		resumeService:        resumeService,
 		resumeRepo:           resumeRepo,
 		generator:            generator,
 		interviewSessionRepo: interviewSessionRepo,
@@ -729,10 +726,7 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 	return resp, nil
 }
 
-func (s *interviewSessionService) GetInterviewSessionInformation(
-	ctx context.Context,
-	req *entities.GetInterviewSessionInformationReq,
-) (*entities.GetInterviewSessionInformationResp, error) {
+func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionInformation] Called")
 
 	authContext, err := s.authContext.GetAuthContext(ctx)

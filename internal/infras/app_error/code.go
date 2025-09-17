@@ -44,6 +44,7 @@ const (
 	ErrCodeResumeNotFound               ErrorCode = "ONX0304"
 	ErrCodeResumeInvalidID              ErrorCode = "ONX0305"
 	ErrCodeResumeInvalidRequest         ErrorCode = "ONX0306"
+	ErrCodeResumeInvalidFileName        ErrorCode = "ONX0307"
 
 	// Session
 	ErrCodeSessionInvalidToken                   ErrorCode = "ONX0400"

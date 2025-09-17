@@ -345,6 +345,67 @@
                 }
             }
         },
+        "/resumes/download/{session_token}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Download a specific resume by its session token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resumes"
+                ],
+                "summary": "Download resume by session token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session token (UUID)",
+                        "name": "session_token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeBySessionTokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session token",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/resumes/list": {
             "get": {
                 "security": [
@@ -902,6 +963,17 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeBySessionTokenResp": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "file_url": {
+                    "type": "string"
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ForgotPasswordRequest": {
             "type": "object",
             "required": [
@@ -1213,6 +1285,7 @@
                 "ONX0304",
                 "ONX0305",
                 "ONX0306",
+                "ONX0307",
                 "ONX0400",
                 "ONX0401",
                 "ONX0402",
@@ -1269,6 +1342,7 @@
                 "ErrCodeResumeNotFound",
                 "ErrCodeResumeInvalidID",
                 "ErrCodeResumeInvalidRequest",
+                "ErrCodeResumeInvalidFileName",
                 "ErrCodeSessionInvalidToken",
                 "ErrCodeSessionNotFound",
                 "ErrCodeWebSocketInvalidHello",

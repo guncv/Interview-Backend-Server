@@ -1080,7 +1080,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 			svc := NewInterviewSessionService(
 				lgr,
 				mockAuthContext,
-				mockResumeService,
 				mockResumeRepo,
 				mockGenerator,
 				mockInterviewSessionRepo,
@@ -1881,7 +1880,6 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 			svc := NewInterviewSessionService(
 				lgr,
 				mockAuthContext,
-				mockResumeService,
 				mockResumeRepo,
 				mockGenerator,
 				mockInterviewSessionRepo,
@@ -2087,7 +2085,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			svc := NewInterviewSessionService(
 				lgr,
 				mockAuthContext,
-				mockResumeService,
 				mockResumeRepo,
 				mockGenerator,
 				mockInterviewSessionRepo,
@@ -2310,7 +2307,6 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 
 			svc := NewInterviewSessionService(
 				lgr,
-				nil,
 				nil,
 				nil,
 				nil,
@@ -2807,7 +2803,6 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				lgr,
 				nil,
 				nil,
-				nil,
 				mockGenerator,
 				mockInterviewSessionRepo,
 				nil,
@@ -3161,7 +3156,6 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 
 			svc := NewInterviewSessionService(
 				lgr,
-				nil,
 				nil,
 				nil,
 				mockGenerator,
@@ -3744,7 +3738,6 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 				lgr,
 				nil,
 				nil,
-				nil,
 				mockGenerator,
 				mockInterviewSessionRepo,
 				nil,
@@ -3914,7 +3907,6 @@ func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
 
 			svc := NewInterviewSessionService(
 				lgr,
-				nil,
 				nil,
 				nil,
 				nil,
@@ -4171,7 +4163,6 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 			svc := NewInterviewSessionService(
 				lgr,
 				mockAuthContext,
-				nil,
 				nil,
 				nil,
 				mockInterviewSessionRepo,

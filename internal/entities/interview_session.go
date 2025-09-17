@@ -133,3 +133,12 @@ type GetInterviewSessionInformationResp struct {
 	Position string `json:"position"`
 	FileName string `json:"file_name"`
 }
+
+type DownloadResumeBySessionTokenReq struct {
+	SessionToken string `json:"session_token" binding:"required"`
+}
+
+type DownloadResumeBySessionTokenResp struct {
+	FileUrl  string `json:"file_url"`
+	FileName string `json:"file_name"`
+}

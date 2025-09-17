@@ -100,6 +100,7 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 		resumeMiddleRoutes.GET("/:id", resumeHandler.GetResumeByID)
 		resumeMiddleRoutes.GET("/list", resumeHandler.ListResume)
+		resumeMiddleRoutes.GET("/download/:session_token", resumeHandler.DownloadResumeBySessionToken)
 	}
 }
 

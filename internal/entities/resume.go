@@ -61,3 +61,11 @@ type GetResumeByIDResponse struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 }
+
+type DownloadResumeByResumeIdReq struct {
+	ResumeID string `json:"resume_id" binding:"required"`
+}
+
+type DownloadResumeByResumeIdResp struct {
+	FileUrl string `json:"file_url"`
+}
