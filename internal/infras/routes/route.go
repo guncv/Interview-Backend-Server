@@ -110,6 +110,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.POST("", interviewSessionHandler.CreateInterviewSessionWithNewResume)
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 		interviewSessionMiddleRoutes.GET("/chat-history/:session_token", interviewSessionHandler.GetChatHistoryBySessionToken)
+		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
 	}
 }
 

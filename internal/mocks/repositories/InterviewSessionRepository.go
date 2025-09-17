@@ -224,6 +224,65 @@ func (_c *MockInterviewSessionRepository_EndInterviewSession_Call) RunAndReturn(
 	return _c
 }
 
+// GetInterviewSessionInformation provides a mock function with given fields: ctx, sessionID
+func (_m *MockInterviewSessionRepository) GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetInterviewSessionInformation")
+	}
+
+	var r0 *db.GetInterviewSessionInformationRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.GetInterviewSessionInformationRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.GetInterviewSessionInformationRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_GetInterviewSessionInformation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformation'
+type MockInterviewSessionRepository_GetInterviewSessionInformation_Call struct {
+	*mock.Call
+}
+
+// GetInterviewSessionInformation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockInterviewSessionRepository_Expecter) GetInterviewSessionInformation(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+	return &MockInterviewSessionRepository_GetInterviewSessionInformation_Call{Call: _e.mock.On("GetInterviewSessionInformation", ctx, sessionID)}
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) Return(_a0 *db.GetInterviewSessionInformationRow, _a1 error) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationRow, error)) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InterviewFeedbackAndScore provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) InterviewFeedbackAndScore(ctx context.Context, req *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error) {
 	ret := _m.Called(ctx, req)

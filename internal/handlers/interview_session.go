@@ -244,3 +244,54 @@ func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// OpenWsConnection godoc
+// @Summary Get interview session information
+// @Description Get interview session information
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param session_token path string true "Session token"
+// @Security BearerAuth
+// @Success 200 {object} entities.GetInterviewSessionInformationResp "Interview session information"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid session token or request"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /sessions/information/{session_token} [get]
+func (h *InterviewSessionHandler) GetInterviewSessionInformation(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: GetInterviewSessionInformation] Called")
+
+	sessionToken := c.Param("session_token")
+	if sessionToken == "" {
+		h.log.ErrorWithID(ctx, "[Handler: GetInterviewSessionInformation] Session token is required")
+		utils.RespondWithError(c, app_error.New(errors.New("session token is required"), app_error.ErrCodeSessionInvalidToken))
+		return
+	}
+
+	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetInterviewSessionInformation] Invalid session token", err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeSessionInvalidToken))
+		return
+	}
+
+	req := entities.GetInterviewSessionInformationReq{
+		SessionToken: sessionToken,
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetInterviewSessionInformation] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.interviewSessionService.GetInterviewSessionInformation(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetInterviewSessionInformation] Error getting interview session information", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

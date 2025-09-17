@@ -124,3 +124,12 @@ type ChatHistory struct {
 	EndAt          string    `json:"end_at"`
 	CreatedAt      string    `json:"created_at"`
 }
+
+type GetInterviewSessionInformationReq struct {
+	SessionToken string `json:"session_token" binding:"required"`
+}
+
+type GetInterviewSessionInformationResp struct {
+	Position string `json:"position"`
+	FileName string `json:"file_name"`
+}

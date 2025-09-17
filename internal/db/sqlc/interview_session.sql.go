@@ -95,6 +95,29 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 	return result.RowsAffected()
 }
 
+const getInterviewSessionInformation = `-- name: GetInterviewSessionInformation :one
+SELECT
+    i.user_id AS user_id,
+    i.position AS position,
+    r.file_name AS file_name
+FROM interview_sessions i
+JOIN resumes r ON i.resume_id = r.id
+WHERE i.id = $1
+`
+
+type GetInterviewSessionInformationRow struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Position string    `json:"position"`
+	FileName string    `json:"file_name"`
+}
+
+func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error) {
+	row := q.db.QueryRowContext(ctx, getInterviewSessionInformation, id)
+	var i GetInterviewSessionInformationRow
+	err := row.Scan(&i.UserID, &i.Position, &i.FileName)
+	return i, err
+}
+
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),

@@ -37,6 +37,7 @@ type InterviewSessionService interface {
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
+	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
 }
 
 type interviewSessionService struct {
@@ -723,6 +724,89 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 
 	resp := &entities.GetChatHistoryBySessionTokenResp{
 		ChatHistory: chatHistoryResp,
+	}
+
+	return resp, nil
+}
+
+func (s *interviewSessionService) GetInterviewSessionInformation(
+	ctx context.Context,
+	req *entities.GetInterviewSessionInformationReq,
+) (*entities.GetInterviewSessionInformationResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionInformation] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Error getting auth context", err)
+		return nil, err
+	}
+
+	sessionValidReq := &entities.IsSessionValidReq{
+		SessionToken: req.SessionToken,
+		UserID:       authContext.Payload.UserID,
+	}
+
+	sessionPayload, err := s.IsSessionValid(ctx, sessionValidReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Invalid session", err)
+		return nil, err
+	}
+
+	sessionID, err := uuid.Parse(sessionPayload.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Invalid UUID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, sessionID)
+
+	var dbSession *db.GetInterviewSessionInformationRow
+	redisData, err := s.redisClient.Get(ctx, redisKey)
+	if err == nil {
+		var cachedResp db.GetInterviewSessionInformationRow
+		if err := json.Unmarshal([]byte(redisData), &cachedResp); err == nil {
+			dbSession = &cachedResp
+		} else {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Failed to unmarshal Redis data", err)
+		}
+	} else {
+		s.log.WarnWithID(ctx, "[Service: GetInterviewSessionInformation] Redis miss or error", err)
+	}
+
+	if dbSession == nil {
+		sessionResp, err := s.interviewSessionRepo.GetInterviewSessionInformation(ctx, sessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] DB query failed", err)
+			return nil, err
+		}
+
+		dbSession = &db.GetInterviewSessionInformationRow{
+			UserID:   sessionResp.UserID,
+			Position: sessionResp.Position,
+			FileName: sessionResp.FileName,
+		}
+
+		if jsonBytes, err := json.Marshal(dbSession); err == nil {
+			go func() {
+				_ = s.redisClient.Set(ctx, database.RedisPayload{
+					Key:   redisKey,
+					Value: string(jsonBytes),
+					TTL:   constants.RedisTTLInterviewSessionInformation,
+				})
+			}()
+		} else {
+			s.log.WarnWithID(ctx, "[Service: GetInterviewSessionInformation] Failed to marshal Redis payload", err)
+		}
+	}
+
+	if dbSession.UserID.String() != authContext.Payload.UserID {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] User ID mismatch")
+		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
+	}
+
+	resp := &entities.GetInterviewSessionInformationResp{
+		Position: dbSession.Position,
+		FileName: dbSession.FileName,
 	}
 
 	return resp, nil

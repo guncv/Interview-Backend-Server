@@ -24,6 +24,7 @@ type InterviewSessionRepository interface {
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
 	InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error)
+	GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error)
 }
 
 type interviewSessionRepository struct {
@@ -192,4 +193,15 @@ func (r *interviewSessionRepository) InterviewFeedbackAndScore(ctx context.Conte
 	}
 
 	return &result, nil
+}
+
+func (r *interviewSessionRepository) GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionInformation] Called")
+
+	session, err := r.db.GetInterviewSessionInformation(ctx, sessionID)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionInformation] Error getting interview session information", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+	return &session, nil
 }

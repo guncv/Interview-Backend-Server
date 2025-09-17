@@ -26,52 +26,6 @@ func (_m *MockWebSocketServerInterface) EXPECT() *MockWebSocketServerInterface_E
 	return &MockWebSocketServerInterface_Expecter{mock: &_m.Mock}
 }
 
-// Close provides a mock function with given fields: ctx
-func (_m *MockWebSocketServerInterface) Close(ctx context.Context) error {
-	ret := _m.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Close")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = rf(ctx)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockWebSocketServerInterface_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
-type MockWebSocketServerInterface_Close_Call struct {
-	*mock.Call
-}
-
-// Close is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *MockWebSocketServerInterface_Expecter) Close(ctx interface{}) *MockWebSocketServerInterface_Close_Call {
-	return &MockWebSocketServerInterface_Close_Call{Call: _e.mock.On("Close", ctx)}
-}
-
-func (_c *MockWebSocketServerInterface_Close_Call) Run(run func(ctx context.Context)) *MockWebSocketServerInterface_Close_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context))
-	})
-	return _c
-}
-
-func (_c *MockWebSocketServerInterface_Close_Call) Return(_a0 error) *MockWebSocketServerInterface_Close_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockWebSocketServerInterface_Close_Call) RunAndReturn(run func(context.Context) error) *MockWebSocketServerInterface_Close_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Disconnect provides a mock function with given fields: ctx, client
 func (_m *MockWebSocketServerInterface) Disconnect(ctx context.Context, client *websocket.Client) {
 	_m.Called(ctx, client)

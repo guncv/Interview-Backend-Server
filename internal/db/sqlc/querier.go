@@ -28,6 +28,7 @@ type Querier interface {
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
+	GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)

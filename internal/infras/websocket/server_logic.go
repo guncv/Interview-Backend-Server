@@ -388,6 +388,15 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 	} else {
 		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Last message created")
 	}
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":          req.Type,
+		"session_id":    req.SessionID,
+		"message":       req.Message,
+		"started_at":    req.StartedAt,
+		"ended_at":      req.EndedAt,
+		"current_state": req.CurrentState,
+	})
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(

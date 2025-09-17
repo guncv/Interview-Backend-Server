@@ -730,6 +730,61 @@
                 }
             }
         },
+        "/sessions/information/{session_token}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get interview session information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Get interview session information",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session token",
+                        "name": "session_token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Interview session information",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid session token or request",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/ws/connect/{id}": {
             "get": {
                 "description": "Establish a WebSocket connection for real-time interview communication",
@@ -867,6 +922,17 @@
                     "items": {
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ChatHistory"
                     }
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "string"
                 }
             }
         },

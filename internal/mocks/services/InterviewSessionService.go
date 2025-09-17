@@ -340,6 +340,65 @@ func (_c *MockInterviewSessionService_GetChatHistoryBySessionToken_Call) RunAndR
 	return _c
 }
 
+// GetInterviewSessionInformation provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetInterviewSessionInformation")
+	}
+
+	var r0 *entities.GetInterviewSessionInformationResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetInterviewSessionInformationReq) *entities.GetInterviewSessionInformationResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GetInterviewSessionInformationResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.GetInterviewSessionInformationReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_GetInterviewSessionInformation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformation'
+type MockInterviewSessionService_GetInterviewSessionInformation_Call struct {
+	*mock.Call
+}
+
+// GetInterviewSessionInformation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.GetInterviewSessionInformationReq
+func (_e *MockInterviewSessionService_Expecter) GetInterviewSessionInformation(ctx interface{}, req interface{}) *MockInterviewSessionService_GetInterviewSessionInformation_Call {
+	return &MockInterviewSessionService_GetInterviewSessionInformation_Call{Call: _e.mock.On("GetInterviewSessionInformation", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_GetInterviewSessionInformation_Call) Run(run func(ctx context.Context, req *entities.GetInterviewSessionInformationReq)) *MockInterviewSessionService_GetInterviewSessionInformation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.GetInterviewSessionInformationReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetInterviewSessionInformation_Call) Return(_a0 *entities.GetInterviewSessionInformationResp, _a1 error) *MockInterviewSessionService_GetInterviewSessionInformation_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetInterviewSessionInformation_Call) RunAndReturn(run func(context.Context, *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)) *MockInterviewSessionService_GetInterviewSessionInformation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetInterviewerLastMessage provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
 	ret := _m.Called(ctx, req)

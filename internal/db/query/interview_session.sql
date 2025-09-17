@@ -32,3 +32,13 @@ SELECT EXISTS (
     FROM interview_sessions
     WHERE id = $1
 );
+
+-- name: GetInterviewSessionInformation :one
+SELECT
+    i.user_id AS user_id,
+    i.position AS position,
+    r.file_name AS file_name
+FROM interview_sessions i
+JOIN resumes r ON i.resume_id = r.id
+WHERE i.id = $1;
+
