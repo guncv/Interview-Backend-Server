@@ -67,7 +67,7 @@ const (
 // S3 Constants
 const (
 	S3ResumeKey       = "resumes"
-	S3PresignedURLTTL = 5 * time.Minute
+	S3PresignedURLTTL = 1 * time.Hour
 )
 
 // Resume Constants

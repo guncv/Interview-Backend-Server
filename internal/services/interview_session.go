@@ -746,13 +746,7 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 		return nil, err
 	}
 
-	sessionID, err := uuid.Parse(sessionPayload.SessionID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Invalid UUID", err)
-		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, sessionID)
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, sessionPayload.SessionID)
 
 	var dbSession *db.GetInterviewSessionInformationRow
 	redisData, err := s.redisClient.Get(ctx, redisKey)
@@ -768,7 +762,7 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 	}
 
 	if dbSession == nil {
-		sessionResp, err := s.interviewSessionRepo.GetInterviewSessionInformation(ctx, sessionID)
+		sessionResp, err := s.interviewSessionRepo.GetInterviewSessionInformation(ctx, uuid.MustParse(sessionPayload.SessionID))
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] DB query failed", err)
 			return nil, err

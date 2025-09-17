@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -447,6 +448,172 @@ func TestResumeHandler_GetResumeByID(t *testing.T) {
 
 			handler := NewResumeHandler(mockResumeService, log, mockAuthContext, mockValidator)
 			handler.GetResumeByID(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+	err := errors.New("mock error")
+
+	tests := []struct {
+		name           string
+		sessionToken   string
+		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:         "Success",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockResumeService := new(services.MockResumeService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockResumeService.EXPECT().
+					DownloadResumeBySessionToken(mock.Anything, mock.Anything).
+					Return(&entities.DownloadResumeBySessionTokenResp{
+						FileUrl:  "https://example.com/resume.pdf",
+						FileName: "file_name",
+					}, nil)
+
+				return mockValidator, mockAuthContext, mockResumeService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:         "Error - WithNonSessionTokenParam",
+			sessionToken: "",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockResumeService := new(services.MockResumeService)
+
+				return mockValidator, mockAuthContext, mockResumeService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The request is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error With Validation",
+			sessionToken: "invalid-session-token",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockResumeService := new(services.MockResumeService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockAuthContext, mockResumeService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The request is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error - WithExtractAuthContextError",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockResumeService := new(services.MockResumeService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				authErr := app_error.New(errors.New("extract auth context error"), app_error.ErrCodeAuthInvalidHeader)
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authErr)
+
+				return mockValidator, mockAuthContext, mockResumeService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+				assert.Contains(t, w.Body.String(), "Please log in to continue")
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:         "Error - WithDownloadResumeBySessionTokenError",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockResumeService := new(services.MockResumeService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeSessionNotFound)
+				mockResumeService.EXPECT().
+					DownloadResumeBySessionToken(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockAuthContext, mockResumeService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, w.Code)
+				assert.Contains(t, w.Body.String(), "The session was not found")
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			url := fmt.Sprintf("/api/v1/resumes/download/%s", tt.sessionToken)
+
+			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
+			c.Params = gin.Params{{Key: "session_token", Value: tt.sessionToken}}
+
+			mockValidator, mockAuthContext, mockResumeService := tt.setup()
+			defer mockValidator.AssertExpectations(t)
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockResumeService.AssertExpectations(t)
+
+			handler := NewResumeHandler(mockResumeService, log, mockAuthContext, mockValidator)
+			handler.DownloadResumeBySessionToken(c)
 
 			tt.verify(t, w)
 		})
