@@ -32,11 +32,12 @@ const (
 	WebSocketMessageTypePong                  = "pong"
 	WebSocketMessageTypeClose                 = "close"
 
-	WebSocketPingInterval           = 2 * time.Second
-	WebSocketPingDuration           = 2 * time.Second
-	WebSocketReadTimeout            = 6 * time.Second
-	WebSocketPongTimeout            = 6 * time.Second
-	WebSocketClientHandshakeTimeout = 2 * time.Second
+	WebSocketPingInterval                   = 2 * time.Second
+	WebSocketPingDuration                   = 2 * time.Second
+	WebSocketReadTimeout                    = 6 * time.Second
+	WebSocketPongTimeout                    = 6 * time.Second
+	WebSocketClientHandshakeTimeout         = 2 * time.Second
+	WebSocketPreviousSegmentExpiredDuration = 10 * time.Second
 
 	// Interviewer Constants
 	ActorInterviewer = "interviewer"

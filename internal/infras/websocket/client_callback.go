@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"time"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -67,7 +68,7 @@ func (w *webSocketClientCallbacks) OnUserPartialTranscript(ctx context.Context, 
 		return
 	}
 
-	if req.SegmentID != w.client.CurrentSegmentID {
+	if req.SegmentID != w.client.CurrentSegmentID && (req.SegmentID != w.client.PreviousSegmentID || time.Now().After(w.client.PreviousSegmentExpiredAt)) {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserPartialTranscript] Security violation: Segment ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 			"segment_id": req.SegmentID,

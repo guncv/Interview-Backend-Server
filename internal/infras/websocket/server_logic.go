@@ -148,6 +148,9 @@ func (s *WebSocketServerLogic) SendMessageTypeSegmentStart(ctx context.Context, 
 
 	segmentMapping := s.generator.GenerateUUID(ctx).String()
 
+	client.PreviousSegmentID = client.CurrentSegmentID
+	client.PreviousSegmentExpiredAt = time.Now().Add(constants.WebSocketPreviousSegmentExpiredDuration)
+
 	client.CurrentSegmentID = segmentMapping
 	if err := s.createSegmentMapping(ctx, m.SegmentID, segmentMapping); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Error creating segment mapping", err)

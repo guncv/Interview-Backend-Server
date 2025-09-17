@@ -79,22 +79,22 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	c.cancelFunc = cancel
 
-	_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
-	c.conn.SetPongHandler(func(string) error {
-		c.mu.Lock()
-		c.lastPongTime = time.Now()
-		c.mu.Unlock()
+	// _ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	// c.conn.SetPongHandler(func(string) error {
+	// 	c.mu.Lock()
+	// 	c.lastPongTime = time.Now()
+	// 	c.mu.Unlock()
 
-		select {
-		case c.pongReceived <- struct{}{}:
-		default:
-		}
+	// 	select {
+	// 	case c.pongReceived <- struct{}{}:
+	// 	default:
+	// 	}
 
-		return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
-	})
+	// 	return c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	// })
 
 	go c.readLoop(cancelCtx)
-	go c.pingLoop(cancelCtx)
+	// go c.pingLoop(cancelCtx)
 
 	defer cancel()
 	return nil
@@ -196,8 +196,6 @@ func (c *webSocketClient) SendUserAudio(ctx context.Context, msg MsgUserAudioChu
 		return err
 	}
 
-	c.currentSegmentID = msg.SegmentID
-
 	return nil
 }
 
@@ -219,8 +217,6 @@ func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) err
 		"session_id": msg.SessionID,
 		"segment_id": msg.SegmentID,
 	}
-
-	c.currentSegmentID = ""
 
 	if err := c.SendMessage(ctx, message); err != nil {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SegmentEnd] Error sending session info", err)

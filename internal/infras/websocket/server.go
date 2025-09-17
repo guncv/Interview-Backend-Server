@@ -23,17 +23,19 @@ import (
 )
 
 type Client struct {
-	conn             *websocket.Conn
-	mu               sync.Mutex
-	userID           string
-	SessionID        string
-	resumeID         string
-	CurrentSegmentID string
-	StartSessionTime time.Time
-	lastPongTime     time.Time
-	pongReceived     chan struct{}
-	connected        bool
-	cancelFunc       context.CancelFunc
+	conn                     *websocket.Conn
+	mu                       sync.Mutex
+	userID                   string
+	SessionID                string
+	resumeID                 string
+	CurrentSegmentID         string
+	PreviousSegmentID        string
+	PreviousSegmentExpiredAt time.Time
+	StartSessionTime         time.Time
+	lastPongTime             time.Time
+	pongReceived             chan struct{}
+	connected                bool
+	cancelFunc               context.CancelFunc
 }
 
 type WebSocketServerInterface interface {
@@ -129,32 +131,35 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	client := &Client{
-		conn:             conn,
-		userID:           session.UserID,
-		SessionID:        session.SessionID,
-		resumeID:         session.ResumeID,
-		StartSessionTime: time.Now(),
-		lastPongTime:     time.Now(),
-		pongReceived:     make(chan struct{}, 1),
-		connected:        true,
+		conn:                     conn,
+		userID:                   session.UserID,
+		SessionID:                session.SessionID,
+		resumeID:                 session.ResumeID,
+		CurrentSegmentID:         "",
+		PreviousSegmentID:        "",
+		PreviousSegmentExpiredAt: time.Now(),
+		StartSessionTime:         time.Now(),
+		lastPongTime:             time.Now(),
+		pongReceived:             make(chan struct{}, 1),
+		connected:                true,
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
 		"session_id": client.SessionID,
 	})
-	_ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
-	client.conn.SetPongHandler(func(string) error {
-		client.mu.Lock()
-		client.lastPongTime = time.Now()
-		client.mu.Unlock()
+	// _ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	// client.conn.SetPongHandler(func(string) error {
+	// 	client.mu.Lock()
+	// 	client.lastPongTime = time.Now()
+	// 	client.mu.Unlock()
 
-		select {
-		case client.pongReceived <- struct{}{}:
-		default:
-		}
+	// 	select {
+	// 	case client.pongReceived <- struct{}{}:
+	// 	default:
+	// 	}
 
-		return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
-	})
+	// 	return client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+	// })
 
 	s.mu.Lock()
 	s.sessions[client.SessionID] = client
@@ -189,7 +194,7 @@ func (s *webSocketServer) HandleConnection(
 	})
 
 	s.logic.sendStartSessionConversationMessage(ctx, client)
-	go s.pingLoop(cancelCtx, client)
+	// go s.pingLoop(cancelCtx, client)
 	go s.readLoop(cancelCtx, client)
 
 	return nil
@@ -244,7 +249,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 	for {
 		mt, payload, err := c.conn.ReadMessage()
-		_ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
+		// _ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error reading message", err)
