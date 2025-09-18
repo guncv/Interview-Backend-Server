@@ -24,6 +24,7 @@ type Querier interface {
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
+	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) error
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
@@ -35,9 +36,11 @@ type Querier interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
+	GetUserIssueReportStatusByID(ctx context.Context, id uuid.UUID) (string, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
+	ListUserIssueReports(ctx context.Context, userID uuid.NullUUID) ([]ListUserIssueReportsRow, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
@@ -46,6 +49,7 @@ type Querier interface {
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
+	UpdateUserIssueReport(ctx context.Context, arg UpdateUserIssueReportParams) (int64, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }
 

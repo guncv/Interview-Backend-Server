@@ -685,6 +685,53 @@ func (_c *MockQuerier_CreateUser_Call) RunAndReturn(run func(context.Context, db
 	return _c
 }
 
+// CreateUserIssueReport provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateUserIssueReport(ctx context.Context, arg db.CreateUserIssueReportParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserIssueReport")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserIssueReportParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_CreateUserIssueReport_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserIssueReport'
+type MockQuerier_CreateUserIssueReport_Call struct {
+	*mock.Call
+}
+
+// CreateUserIssueReport is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateUserIssueReportParams
+func (_e *MockQuerier_Expecter) CreateUserIssueReport(ctx interface{}, arg interface{}) *MockQuerier_CreateUserIssueReport_Call {
+	return &MockQuerier_CreateUserIssueReport_Call{Call: _e.mock.On("CreateUserIssueReport", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateUserIssueReport_Call) Run(run func(ctx context.Context, arg db.CreateUserIssueReportParams)) *MockQuerier_CreateUserIssueReport_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateUserIssueReportParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserIssueReport_Call) Return(_a0 error) *MockQuerier_CreateUserIssueReport_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserIssueReport_Call) RunAndReturn(run func(context.Context, db.CreateUserIssueReportParams) error) *MockQuerier_CreateUserIssueReport_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUserTurnImprovement provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateUserTurnImprovement(ctx context.Context, arg db.CreateUserTurnImprovementParams) error {
 	ret := _m.Called(ctx, arg)
@@ -1308,6 +1355,63 @@ func (_c *MockQuerier_GetSessionByID_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
+// GetUserIssueReportStatusByID provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetUserIssueReportStatusByID(ctx context.Context, id uuid.UUID) (string, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserIssueReportStatusByID")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (string, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) string); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetUserIssueReportStatusByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserIssueReportStatusByID'
+type MockQuerier_GetUserIssueReportStatusByID_Call struct {
+	*mock.Call
+}
+
+// GetUserIssueReportStatusByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockQuerier_Expecter) GetUserIssueReportStatusByID(ctx interface{}, id interface{}) *MockQuerier_GetUserIssueReportStatusByID_Call {
+	return &MockQuerier_GetUserIssueReportStatusByID_Call{Call: _e.mock.On("GetUserIssueReportStatusByID", ctx, id)}
+}
+
+func (_c *MockQuerier_GetUserIssueReportStatusByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetUserIssueReportStatusByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetUserIssueReportStatusByID_Call) Return(_a0 string, _a1 error) *MockQuerier_GetUserIssueReportStatusByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetUserIssueReportStatusByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (string, error)) *MockQuerier_GetUserIssueReportStatusByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListAllResumesFileNameByUserID provides a mock function with given fields: ctx, userID
 func (_m *MockQuerier) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {
 	ret := _m.Called(ctx, userID)
@@ -1481,6 +1585,65 @@ func (_c *MockQuerier_ListResumeByUserIDPaginated_Call) Return(_a0 []db.Resumes,
 }
 
 func (_c *MockQuerier_ListResumeByUserIDPaginated_Call) RunAndReturn(run func(context.Context, db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)) *MockQuerier_ListResumeByUserIDPaginated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListUserIssueReports provides a mock function with given fields: ctx, userID
+func (_m *MockQuerier) ListUserIssueReports(ctx context.Context, userID uuid.NullUUID) ([]db.ListUserIssueReportsRow, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListUserIssueReports")
+	}
+
+	var r0 []db.ListUserIssueReportsRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.NullUUID) ([]db.ListUserIssueReportsRow, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.NullUUID) []db.ListUserIssueReportsRow); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListUserIssueReportsRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.NullUUID) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_ListUserIssueReports_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUserIssueReports'
+type MockQuerier_ListUserIssueReports_Call struct {
+	*mock.Call
+}
+
+// ListUserIssueReports is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uuid.NullUUID
+func (_e *MockQuerier_Expecter) ListUserIssueReports(ctx interface{}, userID interface{}) *MockQuerier_ListUserIssueReports_Call {
+	return &MockQuerier_ListUserIssueReports_Call{Call: _e.mock.On("ListUserIssueReports", ctx, userID)}
+}
+
+func (_c *MockQuerier_ListUserIssueReports_Call) Run(run func(ctx context.Context, userID uuid.NullUUID)) *MockQuerier_ListUserIssueReports_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.NullUUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_ListUserIssueReports_Call) Return(_a0 []db.ListUserIssueReportsRow, _a1 error) *MockQuerier_ListUserIssueReports_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_ListUserIssueReports_Call) RunAndReturn(run func(context.Context, uuid.NullUUID) ([]db.ListUserIssueReportsRow, error)) *MockQuerier_ListUserIssueReports_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1907,6 +2070,63 @@ func (_c *MockQuerier_UpdateUser_Call) Return(_a0 db.Users, _a1 error) *MockQuer
 }
 
 func (_c *MockQuerier_UpdateUser_Call) RunAndReturn(run func(context.Context, db.UpdateUserParams) (db.Users, error)) *MockQuerier_UpdateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateUserIssueReport provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateUserIssueReport(ctx context.Context, arg db.UpdateUserIssueReportParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateUserIssueReport")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateUserIssueReportParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateUserIssueReport_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUserIssueReport'
+type MockQuerier_UpdateUserIssueReport_Call struct {
+	*mock.Call
+}
+
+// UpdateUserIssueReport is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateUserIssueReportParams
+func (_e *MockQuerier_Expecter) UpdateUserIssueReport(ctx interface{}, arg interface{}) *MockQuerier_UpdateUserIssueReport_Call {
+	return &MockQuerier_UpdateUserIssueReport_Call{Call: _e.mock.On("UpdateUserIssueReport", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateUserIssueReport_Call) Run(run func(ctx context.Context, arg db.UpdateUserIssueReportParams)) *MockQuerier_UpdateUserIssueReport_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateUserIssueReportParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateUserIssueReport_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateUserIssueReport_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateUserIssueReport_Call) RunAndReturn(run func(context.Context, db.UpdateUserIssueReportParams) (int64, error)) *MockQuerier_UpdateUserIssueReport_Call {
 	_c.Call.Return(run)
 	return _c
 }
