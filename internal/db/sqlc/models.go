@@ -11,16 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Categories struct {
-	ID         uuid.UUID    `json:"id"`
-	Name       string       `json:"name"`
-	CreatedAt  time.Time    `json:"created_at"`
-	CreatedBy  uuid.UUID    `json:"created_by"`
-	UpdatedAt  time.Time    `json:"updated_at"`
-	DeletedAt  sql.NullTime `json:"deleted_at"`
-	SoftDelete sql.NullBool `json:"soft_delete"`
-}
-
 type EvaluationCriteria struct {
 	ID            uuid.UUID      `json:"id"`
 	RubricID      uuid.UUID      `json:"rubric_id"`
@@ -105,6 +95,16 @@ type InterviewTurns struct {
 	CurrentState   string         `json:"current_state"`
 }
 
+type IssueCategories struct {
+	ID         uuid.UUID    `json:"id"`
+	Name       string       `json:"name"`
+	CreatedAt  time.Time    `json:"created_at"`
+	CreatedBy  uuid.UUID    `json:"created_by"`
+	UpdatedAt  time.Time    `json:"updated_at"`
+	DeletedAt  sql.NullTime `json:"deleted_at"`
+	SoftDelete sql.NullBool `json:"soft_delete"`
+}
+
 type IssueComments struct {
 	ID         uuid.UUID     `json:"id"`
 	IssueID    uuid.UUID     `json:"issue_id"`
@@ -115,20 +115,20 @@ type IssueComments struct {
 }
 
 type IssueReports struct {
-	ID             uuid.UUID      `json:"id"`
-	UserID         uuid.NullUUID  `json:"user_id"`
-	Description    sql.NullString `json:"description"`
-	Status         string         `json:"status"`
-	CategoryID     uuid.NullUUID  `json:"category_id"`
-	Priority       string         `json:"priority"`
-	AssignedTo     uuid.NullUUID  `json:"assigned_to"`
-	CommentCount   int32          `json:"comment_count"`
-	Acknowledged   bool           `json:"acknowledged"`
-	AcknowledgedAt sql.NullTime   `json:"acknowledged_at"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	DeletedAt      sql.NullTime   `json:"deleted_at"`
-	SoftDelete     sql.NullBool   `json:"soft_delete"`
+	ID             uuid.UUID     `json:"id"`
+	UserID         uuid.NullUUID `json:"user_id"`
+	Description    string        `json:"description"`
+	Status         string        `json:"status"`
+	CategoryID     uuid.UUID     `json:"category_id"`
+	Priority       string        `json:"priority"`
+	AssignedTo     uuid.NullUUID `json:"assigned_to"`
+	CommentCount   int32         `json:"comment_count"`
+	Acknowledged   bool          `json:"acknowledged"`
+	AcknowledgedAt sql.NullTime  `json:"acknowledged_at"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
+	DeletedAt      sql.NullTime  `json:"deleted_at"`
+	SoftDelete     sql.NullBool  `json:"soft_delete"`
 }
 
 type ResetTokens struct {

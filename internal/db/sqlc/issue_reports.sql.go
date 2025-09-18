@@ -28,13 +28,13 @@ INSERT INTO issue_reports (
 `
 
 type CreateUserIssueReportParams struct {
-	ID          uuid.UUID      `json:"id"`
-	UserID      uuid.NullUUID  `json:"user_id"`
-	Description sql.NullString `json:"description"`
-	Status      string         `json:"status"`
-	CategoryID  uuid.NullUUID  `json:"category_id"`
-	Priority    string         `json:"priority"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID          uuid.UUID     `json:"id"`
+	UserID      uuid.NullUUID `json:"user_id"`
+	Description string        `json:"description"`
+	Status      string        `json:"status"`
+	CategoryID  uuid.UUID     `json:"category_id"`
+	Priority    string        `json:"priority"`
+	CreatedAt   time.Time     `json:"created_at"`
 }
 
 func (q *Queries) CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) error {
@@ -50,15 +50,20 @@ func (q *Queries) CreateUserIssueReport(ctx context.Context, arg CreateUserIssue
 	return err
 }
 
-const getUserIssueReportStatusByID = `-- name: GetUserIssueReportStatusByID :one
-SELECT status FROM issue_reports WHERE id = $1
+const getUserIssueReportUserIDAndStatusByID = `-- name: GetUserIssueReportUserIDAndStatusByID :one
+SELECT user_id, status FROM issue_reports WHERE id = $1
 `
 
-func (q *Queries) GetUserIssueReportStatusByID(ctx context.Context, id uuid.UUID) (string, error) {
-	row := q.db.QueryRowContext(ctx, getUserIssueReportStatusByID, id)
-	var status string
-	err := row.Scan(&status)
-	return status, err
+type GetUserIssueReportUserIDAndStatusByIDRow struct {
+	UserID uuid.NullUUID `json:"user_id"`
+	Status string        `json:"status"`
+}
+
+func (q *Queries) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserIssueReportUserIDAndStatusByID, id)
+	var i GetUserIssueReportUserIDAndStatusByIDRow
+	err := row.Scan(&i.UserID, &i.Status)
+	return i, err
 }
 
 const listUserIssueReports = `-- name: ListUserIssueReports :many
@@ -66,22 +71,23 @@ SELECT
     ir.id,
     ir.description,
     ir.category_id,
-    c.name as category_name,
+    ic.name as category_name,
     ir.status,
     ir.acknowledged,
     ir.comment_count,
     ir.created_at,
     ir.updated_at
 FROM issue_reports ir
-LEFT JOIN categories c ON ir.category_id = c.id
+LEFT JOIN issue_categories ic
+    ON ir.category_id = ic.id AND ic.soft_delete = false
 WHERE ir.user_id = $1 AND ir.soft_delete = false
 ORDER BY ir.created_at DESC
 `
 
 type ListUserIssueReportsRow struct {
 	ID           uuid.UUID      `json:"id"`
-	Description  sql.NullString `json:"description"`
-	CategoryID   uuid.NullUUID  `json:"category_id"`
+	Description  string         `json:"description"`
+	CategoryID   uuid.UUID      `json:"category_id"`
 	CategoryName sql.NullString `json:"category_name"`
 	Status       string         `json:"status"`
 	Acknowledged bool           `json:"acknowledged"`
@@ -123,7 +129,7 @@ func (q *Queries) ListUserIssueReports(ctx context.Context, userID uuid.NullUUID
 	return items, nil
 }
 
-const updateUserIssueReport = `-- name: UpdateUserIssueReport :execrows
+const updateUserIssueReportByID = `-- name: UpdateUserIssueReportByID :execrows
 UPDATE issue_reports
 SET description = $2,
     category_id = $3,
@@ -131,15 +137,15 @@ SET description = $2,
 WHERE id = $1
 `
 
-type UpdateUserIssueReportParams struct {
-	ID          uuid.UUID      `json:"id"`
-	Description sql.NullString `json:"description"`
-	CategoryID  uuid.NullUUID  `json:"category_id"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+type UpdateUserIssueReportByIDParams struct {
+	ID          uuid.UUID `json:"id"`
+	Description string    `json:"description"`
+	CategoryID  uuid.UUID `json:"category_id"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func (q *Queries) UpdateUserIssueReport(ctx context.Context, arg UpdateUserIssueReportParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateUserIssueReport,
+func (q *Queries) UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserIssueReportByID,
 		arg.ID,
 		arg.Description,
 		arg.CategoryID,

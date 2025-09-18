@@ -66,12 +66,14 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		authMiddleware middleware.AuthMiddleware,
 		resumeHandler *handlers.ResumeHandler,
 		interviewSessionHandler *handlers.InterviewSessionHandler,
+		issueReportsHandler *handlers.IssueReportsHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
 		resumeRoutes(api_v1, resumeHandler, authMiddleware)
 		websocketRoutes(api_v1, interviewSessionHandler)
 		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
+		issueReportsRoutes(api_v1, issueReportsHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -112,6 +114,16 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 		interviewSessionMiddleRoutes.GET("/chat-history/:session_token", interviewSessionHandler.GetChatHistoryBySessionToken)
 		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
+	}
+}
+
+func issueReportsRoutes(eg *gin.RouterGroup, issueReportsHandler *handlers.IssueReportsHandler, authMiddleware middleware.AuthMiddleware) {
+	issueReportsMiddleRoutes := eg.Group("/issue-reports").Use(authMiddleware.AuthMiddleware())
+
+	{
+		issueReportsMiddleRoutes.POST("", issueReportsHandler.CreateUserIssueReport)
+		issueReportsMiddleRoutes.GET("", issueReportsHandler.ListUserIssueReports)
+		issueReportsMiddleRoutes.PATCH("/:issue_report_id", issueReportsHandler.UpdateUserIssueReportByID)
 	}
 }
 

@@ -15,6 +15,7 @@ type Querier interface {
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
+	CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
 	CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error
@@ -36,7 +37,7 @@ type Querier interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
-	GetUserIssueReportStatusByID(ctx context.Context, id uuid.UUID) (string, error)
+	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
@@ -49,7 +50,7 @@ type Querier interface {
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
-	UpdateUserIssueReport(ctx context.Context, arg UpdateUserIssueReportParams) (int64, error)
+	UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (int64, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }
 

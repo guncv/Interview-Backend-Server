@@ -25,7 +25,6 @@ func (c *Container) ServiceProvider() {
 		c.Error = err
 	}
 
-	// Register consumer after services are available
 	if err := c.Container.Provide(consumer.NewRedisTaskConsumer); err != nil {
 		c.Error = err
 	}
@@ -41,5 +40,9 @@ func (c *Container) ServiceProvider() {
 		}
 	}); err != nil {
 		panic(err)
+	}
+
+	if err := c.Container.Provide(services.NewIssueReportsService); err != nil {
+		c.Error = err
 	}
 }

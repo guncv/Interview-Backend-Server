@@ -71,6 +71,15 @@ const (
 
 	// Interview Turns
 	ErrCodeInterviewTurnsLastMessageNotFound ErrorCode = "ONX0600"
+
+	// Issue Reports
+	ErrCodeIssueReportNotFound     ErrorCode = "ONX0700"
+	ErrCodeIssueReportNotOpen      ErrorCode = "ONX0701"
+	ErrCodeIssueReportUnauthorized ErrorCode = "ONX0702"
+	ErrCodeIssueReportIDRequired   ErrorCode = "ONX0703"
+
+	// Issue Categories
+	ErrCodeIssueCategoryNotFound ErrorCode = "ONX0800"
 )
 
 func (c ErrorCode) Message() string {

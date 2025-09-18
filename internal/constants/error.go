@@ -20,4 +20,9 @@ var (
 	ErrInterviewSessionStartEndTimeNotFound = errors.New("interview session start end time not found")
 	ErrInterviewSessionStartTimeNotFound    = errors.New("interview session start time not found")
 	ErrInterviewSessionEndTimeNotFound      = errors.New("interview session end time not found")
+
+	// Issue Reports
+	ErrIssueReportNotOpen      = errors.New("issue report not open")
+	ErrIssueReportUnauthorized = errors.New("this user is not the owner of the issue report")
+	ErrIssueReportIDRequired   = errors.New("issue report ID is required")
 )

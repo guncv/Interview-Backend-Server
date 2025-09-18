@@ -67,6 +67,14 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 
 	// Interview Turns
 	ErrCodeInterviewTurnsLastMessageNotFound: ErrHttpCodeNotFound,
+
+	// Issue Reports
+	ErrCodeIssueReportNotFound:     ErrHttpCodeNotFound,
+	ErrCodeIssueReportNotOpen:      ErrHttpCodeBadRequest,
+	ErrCodeIssueReportUnauthorized: ErrHttpCodeUnauthorized,
+	ErrCodeIssueReportIDRequired:   ErrHttpCodeBadRequest,
+	// Issue Categories
+	ErrCodeIssueCategoryNotFound: ErrHttpCodeNotFound,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -136,4 +144,12 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 
 	// Interview Turns
 	ErrCodeInterviewTurnsLastMessageNotFound: ErrMessageInterviewTurnsLastMessageNotFound,
+
+	// Issue Reports
+	ErrCodeIssueReportNotFound:     ErrMessageIssueReportNotFound,
+	ErrCodeIssueReportNotOpen:      ErrMessageIssueReportNotOpen,
+	ErrCodeIssueReportUnauthorized: ErrMessageIssueReportUnauthorized,
+	ErrCodeIssueReportIDRequired:   ErrMessageIssueReportIDRequired,
+	// Issue Categories
+	ErrCodeIssueCategoryNotFound: ErrMessageIssueCategoryNotFound,
 }

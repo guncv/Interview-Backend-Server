@@ -71,4 +71,13 @@ const (
 
 	// Interview Turns
 	ErrMessageInterviewTurnsLastMessageNotFound ErrorMessage = "The interviewer last message was not found. Please try again."
+
+	// Issue Reports
+	ErrMessageIssueReportNotFound     ErrorMessage = "The issue report was not found. Please try again."
+	ErrMessageIssueReportNotOpen      ErrorMessage = "The issue report is not open. Please try again."
+	ErrMessageIssueReportUnauthorized ErrorMessage = "The issue report is unauthorized. Please try again."
+	ErrMessageIssueReportIDRequired   ErrorMessage = "The issue report ID is required. Please try again."
+
+	// Issue Categories
+	ErrMessageIssueCategoryNotFound ErrorMessage = "The issue category was not found. Please try again."
 )
