@@ -1,4 +1,4 @@
--- name: CreateUserIssueReport :exec
+-- name: CreateUserIssueReport :one
 INSERT INTO issue_reports (
     id,
     user_id,
@@ -9,7 +9,15 @@ INSERT INTO issue_reports (
     created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-);
+) RETURNING 
+    id,
+    description,
+    category_id,
+    status,
+    acknowledged,
+    comment_count,
+    created_at,
+    updated_at;
 
 -- name: ListUserIssueReports :many
 SELECT
@@ -28,12 +36,21 @@ LEFT JOIN issue_categories ic
 WHERE ir.user_id = $1 AND ir.soft_delete = false
 ORDER BY ir.created_at DESC;
 
--- name: UpdateUserIssueReportByID :execrows
+-- name: UpdateUserIssueReportByID :one
 UPDATE issue_reports
 SET description = $2,
     category_id = $3,
     updated_at = $4
-WHERE id = $1;
+WHERE id = $1
+RETURNING 
+    id,
+    description,
+    category_id,
+    status,
+    acknowledged,
+    comment_count,
+    created_at,
+    updated_at;
 
 -- name: GetUserIssueReportUserIDAndStatusByID :one
 SELECT user_id, status FROM issue_reports WHERE id = $1;

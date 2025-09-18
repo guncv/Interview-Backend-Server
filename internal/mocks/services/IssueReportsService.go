@@ -70,21 +70,33 @@ func (_c *MockIssueReportsService_CreateAdminIssueCategory_Call) RunAndReturn(ru
 }
 
 // CreateUserIssueReport provides a mock function with given fields: ctx, req
-func (_m *MockIssueReportsService) CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) error {
+func (_m *MockIssueReportsService) CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateUserIssueReport")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateUserIssueReportReq) error); ok {
+	var r0 *entities.UserIssueReport
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CreateUserIssueReportReq) *entities.UserIssueReport); ok {
 		r0 = rf(ctx, req)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.UserIssueReport)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.CreateUserIssueReportReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockIssueReportsService_CreateUserIssueReport_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserIssueReport'
@@ -106,12 +118,12 @@ func (_c *MockIssueReportsService_CreateUserIssueReport_Call) Run(run func(ctx c
 	return _c
 }
 
-func (_c *MockIssueReportsService_CreateUserIssueReport_Call) Return(_a0 error) *MockIssueReportsService_CreateUserIssueReport_Call {
-	_c.Call.Return(_a0)
+func (_c *MockIssueReportsService_CreateUserIssueReport_Call) Return(_a0 *entities.UserIssueReport, _a1 error) *MockIssueReportsService_CreateUserIssueReport_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockIssueReportsService_CreateUserIssueReport_Call) RunAndReturn(run func(context.Context, *entities.CreateUserIssueReportReq) error) *MockIssueReportsService_CreateUserIssueReport_Call {
+func (_c *MockIssueReportsService_CreateUserIssueReport_Call) RunAndReturn(run func(context.Context, *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error)) *MockIssueReportsService_CreateUserIssueReport_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -233,21 +245,33 @@ func (_c *MockIssueReportsService_ListUserIssueReports_Call) RunAndReturn(run fu
 }
 
 // UpdateUserIssueReportByID provides a mock function with given fields: ctx, req, reportId
-func (_m *MockIssueReportsService) UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) error {
+func (_m *MockIssueReportsService) UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) (*entities.UserIssueReport, error) {
 	ret := _m.Called(ctx, req, reportId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateUserIssueReportByID")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) error); ok {
+	var r0 *entities.UserIssueReport
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) (*entities.UserIssueReport, error)); ok {
+		return rf(ctx, req, reportId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) *entities.UserIssueReport); ok {
 		r0 = rf(ctx, req, reportId)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.UserIssueReport)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) error); ok {
+		r1 = rf(ctx, req, reportId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockIssueReportsService_UpdateUserIssueReportByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUserIssueReportByID'
@@ -270,12 +294,12 @@ func (_c *MockIssueReportsService_UpdateUserIssueReportByID_Call) Run(run func(c
 	return _c
 }
 
-func (_c *MockIssueReportsService_UpdateUserIssueReportByID_Call) Return(_a0 error) *MockIssueReportsService_UpdateUserIssueReportByID_Call {
-	_c.Call.Return(_a0)
+func (_c *MockIssueReportsService_UpdateUserIssueReportByID_Call) Return(_a0 *entities.UserIssueReport, _a1 error) *MockIssueReportsService_UpdateUserIssueReportByID_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockIssueReportsService_UpdateUserIssueReportByID_Call) RunAndReturn(run func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) error) *MockIssueReportsService_UpdateUserIssueReportByID_Call {
+func (_c *MockIssueReportsService_UpdateUserIssueReportByID_Call) RunAndReturn(run func(context.Context, *entities.UpdateUserIssueReportByIDReq, string) (*entities.UserIssueReport, error)) *MockIssueReportsService_UpdateUserIssueReportByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

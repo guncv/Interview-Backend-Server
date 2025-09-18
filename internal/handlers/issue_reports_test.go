@@ -29,6 +29,21 @@ func TestIssueReportsHandler_CreateUserIssueReport(t *testing.T) {
 	mockErr := errors.New("mock error")
 	invalidCategoryID := "invalid-category-id"
 
+	categoryID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	issueReportID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+
+	resp := &entities.UserIssueReport{
+		ID:           issueReportID.String(),
+		Description:  "test description",
+		CategoryID:   categoryID.String(),
+		CategoryName: "test category name",
+		IsEditable:   true,
+		Acknowledged: true,
+		CommentCount: 1,
+		CreatedAt:    "test created at",
+		UpdatedAt:    "test updated at",
+	}
+
 	tests := []struct {
 		name   string
 		input  func() *entities.CreateUserIssueReportReq
@@ -58,12 +73,13 @@ func TestIssueReportsHandler_CreateUserIssueReport(t *testing.T) {
 
 				mockIssueReportsService.EXPECT().
 					CreateUserIssueReport(ctx, mock.Anything).
-					Return(nil)
+					Return(resp, nil)
 
 				return mockIssueReportsService, mockValidator, mockAuthContext
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusNoContent, w.Code)
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"id":"`+resp.ID+`","description":"`+resp.Description+`","category_id":"`+resp.CategoryID+`","category_name":"`+resp.CategoryName+`","is_editable":true,"acknowledged":true,"comment_count":1,"created_at":"`+resp.CreatedAt+`","updated_at":"`+resp.UpdatedAt+`"}`, w.Body.String())
 			},
 		},
 		{
@@ -139,7 +155,7 @@ func TestIssueReportsHandler_CreateUserIssueReport(t *testing.T) {
 
 				mockIssueReportsService.EXPECT().
 					CreateUserIssueReport(ctx, mock.Anything).
-					Return(mockErr)
+					Return(nil, mockErr)
 
 				return mockIssueReportsService, mockValidator, mockAuthContext
 			},
@@ -300,8 +316,22 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 	log := log.Initialize("test")
 	ctx := context.Background()
 	mockErr := errors.New("mock error")
-	validReportID := uuid.New().String()
 	invalidReportID := "invalid-report-id"
+
+	categoryID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	issueReportID := uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")
+
+	resp := &entities.UserIssueReport{
+		ID:           issueReportID.String(),
+		Description:  "test description",
+		CategoryID:   categoryID.String(),
+		CategoryName: "test category name",
+		IsEditable:   true,
+		Acknowledged: true,
+		CommentCount: 1,
+		CreatedAt:    "test created at",
+		UpdatedAt:    "test updated at",
+	}
 
 	tests := []struct {
 		name     string
@@ -312,7 +342,7 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 	}{
 		{
 			name:     "Success",
-			reportID: validReportID,
+			reportID: issueReportID.String(),
 			input: func() *entities.UpdateUserIssueReportByIDReq {
 				return &entities.UpdateUserIssueReportByIDReq{
 					Description: "updated test description",
@@ -341,14 +371,15 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 					Once()
 
 				mockIssueReportsService.EXPECT().
-					UpdateUserIssueReportByID(ctx, mock.Anything, validReportID).
-					Return(nil).
+					UpdateUserIssueReportByID(ctx, mock.Anything, issueReportID.String()).
+					Return(resp, nil).
 					Once()
 
 				return mockIssueReportsService, mockValidator, mockAuthContext
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusNoContent, w.Code)
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"id":"`+resp.ID+`","description":"`+resp.Description+`","category_id":"`+resp.CategoryID+`","category_name":"`+resp.CategoryName+`","is_editable":true,"acknowledged":true,"comment_count":1,"created_at":"`+resp.CreatedAt+`","updated_at":"`+resp.UpdatedAt+`"}`, w.Body.String())
 			},
 		},
 		{
@@ -399,7 +430,7 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 		},
 		{
 			name:     "Error - Validation Error",
-			reportID: validReportID,
+			reportID: issueReportID.String(),
 			input: func() *entities.UpdateUserIssueReportByIDReq {
 				return &entities.UpdateUserIssueReportByIDReq{
 					Description: "",
@@ -430,7 +461,7 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 		},
 		{
 			name:     "Error - Extract Auth Context Error",
-			reportID: validReportID,
+			reportID: issueReportID.String(),
 			input: func() *entities.UpdateUserIssueReportByIDReq {
 				return &entities.UpdateUserIssueReportByIDReq{
 					Description: "updated test description",
@@ -466,7 +497,7 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 		},
 		{
 			name:     "Error - Service Update Error",
-			reportID: validReportID,
+			reportID: issueReportID.String(),
 			input: func() *entities.UpdateUserIssueReportByIDReq {
 				return &entities.UpdateUserIssueReportByIDReq{
 					Description: "updated test description",
@@ -495,8 +526,8 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 					Once()
 
 				mockIssueReportsService.EXPECT().
-					UpdateUserIssueReportByID(ctx, mock.Anything, validReportID).
-					Return(app_error.New(mockErr, app_error.ErrCodeIssueReportNotFound)).
+					UpdateUserIssueReportByID(ctx, mock.Anything, issueReportID.String()).
+					Return(nil, app_error.New(mockErr, app_error.ErrCodeIssueReportNotFound)).
 					Once()
 
 				return mockIssueReportsService, mockValidator, mockAuthContext
@@ -507,7 +538,7 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 		},
 		{
 			name:     "Error - Service Internal Error",
-			reportID: validReportID,
+			reportID: issueReportID.String(),
 			input: func() *entities.UpdateUserIssueReportByIDReq {
 				return &entities.UpdateUserIssueReportByIDReq{
 					Description: "updated test description",
@@ -536,8 +567,8 @@ func TestIssueReportsHandler_UpdateUserIssueReportByID(t *testing.T) {
 					Once()
 
 				mockIssueReportsService.EXPECT().
-					UpdateUserIssueReportByID(ctx, mock.Anything, validReportID).
-					Return(mockErr).
+					UpdateUserIssueReportByID(ctx, mock.Anything, issueReportID.String()).
+					Return(nil, mockErr).
 					Once()
 
 				return mockIssueReportsService, mockValidator, mockAuthContext

@@ -42,7 +42,7 @@ func NewIssueReportsHandler(
 // @Produce json
 // @Param request body entities.CreateUserIssueReportReq true "Create user issue report request"
 // @Security BearerAuth
-// @Success 204
+// @Success 200 {object} entities.UserIssueReport "Create user issue report response"
 // @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid request parameters"
 // @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Issue category not found"
 // @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
@@ -66,14 +66,14 @@ func (h *IssueReportsHandler) CreateUserIssueReport(c *gin.Context) {
 		return
 	}
 
-	err = h.issueReportsService.CreateUserIssueReport(ctx, req)
+	res, err := h.issueReportsService.CreateUserIssueReport(ctx, req)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: CreateUserIssueReport] Error creating user issue report", err)
 		utils.RespondWithError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.JSON(http.StatusOK, res)
 }
 
 // ListUserIssueReports godoc
@@ -117,7 +117,7 @@ func (h *IssueReportsHandler) ListUserIssueReports(c *gin.Context) {
 // @Produce json
 // @Param request body entities.UpdateUserIssueReportByIDReq true "Update user issue report request"
 // @Security BearerAuth
-// @Success 204
+// @Success 200 {object} entities.UserIssueReport "Update user issue report response"
 // @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid request parameters"
 // @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Issue category not found"
 // @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Issue report not found"
@@ -156,14 +156,14 @@ func (h *IssueReportsHandler) UpdateUserIssueReportByID(c *gin.Context) {
 		return
 	}
 
-	err = h.issueReportsService.UpdateUserIssueReportByID(ctx, req, reportId)
+	res, err := h.issueReportsService.UpdateUserIssueReportByID(ctx, req, reportId)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: UpdateUserIssueReportByID] Error updating user issue report", err)
 		utils.RespondWithError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.JSON(http.StatusOK, res)
 }
 
 // ListIssueCategories godoc

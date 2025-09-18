@@ -557,8 +557,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "Create user issue report response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport"
+                        }
                     },
                     "400": {
                         "description": "Invalid request parameters",
@@ -617,8 +620,11 @@
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "Update user issue report response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport"
+                        }
                     },
                     "400": {
                         "description": "Invalid request parameters",

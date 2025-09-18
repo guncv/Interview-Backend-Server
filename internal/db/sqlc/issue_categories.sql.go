@@ -12,20 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const checkIssueCategoryExists = `-- name: CheckIssueCategoryExists :one
-SELECT EXISTS(
-    SELECT 1 FROM issue_categories
-    WHERE id = $1 AND soft_delete = false
-)
-`
-
-func (q *Queries) CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkIssueCategoryExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
 const createAdminIssueCategory = `-- name: CreateAdminIssueCategory :exec
 INSERT INTO issue_categories (
     id,
@@ -51,6 +37,24 @@ func (q *Queries) CreateAdminIssueCategory(ctx context.Context, arg CreateAdminI
 		arg.CreatedBy,
 	)
 	return err
+}
+
+const getIssueCategoryIfExists = `-- name: GetIssueCategoryIfExists :one
+SELECT id, name
+FROM issue_categories
+WHERE id = $1 AND soft_delete = false
+`
+
+type GetIssueCategoryIfExistsRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (GetIssueCategoryIfExistsRow, error) {
+	row := q.db.QueryRowContext(ctx, getIssueCategoryIfExists, id)
+	var i GetIssueCategoryIfExistsRow
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
 }
 
 const listIssueCategories = `-- name: ListIssueCategories :many

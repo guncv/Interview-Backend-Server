@@ -15,7 +15,6 @@ type Querier interface {
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
-	CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
 	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
@@ -26,13 +25,14 @@ type Querier interface {
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
-	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) error
+	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)
+	GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (GetIssueCategoryIfExistsRow, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
@@ -52,7 +52,7 @@ type Querier interface {
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
-	UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (int64, error)
+	UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (UpdateUserIssueReportByIDRow, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }
 

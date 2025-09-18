@@ -25,7 +25,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 
 	e.Use(cors.New(cors.Config{
 		AllowOrigins:     corsOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Active-Role"},
 		ExposeHeaders:    []string{"Content-Length", "Authorization", "Access-Control-Expose-Headers", "X-New-Access-Token"},
 		AllowCredentials: true,
