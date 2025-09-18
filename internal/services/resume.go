@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -146,14 +145,19 @@ FetchBoth:
 		go func() {
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
+				if appErr, ok := err.(*app_error.AppError); ok && appErr.Code == app_error.ErrCodeResumeNotFound {
+					s.log.InfoWithID(ctx, "[Service: ListResume] No default resume found for user", err)
 					defaultResumeChan <- db.Resumes{}
 					return
 				}
 				errorChan <- err
 				return
 			}
-			defaultResumeChan <- resume
+			if resume != nil {
+				defaultResumeChan <- *resume
+			} else {
+				defaultResumeChan <- db.Resumes{}
+			}
 		}()
 
 		var completed int
@@ -290,7 +294,7 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	var defaultResume db.Resumes
+	var defaultResume *db.Resumes
 	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, authCtx.Payload.UserID)
 	defaultResumeFromRedis, err := s.redisClient.Get(ctx, defaultResumeKey)
 	if err != nil {

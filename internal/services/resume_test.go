@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	mockS3 "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/aws"
@@ -208,7 +208,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
-				defaultResume := db.Resumes{
+				defaultResume := &db.Resumes{
 					ID:        uuid.New(),
 					UserID:    userID,
 					FileName:  "default.pdf",
@@ -272,9 +272,9 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					RunAndReturn(func(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
+					RunAndReturn(func(ctx context.Context, userID uuid.UUID) (*db.Resumes, error) {
 						time.Sleep(50 * time.Millisecond)
-						return db.Resumes{
+						return &db.Resumes{
 							ID:        uuid.New(),
 							UserID:    userID,
 							FileName:  "default.pdf",
@@ -330,9 +330,9 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(mock.AnythingOfType("*context.timerCtx"), userID).
-					RunAndReturn(func(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
+					RunAndReturn(func(ctx context.Context, userID uuid.UUID) (*db.Resumes, error) {
 						time.Sleep(100 * time.Millisecond)
-						return db.Resumes{
+						return &db.Resumes{
 							ID:        uuid.New(),
 							UserID:    userID,
 							FileName:  "default.pdf",
@@ -442,7 +442,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -485,7 +485,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(db.Resumes{}, nil)
+					Return(nil, nil)
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -523,7 +523,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(db.Resumes{}, errors.New("default resume not found"))
+					Return(nil, errors.New("default resume not found"))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -572,7 +572,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				// Redis Set won't be called due to marshalling failure
 				// But the service should still return success
@@ -629,7 +629,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -698,7 +698,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -752,7 +752,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -790,9 +790,6 @@ func TestResumeService_ListResume(t *testing.T) {
 					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
-				// No default resume
-				emptyDefaultResume := db.Resumes{}
-
 				resumeList := []db.Resumes{
 					{
 						ID:        uuid.New(),
@@ -822,7 +819,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(emptyDefaultResume, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("resume not found"), app_error.ErrCodeResumeNotFound))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -897,7 +894,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -976,7 +973,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
@@ -1015,9 +1012,6 @@ func TestResumeService_ListResume(t *testing.T) {
 					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
-				// No default resume
-				emptyDefaultResume := db.Resumes{}
-
 				// No regular resumes
 				emptyResumeList := []db.Resumes{}
 
@@ -1027,7 +1021,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(emptyDefaultResume, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("resume not found"), app_error.ErrCodeResumeNotFound))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1060,9 +1054,6 @@ func TestResumeService_ListResume(t *testing.T) {
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
-
-				// No default resume
-				emptyDefaultResume := db.Resumes{}
 
 				resumeList := []db.Resumes{
 					{
@@ -1113,7 +1104,7 @@ func TestResumeService_ListResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(emptyDefaultResume, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("resume not found"), app_error.ErrCodeResumeNotFound))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1322,7 +1313,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockResumeRepository.EXPECT().
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
@@ -1415,7 +1406,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(db.Resumes{}, errors.New("database error"))
+					Return(nil, errors.New("database error"))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1502,7 +1493,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(defaultResume, nil)
+					Return(&defaultResume, nil)
 
 				mockResumeRepository.EXPECT().
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
@@ -1546,7 +1537,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				// After unmarshal failure, database fallback also fails
 				mockResumeRepository.EXPECT().
 					GetDefaultResumeByUserID(ctx, userID).
-					Return(db.Resumes{}, errors.New("database error"))
+					Return(nil, errors.New("database error"))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},

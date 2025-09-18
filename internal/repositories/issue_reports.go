@@ -75,6 +75,10 @@ func (r *issueReportsRepository) GetUserIssueReportUserIDAndStatusByID(ctx conte
 
 	resp, err := r.db.GetUserIssueReportUserIDAndStatusByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetUserIssueReportUserIDAndStatusByID] User issue report not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeIssueReportNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: GetUserIssueReportUserIDAndStatusByID] Error getting user issue report user ID and status", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}

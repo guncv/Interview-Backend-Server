@@ -71,7 +71,8 @@ const (
 	ErrMessageEvaluationRubricCriteriaNotFound ErrorMessage = "The rubric criteria was not found. Please try again."
 
 	// Interview Turns
-	ErrMessageInterviewTurnsLastMessageNotFound ErrorMessage = "The interviewer last message was not found. Please try again."
+	ErrMessageInterviewTurnLastMessageNotFound ErrorMessage = "The interviewer last message was not found. Please try again."
+	ErrMessageInterviewTurnsMaxTurnNoNotFound  ErrorMessage = "The max turn no by session ID was not found. Please try again."
 
 	// Issue Reports
 	ErrMessageIssueReportNotFound     ErrorMessage = "The issue report was not found. Please try again."

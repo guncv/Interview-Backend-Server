@@ -23,7 +23,7 @@ type ResumeReposity interface {
 	ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error)
-	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error)
+	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (*db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
 	ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
@@ -106,16 +106,20 @@ func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (*db
 	return &resume, nil
 }
 
-func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
+func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (*db.Resumes, error) {
 	r.log.InfoWithID(ctx, "[Repository: GetDefaultResumeByUserID] Called")
 
 	defaultResume, err := r.db.GetDefaultResumeByUserID(ctx, userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			r.log.ErrorWithID(ctx, "[Repository: GetDefaultResumeByUserID] Default resume not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeResumeNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: GetDefaultResumeByUserID] Error getting default resume", err)
-		return db.Resumes{}, app_error.HandleDatabaseError(err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return defaultResume, nil
+	return &defaultResume, nil
 }
 
 func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error {

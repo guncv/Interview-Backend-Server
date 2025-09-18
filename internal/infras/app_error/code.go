@@ -71,7 +71,8 @@ const (
 	ErrCodeEvaluationRubricCriteriaNotFound ErrorCode = "INS0501"
 
 	// Interview Turns
-	ErrCodeInterviewTurnsLastMessageNotFound ErrorCode = "INS0600"
+	ErrCodeInterviewTurnLastMessageNotFound ErrorCode = "INS0600"
+	ErrCodeInterviewTurnsMaxTurnNoNotFound  ErrorCode = "INS0601"
 
 	// Issue Reports
 	ErrCodeIssueReportNotFound     ErrorCode = "INS0700"
