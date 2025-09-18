@@ -1175,7 +1175,7 @@ func TestUserService_SendVerifyEmail(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -2310,13 +2310,13 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *entities.SignInUserByEmailAndPasswordRequest
+		input  *entities.SignInByEmailAndPasswordRequest
 		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken)
-		verify func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error)
+		verify func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error)
 	}{
 		{
 			name: "Success",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2361,7 +2361,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, mockJwtToken
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, got)
 				assert.Equal(t, "access_token", got.AccessToken)
@@ -2370,7 +2370,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 		},
 		{
 			name: "Error_UserNotFound",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "nonexistent@example.com",
 				Password: "password123",
 			},
@@ -2384,14 +2384,14 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
 		},
 		{
 			name: "Error_EmailNotVerified",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "unverified@example.com",
 				Password: "password123",
 			},
@@ -2405,14 +2405,14 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
 		},
 		{
 			name: "Error_InvalidPassword",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "wrong_password",
 			},
@@ -2432,14 +2432,14 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, nil
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
 		},
 		{
 			name: "Error_AccessTokenCreationFailed",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2467,7 +2467,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, mockJwtToken
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 				assert.ErrorIs(t, gotErr, mockErr)
@@ -2475,7 +2475,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 		},
 		{
 			name: "Error_RefreshTokenCreationFailed",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2510,7 +2510,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, mockJwtToken
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 				assert.ErrorIs(t, gotErr, mockErr)
@@ -2518,7 +2518,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 		},
 		{
 			name: "Error_TokenHashingFailed",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2563,14 +2563,14 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, mockJwtToken
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
 		},
 		{
 			name: "Error_SignInTransactionFailed",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2615,7 +2615,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, mockPassword, mockJwtToken
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 				assert.ErrorIs(t, gotErr, mockErr)
@@ -2623,7 +2623,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 		},
 		{
 			name: "Error_ContextMissingUserAgent",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2637,14 +2637,14 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
 		},
 		{
 			name: "Error_ContextMissingClientIP",
-			input: &entities.SignInUserByEmailAndPasswordRequest{
+			input: &entities.SignInByEmailAndPasswordRequest{
 				Email:    "user@example.com",
 				Password: "password123",
 			},
@@ -2658,7 +2658,7 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 				return mockUserRepo, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.SignInUserByEmailAndPasswordResponse, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 			},
@@ -2694,6 +2694,456 @@ func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
 
 			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, nil, nil, nil, mockPassword, nil)
 			got, gotErr := svc.SignInUserByEmailAndPassword(testCtx, tC.input)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
+func TestUserService_SignInAdminByEmailAndPassword(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	// Add required context values that the service expects
+	ctx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+	ctx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+
+	mockErr := errors.New("error")
+
+	// Create mock config
+	mockConfig := &config.Config{
+		AuthConfig: config.AuthConfig{
+			AccessTokenDuration:  15 * time.Minute,
+			RefreshTokenDuration: 24 * time.Hour,
+		},
+	}
+
+	checkEmailResp := &db.Users{
+		ID:              uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		IsEmailVerified: sql.NullBool{Bool: true, Valid: true},
+		IsAdmin:         sql.NullBool{Bool: true, Valid: true},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.SignInByEmailAndPasswordRequest
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken)
+		verify func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(nil)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "access_token", got.AccessToken)
+				assert.Equal(t, "refresh_token", got.RefreshToken)
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "nonexistent@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "nonexistent@example.com").
+					Return(nil, sql.ErrNoRows)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_EmailNotVerified",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "unverified@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "unverified@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidPassword",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "wrong_password",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification fails
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "wrong_password", mock.AnythingOfType("string")).
+					Return(false)
+
+				return mockUserRepo, mockPassword, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.Contains(t, gotErr.Error(), "this email or password is incorrect")
+				assert.Contains(t, gotErr.Error(), "[INS0217]")
+			},
+		},
+		{
+			name: "Error - WithDontHaveAdminRole",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{
+						ID:              uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						IsEmailVerified: sql.NullBool{Bool: true, Valid: true},
+						IsAdmin:         sql.NullBool{Bool: false, Valid: true},
+					}, nil)
+
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.Contains(t, gotErr.Error(), "this email or password is incorrect")
+				assert.Contains(t, gotErr.Error(), "[INS0217]")
+			},
+		},
+		{
+			name: "Error_AccessTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RefreshTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TokenHashingFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing fails
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("")
+
+				// Mock user sign-in transaction (this will be called even after token hashing fails)
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(errors.New("transaction failed due to empty token hash"))
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_SignInTransactionFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction fails
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_ContextMissingUserAgent",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_ContextMissingClientIP",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo, mockPassword, mockJwtToken := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockPassword != nil {
+					mockPassword.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+			}()
+
+			// Handle context-specific test cases
+			testCtx := ctx
+			if tC.name == "Error_ContextMissingUserAgent" {
+				testCtx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+				// Remove UserAgentKey
+				testCtx = context.WithValue(testCtx, constants.UserAgentKey, nil)
+			} else if tC.name == "Error_ContextMissingClientIP" {
+				testCtx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+				// Remove ClientIPKey
+				testCtx = context.WithValue(testCtx, constants.ClientIPKey, nil)
+			}
+
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, nil, nil, nil, mockPassword, nil)
+			got, gotErr := svc.SignInAdminByEmailAndPassword(testCtx, tC.input)
 
 			tC.verify(t, got, gotErr)
 		})
@@ -3434,7 +3884,7 @@ func TestUserService_ResetUserPassword(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{

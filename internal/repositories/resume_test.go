@@ -76,7 +76,7 @@ func TestResumeRepository_GetResumeByID(t *testing.T) {
 			verify: func(t *testing.T, got *db.Resumes, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0304]")
+				assert.Contains(t, gotErr.Error(), "[INS0304]")
 				assert.Contains(t, gotErr.Error(), "The resume was not found")
 			},
 		},
@@ -94,7 +94,7 @@ func TestResumeRepository_GetResumeByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, got *db.Resumes, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 				assert.Nil(t, got)
 			},
@@ -214,7 +214,7 @@ func TestResumeRepository_SwitchDefaultResume(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server.")
 			},
 		},
@@ -261,7 +261,7 @@ func TestResumeRepository_SwitchDefaultResume(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server.")
 			},
 		},

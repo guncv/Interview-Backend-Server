@@ -99,7 +99,7 @@ func TestInterviewSessionRepository_UpdateInterviewSessionStatus(t *testing.T) {
 				assert.Error(t, gotErr)
 				assert.Equal(
 					t, gotErr.Error(),
-					"[ONX0401] The session was not found. Please try again. | interview session not found",
+					"[INS0401] The session was not found. Please try again. | interview session not found",
 				)
 			},
 		},
@@ -222,7 +222,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 				assert.Error(t, gotErr)
 				assert.Equal(
 					t, gotErr.Error(),
-					"[ONX0401] The session was not found. Please try again. | interview session not found",
+					"[INS0401] The session was not found. Please try again. | interview session not found",
 				)
 			},
 		},

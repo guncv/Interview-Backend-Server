@@ -71,7 +71,7 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 			verify: func(t *testing.T, got *db.Sessions, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0218]")
+				assert.Contains(t, gotErr.Error(), "[INS0218]")
 				assert.Contains(t, gotErr.Error(), "Your session has expired or is invalid.")
 			},
 		},
@@ -90,7 +90,7 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 			verify: func(t *testing.T, got *db.Sessions, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},
@@ -168,7 +168,7 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0218]")
+				assert.Contains(t, gotErr.Error(), "[INS0218]")
 				assert.Contains(t, gotErr.Error(), "Your session has expired or is invalid.")
 			},
 		},
@@ -186,7 +186,7 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},

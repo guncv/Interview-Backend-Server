@@ -162,8 +162,8 @@ func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body entities.SignInUserByEmailAndPasswordRequest true "Login credentials"
-// @Success 200 {object} entities.SignInUserByEmailAndPasswordResponse
+// @Param request body entities.SignInByEmailAndPasswordRequest true "Login credentials"
+// @Success 200 {object} entities.SignInByEmailAndPasswordResponse
 // @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid credentials"
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/sign-in [post]
@@ -171,7 +171,7 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Called")
 
-	req := &entities.SignInUserByEmailAndPasswordRequest{}
+	req := &entities.SignInByEmailAndPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignInUserByEmailAndPassword"); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error validate and bind", err)
 		utils.RespondWithError(c, err)
@@ -181,6 +181,40 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	res, err := h.userService.SignInUserByEmailAndPassword(ctx, req)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error logging in user", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	h.cookies.SetRefreshTokenCookie(c, res.RefreshToken)
+
+	c.JSON(http.StatusOK, res)
+}
+
+// SignInAdminByEmailAndPassword godoc
+// @Summary User authentication
+// @Description Authenticate admin with email and password, returns access and refresh tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body entities.SignInByEmailAndPasswordRequest true "Login credentials"
+// @Success 200 {object} entities.SignInByEmailAndPasswordResponse
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid credentials"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /auth/sign-in-admin [post]
+func (h *UserHandler) SignInAdminByEmailAndPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Called")
+
+	req := &entities.SignInByEmailAndPasswordRequest{}
+	if err := h.validator.ValidateAndBind(c, req, "SignInAdminByEmailAndPassword"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Error validate and bind", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	res, err := h.userService.SignInAdminByEmailAndPassword(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Error logging in admin", err)
 		utils.RespondWithError(c, err)
 		return
 	}

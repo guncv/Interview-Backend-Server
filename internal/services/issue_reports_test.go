@@ -134,7 +134,7 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -164,7 +164,7 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -231,7 +231,7 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The issue category was not found. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0800]")
+				assert.Contains(t, gotErr.Error(), "[INS0800]")
 			},
 		},
 		{
@@ -408,7 +408,7 @@ func TestIssueReportsService_ListUserIssueReports(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListUserIssueReportsResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -579,7 +579,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -610,7 +610,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -641,7 +641,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -710,7 +710,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The issue category was not found. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0800]")
+				assert.Contains(t, gotErr.Error(), "[INS0800]")
 			},
 		},
 		{
@@ -790,7 +790,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "this user is not the owner of the issue report")
-				assert.Contains(t, gotErr.Error(), "[ONX0702]")
+				assert.Contains(t, gotErr.Error(), "[INS0702]")
 			},
 		},
 		{
@@ -832,7 +832,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "issue report not open")
-				assert.Contains(t, gotErr.Error(), "[ONX0701]")
+				assert.Contains(t, gotErr.Error(), "[INS0701]")
 			},
 		},
 		{
@@ -1099,7 +1099,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "You are not authorized to perform this action")
-				assert.Contains(t, gotErr.Error(), "[ONX0111]")
+				assert.Contains(t, gotErr.Error(), "[INS0111]")
 			},
 		},
 		{
@@ -1127,7 +1127,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{

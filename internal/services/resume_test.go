@@ -102,7 +102,7 @@ func TestResumeService_ListResume(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListResumeResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -1282,7 +1282,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -1386,7 +1386,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{

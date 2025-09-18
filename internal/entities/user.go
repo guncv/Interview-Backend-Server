@@ -36,12 +36,12 @@ type ResetVerifyEmailCodeResponse struct {
 	TokenId string `json:"token_id"`
 }
 
-type SignInUserByEmailAndPasswordRequest struct {
+type SignInByEmailAndPasswordRequest struct {
 	Email    string `json:"email" validate:"required,valid_email,max=100"`
 	Password string `json:"password" validate:"required,min=8,max=100"`
 }
 
-type SignInUserByEmailAndPasswordResponse struct {
+type SignInByEmailAndPasswordResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }

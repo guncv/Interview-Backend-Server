@@ -152,7 +152,7 @@ func TestUserHandler_SignUpUser(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"validation failed"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"validation failed"}`, w.Body.String())
 			},
 		},
 		{
@@ -184,7 +184,7 @@ func TestUserHandler_SignUpUser(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0207","message":"This email is already registered. Try logging in instead."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0207","message":"This email is already registered. Try logging in instead."}`, w.Body.String())
 			},
 		},
 	}
@@ -216,14 +216,14 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		input  func() *entities.SignInUserByEmailAndPasswordRequest
+		input  func() *entities.SignInByEmailAndPasswordRequest
 		setup  func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies)
 		verify func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Success",
-			input: func() *entities.SignInUserByEmailAndPasswordRequest {
-				return &entities.SignInUserByEmailAndPasswordRequest{
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
 					Email:    "admin@example.com",
 					Password: "password123",
 				}
@@ -240,7 +240,7 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 
 				mockUserService.EXPECT().
 					SignInUserByEmailAndPassword(ctx, mock.Anything).
-					Return(&entities.SignInUserByEmailAndPasswordResponse{
+					Return(&entities.SignInByEmailAndPasswordResponse{
 						AccessToken:  "access-token",
 						RefreshToken: "refresh-token",
 					}, nil)
@@ -257,8 +257,8 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 		},
 		{
 			name: "ValidationFailed",
-			input: func() *entities.SignInUserByEmailAndPasswordRequest {
-				return &entities.SignInUserByEmailAndPasswordRequest{
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
 					Email:    "admin@example.com",
 					Password: "",
 				}
@@ -277,13 +277,13 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"password is required"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"password is required"}`, w.Body.String())
 			},
 		},
 		{
 			name: "ServiceError",
-			input: func() *entities.SignInUserByEmailAndPasswordRequest {
-				return &entities.SignInUserByEmailAndPasswordRequest{
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
 					Email:    "admin@example.com",
 					Password: "password123",
 				}
@@ -306,7 +306,7 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
 			},
 		},
 	}
@@ -326,6 +326,129 @@ func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
 
 			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, mockCookies)
 			handler.SignInUserByEmailAndPassword(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_SignInAdminByEmailAndPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.SignInByEmailAndPasswordRequest
+		setup  func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInAdminByEmailAndPassword(ctx, mock.Anything).
+					Return(&entities.SignInByEmailAndPasswordResponse{
+						AccessToken:  "access-token",
+						RefreshToken: "refresh-token",
+					}, nil)
+
+				mockCookies.EXPECT().
+					SetRefreshTokenCookie(mock.Anything, mock.Anything)
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"access_token":"access-token","refresh_token":"refresh-token"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(app_error.NewWithCustomMessage(errors.New("password is required"), app_error.ErrCodeAuthInvalidRequest, "password is required"))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"password is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInAdminByEmailAndPassword(ctx, mock.Anything).
+					Return(nil, app_error.New(errors.New("invalid credentials"), app_error.ErrCodeAuthInvalidPassword))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/signin", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig, mockCookies := tt.setup(c)
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+			defer mockCookies.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, mockCookies)
+			handler.SignInAdminByEmailAndPassword(c)
 
 			tt.verify(t, w)
 		})
@@ -391,7 +514,7 @@ func TestUserHandler_SendVerifyEmail(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"token is required"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
 			},
 		},
 		{
@@ -419,7 +542,7 @@ func TestUserHandler_SendVerifyEmail(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0214","message":"The verification code is invalid. Please try again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0214","message":"The verification code is invalid. Please try again."}`, w.Body.String())
 			},
 		},
 	}
@@ -501,7 +624,7 @@ func TestUserHandler_ForgotPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"invalid email"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"invalid email"}`, w.Body.String())
 			},
 		},
 		{
@@ -528,7 +651,7 @@ func TestUserHandler_ForgotPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNotFound, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0206","message":"We couldn't find your account. Please sign up to continue."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0206","message":"We couldn't find your account. Please sign up to continue."}`, w.Body.String())
 			},
 		},
 	}
@@ -611,7 +734,7 @@ func TestUserHandler_ResetVerifyEmailCode(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"token is required"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
 			},
 		},
 		{
@@ -638,7 +761,7 @@ func TestUserHandler_ResetVerifyEmailCode(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0216","message":"You have reached the maximum number of attempts. Please resend the new code."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0216","message":"You have reached the maximum number of attempts. Please resend the new code."}`, w.Body.String())
 			},
 		},
 	}
@@ -722,7 +845,7 @@ func TestUserHandler_ResetUserPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0213","message":"token is required"}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
 			},
 		},
 		{
@@ -750,7 +873,7 @@ func TestUserHandler_ResetUserPassword(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNotFound, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0209","message":"That reset link has expired. Please request a new one."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0209","message":"That reset link has expired. Please request a new one."}`, w.Body.String())
 			},
 		},
 	}
@@ -825,7 +948,7 @@ func TestUserHandler_SignOut(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0200","message":"Your token is invalid. Please log in again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0200","message":"Your token is invalid. Please log in again."}`, w.Body.String())
 			},
 		},
 		{
@@ -847,7 +970,7 @@ func TestUserHandler_SignOut(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNotFound, w.Code)
-				assert.JSONEq(t, `{"code":"ONX0218","message":"Your session has expired or is invalid. Please log in again."}`, w.Body.String())
+				assert.JSONEq(t, `{"code":"INS0218","message":"Your session has expired or is invalid. Please log in again."}`, w.Body.String())
 			},
 		},
 	}

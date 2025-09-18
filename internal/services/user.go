@@ -28,7 +28,8 @@ type UserService interface {
 	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
 	SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
 	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
-	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error)
+	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)
+	SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)
 	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
 	ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error
 	SignOut(ctx context.Context) error
@@ -366,52 +367,89 @@ func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.Re
 	return &result, nil
 }
 
-func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInUserByEmailAndPasswordRequest) (*entities.SignInUserByEmailAndPasswordResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: SignIn] Called")
+func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: SignInUserByEmailAndPassword] Called")
+
+	resp, err := s.signInByEmailAndPassword(ctx, req, false)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error signing in user", err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (s *userService) SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: SignInAdminByEmailAndPassword] Called")
+
+	resp, err := s.signInByEmailAndPassword(ctx, req, true)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInAdminByEmailAndPassword] Error signing in user", err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (s *userService) signInByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest, isAdmin bool) (*entities.SignInByEmailAndPasswordResponse, error) {
+	s.log.InfoWithID(ctx, "[Service: signInByEmailAndPassword] Called")
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error checking if email exists", err)
+			s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error checking if email exists", err)
 			return nil, app_error.New(errors.New("this email or password is incorrect"), app_error.ErrCodeAuthInvalidPassword)
 		}
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error checking if email exists", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error checking if email exists", err)
 		return nil, err
 	}
 
 	if !user.IsEmailVerified.Bool {
 		err := errors.New("this email or password is incorrect")
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error", "error", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error", "error", err)
 		return nil, app_error.New(err, app_error.ErrCodeAuthEmailNotVerified)
 	}
 
 	if !s.password.IsPasswordValid(ctx, req.Password, user.PasswordHash) {
 		err := errors.New("this email or password is incorrect")
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Password is incorrect", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Password is incorrect", err)
 		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidPassword)
+	}
+
+	if isAdmin && !user.IsAdmin.Bool {
+		err := errors.New("this email or password is incorrect")
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error", "error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidPassword)
+	}
+
+	var role constants.UserRole
+	if isAdmin {
+		role = constants.UserRoleAdmin
+	} else {
+		role = constants.UserRoleUser
 	}
 
 	accessTokenRequest := &entities.TokenRequest{
 		UserID:   user.ID.String(),
-		Role:     constants.UserRoleUser,
+		Role:     role,
 		Duration: s.config.AuthConfig.AccessTokenDuration,
 	}
 
 	accessToken, _, err := s.jwtToken.CreateToken(ctx, accessTokenRequest)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error creating access token", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error creating access token", err)
 		return nil, err
 	}
 
 	refreshTokenRequest := &entities.TokenRequest{
 		UserID:   user.ID.String(),
-		Role:     constants.UserRoleUser,
+		Role:     role,
 		Duration: s.config.AuthConfig.RefreshTokenDuration,
 	}
 
 	refreshToken, refreshPayload, err := s.jwtToken.CreateToken(ctx, refreshTokenRequest)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error creating refresh token", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error creating refresh token", err)
 		return nil, err
 	}
 
@@ -431,11 +469,11 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 	}
 
 	if err = s.userRepo.SignInUserByEmailAndPasswordTx(ctx, txModel); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error signing in user", err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error signing in user", err)
 		return nil, err
 	}
 
-	resp := entities.SignInUserByEmailAndPasswordResponse{
+	resp := entities.SignInByEmailAndPasswordResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}

@@ -193,7 +193,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordRequest"
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest"
                         }
                     }
                 ],
@@ -201,7 +201,53 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordResponse"
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sign-in-admin": {
+            "post": {
+                "description": "Authenticate admin with email and password, returns access and refresh tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "User authentication",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse"
                         }
                     },
                     "400": {
@@ -401,6 +447,17 @@
                     "Issue Reports"
                 ],
                 "summary": "Create admin issue category",
+                "parameters": [
+                    {
+                        "description": "Create admin issue category request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateAdminIssueCategoryReq"
+                        }
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -1173,6 +1230,19 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateAdminIssueCategoryReq": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeReq": {
             "type": "object",
             "required": [
@@ -1424,7 +1494,7 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordRequest": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1442,7 +1512,7 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInUserByEmailAndPasswordResponse": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1595,67 +1665,67 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.ErrorCode": {
             "type": "string",
             "enum": [
-                "ONX0101",
-                "ONX0102",
-                "ONX0104",
-                "ONX0105",
-                "ONX0106",
-                "ONX0107",
-                "ONX0108",
-                "ONX0109",
-                "ONX0110",
-                "ONX0111",
-                "ONX0200",
-                "ONX0201",
-                "ONX0202",
-                "ONX0203",
-                "ONX0206",
-                "ONX0207",
-                "ONX0208",
-                "ONX0209",
-                "ONX0210",
-                "ONX0211",
-                "ONX0212",
-                "ONX0213",
-                "ONX0214",
-                "ONX0215",
-                "ONX0216",
-                "ONX0217",
-                "ONX0218",
-                "ONX0219",
-                "ONX0300",
-                "ONX0301",
-                "ONX0302",
-                "ONX0303",
-                "ONX0304",
-                "ONX0305",
-                "ONX0306",
-                "ONX0307",
-                "ONX0400",
-                "ONX0401",
-                "ONX0402",
-                "ONX0403",
-                "ONX0404",
-                "ONX0405",
-                "ONX0406",
-                "ONX0407",
-                "ONX0408",
-                "ONX0409",
-                "ONX0410",
-                "ONX0411",
-                "ONX0412",
-                "ONX0413",
-                "ONX0414",
-                "ONX0415",
-                "ONX0416",
-                "ONX0500",
-                "ONX0501",
-                "ONX0600",
-                "ONX0700",
-                "ONX0701",
-                "ONX0702",
-                "ONX0703",
-                "ONX0800"
+                "INS0101",
+                "INS0102",
+                "INS0104",
+                "INS0105",
+                "INS0106",
+                "INS0107",
+                "INS0108",
+                "INS0109",
+                "INS0110",
+                "INS0111",
+                "INS0200",
+                "INS0201",
+                "INS0202",
+                "INS0203",
+                "INS0206",
+                "INS0207",
+                "INS0208",
+                "INS0209",
+                "INS0210",
+                "INS0211",
+                "INS0212",
+                "INS0213",
+                "INS0214",
+                "INS0215",
+                "INS0216",
+                "INS0217",
+                "INS0218",
+                "INS0219",
+                "INS0300",
+                "INS0301",
+                "INS0302",
+                "INS0303",
+                "INS0304",
+                "INS0305",
+                "INS0306",
+                "INS0307",
+                "INS0400",
+                "INS0401",
+                "INS0402",
+                "INS0403",
+                "INS0404",
+                "INS0405",
+                "INS0406",
+                "INS0407",
+                "INS0408",
+                "INS0409",
+                "INS0410",
+                "INS0411",
+                "INS0412",
+                "INS0413",
+                "INS0414",
+                "INS0415",
+                "INS0416",
+                "INS0500",
+                "INS0501",
+                "INS0600",
+                "INS0700",
+                "INS0701",
+                "INS0702",
+                "INS0703",
+                "INS0800"
             ],
             "x-enum-varnames": [
                 "ErrCodeGeneralServerUnavailable",

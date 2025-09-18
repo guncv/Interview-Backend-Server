@@ -197,6 +197,7 @@ func (h *IssueReportsHandler) ListIssueCategories(c *gin.Context) {
 // @Tags Issue Reports
 // @Accept json
 // @Produce json
+// @Param request body entities.CreateAdminIssueCategoryReq true "Create admin issue category request"
 // @Security BearerAuth
 // @Success 204
 // @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid request parameters"

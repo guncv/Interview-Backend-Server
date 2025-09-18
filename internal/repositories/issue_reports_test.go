@@ -82,7 +82,7 @@ func TestIssueReportsRepository_UpdateUserIssueReportByID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The issue report was not found")
-				assert.Contains(t, gotErr.Error(), "[ONX0700]")
+				assert.Contains(t, gotErr.Error(), "[INS0700]")
 			},
 		},
 	}

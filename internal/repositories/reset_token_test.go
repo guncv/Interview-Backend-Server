@@ -70,7 +70,7 @@ func TestResetTokenRepository_GetResetToken(t *testing.T) {
 			verify: func(t *testing.T, got *db.ResetTokens, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0208]")
+				assert.Contains(t, gotErr.Error(), "[INS0208]")
 				assert.Contains(t, gotErr.Error(), "That reset link is invalid. Please request a new one.")
 			},
 		},

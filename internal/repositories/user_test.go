@@ -78,7 +78,7 @@ func TestUserRepository_CheckIsUserExistsByID(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -97,7 +97,7 @@ func TestUserRepository_CheckIsUserExistsByID(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},
@@ -182,7 +182,7 @@ func TestUserRepository_CheckIsEmailExists(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -201,7 +201,7 @@ func TestUserRepository_CheckIsEmailExists(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},
@@ -296,7 +296,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -315,7 +315,7 @@ func TestUserRepository_UpdateUser(t *testing.T) {
 			verify: func(t *testing.T, got *db.Users, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},
@@ -381,7 +381,7 @@ func TestUserRepository_VerifyEmail(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -399,7 +399,7 @@ func TestUserRepository_VerifyEmail(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0101]")
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
 				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
 			},
 		},
@@ -530,7 +530,7 @@ func TestUserRepository_SignInUserByEmailAndPasswordTx(t *testing.T) {
 
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -738,7 +738,7 @@ func TestUserRepository_ResetUserPasswordAndUpdateResetTokenTx(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0206]")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
 				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
@@ -817,7 +817,7 @@ func TestUserRepository_ResetUserPasswordAndUpdateResetTokenTx(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "[ONX0208]")
+				assert.Contains(t, gotErr.Error(), "[INS0208]")
 				assert.Contains(t, gotErr.Error(), "That reset link is invalid. Please request a new one.")
 			},
 		},

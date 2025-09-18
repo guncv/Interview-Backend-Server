@@ -358,7 +358,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				assert.Error(t, gotErr)
 				assert.Nil(t, gotResp)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -1276,7 +1276,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -1592,7 +1592,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 			verify: func(t *testing.T, gotResp *entities.CreateInterviewSessionWithExistingResumeResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -1963,7 +1963,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -2018,7 +2018,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -2044,7 +2044,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 	}
@@ -2232,7 +2232,7 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.IsSessionValidResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -2408,7 +2408,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 
@@ -2427,7 +2427,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -2901,7 +2901,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 
@@ -2922,7 +2922,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3435,7 +3435,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3487,7 +3487,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3539,7 +3539,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3591,7 +3591,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3653,7 +3653,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
@@ -3844,7 +3844,7 @@ func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
 			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewerLastMessageResp) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 				assert.Nil(t, gotResp)
 			},
 		},
