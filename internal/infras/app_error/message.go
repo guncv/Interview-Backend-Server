@@ -13,6 +13,7 @@ const (
 	ErrMessageGeneralRedisSetFailed      ErrorMessage = "Failed to set the value in Redis. Please try again."
 	ErrMessageGeneralRedisGetFailed      ErrorMessage = "Failed to get the value from Redis. Please try again."
 	ErrMessageGeneralUnmarshalFailed     ErrorMessage = "Failed to unmarshal the value. Please try again."
+	ErrMessageGeneralPermissionDenied    ErrorMessage = "You are not authorized to perform this action."
 
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."

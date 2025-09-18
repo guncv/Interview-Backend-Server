@@ -309,6 +309,53 @@ func (_c *MockStore_CheckIssueCategoryExists_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// CreateAdminIssueCategory provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateAdminIssueCategory(ctx context.Context, arg db.CreateAdminIssueCategoryParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAdminIssueCategory")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateAdminIssueCategoryParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_CreateAdminIssueCategory_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAdminIssueCategory'
+type MockStore_CreateAdminIssueCategory_Call struct {
+	*mock.Call
+}
+
+// CreateAdminIssueCategory is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateAdminIssueCategoryParams
+func (_e *MockStore_Expecter) CreateAdminIssueCategory(ctx interface{}, arg interface{}) *MockStore_CreateAdminIssueCategory_Call {
+	return &MockStore_CreateAdminIssueCategory_Call{Call: _e.mock.On("CreateAdminIssueCategory", ctx, arg)}
+}
+
+func (_c *MockStore_CreateAdminIssueCategory_Call) Run(run func(ctx context.Context, arg db.CreateAdminIssueCategoryParams)) *MockStore_CreateAdminIssueCategory_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateAdminIssueCategoryParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreateAdminIssueCategory_Call) Return(_a0 error) *MockStore_CreateAdminIssueCategory_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_CreateAdminIssueCategory_Call) RunAndReturn(run func(context.Context, db.CreateAdminIssueCategoryParams) error) *MockStore_CreateAdminIssueCategory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateEvaluation provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateEvaluation(ctx context.Context, arg db.CreateEvaluationParams) error {
 	ret := _m.Called(ctx, arg)
@@ -1571,6 +1618,64 @@ func (_c *MockStore_ListAllResumesFileNameByUserID_Call) Return(_a0 []string, _a
 }
 
 func (_c *MockStore_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]string, error)) *MockStore_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListIssueCategories provides a mock function with given fields: ctx
+func (_m *MockStore) ListIssueCategories(ctx context.Context) ([]db.ListIssueCategoriesRow, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListIssueCategories")
+	}
+
+	var r0 []db.ListIssueCategoriesRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) ([]db.ListIssueCategoriesRow, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) []db.ListIssueCategoriesRow); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListIssueCategoriesRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListIssueCategories_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListIssueCategories'
+type MockStore_ListIssueCategories_Call struct {
+	*mock.Call
+}
+
+// ListIssueCategories is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockStore_Expecter) ListIssueCategories(ctx interface{}) *MockStore_ListIssueCategories_Call {
+	return &MockStore_ListIssueCategories_Call{Call: _e.mock.On("ListIssueCategories", ctx)}
+}
+
+func (_c *MockStore_ListIssueCategories_Call) Run(run func(ctx context.Context)) *MockStore_ListIssueCategories_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListIssueCategories_Call) Return(_a0 []db.ListIssueCategoriesRow, _a1 error) *MockStore_ListIssueCategories_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListIssueCategories_Call) RunAndReturn(run func(context.Context) ([]db.ListIssueCategoriesRow, error)) *MockStore_ListIssueCategories_Call {
 	_c.Call.Return(run)
 	return _c
 }

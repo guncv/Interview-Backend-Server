@@ -16,6 +16,7 @@ type Querier interface {
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error)
+	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
 	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
 	CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error
@@ -39,6 +40,7 @@ type Querier interface {
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
+	ListIssueCategories(ctx context.Context) ([]ListIssueCategoriesRow, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
 	ListUserIssueReports(ctx context.Context, userID uuid.NullUUID) ([]ListUserIssueReportsRow, error)

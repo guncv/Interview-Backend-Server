@@ -67,6 +67,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		resumeHandler *handlers.ResumeHandler,
 		interviewSessionHandler *handlers.InterviewSessionHandler,
 		issueReportsHandler *handlers.IssueReportsHandler,
+		issueCategoriesHandler *handlers.IssueReportsHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
@@ -74,6 +75,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		websocketRoutes(api_v1, interviewSessionHandler)
 		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
 		issueReportsRoutes(api_v1, issueReportsHandler, authMiddleware)
+		issueCategoriesRoutes(api_v1, issueCategoriesHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -124,6 +126,15 @@ func issueReportsRoutes(eg *gin.RouterGroup, issueReportsHandler *handlers.Issue
 		issueReportsMiddleRoutes.POST("", issueReportsHandler.CreateUserIssueReport)
 		issueReportsMiddleRoutes.GET("", issueReportsHandler.ListUserIssueReports)
 		issueReportsMiddleRoutes.PATCH("/:issue_report_id", issueReportsHandler.UpdateUserIssueReportByID)
+	}
+}
+
+func issueCategoriesRoutes(eg *gin.RouterGroup, issueCategoriesHandler *handlers.IssueReportsHandler, authMiddleware middleware.AuthMiddleware) {
+	issueCategoriesMiddleRoutes := eg.Group("/issue-categories").Use(authMiddleware.AuthMiddleware())
+
+	{
+		issueCategoriesMiddleRoutes.GET("", issueCategoriesHandler.ListIssueCategories)
+		issueCategoriesMiddleRoutes.POST("", issueCategoriesHandler.CreateAdminIssueCategory)
 	}
 }
 

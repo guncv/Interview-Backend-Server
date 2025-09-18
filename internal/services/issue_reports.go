@@ -19,6 +19,8 @@ type IssueReportsService interface {
 	CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) error
 	ListUserIssueReports(ctx context.Context) (*entities.ListUserIssueReportsResp, error)
 	UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) error
+	ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error)
+	CreateAdminIssueCategory(ctx context.Context, req *entities.CreateAdminIssueCategoryReq) error
 }
 
 type issueReportsService struct {
@@ -212,6 +214,67 @@ func (s *issueReportsService) UpdateUserIssueReportByID(ctx context.Context, req
 
 	if err := s.issueReportsRepo.UpdateUserIssueReportByID(ctx, reqDB); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error updating user issue report", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *issueReportsService) ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error) {
+	s.log.InfoWithID(ctx, "[Service: ListIssueCategories] Called")
+
+	dbResp, err := s.issueCategoriesRepo.ListIssueCategories(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListIssueCategories] Error listing issue categories", err)
+		return nil, err
+	}
+
+	issueCategories := make([]entities.IssueCategory, len(dbResp))
+	for i, category := range dbResp {
+		issueCategories[i] = entities.IssueCategory{
+			ID:   category.ID.String(),
+			Name: category.Name,
+		}
+	}
+
+	resp := &entities.ListIssueCategoriesResp{
+		Data: issueCategories,
+	}
+
+	return resp, nil
+}
+
+func (s *issueReportsService) CreateAdminIssueCategory(ctx context.Context, req *entities.CreateAdminIssueCategoryReq) error {
+	s.log.InfoWithID(ctx, "[Service: CreateAdminIssueCategory] Called")
+
+	authCtx, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateAdminIssueCategory] Error getting auth context", err)
+		return err
+	}
+
+	if authCtx.Payload.Role != constants.UserRoleAdmin {
+		err = app_error.New(constants.ErrPermissionDenied, app_error.ErrCodeGeneralPermissionDenied)
+		s.log.ErrorWithID(ctx, "[Service: CreateAdminIssueCategory] Unauthorized", err)
+		return err
+	}
+
+	userID, err := uuid.Parse(authCtx.Payload.UserID)
+	if err != nil {
+		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		s.log.ErrorWithID(ctx, "[Service: CreateAdminIssueCategory] Error parsing user ID", err)
+		return err
+	}
+
+	dbReq := &db.CreateAdminIssueCategoryParams{
+		ID:        s.generator.GenerateUUID(ctx),
+		Name:      req.Name,
+		CreatedAt: time.Now(),
+		CreatedBy: userID,
+	}
+
+	if err := s.issueCategoriesRepo.CreateAdminIssueCategory(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateAdminIssueCategory] Error creating admin issue category", err)
 		return err
 	}
 

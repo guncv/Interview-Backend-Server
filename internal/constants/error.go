@@ -3,6 +3,9 @@ package constants
 import "errors"
 
 var (
+	// General
+	ErrPermissionDenied = errors.New("permission denied")
+
 	ErrCategoryIDRequired                   = errors.New("category id is required")
 	ErrExpiredToken                         = errors.New("token has expired")
 	ErrInvalidToken                         = errors.New("token is invalid")

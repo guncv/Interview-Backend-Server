@@ -11,6 +11,7 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralRedisSetFailed:      ErrHttpCodeInternalServerError,
 	ErrCodeGeneralRedisGetFailed:      ErrHttpCodeInternalServerError,
 	ErrCodeGeneralUnmarshalFailed:     ErrHttpCodeInternalServerError,
+	ErrCodeGeneralPermissionDenied:    ErrHttpCodeUnauthorized,
 
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
@@ -88,7 +89,7 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralRedisSetFailed:      ErrMessageGeneralRedisSetFailed,
 	ErrCodeGeneralRedisGetFailed:      ErrMessageGeneralRedisGetFailed,
 	ErrCodeGeneralUnmarshalFailed:     ErrMessageGeneralUnmarshalFailed,
-
+	ErrCodeGeneralPermissionDenied:    ErrMessageGeneralPermissionDenied,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,

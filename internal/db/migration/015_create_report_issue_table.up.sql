@@ -34,14 +34,7 @@ CREATE TABLE issue_comments (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_issue_reports_user_id ON issue_reports (user_id);
-CREATE INDEX idx_issue_reports_category_id ON issue_reports (category_id);
-CREATE INDEX idx_issue_reports_status ON issue_reports (status);
-CREATE INDEX idx_issue_reports_assigned_to ON issue_reports (assigned_to);
-
 CREATE INDEX idx_issue_reports_user_soft_delete_created_at ON issue_reports (user_id, soft_delete, created_at DESC);
 CREATE INDEX idx_issue_categories_id_soft_delete ON issue_categories (id) WHERE soft_delete = false;
-
-CREATE INDEX idx_issue_comments_issue_id ON issue_comments (issue_id);
-CREATE INDEX idx_issue_comments_is_internal ON issue_comments (is_internal);
+CREATE INDEX idx_issue_categories_soft_delete ON issue_categories (soft_delete);
 

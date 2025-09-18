@@ -911,3 +911,286 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 		})
 	}
 }
+
+func TestIssueReportsService_ListIssueCategories(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	mockErr := errors.New("error")
+
+	dbResp := []db.ListIssueCategoriesRow{
+		{
+			ID:   uuid.New(),
+			Name: "test category",
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		setup  func() *mockRepo.MockIssueCategoriesRepository
+		verify func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error)
+	}{
+		{
+			name: "Success",
+			setup: func() *mockRepo.MockIssueCategoriesRepository {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(dbResp, nil)
+
+				return mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, len(gotResp.Data))
+				assert.Equal(t, dbResp[0].ID.String(), gotResp.Data[0].ID)
+				assert.Equal(t, dbResp[0].Name, gotResp.Data[0].Name)
+			},
+		},
+		{
+			name: "Success - WithEmptyResponse",
+			setup: func() *mockRepo.MockIssueCategoriesRepository {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return([]db.ListIssueCategoriesRow{}, nil)
+
+				return mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 0, len(gotResp.Data))
+			},
+		},
+		{
+			name: "Error - WithListIssueCategoriesError",
+			setup: func() *mockRepo.MockIssueCategoriesRepository {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(nil, mockErr)
+
+				return mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockIssueCategoriesRepository := tC.setup()
+			defer func() {
+				if mockIssueCategoriesRepository != nil {
+					mockIssueCategoriesRepository.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, nil, nil)
+			gotResp, gotErr := svc.ListIssueCategories(ctx)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	categoryID := uuid.New()
+	userID := uuid.New()
+	mockErr := errors.New("error")
+	invalidUserID := "invalid-user-id"
+	// invalidUserID := "invalid-user-id"
+
+	testCases := []struct {
+		name   string
+		input  *entities.CreateAdminIssueCategoryReq
+		setup  func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator)
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.CreateAdminIssueCategoryReq{
+				Name: "test category",
+			},
+			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+				mockAuthContext := new(mockAuthContext.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   constants.UserRoleAdmin,
+						},
+					}, nil)
+
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(categoryID)
+
+				mockIssueCategoriesRepository.EXPECT().
+					CreateAdminIssueCategory(ctx, mock.MatchedBy(func(p *db.CreateAdminIssueCategoryParams) bool {
+						return p.Name == "test category" &&
+							p.CreatedBy == userID &&
+							p.ID == categoryID
+					})).
+					Return(nil)
+
+				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error - GetAuthContextError",
+			input: &entities.CreateAdminIssueCategoryReq{
+				Name: "test category",
+			},
+			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+				mockAuthContext := new(mockAuthContext.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(nil, mockErr)
+
+				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error - WithPermissionDenied",
+			input: &entities.CreateAdminIssueCategoryReq{
+				Name: "test category",
+			},
+			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+				mockAuthContext := new(mockAuthContext.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   constants.UserRoleUser,
+						},
+					}, nil)
+
+				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "You are not authorized to perform this action")
+				assert.Contains(t, gotErr.Error(), "[ONX0111]")
+			},
+		},
+		{
+			name: "Error - WithInvalidUserID",
+			input: &entities.CreateAdminIssueCategoryReq{
+				Name: "test category",
+			},
+			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+				mockAuthContext := new(mockAuthContext.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: invalidUserID,
+							Role:   constants.UserRoleAdmin,
+						},
+					}, nil)
+
+				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[ONX0107]")
+			},
+		},
+		{
+			name: "Error - WithCreateAdminIssueCategoryError",
+			input: &entities.CreateAdminIssueCategoryReq{
+				Name: "test category",
+			},
+			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+				mockAuthContext := new(mockAuthContext.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     userID,
+							UserID: userID.String(),
+							Role:   constants.UserRoleAdmin,
+						},
+					}, nil)
+
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(categoryID)
+
+				mockIssueCategoriesRepository.EXPECT().
+					CreateAdminIssueCategory(ctx, mock.MatchedBy(func(p *db.CreateAdminIssueCategoryParams) bool {
+						return p.Name == "test category" &&
+							p.CreatedBy == userID &&
+							p.ID == categoryID
+					})).
+					Return(mockErr)
+
+				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockIssueCategoriesRepository, mockAuthContext, mockGenerator := tC.setup()
+			defer func() {
+				if mockIssueCategoriesRepository != nil {
+					mockIssueCategoriesRepository.AssertExpectations(t)
+				}
+
+				if mockAuthContext != nil {
+					mockAuthContext.AssertExpectations(t)
+				}
+				if mockGenerator != nil {
+					mockGenerator.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
+			gotErr := svc.CreateAdminIssueCategory(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}

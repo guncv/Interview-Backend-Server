@@ -15,6 +15,7 @@ const (
 	ErrCodeGeneralRedisSetFailed      ErrorCode = "ONX0108"
 	ErrCodeGeneralRedisGetFailed      ErrorCode = "ONX0109"
 	ErrCodeGeneralUnmarshalFailed     ErrorCode = "ONX0110"
+	ErrCodeGeneralPermissionDenied    ErrorCode = "ONX0111"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "ONX0200"

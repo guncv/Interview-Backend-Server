@@ -345,6 +345,87 @@
                 }
             }
         },
+        "/issue-categories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all issue categories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Issue Reports"
+                ],
+                "summary": "List issue categories",
+                "responses": {
+                    "200": {
+                        "description": "List issue categories response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListIssueCategoriesResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new admin issue category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Issue Reports"
+                ],
+                "summary": "Create admin issue category",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/issue-reports": {
             "get": {
                 "security": [
@@ -365,7 +446,7 @@
                 "summary": "List user issue reports",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List user issue reports response",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListUserIssueReportsResp"
                         }
@@ -1246,6 +1327,28 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.IssueCategory": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListIssueCategoriesResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.IssueCategory"
+                    }
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListResumeResponse": {
             "type": "object",
             "properties": {
@@ -1263,7 +1366,7 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListUserIssueReportsResp": {
             "type": "object",
             "properties": {
-                "user_issue_reports": {
+                "data": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport"
@@ -1501,6 +1604,7 @@
                 "ONX0108",
                 "ONX0109",
                 "ONX0110",
+                "ONX0111",
                 "ONX0200",
                 "ONX0201",
                 "ONX0202",
@@ -1563,6 +1667,7 @@
                 "ErrCodeGeneralRedisSetFailed",
                 "ErrCodeGeneralRedisGetFailed",
                 "ErrCodeGeneralUnmarshalFailed",
+                "ErrCodeGeneralPermissionDenied",
                 "ErrCodeAuthInvalidToken",
                 "ErrCodeAuthExpiredToken",
                 "ErrCodeAuthInvalidRefreshToken",

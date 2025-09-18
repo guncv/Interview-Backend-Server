@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -23,4 +24,66 @@ func (q *Queries) CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (b
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const createAdminIssueCategory = `-- name: CreateAdminIssueCategory :exec
+INSERT INTO issue_categories (
+    id,
+    name,
+    created_at,
+    created_by
+)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateAdminIssueCategoryParams struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy uuid.UUID `json:"created_by"`
+}
+
+func (q *Queries) CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error {
+	_, err := q.db.ExecContext(ctx, createAdminIssueCategory,
+		arg.ID,
+		arg.Name,
+		arg.CreatedAt,
+		arg.CreatedBy,
+	)
+	return err
+}
+
+const listIssueCategories = `-- name: ListIssueCategories :many
+SELECT id, name
+FROM issue_categories
+WHERE soft_delete = false
+ORDER BY name ASC
+`
+
+type ListIssueCategoriesRow struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) ListIssueCategories(ctx context.Context) ([]ListIssueCategoriesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listIssueCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListIssueCategoriesRow{}
+	for rows.Next() {
+		var i ListIssueCategoriesRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

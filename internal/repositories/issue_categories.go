@@ -11,6 +11,8 @@ import (
 
 type IssueCategoriesRepository interface {
 	CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error)
+	CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error
+	ListIssueCategories(ctx context.Context) ([]db.ListIssueCategoriesRow, error)
 }
 
 type issueCategoriesRepository struct {
@@ -29,6 +31,30 @@ func (r *issueCategoriesRepository) CheckIssueCategoryExists(ctx context.Context
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CheckIssueCategoryExists] Error checking issue category exists", err)
 		return false, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
+}
+
+func (r *issueCategoriesRepository) CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error {
+	r.log.InfoWithID(ctx, "[Repository: CreateAdminIssueCategory] Called")
+
+	err := r.db.CreateAdminIssueCategory(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: CreateAdminIssueCategory] Error creating admin issue category", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	return nil
+}
+
+func (r *issueCategoriesRepository) ListIssueCategories(ctx context.Context) ([]db.ListIssueCategoriesRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListIssueCategories] Called")
+
+	resp, err := r.db.ListIssueCategories(ctx)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListIssueCategories] Error listing issue categories", err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
 	return resp, nil

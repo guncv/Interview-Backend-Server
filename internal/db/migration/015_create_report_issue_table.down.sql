@@ -1,12 +1,8 @@
-DROP INDEX IF EXISTS idx_issue_reports_status;
-DROP INDEX IF EXISTS idx_issue_reports_user_id;
-DROP INDEX IF EXISTS idx_issue_reports_category_id;
-DROP INDEX IF EXISTS idx_issue_reports_assigned_to;
 DROP TABLE IF EXISTS issue_reports;
 DROP TABLE IF EXISTS issue_categories;
 DROP TABLE IF EXISTS issue_comments;
 
 DROP INDEX IF EXISTS idx_issue_reports_user_soft_delete_created_at;
 DROP INDEX IF EXISTS idx_issue_categories_id_soft_delete;
-DROP INDEX IF EXISTS idx_issue_comments_issue_id;
-DROP INDEX IF EXISTS idx_issue_comments_is_internal;
+
+DROP INDEX IF EXISTS idx_issue_categories_soft_delete;

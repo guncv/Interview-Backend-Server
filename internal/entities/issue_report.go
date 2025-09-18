@@ -25,3 +25,16 @@ type UpdateUserIssueReportByIDReq struct {
 	Description string `json:"description" validate:"required,min=1,max=1000"`
 	CategoryID  string `json:"category_id" validate:"required,uuid"`
 }
+
+type ListIssueCategoriesResp struct {
+	Data []IssueCategory `json:"data"`
+}
+
+type IssueCategory struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type CreateAdminIssueCategoryReq struct {
+	Name string `json:"name" validate:"required,min=1,max=100"`
+}
