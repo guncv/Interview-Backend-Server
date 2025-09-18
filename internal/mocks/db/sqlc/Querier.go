@@ -252,63 +252,6 @@ func (_c *MockQuerier_CheckIsUserExistsByID_Call) RunAndReturn(run func(context.
 	return _c
 }
 
-// CheckIssueCategoryExists provides a mock function with given fields: ctx, id
-func (_m *MockQuerier) CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	ret := _m.Called(ctx, id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CheckIssueCategoryExists")
-	}
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (bool, error)); ok {
-		return rf(ctx, id)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) bool); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockQuerier_CheckIssueCategoryExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckIssueCategoryExists'
-type MockQuerier_CheckIssueCategoryExists_Call struct {
-	*mock.Call
-}
-
-// CheckIssueCategoryExists is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id uuid.UUID
-func (_e *MockQuerier_Expecter) CheckIssueCategoryExists(ctx interface{}, id interface{}) *MockQuerier_CheckIssueCategoryExists_Call {
-	return &MockQuerier_CheckIssueCategoryExists_Call{Call: _e.mock.On("CheckIssueCategoryExists", ctx, id)}
-}
-
-func (_c *MockQuerier_CheckIssueCategoryExists_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_CheckIssueCategoryExists_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_CheckIssueCategoryExists_Call) Return(_a0 bool, _a1 error) *MockQuerier_CheckIssueCategoryExists_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockQuerier_CheckIssueCategoryExists_Call) RunAndReturn(run func(context.Context, uuid.UUID) (bool, error)) *MockQuerier_CheckIssueCategoryExists_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateAdminIssueCategory provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateAdminIssueCategory(ctx context.Context, arg db.CreateAdminIssueCategoryParams) error {
 	ret := _m.Called(ctx, arg)
@@ -790,21 +733,31 @@ func (_c *MockQuerier_CreateUser_Call) RunAndReturn(run func(context.Context, db
 }
 
 // CreateUserIssueReport provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) CreateUserIssueReport(ctx context.Context, arg db.CreateUserIssueReportParams) error {
+func (_m *MockQuerier) CreateUserIssueReport(ctx context.Context, arg db.CreateUserIssueReportParams) (db.CreateUserIssueReportRow, error) {
 	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateUserIssueReport")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserIssueReportParams) error); ok {
+	var r0 db.CreateUserIssueReportRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserIssueReportParams) (db.CreateUserIssueReportRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserIssueReportParams) db.CreateUserIssueReportRow); ok {
 		r0 = rf(ctx, arg)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(db.CreateUserIssueReportRow)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, db.CreateUserIssueReportParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockQuerier_CreateUserIssueReport_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserIssueReport'
@@ -826,12 +779,12 @@ func (_c *MockQuerier_CreateUserIssueReport_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *MockQuerier_CreateUserIssueReport_Call) Return(_a0 error) *MockQuerier_CreateUserIssueReport_Call {
-	_c.Call.Return(_a0)
+func (_c *MockQuerier_CreateUserIssueReport_Call) Return(_a0 db.CreateUserIssueReportRow, _a1 error) *MockQuerier_CreateUserIssueReport_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockQuerier_CreateUserIssueReport_Call) RunAndReturn(run func(context.Context, db.CreateUserIssueReportParams) error) *MockQuerier_CreateUserIssueReport_Call {
+func (_c *MockQuerier_CreateUserIssueReport_Call) RunAndReturn(run func(context.Context, db.CreateUserIssueReportParams) (db.CreateUserIssueReportRow, error)) *MockQuerier_CreateUserIssueReport_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1166,6 +1119,63 @@ func (_c *MockQuerier_GetInterviewerLastMessage_Call) Return(_a0 db.GetInterview
 }
 
 func (_c *MockQuerier_GetInterviewerLastMessage_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetInterviewerLastMessageRow, error)) *MockQuerier_GetInterviewerLastMessage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetIssueCategoryIfExists provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (db.GetIssueCategoryIfExistsRow, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIssueCategoryIfExists")
+	}
+
+	var r0 db.GetIssueCategoryIfExistsRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetIssueCategoryIfExistsRow, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetIssueCategoryIfExistsRow); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(db.GetIssueCategoryIfExistsRow)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetIssueCategoryIfExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIssueCategoryIfExists'
+type MockQuerier_GetIssueCategoryIfExists_Call struct {
+	*mock.Call
+}
+
+// GetIssueCategoryIfExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockQuerier_Expecter) GetIssueCategoryIfExists(ctx interface{}, id interface{}) *MockQuerier_GetIssueCategoryIfExists_Call {
+	return &MockQuerier_GetIssueCategoryIfExists_Call{Call: _e.mock.On("GetIssueCategoryIfExists", ctx, id)}
+}
+
+func (_c *MockQuerier_GetIssueCategoryIfExists_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetIssueCategoryIfExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetIssueCategoryIfExists_Call) Return(_a0 db.GetIssueCategoryIfExistsRow, _a1 error) *MockQuerier_GetIssueCategoryIfExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetIssueCategoryIfExists_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetIssueCategoryIfExistsRow, error)) *MockQuerier_GetIssueCategoryIfExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2237,22 +2247,22 @@ func (_c *MockQuerier_UpdateUser_Call) RunAndReturn(run func(context.Context, db
 }
 
 // UpdateUserIssueReportByID provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) UpdateUserIssueReportByID(ctx context.Context, arg db.UpdateUserIssueReportByIDParams) (int64, error) {
+func (_m *MockQuerier) UpdateUserIssueReportByID(ctx context.Context, arg db.UpdateUserIssueReportByIDParams) (db.UpdateUserIssueReportByIDRow, error) {
 	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateUserIssueReportByID")
 	}
 
-	var r0 int64
+	var r0 db.UpdateUserIssueReportByIDRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportByIDParams) (int64, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportByIDParams) (db.UpdateUserIssueReportByIDRow, error)); ok {
 		return rf(ctx, arg)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportByIDParams) int64); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserIssueReportByIDParams) db.UpdateUserIssueReportByIDRow); ok {
 		r0 = rf(ctx, arg)
 	} else {
-		r0 = ret.Get(0).(int64)
+		r0 = ret.Get(0).(db.UpdateUserIssueReportByIDRow)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateUserIssueReportByIDParams) error); ok {
@@ -2283,12 +2293,12 @@ func (_c *MockQuerier_UpdateUserIssueReportByID_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockQuerier_UpdateUserIssueReportByID_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateUserIssueReportByID_Call {
+func (_c *MockQuerier_UpdateUserIssueReportByID_Call) Return(_a0 db.UpdateUserIssueReportByIDRow, _a1 error) *MockQuerier_UpdateUserIssueReportByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockQuerier_UpdateUserIssueReportByID_Call) RunAndReturn(run func(context.Context, db.UpdateUserIssueReportByIDParams) (int64, error)) *MockQuerier_UpdateUserIssueReportByID_Call {
+func (_c *MockQuerier_UpdateUserIssueReportByID_Call) RunAndReturn(run func(context.Context, db.UpdateUserIssueReportByIDParams) (db.UpdateUserIssueReportByIDRow, error)) *MockQuerier_UpdateUserIssueReportByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

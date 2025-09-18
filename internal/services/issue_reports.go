@@ -16,9 +16,9 @@ import (
 )
 
 type IssueReportsService interface {
-	CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) error
+	CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error)
 	ListUserIssueReports(ctx context.Context) (*entities.ListUserIssueReportsResp, error)
-	UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) error
+	UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) (*entities.UserIssueReport, error)
 	ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error)
 	CreateAdminIssueCategory(ctx context.Context, req *entities.CreateAdminIssueCategoryReq) error
 }
@@ -47,40 +47,34 @@ func NewIssueReportsService(
 	}
 }
 
-func (s *issueReportsService) CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) error {
+func (s *issueReportsService) CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error) {
 	s.log.InfoWithID(ctx, "[Service: CreateUserIssueReport] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Error getting auth context", err)
-		return err
+		return nil, err
 	}
 
 	userID, err := uuid.Parse(authCtx.Payload.UserID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Error parsing user ID", err)
-		return err
+		return nil, err
 	}
 
 	categoryID, err := uuid.Parse(req.CategoryID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Error parsing category ID", err)
-		return err
+		return nil, err
 	}
 
-	categoryExists, err := s.issueCategoriesRepo.CheckIssueCategoryExists(ctx, categoryID)
+	categoryName, err := s.issueCategoriesRepo.GetIssueCategoryIfExists(ctx, categoryID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Error checking issue category exists", err)
-		return err
-	}
-
-	if !categoryExists {
-		err = app_error.New(constants.ErrCategoryNotFound, app_error.ErrCodeIssueCategoryNotFound)
-		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Issue category not found", err)
-		return err
+		return nil, err
 	}
 
 	reqDB := &db.CreateUserIssueReportParams{
@@ -93,12 +87,25 @@ func (s *issueReportsService) CreateUserIssueReport(ctx context.Context, req *en
 		CreatedAt:   time.Now(),
 	}
 
-	if err := s.issueReportsRepo.CreateUserIssueReport(ctx, reqDB); err != nil {
+	dbResp, err := s.issueReportsRepo.CreateUserIssueReport(ctx, reqDB)
+	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateUserIssueReport] Error creating user issue report", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	resp := &entities.UserIssueReport{
+		ID:           dbResp.ID.String(),
+		Description:  dbResp.Description,
+		CategoryID:   dbResp.CategoryID.String(),
+		CategoryName: categoryName.Name,
+		IsEditable:   dbResp.Status == constants.IssueReportStatusOpen,
+		Acknowledged: dbResp.Acknowledged,
+		CommentCount: dbResp.CommentCount,
+		CreatedAt:    dbResp.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    dbResp.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return resp, nil
 }
 
 func (s *issueReportsService) ListUserIssueReports(ctx context.Context) (*entities.ListUserIssueReportsResp, error) {
@@ -145,64 +152,58 @@ func (s *issueReportsService) ListUserIssueReports(ctx context.Context) (*entiti
 	return resp, nil
 }
 
-func (s *issueReportsService) UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) error {
+func (s *issueReportsService) UpdateUserIssueReportByID(ctx context.Context, req *entities.UpdateUserIssueReportByIDReq, reportId string) (*entities.UserIssueReport, error) {
 	s.log.InfoWithID(ctx, "[Service: UpdateUserIssueReportByID] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error getting auth context", err)
-		return err
+		return nil, err
 	}
 
 	userID, err := uuid.Parse(authCtx.Payload.UserID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error parsing user ID", err)
-		return err
+		return nil, err
 	}
 
 	issueReportID, err := uuid.Parse(reportId)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error parsing issue report ID", err)
-		return err
+		return nil, err
 	}
 
 	categoryID, err := uuid.Parse(req.CategoryID)
 	if err != nil {
 		err := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error parsing category ID", err)
-		return err
+		return nil, err
 	}
 
-	categoryExists, err := s.issueCategoriesRepo.CheckIssueCategoryExists(ctx, categoryID)
+	categoryName, err := s.issueCategoriesRepo.GetIssueCategoryIfExists(ctx, categoryID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error checking issue category exists", err)
-		return err
-	}
-
-	if !categoryExists {
-		err = app_error.New(constants.ErrCategoryNotFound, app_error.ErrCodeIssueCategoryNotFound)
-		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Issue category not found", err)
-		return err
+		return nil, err
 	}
 
 	issueReportUserIDAndStatus, err := s.issueReportsRepo.GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error getting user issue report user ID and status", err)
-		return err
+		return nil, err
 	}
 
 	if issueReportUserIDAndStatus.UserID.UUID != userID {
 		err = app_error.New(constants.ErrIssueReportUnauthorized, app_error.ErrCodeIssueReportUnauthorized)
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Unauthorized", err)
-		return err
+		return nil, err
 	}
 
 	if issueReportUserIDAndStatus.Status != constants.IssueReportStatusOpen {
 		err = app_error.New(constants.ErrIssueReportNotOpen, app_error.ErrCodeIssueReportNotOpen)
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Issue report not open", err)
-		return err
+		return nil, err
 	}
 
 	reqDB := &db.UpdateUserIssueReportByIDParams{
@@ -212,12 +213,25 @@ func (s *issueReportsService) UpdateUserIssueReportByID(ctx context.Context, req
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := s.issueReportsRepo.UpdateUserIssueReportByID(ctx, reqDB); err != nil {
+	dbResp, err := s.issueReportsRepo.UpdateUserIssueReportByID(ctx, reqDB)
+	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateUserIssueReportByID] Error updating user issue report", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	resp := &entities.UserIssueReport{
+		ID:           dbResp.ID.String(),
+		Description:  dbResp.Description,
+		CategoryID:   dbResp.CategoryID.String(),
+		CategoryName: categoryName.Name,
+		IsEditable:   dbResp.Status == constants.IssueReportStatusOpen,
+		Acknowledged: dbResp.Acknowledged,
+		CommentCount: dbResp.CommentCount,
+		CreatedAt:    dbResp.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    dbResp.UpdatedAt.Format(time.RFC3339),
+	}
+
+	return resp, nil
 }
 
 func (s *issueReportsService) ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error) {

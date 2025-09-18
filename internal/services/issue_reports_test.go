@@ -30,17 +30,43 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 	mockErr := errors.New("error")
 	invalidUserID := "invalid-user-id"
 	invalidCategoryID := "invalid-category-id"
+	categoryName := "test name"
+	validDescription := "test description"
+	fixTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	validDBResp := &db.CreateUserIssueReportRow{
+		ID:           issueReportID,
+		Description:  validDescription,
+		CategoryID:   categoryID,
+		Status:       constants.IssueReportStatusOpen,
+		Acknowledged: true,
+		CommentCount: 0,
+		CreatedAt:    fixTime,
+		UpdatedAt:    fixTime,
+	}
+
+	validResp := &entities.UserIssueReport{
+		ID:           issueReportID.String(),
+		Description:  validDescription,
+		CategoryID:   categoryID.String(),
+		CategoryName: categoryName,
+		IsEditable:   true,
+		Acknowledged: true,
+		CommentCount: 0,
+		CreatedAt:    fixTime.Format(time.RFC3339),
+		UpdatedAt:    fixTime.Format(time.RFC3339),
+	}
 
 	testCases := []struct {
 		name   string
 		input  *entities.CreateUserIssueReportReq
 		setup  func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator)
-		verify func(t *testing.T, gotErr error)
+		verify func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error)
 	}{
 		{
 			name: "Success",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  categoryID.String(),
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -60,8 +86,11 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockGenerator.EXPECT().
 					GenerateUUID(ctx).
@@ -71,23 +100,24 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 					CreateUserIssueReport(ctx, mock.MatchedBy(func(p *db.CreateUserIssueReportParams) bool {
 						return p.UserID.UUID == userID &&
 							p.UserID.Valid &&
-							p.Description == "test description" &&
+							p.Description == validDescription &&
 							p.Status == constants.IssueReportStatusOpen &&
 							p.CategoryID == categoryID &&
 							p.Priority == constants.IssueReportPriorityNormal
 					})).
-					Return(nil)
+					Return(validDBResp, nil)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
 			},
 		},
 		{
 			name: "Error - WithGetAuthContextError",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  categoryID.String(),
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -102,15 +132,16 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
 			name: "Error - WithInvalidUserID",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  categoryID.String(),
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -131,16 +162,17 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
 			name: "Error - WithInvalidCategoryID",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  invalidCategoryID,
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -161,16 +193,17 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
 			name: "Error - WithCheckIssueCategoryExistsError",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  categoryID.String(),
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -190,54 +223,24 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(false, mockErr)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, mockErr)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-		{
-			name: "Error - WithCategoryNotFound",
-			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
-				CategoryID:  categoryID.String(),
-			},
-			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
-				mockIssueReportsRepository := new(mockRepo.MockIssueReportsRepository)
-				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
-				mockAuthContext := new(mockAuthContext.MockAuthContext)
-				mockGenerator := new(mockGenerator.MockGenerator)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							ID:     userID,
-							UserID: userID.String(),
-							Role:   constants.UserRoleUser,
-						},
-					}, nil)
-
-				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(false, nil)
-
-				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "The issue category was not found. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[INS0800]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
 			name: "Error - WithCreateUserIssueReportError",
 			input: &entities.CreateUserIssueReportReq{
-				Description: "test description",
+				Description: validDescription,
 				CategoryID:  categoryID.String(),
 			},
 			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
@@ -257,8 +260,11 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockGenerator.EXPECT().
 					GenerateUUID(ctx).
@@ -268,18 +274,19 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 					CreateUserIssueReport(ctx, mock.MatchedBy(func(p *db.CreateUserIssueReportParams) bool {
 						return p.UserID.UUID == userID &&
 							p.UserID.Valid &&
-							p.Description == "test description" &&
+							p.Description == validDescription &&
 							p.Status == constants.IssueReportStatusOpen &&
 							p.CategoryID == categoryID &&
 							p.Priority == constants.IssueReportPriorityNormal
 					})).
-					Return(mockErr)
+					Return(nil, mockErr)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
+				assert.Nil(t, gotResp)
 			},
 		},
 	}
@@ -303,9 +310,9 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 			}()
 
 			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
-			gotErr := svc.CreateUserIssueReport(ctx, tC.input)
+			gotResp, gotErr := svc.CreateUserIssueReport(ctx, tC.input)
 
-			tC.verify(t, gotErr)
+			tC.verify(t, gotResp, gotErr)
 		})
 	}
 }
@@ -385,6 +392,7 @@ func TestIssueReportsService_ListUserIssueReports(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListUserIssueReportsResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -409,6 +417,7 @@ func TestIssueReportsService_ListUserIssueReports(t *testing.T) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -471,13 +480,39 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 	invalidUserID := "invalid-user-id"
 	invalidCategoryID := "invalid-category-id"
 	invalidIssueReportID := "invalid-issue-report-id"
+	categoryName := "test name"
+
+	fixTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	validDBResp := &db.UpdateUserIssueReportByIDRow{
+		ID:           issueReportID,
+		Description:  "test description",
+		CategoryID:   categoryID,
+		Status:       constants.IssueReportStatusOpen,
+		Acknowledged: true,
+		CommentCount: 0,
+		CreatedAt:    fixTime,
+		UpdatedAt:    fixTime,
+	}
+
+	validResp := &entities.UserIssueReport{
+		ID:           issueReportID.String(),
+		Description:  "test description",
+		CategoryID:   categoryID.String(),
+		CategoryName: categoryName,
+		IsEditable:   true,
+		Acknowledged: true,
+		CommentCount: 0,
+		CreatedAt:    fixTime.Format(time.RFC3339),
+		UpdatedAt:    fixTime.Format(time.RFC3339),
+	}
 
 	testCases := []struct {
 		name          string
 		input         *entities.UpdateUserIssueReportByIDReq
 		issueReportID string
 		setup         func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator)
-		verify        func(t *testing.T, gotErr error)
+		verify        func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error)
 	}{
 		{
 			name: "Success",
@@ -503,8 +538,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockIssueReportsRepository.EXPECT().
 					GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID).
@@ -519,12 +557,13 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 							p.Description == "test description" &&
 							p.CategoryID == categoryID
 					})).
-					Return(nil)
+					Return(validDBResp, nil)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
 			},
 		},
 		{
@@ -546,7 +585,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
 			},
@@ -576,7 +615,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
@@ -607,10 +646,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -638,10 +678,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
 				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -668,49 +709,15 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(false, mockErr)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(nil, mockErr)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-		{
-			name: "Error - WithCheckIssueCategoryExistsDoesNotExist",
-			input: &entities.UpdateUserIssueReportByIDReq{
-				Description: "test description",
-				CategoryID:  categoryID.String(),
-			},
-			issueReportID: issueReportID.String(),
-			setup: func() (*mockRepo.MockIssueReportsRepository, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
-				mockIssueReportsRepository := new(mockRepo.MockIssueReportsRepository)
-				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
-				mockAuthContext := new(mockAuthContext.MockAuthContext)
-				mockGenerator := new(mockGenerator.MockGenerator)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							ID:     userID,
-							UserID: userID.String(),
-							Role:   constants.UserRoleUser,
-						},
-					}, nil)
-
-				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(false, nil)
-
-				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "The issue category was not found. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[INS0800]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -737,8 +744,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockIssueReportsRepository.EXPECT().
 					GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID).
@@ -746,9 +756,10 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -775,8 +786,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockIssueReportsRepository.EXPECT().
 					GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID).
@@ -787,10 +801,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "this user is not the owner of the issue report")
 				assert.Contains(t, gotErr.Error(), "[INS0702]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -817,8 +832,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: categoryName,
+					}, nil)
 
 				mockIssueReportsRepository.EXPECT().
 					GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID).
@@ -829,10 +847,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "issue report not open")
 				assert.Contains(t, gotErr.Error(), "[INS0701]")
+				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -859,8 +878,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 					}, nil)
 
 				mockIssueCategoriesRepository.EXPECT().
-					CheckIssueCategoryExists(ctx, categoryID).
-					Return(true, nil)
+					GetIssueCategoryIfExists(ctx, categoryID).
+					Return(&db.GetIssueCategoryIfExistsRow{
+						ID:   categoryID,
+						Name: "test name",
+					}, nil)
 
 				mockIssueReportsRepository.EXPECT().
 					GetUserIssueReportUserIDAndStatusByID(ctx, issueReportID).
@@ -875,11 +897,11 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 							p.Description == "test description" &&
 							p.CategoryID == categoryID
 					})).
-					Return(mockErr)
+					Return(nil, mockErr)
 
 				return mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
-			verify: func(t *testing.T, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.UserIssueReport, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
 			},
@@ -905,9 +927,9 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 			}()
 
 			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
-			gotErr := svc.UpdateUserIssueReportByID(ctx, tC.input, tC.issueReportID)
+			gotResp, gotErr := svc.UpdateUserIssueReportByID(ctx, tC.input, tC.issueReportID)
 
-			tC.verify(t, gotErr)
+			tC.verify(t, gotResp, gotErr)
 		})
 	}
 }

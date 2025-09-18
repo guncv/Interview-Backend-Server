@@ -24,63 +24,6 @@ func (_m *MockIssueCategoriesRepository) EXPECT() *MockIssueCategoriesRepository
 	return &MockIssueCategoriesRepository_Expecter{mock: &_m.Mock}
 }
 
-// CheckIssueCategoryExists provides a mock function with given fields: ctx, id
-func (_m *MockIssueCategoriesRepository) CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	ret := _m.Called(ctx, id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CheckIssueCategoryExists")
-	}
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (bool, error)); ok {
-		return rf(ctx, id)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) bool); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockIssueCategoriesRepository_CheckIssueCategoryExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckIssueCategoryExists'
-type MockIssueCategoriesRepository_CheckIssueCategoryExists_Call struct {
-	*mock.Call
-}
-
-// CheckIssueCategoryExists is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id uuid.UUID
-func (_e *MockIssueCategoriesRepository_Expecter) CheckIssueCategoryExists(ctx interface{}, id interface{}) *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call {
-	return &MockIssueCategoriesRepository_CheckIssueCategoryExists_Call{Call: _e.mock.On("CheckIssueCategoryExists", ctx, id)}
-}
-
-func (_c *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call) Return(_a0 bool, _a1 error) *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call) RunAndReturn(run func(context.Context, uuid.UUID) (bool, error)) *MockIssueCategoriesRepository_CheckIssueCategoryExists_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateAdminIssueCategory provides a mock function with given fields: ctx, req
 func (_m *MockIssueCategoriesRepository) CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error {
 	ret := _m.Called(ctx, req)
@@ -124,6 +67,65 @@ func (_c *MockIssueCategoriesRepository_CreateAdminIssueCategory_Call) Return(_a
 }
 
 func (_c *MockIssueCategoriesRepository_CreateAdminIssueCategory_Call) RunAndReturn(run func(context.Context, *db.CreateAdminIssueCategoryParams) error) *MockIssueCategoriesRepository_CreateAdminIssueCategory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetIssueCategoryIfExists provides a mock function with given fields: ctx, id
+func (_m *MockIssueCategoriesRepository) GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIssueCategoryIfExists")
+	}
+
+	var r0 *db.GetIssueCategoryIfExistsRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.GetIssueCategoryIfExistsRow); ok {
+		r0 = rf(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.GetIssueCategoryIfExistsRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIssueCategoryIfExists'
+type MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call struct {
+	*mock.Call
+}
+
+// GetIssueCategoryIfExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockIssueCategoriesRepository_Expecter) GetIssueCategoryIfExists(ctx interface{}, id interface{}) *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call {
+	return &MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call{Call: _e.mock.On("GetIssueCategoryIfExists", ctx, id)}
+}
+
+func (_c *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call) Return(_a0 *db.GetIssueCategoryIfExistsRow, _a1 error) *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error)) *MockIssueCategoriesRepository_GetIssueCategoryIfExists_Call {
 	_c.Call.Return(run)
 	return _c
 }

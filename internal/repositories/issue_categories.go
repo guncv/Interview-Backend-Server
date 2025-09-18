@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -10,7 +12,7 @@ import (
 )
 
 type IssueCategoriesRepository interface {
-	CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error)
+	GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error)
 	CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error
 	ListIssueCategories(ctx context.Context) ([]db.ListIssueCategoriesRow, error)
 }
@@ -24,16 +26,20 @@ func NewIssueCategoriesRepository(log *log.Logger, db db.Store) IssueCategoriesR
 	return &issueCategoriesRepository{log: log, db: db}
 }
 
-func (r *issueCategoriesRepository) CheckIssueCategoryExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	r.log.InfoWithID(ctx, "[Repository: CheckIssueCategoryExists] Called")
+func (r *issueCategoriesRepository) GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetIssueCategoryIfExists] Called")
 
-	resp, err := r.db.CheckIssueCategoryExists(ctx, id)
+	resp, err := r.db.GetIssueCategoryIfExists(ctx, id)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: CheckIssueCategoryExists] Error checking issue category exists", err)
-		return false, app_error.HandleDatabaseError(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetIssueCategoryIfExists] Issue category not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeIssueCategoryNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetIssueCategoryIfExists] Error getting issue category if exists", err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return resp, nil
+	return &resp, nil
 }
 
 func (r *issueCategoriesRepository) CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error {

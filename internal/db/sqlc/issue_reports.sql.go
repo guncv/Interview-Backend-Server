@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createUserIssueReport = `-- name: CreateUserIssueReport :exec
+const createUserIssueReport = `-- name: CreateUserIssueReport :one
 INSERT INTO issue_reports (
     id,
     user_id,
@@ -24,7 +24,15 @@ INSERT INTO issue_reports (
     created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-)
+) RETURNING 
+    id,
+    description,
+    category_id,
+    status,
+    acknowledged,
+    comment_count,
+    created_at,
+    updated_at
 `
 
 type CreateUserIssueReportParams struct {
@@ -37,8 +45,19 @@ type CreateUserIssueReportParams struct {
 	CreatedAt   time.Time     `json:"created_at"`
 }
 
-func (q *Queries) CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) error {
-	_, err := q.db.ExecContext(ctx, createUserIssueReport,
+type CreateUserIssueReportRow struct {
+	ID           uuid.UUID `json:"id"`
+	Description  string    `json:"description"`
+	CategoryID   uuid.UUID `json:"category_id"`
+	Status       string    `json:"status"`
+	Acknowledged bool      `json:"acknowledged"`
+	CommentCount int32     `json:"comment_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+func (q *Queries) CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error) {
+	row := q.db.QueryRowContext(ctx, createUserIssueReport,
 		arg.ID,
 		arg.UserID,
 		arg.Description,
@@ -47,7 +66,18 @@ func (q *Queries) CreateUserIssueReport(ctx context.Context, arg CreateUserIssue
 		arg.Priority,
 		arg.CreatedAt,
 	)
-	return err
+	var i CreateUserIssueReportRow
+	err := row.Scan(
+		&i.ID,
+		&i.Description,
+		&i.CategoryID,
+		&i.Status,
+		&i.Acknowledged,
+		&i.CommentCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getUserIssueReportUserIDAndStatusByID = `-- name: GetUserIssueReportUserIDAndStatusByID :one
@@ -129,12 +159,21 @@ func (q *Queries) ListUserIssueReports(ctx context.Context, userID uuid.NullUUID
 	return items, nil
 }
 
-const updateUserIssueReportByID = `-- name: UpdateUserIssueReportByID :execrows
+const updateUserIssueReportByID = `-- name: UpdateUserIssueReportByID :one
 UPDATE issue_reports
 SET description = $2,
     category_id = $3,
     updated_at = $4
 WHERE id = $1
+RETURNING 
+    id,
+    description,
+    category_id,
+    status,
+    acknowledged,
+    comment_count,
+    created_at,
+    updated_at
 `
 
 type UpdateUserIssueReportByIDParams struct {
@@ -144,15 +183,34 @@ type UpdateUserIssueReportByIDParams struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func (q *Queries) UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateUserIssueReportByID,
+type UpdateUserIssueReportByIDRow struct {
+	ID           uuid.UUID `json:"id"`
+	Description  string    `json:"description"`
+	CategoryID   uuid.UUID `json:"category_id"`
+	Status       string    `json:"status"`
+	Acknowledged bool      `json:"acknowledged"`
+	CommentCount int32     `json:"comment_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (UpdateUserIssueReportByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUserIssueReportByID,
 		arg.ID,
 		arg.Description,
 		arg.CategoryID,
 		arg.UpdatedAt,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	var i UpdateUserIssueReportByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Description,
+		&i.CategoryID,
+		&i.Status,
+		&i.Acknowledged,
+		&i.CommentCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

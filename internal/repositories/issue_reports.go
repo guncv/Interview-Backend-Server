@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/google/uuid"
@@ -11,9 +12,9 @@ import (
 )
 
 type IssueReportsRepository interface {
-	CreateUserIssueReport(ctx context.Context, req *db.CreateUserIssueReportParams) error
+	CreateUserIssueReport(ctx context.Context, req *db.CreateUserIssueReportParams) (*db.CreateUserIssueReportRow, error)
 	ListUserIssueReports(ctx context.Context, userID uuid.UUID) ([]db.ListUserIssueReportsRow, error)
-	UpdateUserIssueReportByID(ctx context.Context, req *db.UpdateUserIssueReportByIDParams) error
+	UpdateUserIssueReportByID(ctx context.Context, req *db.UpdateUserIssueReportByIDParams) (*db.UpdateUserIssueReportByIDRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (*db.GetUserIssueReportUserIDAndStatusByIDRow, error)
 }
 
@@ -29,15 +30,16 @@ func NewIssueReportsRepository(l *log.Logger, db db.Store) IssueReportsRepositor
 	}
 }
 
-func (r *issueReportsRepository) CreateUserIssueReport(ctx context.Context, req *db.CreateUserIssueReportParams) error {
+func (r *issueReportsRepository) CreateUserIssueReport(ctx context.Context, req *db.CreateUserIssueReportParams) (*db.CreateUserIssueReportRow, error) {
 	r.log.InfoWithID(ctx, "[Repository: CreateUserIssueReport] Called")
 
-	if err := r.db.CreateUserIssueReport(ctx, *req); err != nil {
+	resp, err := r.db.CreateUserIssueReport(ctx, *req)
+	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateUserIssueReport] Error creating user issue report", err)
-		return app_error.HandleDatabaseError(err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return nil
+	return &resp, nil
 }
 
 func (r *issueReportsRepository) ListUserIssueReports(ctx context.Context, userID uuid.UUID) ([]db.ListUserIssueReportsRow, error) {
@@ -52,21 +54,20 @@ func (r *issueReportsRepository) ListUserIssueReports(ctx context.Context, userI
 	return resp, nil
 }
 
-func (r *issueReportsRepository) UpdateUserIssueReportByID(ctx context.Context, req *db.UpdateUserIssueReportByIDParams) error {
+func (r *issueReportsRepository) UpdateUserIssueReportByID(ctx context.Context, req *db.UpdateUserIssueReportByIDParams) (*db.UpdateUserIssueReportByIDRow, error) {
 	r.log.InfoWithID(ctx, "[Repository: UpdateUserIssueReport] Called")
 
-	rowAffected, err := r.db.UpdateUserIssueReportByID(ctx, *req)
+	resp, err := r.db.UpdateUserIssueReportByID(ctx, *req)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: UpdateUserIssueReport] User issue report not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeIssueReportNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: UpdateUserIssueReport] Error updating user issue report", err)
-		return app_error.HandleDatabaseError(err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	if rowAffected == 0 {
-		r.log.ErrorWithID(ctx, "[Repository: UpdateUserIssueReport] User issue report not found")
-		return app_error.New(errors.New("user issue report not found"), app_error.ErrCodeIssueReportNotFound)
-	}
-
-	return nil
+	return &resp, nil
 }
 
 func (r *issueReportsRepository) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (*db.GetUserIssueReportUserIDAndStatusByIDRow, error) {
