@@ -8,8 +8,6 @@ import (
 	asynq "github.com/hibiken/asynq"
 	aws "gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 
-	database "gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
-
 	email "gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 
 	entities "gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -202,68 +200,6 @@ func (_c *MockRedisTaskPublisher_PublishTaskDeleteFile_Call) RunAndReturn(run fu
 	return _c
 }
 
-// PublishTaskDeleteRedis provides a mock function with given fields: ctx, payload, opts
-func (_m *MockRedisTaskPublisher) PublishTaskDeleteRedis(ctx context.Context, payload *database.RedisDeletePayload, opts ...asynq.Option) error {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, payload)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PublishTaskDeleteRedis")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *database.RedisDeletePayload, ...asynq.Option) error); ok {
-		r0 = rf(ctx, payload, opts...)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockRedisTaskPublisher_PublishTaskDeleteRedis_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskDeleteRedis'
-type MockRedisTaskPublisher_PublishTaskDeleteRedis_Call struct {
-	*mock.Call
-}
-
-// PublishTaskDeleteRedis is a helper method to define mock.On call
-//   - ctx context.Context
-//   - payload *database.RedisDeletePayload
-//   - opts ...asynq.Option
-func (_e *MockRedisTaskPublisher_Expecter) PublishTaskDeleteRedis(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call {
-	return &MockRedisTaskPublisher_PublishTaskDeleteRedis_Call{Call: _e.mock.On("PublishTaskDeleteRedis",
-		append([]interface{}{ctx, payload}, opts...)...)}
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call) Run(run func(ctx context.Context, payload *database.RedisDeletePayload, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]asynq.Option, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(asynq.Option)
-			}
-		}
-		run(args[0].(context.Context), args[1].(*database.RedisDeletePayload), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call) RunAndReturn(run func(context.Context, *database.RedisDeletePayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskDeleteRedis_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // PublishTaskSendResetPasswordEmail provides a mock function with given fields: ctx, payload, opts
 func (_m *MockRedisTaskPublisher) PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error {
 	_va := make([]interface{}, len(opts))
@@ -384,68 +320,6 @@ func (_c *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call) Return(_a0 err
 }
 
 func (_c *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call) RunAndReturn(run func(context.Context, *email.VerifyEmailPayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskSendVerifyEmail_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// PublishTaskSetRedis provides a mock function with given fields: ctx, payload, opts
-func (_m *MockRedisTaskPublisher) PublishTaskSetRedis(ctx context.Context, payload *database.RedisPayload, opts ...asynq.Option) error {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, payload)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PublishTaskSetRedis")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *database.RedisPayload, ...asynq.Option) error); ok {
-		r0 = rf(ctx, payload, opts...)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockRedisTaskPublisher_PublishTaskSetRedis_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskSetRedis'
-type MockRedisTaskPublisher_PublishTaskSetRedis_Call struct {
-	*mock.Call
-}
-
-// PublishTaskSetRedis is a helper method to define mock.On call
-//   - ctx context.Context
-//   - payload *database.RedisPayload
-//   - opts ...asynq.Option
-func (_e *MockRedisTaskPublisher_Expecter) PublishTaskSetRedis(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskSetRedis_Call {
-	return &MockRedisTaskPublisher_PublishTaskSetRedis_Call{Call: _e.mock.On("PublishTaskSetRedis",
-		append([]interface{}{ctx, payload}, opts...)...)}
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskSetRedis_Call) Run(run func(ctx context.Context, payload *database.RedisPayload, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskSetRedis_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]asynq.Option, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(asynq.Option)
-			}
-		}
-		run(args[0].(context.Context), args[1].(*database.RedisPayload), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskSetRedis_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskSetRedis_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockRedisTaskPublisher_PublishTaskSetRedis_Call) RunAndReturn(run func(context.Context, *database.RedisPayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskSetRedis_Call {
 	_c.Call.Return(run)
 	return _c
 }

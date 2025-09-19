@@ -16,6 +16,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	mockDatabase "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/database"
@@ -123,7 +124,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock CheckIsEmailExists returns sql.ErrNoRows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "newuser@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -271,7 +272,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock CheckIsEmailExists returns sql.ErrNoRows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "newuser@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing fails
 				mockPassword.EXPECT().
@@ -304,7 +305,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "user@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -348,7 +349,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "user@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -403,7 +404,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "user@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -464,7 +465,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "user@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -578,17 +579,18 @@ func TestUserService_SignUpUser(t *testing.T) {
 					HashPassword(ctx, "password123").
 					Return("hashed_password", nil)
 
-				// Mock user update returns sql.ErrNoRows
+				// Mock user update returns user not found
 				mockUserRepo.EXPECT().
 					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
-					Return(&db.Users{}, sql.ErrNoRows)
+					Return(&db.Users{}, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
 			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.ErrorIs(t, gotErr, sql.ErrNoRows)
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
+				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
 		{
@@ -671,7 +673,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "user@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().
@@ -752,7 +754,7 @@ func TestUserService_SignUpUser(t *testing.T) {
 				// Mock CheckIsEmailExists returns sql.ErrNoRows
 				mockUserRepo.EXPECT().
 					CheckIsEmailExists(ctx, "newuser@example.com").
-					Return(nil, sql.ErrNoRows)
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
 				// Mock password hashing
 				mockPassword.EXPECT().

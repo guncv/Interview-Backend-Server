@@ -119,6 +119,104 @@ func TestResumeRepository_GetResumeByID(t *testing.T) {
 	}
 }
 
+func TestResumeRepository_GetDefaultResumeByUserID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+
+	successResp := db.Resumes{
+		ID:         uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
+		UserID:     uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
+		FileName:   "test.pdf",
+		StorageKey: "test.pdf",
+		MimeType:   "application/pdf",
+		ByteSize:   1024,
+		IsDefault:  true,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		DeletedAt:  sql.NullTime{Time: time.Now(), Valid: true},
+	}
+
+	testCases := []struct {
+		name   string
+		input  uuid.UUID
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, got *db.Resumes, gotErr error)
+	}{
+		{
+			name:  "Success - Get default resume by user ID",
+			input: successResp.ID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetDefaultResumeByUserID(ctx, successResp.ID).
+					Return(successResp, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, got *db.Resumes, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, got, &successResp)
+			},
+		},
+		{
+			name:  "Error - Get default resume by user ID not found",
+			input: successResp.ID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetDefaultResumeByUserID(ctx, successResp.ID).
+					Return(db.Resumes{}, sql.ErrNoRows)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, got *db.Resumes, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.Contains(t, gotErr.Error(), "[INS0304]")
+				assert.Contains(t, gotErr.Error(), "The resume was not found")
+			},
+		},
+		{
+			name:  "Error - Get default resume by user ID",
+			input: successResp.ID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetDefaultResumeByUserID(ctx, successResp.ID).
+					Return(db.Resumes{}, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, got *db.Resumes, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewResumeRepository(lgr, mockStore, nil)
+			got, gotErr := svc.GetDefaultResumeByUserID(ctx, tC.input)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
 func TestResumeRepository_SwitchDefaultResume(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,7 @@ import (
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
@@ -28,6 +30,7 @@ type issueReportsService struct {
 	issueReportsRepo    repositories.IssueReportsRepository
 	issueCategoriesRepo repositories.IssueCategoriesRepository
 	authContext         middleware.AuthContext
+	redisClient         database.RedisClient
 	generator           utils.Generator
 }
 
@@ -36,6 +39,7 @@ func NewIssueReportsService(
 	issueReportsRepo repositories.IssueReportsRepository,
 	issueCategoriesRepo repositories.IssueCategoriesRepository,
 	authContext middleware.AuthContext,
+	redisClient database.RedisClient,
 	generator utils.Generator,
 ) IssueReportsService {
 	return &issueReportsService{
@@ -43,6 +47,7 @@ func NewIssueReportsService(
 		issueReportsRepo:    issueReportsRepo,
 		issueCategoriesRepo: issueCategoriesRepo,
 		authContext:         authContext,
+		redisClient:         redisClient,
 		generator:           generator,
 	}
 }
@@ -237,6 +242,32 @@ func (s *issueReportsService) UpdateUserIssueReportByID(ctx context.Context, req
 func (s *issueReportsService) ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error) {
 	s.log.InfoWithID(ctx, "[Service: ListIssueCategories] Called")
 
+	var issueCategories []entities.IssueCategory
+	redisData, err := s.redisClient.Get(ctx, constants.RedisPrefixIssueCategories)
+	if err != nil {
+		issueCategories, err = s.fetchIssueCategoriesFromDB(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := json.Unmarshal([]byte(redisData), &issueCategories)
+		if err != nil {
+			s.log.WarnWithID(ctx, "[Service: ListIssueCategories] Error unmarshalling issue categories from redis, falling back to database", err)
+			issueCategories, err = s.fetchIssueCategoriesFromDB(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resp := &entities.ListIssueCategoriesResp{
+		Data: issueCategories,
+	}
+
+	return resp, nil
+}
+
+func (s *issueReportsService) fetchIssueCategoriesFromDB(ctx context.Context) ([]entities.IssueCategory, error) {
 	dbResp, err := s.issueCategoriesRepo.ListIssueCategories(ctx)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: ListIssueCategories] Error listing issue categories", err)
@@ -251,11 +282,19 @@ func (s *issueReportsService) ListIssueCategories(ctx context.Context) (*entitie
 		}
 	}
 
-	resp := &entities.ListIssueCategoriesResp{
-		Data: issueCategories,
+	if jsonBytes, err := json.Marshal(issueCategories); err == nil {
+		go func() {
+			_ = s.redisClient.Set(ctx, database.RedisPayload{
+				Key:   constants.RedisPrefixIssueCategories,
+				Value: string(jsonBytes),
+				TTL:   constants.RedisTTLIssueCategories,
+			})
+		}()
+	} else {
+		s.log.WarnWithID(ctx, "[Service: ListIssueCategories] Failed to marshal Redis payload", err)
 	}
 
-	return resp, nil
+	return issueCategories, nil
 }
 
 func (s *issueReportsService) CreateAdminIssueCategory(ctx context.Context, req *entities.CreateAdminIssueCategoryReq) error {
@@ -291,6 +330,8 @@ func (s *issueReportsService) CreateAdminIssueCategory(ctx context.Context, req 
 		s.log.ErrorWithID(ctx, "[Service: CreateAdminIssueCategory] Error creating admin issue category", err)
 		return err
 	}
+
+	_ = s.redisClient.Delete(ctx, constants.RedisPrefixIssueCategories)
 
 	return nil
 }
