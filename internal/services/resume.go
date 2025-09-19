@@ -333,11 +333,9 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 		return err
 	}
 
-	if err := s.queue.PublishTaskDeleteRedis(ctx, &database.RedisDeletePayload{
-		Keys: []string{constants.RedisPrefixDefaultResume + ":" + authCtx.Payload.UserID},
-	}); err != nil {
-		s.log.WarnWithID(ctx, "[Service: SwitchDefaultResume] Error publishing delete redis task", err)
-	}
+	go func() {
+		_ = s.redisClient.Delete(ctx, constants.RedisPrefixDefaultResume+":"+authCtx.Payload.UserID)
+	}()
 
 	return nil
 }

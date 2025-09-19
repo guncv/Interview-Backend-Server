@@ -1199,9 +1199,9 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
 					Return(nil)
 
-				mockRedisTaskPublisher.EXPECT().
-					PublishTaskDeleteRedis(ctx, mock.AnythingOfType("*database.RedisDeletePayload")).
-					Return(nil)
+				mockRedisClient.EXPECT().
+					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1231,7 +1231,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
-					Return("", errors.New("redis error"))
+					Return("", errors.New("redis error")).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1319,9 +1319,9 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
 					Return(nil)
 
-				mockRedisTaskPublisher.EXPECT().
-					PublishTaskDeleteRedis(ctx, mock.AnythingOfType("*database.RedisDeletePayload")).
-					Return(nil)
+				mockRedisClient.EXPECT().
+					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1499,9 +1499,9 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
 					Return(nil)
 
-				mockRedisTaskPublisher.EXPECT().
-					PublishTaskDeleteRedis(ctx, mock.AnythingOfType("*database.RedisDeletePayload")).
-					Return(nil)
+				mockRedisClient.EXPECT().
+					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
@@ -1578,9 +1578,9 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					SwitchDefaultResume(ctx, defaultResume.ID, resumeID).
 					Return(nil)
 
-				mockRedisTaskPublisher.EXPECT().
-					PublishTaskDeleteRedis(ctx, mock.AnythingOfType("*database.RedisDeletePayload")).
-					Return(errors.New("task publishing failed"))
+				mockRedisClient.EXPECT().
+					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Return(errors.New("task publishing failed")).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
 			},
