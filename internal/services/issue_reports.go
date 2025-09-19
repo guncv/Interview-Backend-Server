@@ -284,7 +284,10 @@ func (s *issueReportsService) fetchIssueCategoriesFromDB(ctx context.Context) ([
 
 	if jsonBytes, err := json.Marshal(issueCategories); err == nil {
 		go func() {
-			_ = s.redisClient.Set(ctx, database.RedisPayload{
+			cacheCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+
+			_ = s.redisClient.Set(cacheCtx, database.RedisPayload{
 				Key:   constants.RedisPrefixIssueCategories,
 				Value: string(jsonBytes),
 				TTL:   constants.RedisTTLIssueCategories,

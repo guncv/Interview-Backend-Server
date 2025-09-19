@@ -778,7 +778,10 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 
 		if jsonBytes, err := json.Marshal(dbSession); err == nil {
 			go func() {
-				_ = s.redisClient.Set(ctx, database.RedisPayload{
+				cacheCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+
+				_ = s.redisClient.Set(cacheCtx, database.RedisPayload{
 					Key:   redisKey,
 					Value: string(jsonBytes),
 					TTL:   constants.RedisTTLInterviewSessionInformation,

@@ -334,7 +334,10 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	}
 
 	go func() {
-		_ = s.redisClient.Delete(ctx, constants.RedisPrefixDefaultResume+":"+authCtx.Payload.UserID)
+		cacheCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		_ = s.redisClient.Delete(cacheCtx, constants.RedisPrefixDefaultResume+":"+authCtx.Payload.UserID)
 	}()
 
 	return nil

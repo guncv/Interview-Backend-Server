@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -85,8 +86,11 @@ func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rub
 		}
 
 		go func() {
+			cacheCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+
 			if jsonBytes, err := json.Marshal(resp); err == nil {
-				_ = s.redisClient.Set(ctx, database.RedisPayload{
+				_ = s.redisClient.Set(cacheCtx, database.RedisPayload{
 					Key:   redisKey,
 					Value: jsonBytes,
 					TTL:   constants.RedisTTLEvaluationRubric,
