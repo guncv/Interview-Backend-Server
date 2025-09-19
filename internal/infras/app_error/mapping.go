@@ -67,8 +67,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrHttpCodeNotFound,
 
 	// Interview Turns
-	ErrCodeInterviewTurnsLastMessageNotFound: ErrHttpCodeNotFound,
-
+	ErrCodeInterviewTurnLastMessageNotFound: ErrHttpCodeNotFound,
+	ErrCodeInterviewTurnsMaxTurnNoNotFound:  ErrHttpCodeNotFound,
 	// Issue Reports
 	ErrCodeIssueReportNotFound:     ErrHttpCodeNotFound,
 	ErrCodeIssueReportNotOpen:      ErrHttpCodeBadRequest,
@@ -144,8 +144,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrMessageEvaluationRubricCriteriaNotFound,
 
 	// Interview Turns
-	ErrCodeInterviewTurnsLastMessageNotFound: ErrMessageInterviewTurnsLastMessageNotFound,
-
+	ErrCodeInterviewTurnLastMessageNotFound: ErrMessageInterviewTurnLastMessageNotFound,
+	ErrCodeInterviewTurnsMaxTurnNoNotFound:  ErrMessageInterviewTurnsMaxTurnNoNotFound,
 	// Issue Reports
 	ErrCodeIssueReportNotFound:     ErrMessageIssueReportNotFound,
 	ErrCodeIssueReportNotOpen:      ErrMessageIssueReportNotOpen,

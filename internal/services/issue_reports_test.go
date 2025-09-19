@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -15,6 +16,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
+	mockDatabase "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/database"
 	mockAuthContext "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/middleware"
 	mockRepo "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
 	mockGenerator "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
@@ -309,7 +311,7 @@ func TestIssueReportsService_CreateUserIssueReport(t *testing.T) {
 				}
 			}()
 
-			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
+			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, nil, mockGenerator)
 			gotResp, gotErr := svc.CreateUserIssueReport(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
@@ -461,7 +463,7 @@ func TestIssueReportsService_ListUserIssueReports(t *testing.T) {
 				}
 			}()
 
-			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, nil, mockAuthContext, nil)
+			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, nil, mockAuthContext, nil, nil)
 			gotResp, gotErr := svc.ListUserIssueReports(ctx)
 
 			tC.verify(t, gotResp, gotErr)
@@ -926,7 +928,7 @@ func TestIssueReportsService_UpdateUserIssueReportByID(t *testing.T) {
 				}
 			}()
 
-			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
+			svc := NewIssueReportsService(lgr, mockIssueReportsRepository, mockIssueCategoriesRepository, mockAuthContext, nil, mockGenerator)
 			gotResp, gotErr := svc.UpdateUserIssueReportByID(ctx, tC.input, tC.issueReportID)
 
 			tC.verify(t, gotResp, gotErr)
@@ -948,19 +950,80 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		setup  func() *mockRepo.MockIssueCategoriesRepository
+		setup  func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository)
 		verify func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error)
 	}{
 		{
-			name: "Success",
-			setup: func() *mockRepo.MockIssueCategoriesRepository {
+			name: "Success - WithRedisHit",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return(`[{"id":"`+dbResp[0].ID.String()+`","name":"`+dbResp[0].Name+`"}]`, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, len(gotResp.Data))
+				assert.Equal(t, dbResp[0].ID.String(), gotResp.Data[0].ID)
+				assert.Equal(t, dbResp[0].Name, gotResp.Data[0].Name)
+			},
+		},
+		{
+			name: "Success - WithRedisMiss",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return("", redis.Nil)
 
 				mockIssueCategoriesRepository.EXPECT().
 					ListIssueCategories(ctx).
 					Return(dbResp, nil)
 
-				return mockIssueCategoriesRepository
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, len(gotResp.Data))
+				assert.Equal(t, dbResp[0].ID.String(), gotResp.Data[0].ID)
+				assert.Equal(t, dbResp[0].Name, gotResp.Data[0].Name)
+			},
+		},
+		{
+			name: "Success - WithRedisError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return("", mockErr)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(dbResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
 			},
 			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -972,14 +1035,23 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 		},
 		{
 			name: "Success - WithEmptyResponse",
-			setup: func() *mockRepo.MockIssueCategoriesRepository {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return("", redis.Nil)
 
 				mockIssueCategoriesRepository.EXPECT().
 					ListIssueCategories(ctx).
 					Return([]db.ListIssueCategoriesRow{}, nil)
 
-				return mockIssueCategoriesRepository
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
 			},
 			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -988,15 +1060,97 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 			},
 		},
 		{
-			name: "Error - WithListIssueCategoriesError",
-			setup: func() *mockRepo.MockIssueCategoriesRepository {
+			name: "Success - WithRedisSetNewDataError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return("", redis.Nil)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(dbResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, len(gotResp.Data))
+				assert.Equal(t, dbResp[0].ID.String(), gotResp.Data[0].ID)
+				assert.Equal(t, dbResp[0].Name, gotResp.Data[0].Name)
+			},
+		},
+		{
+			name: "Success - WithRedisHitButUnmarshalError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return(`[{"id":"`+dbResp[0].ID.String()+`","name":"`+dbResp[0].Name+`"]`, nil)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(dbResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr).Maybe()
+
+				return mockRedisClient, mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 1, len(gotResp.Data))
+				assert.Equal(t, dbResp[0].ID.String(), gotResp.Data[0].ID)
+				assert.Equal(t, dbResp[0].Name, gotResp.Data[0].Name)
+			},
+		},
+		{
+			name: "Error - WithListIssueCategoriesError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return("", redis.Nil)
 
 				mockIssueCategoriesRepository.EXPECT().
 					ListIssueCategories(ctx).
 					Return(nil, mockErr)
 
-				return mockIssueCategoriesRepository
+				return mockRedisClient, mockIssueCategoriesRepository
+			},
+			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error - WithRedisHitButUnmarshalAndListIssueCategoriesError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixIssueCategories).
+					Return(`[{"id":"`+dbResp[0].ID.String()+`","name":"`+dbResp[0].Name+`"]`, nil)
+
+				mockIssueCategoriesRepository.EXPECT().
+					ListIssueCategories(ctx).
+					Return(nil, mockErr)
+
+				return mockRedisClient, mockIssueCategoriesRepository
 			},
 			verify: func(t *testing.T, gotResp *entities.ListIssueCategoriesResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1007,14 +1161,17 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockIssueCategoriesRepository := tC.setup()
+			mockRedisClient, mockIssueCategoriesRepository := tC.setup()
 			defer func() {
 				if mockIssueCategoriesRepository != nil {
 					mockIssueCategoriesRepository.AssertExpectations(t)
 				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
 			}()
 
-			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, nil, nil)
+			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, nil, mockRedisClient, nil)
 			gotResp, gotErr := svc.ListIssueCategories(ctx)
 
 			tC.verify(t, gotResp, gotErr)
@@ -1034,7 +1191,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.CreateAdminIssueCategoryReq
-		setup  func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator)
+		setup  func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
@@ -1042,7 +1199,8 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			input: &entities.CreateAdminIssueCategoryReq{
 				Name: "test category",
 			},
-			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
 				mockAuthContext := new(mockAuthContext.MockAuthContext)
 				mockGenerator := new(mockGenerator.MockGenerator)
@@ -1069,7 +1227,11 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 					})).
 					Return(nil)
 
-				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+				mockRedisClient.EXPECT().
+					Delete(ctx, constants.RedisPrefixIssueCategories).
+					Return(nil)
+
+				return mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -1080,7 +1242,8 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			input: &entities.CreateAdminIssueCategoryReq{
 				Name: "test category",
 			},
-			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
 				mockAuthContext := new(mockAuthContext.MockAuthContext)
 				mockGenerator := new(mockGenerator.MockGenerator)
@@ -1089,7 +1252,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 					GetAuthContext(ctx).
 					Return(nil, mockErr)
 
-				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+				return mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1101,7 +1264,8 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			input: &entities.CreateAdminIssueCategoryReq{
 				Name: "test category",
 			},
-			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
 				mockAuthContext := new(mockAuthContext.MockAuthContext)
 				mockGenerator := new(mockGenerator.MockGenerator)
@@ -1116,7 +1280,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 						},
 					}, nil)
 
-				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+				return mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1129,7 +1293,8 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			input: &entities.CreateAdminIssueCategoryReq{
 				Name: "test category",
 			},
-			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
 				mockAuthContext := new(mockAuthContext.MockAuthContext)
 				mockGenerator := new(mockGenerator.MockGenerator)
@@ -1144,7 +1309,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 						},
 					}, nil)
 
-				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+				return mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1157,7 +1322,8 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			input: &entities.CreateAdminIssueCategoryReq{
 				Name: "test category",
 			},
-			setup: func() (*mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepo.MockIssueCategoriesRepository, *mockAuthContext.MockAuthContext, *mockGenerator.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
 				mockIssueCategoriesRepository := new(mockRepo.MockIssueCategoriesRepository)
 				mockAuthContext := new(mockAuthContext.MockAuthContext)
 				mockGenerator := new(mockGenerator.MockGenerator)
@@ -1184,7 +1350,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 					})).
 					Return(mockErr)
 
-				return mockIssueCategoriesRepository, mockAuthContext, mockGenerator
+				return mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -1195,7 +1361,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockIssueCategoriesRepository, mockAuthContext, mockGenerator := tC.setup()
+			mockRedisClient, mockIssueCategoriesRepository, mockAuthContext, mockGenerator := tC.setup()
 			defer func() {
 				if mockIssueCategoriesRepository != nil {
 					mockIssueCategoriesRepository.AssertExpectations(t)
@@ -1207,9 +1373,13 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 				if mockGenerator != nil {
 					mockGenerator.AssertExpectations(t)
 				}
+
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
 			}()
 
-			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, mockAuthContext, mockGenerator)
+			svc := NewIssueReportsService(lgr, nil, mockIssueCategoriesRepository, mockAuthContext, mockRedisClient, mockGenerator)
 			gotErr := svc.CreateAdminIssueCategory(ctx, tC.input)
 
 			tC.verify(t, gotErr)

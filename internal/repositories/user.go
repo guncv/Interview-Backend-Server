@@ -58,6 +58,7 @@ func (r *userRepository) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
+		r.log.ErrorWithID(ctx, "[Repository: CheckIsUserExistsByID] Error checking if user exists", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
@@ -70,8 +71,10 @@ func (r *userRepository) CheckIsEmailExists(ctx context.Context, email string) (
 	user, err := r.db.CheckIsEmailExists(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: CheckIsEmailExists] User not found", err)
 			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
+		r.log.ErrorWithID(ctx, "[Repository: CheckIsEmailExists] Error checking if email exists", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
@@ -84,8 +87,10 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 	user, err := r.db.UpdateUser(ctx, *req)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: UpdateUser] User not found", err)
 			return nil, app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
+		r.log.ErrorWithID(ctx, "[Repository: UpdateUser] Error updating user", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
@@ -97,10 +102,12 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) erro
 
 	rowsAffected, err := r.db.VerifyEmail(ctx, userID)
 	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: VerifyEmail] Error verifying email", err)
 		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
 	}
 
 	if rowsAffected == 0 {
+		r.log.ErrorWithID(ctx, "[Repository: VerifyEmail] User not found", errors.New("user not found"))
 		return app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound)
 	}
 

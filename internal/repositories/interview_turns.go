@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -33,6 +34,10 @@ func (r *interviewTurnsRepository) GetInterviewerLastMessage(ctx context.Context
 
 	turnRow, err := r.db.GetInterviewerLastMessage(ctx, sessionID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			r.log.ErrorWithID(ctx, "[Repository: GetInterviewerLastMessage] Interviewer last message not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeInterviewTurnLastMessageNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: GetInterviewerLastMessage] Error getting interviewer last message", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
@@ -45,6 +50,10 @@ func (r *interviewTurnsRepository) GetMaxTurnNoBySessionID(ctx context.Context, 
 
 	turnNo, err := r.db.GetMaxTurnNoBySessionID(ctx, sessionID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			r.log.ErrorWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Max turn no by session ID not found", err)
+			return 0, app_error.New(err, app_error.ErrCodeInterviewTurnsMaxTurnNoNotFound)
+		}
 		r.log.ErrorWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Error getting max turn no by session ID", err)
 		return 0, app_error.HandleDatabaseError(err)
 	}

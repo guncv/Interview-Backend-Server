@@ -14,6 +14,7 @@ const (
 	RedisPrefixEvaluationRubric            = "evaluation:rubric:general:"
 	RedisPrefixInterviewSessionToken       = "interview:session_token:"
 	RedisPrefixInterviewSessionInformation = "interview:session_information:"
+	RedisPrefixIssueCategories             = "issue:categories"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour
@@ -24,4 +25,5 @@ const (
 	RedisTTLInterviewStartEndTime       = 1 * time.Hour
 	RedisTTLEvaluationRubric            = 1 * time.Hour
 	RedisTTLInterviewSessionInformation = 1 * time.Hour
+	RedisTTLIssueCategories             = 1 * time.Hour
 )

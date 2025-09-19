@@ -178,22 +178,24 @@ func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) RunAndReturn(run func
 }
 
 // GetDefaultResumeByUserID provides a mock function with given fields: ctx, userID
-func (_m *MockResumeReposity) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
+func (_m *MockResumeReposity) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (*db.Resumes, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetDefaultResumeByUserID")
 	}
 
-	var r0 db.Resumes
+	var r0 *db.Resumes
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.Resumes, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.Resumes, error)); ok {
 		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.Resumes); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.Resumes); ok {
 		r0 = rf(ctx, userID)
 	} else {
-		r0 = ret.Get(0).(db.Resumes)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Resumes)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -224,12 +226,12 @@ func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) Run(run func(ctx con
 	return _c
 }
 
-func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) Return(_a0 db.Resumes, _a1 error) *MockResumeReposity_GetDefaultResumeByUserID_Call {
+func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) Return(_a0 *db.Resumes, _a1 error) *MockResumeReposity_GetDefaultResumeByUserID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.Resumes, error)) *MockResumeReposity_GetDefaultResumeByUserID_Call {
+func (_c *MockResumeReposity_GetDefaultResumeByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.Resumes, error)) *MockResumeReposity_GetDefaultResumeByUserID_Call {
 	_c.Call.Return(run)
 	return _c
 }

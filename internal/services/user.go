@@ -99,7 +99,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if appErr, ok := err.(*app_error.AppError); ok && appErr.Code == app_error.ErrCodeAuthUserNotFound {
 			hashedPassword, err := s.password.HashPassword(ctx, req.Password)
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
@@ -118,7 +118,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 			resp, err := s.userRepo.CreateUser(ctx, createUserReq)
 			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating user", "error", err)
 				return nil, err
 			}
 
@@ -159,6 +159,7 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 			return &result, nil
 		}
+
 		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error checking if email exists", "error", err)
 		return nil, err
 	}
@@ -186,10 +187,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 
 	resp, err := s.userRepo.UpdateUser(ctx, updateUserReq)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
-			return nil, err
-		}
 		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
 		return nil, err
 	}
@@ -396,10 +393,6 @@ func (s *userService) signInByEmailAndPassword(ctx context.Context, req *entitie
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error checking if email exists", err)
-			return nil, app_error.New(errors.New("this email or password is incorrect"), app_error.ErrCodeAuthInvalidPassword)
-		}
 		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error checking if email exists", err)
 		return nil, err
 	}
@@ -486,10 +479,6 @@ func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPa
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error checking if user exists", err)
-			return app_error.New(errors.New("this email is not registered"), app_error.ErrCodeAuthUserNotFound)
-		}
 		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error checking if user exists", err)
 		return err
 	}
