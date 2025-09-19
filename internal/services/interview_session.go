@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -349,7 +347,6 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		return err
 	}
 
-	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
 }
 
@@ -398,7 +395,6 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return err
 	}
 
-	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
 }
 
@@ -428,42 +424,29 @@ func (s *interviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Cont
 func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, sessionID uuid.UUID, redisKey string) (int64, error) {
 	s.log.InfoWithID(ctx, "[Service: IncreaseMaxTurnNo] Called")
 
-	var maxTurnNo int64
-	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
+	maxTurnNo, err := s.redisClient.Increment(ctx, redisKey)
 
-	if err == redis.Nil {
-		maxTurnNo, err = s.interviewTurnsRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
+	if err != nil {
+		dbMaxTurnNo, err := s.interviewTurnsRepo.GetMaxTurnNoBySessionID(ctx, sessionID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to get max turn from DB", err)
 			return 0, err
 		}
-	} else if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Redis error", err)
-		return 0, err
-	} else {
-		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to parse turn no from Redis", err)
-			return 0, err
+
+		maxTurnNo = dbMaxTurnNo + 1
+
+		redisPayload := database.RedisPayload{
+			Key:   redisKey,
+			Value: maxTurnNo,
+			TTL:   constants.RedisTTLInterviewTurn,
 		}
+		if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+			s.log.WarnWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to cache to Redis", err)
+		}
+
 	}
 
-	maxTurnNo++
 	return maxTurnNo, nil
-}
-
-func (s *interviewSessionService) cacheMaxTurnNo(ctx context.Context, sessionID string, maxTurnNo int64) {
-	s.log.InfoWithID(ctx, "[Service: cacheMaxTurnNo] Called")
-
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, sessionID),
-		Value: maxTurnNo,
-		TTL:   constants.RedisTTLInterviewTurn,
-	}
-
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
-		s.log.WarnWithID(ctx, "[Service: cacheMaxTurnNo] Failed to cache", err)
-	}
 }
 
 func (s *interviewSessionService) SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error {
