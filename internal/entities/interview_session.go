@@ -142,3 +142,8 @@ type DownloadResumeBySessionTokenResp struct {
 	FileUrl  string `json:"file_url"`
 	FileName string `json:"file_name"`
 }
+
+type CheckExistsAndInitStartedAtInterviewSessionResp struct {
+	StartedAt             string `json:"started_at"`
+	IsStartedConversation bool   `json:"is_started_conversation"`
+}

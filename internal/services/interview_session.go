@@ -2,15 +2,14 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -29,6 +28,7 @@ type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
 	CreateUserSessionTurnBySessionID(ctx context.Context, req *entities.CreateUserSessionTurnBySessionIDReq) error
+	GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error)
 	CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error
 	UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error
 	SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error
@@ -38,6 +38,8 @@ type InterviewSessionService interface {
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
+	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
+	StartConversationBySessionID(ctx context.Context, sessionId string) error
 }
 
 type interviewSessionService struct {
@@ -345,7 +347,6 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		return err
 	}
 
-	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
 }
 
@@ -372,20 +373,10 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return err
 	}
 
-	redisKey = fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
-	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
+	timeDuration, err := s.GetSessionStartedAtAndEndedAt(ctx, req.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error getting interview session start end time", err)
 		return err
-	} else if len(timeDuration) == 0 {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session start end time not found")
-		return app_error.New(constants.ErrInterviewSessionStartEndTimeNotFound, app_error.ErrCodeInterviewSessionStartEndTimeNotFound)
-	} else if timeDuration["started_at"] == "" {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session start time not found")
-		return app_error.New(constants.ErrInterviewSessionStartTimeNotFound, app_error.ErrCodeInterviewSessionStartTimeNotFound)
-	} else if timeDuration["ended_at"] == "" {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session end time not found")
-		return app_error.New(constants.ErrInterviewSessionEndTimeNotFound, app_error.ErrCodeInterviewSessionEndTimeNotFound)
 	}
 
 	dbReq := &db.CreateInterviewTurnParams{
@@ -404,49 +395,58 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return err
 	}
 
-	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
+}
+
+func (s *interviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Called")
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, sessionID)
+
+	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Error getting interview session start end time", err)
+		return nil, err
+	} else if len(timeDuration) == 0 {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session start end time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionStartEndTimeNotFound, app_error.ErrCodeInterviewSessionStartEndTimeNotFound)
+	} else if timeDuration["started_at"] == "" {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session start time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionStartTimeNotFound, app_error.ErrCodeInterviewSessionStartTimeNotFound)
+	} else if timeDuration["ended_at"] == "" {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session end time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionEndTimeNotFound, app_error.ErrCodeInterviewSessionEndTimeNotFound)
+	}
+
+	return timeDuration, nil
 }
 
 func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, sessionID uuid.UUID, redisKey string) (int64, error) {
 	s.log.InfoWithID(ctx, "[Service: IncreaseMaxTurnNo] Called")
 
-	var maxTurnNo int64
-	maxTurnNoStr, err := s.redisClient.Get(context.Background(), redisKey)
+	maxTurnNo, err := s.redisClient.Increment(ctx, redisKey)
 
-	if err == redis.Nil {
-		maxTurnNo, err = s.interviewTurnsRepo.GetMaxTurnNoBySessionID(context.Background(), sessionID)
+	if err != nil {
+		dbMaxTurnNo, err := s.interviewTurnsRepo.GetMaxTurnNoBySessionID(ctx, sessionID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to get max turn from DB", err)
 			return 0, err
 		}
-	} else if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Redis error", err)
-		return 0, err
-	} else {
-		maxTurnNo, err = strconv.ParseInt(maxTurnNoStr, 10, 64)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to parse turn no from Redis", err)
-			return 0, err
+
+		maxTurnNo = dbMaxTurnNo + 1
+
+		redisPayload := database.RedisPayload{
+			Key:   redisKey,
+			Value: maxTurnNo,
+			TTL:   constants.RedisTTLInterviewTurn,
 		}
+		if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+			s.log.WarnWithID(ctx, "[Service: IncreaseMaxTurnNo] Failed to cache to Redis", err)
+		}
+
 	}
 
-	maxTurnNo++
 	return maxTurnNo, nil
-}
-
-func (s *interviewSessionService) cacheMaxTurnNo(ctx context.Context, sessionID string, maxTurnNo int64) {
-	s.log.InfoWithID(ctx, "[Service: cacheMaxTurnNo] Called")
-
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, sessionID),
-		Value: maxTurnNo,
-		TTL:   constants.RedisTTLInterviewTurn,
-	}
-
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
-		s.log.WarnWithID(ctx, "[Service: cacheMaxTurnNo] Failed to cache", err)
-	}
 }
 
 func (s *interviewSessionService) SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error {
@@ -776,7 +776,10 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 
 		if jsonBytes, err := json.Marshal(dbSession); err == nil {
 			go func() {
-				_ = s.redisClient.Set(ctx, database.RedisPayload{
+				cacheCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+
+				_ = s.redisClient.Set(cacheCtx, database.RedisPayload{
 					Key:   redisKey,
 					Value: string(jsonBytes),
 					TTL:   constants.RedisTTLInterviewSessionInformation,
@@ -798,6 +801,62 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 	}
 
 	return resp, nil
+}
+
+func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetStartedAtInterviewSession] Called")
+
+	sessionID, err := uuid.Parse(sessionId)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.interviewSessionRepo.GetStartedAndIsStartedConversationSession(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error getting started at interview session", err)
+		return nil, err
+	}
+
+	if dbResp.StartedAt.Valid {
+		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
+			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+		}, nil
+	} else {
+		currStartedAt := time.Now()
+
+		updateReq := &db.UpdateStartedAtInterviewSessionParams{
+			ID:        sessionID,
+			StartedAt: sql.NullTime{Time: currStartedAt, Valid: true},
+		}
+
+		if err := s.interviewSessionRepo.UpdateStartedAtInterviewSession(ctx, updateReq); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error updating started at interview session", err)
+			return nil, err
+		}
+
+		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+			StartedAt:             utils.FormatToUTCString(currStartedAt),
+			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+		}, nil
+	}
+}
+
+func (s *interviewSessionService) StartConversationBySessionID(ctx context.Context, sessionId string) error {
+	s.log.InfoWithID(ctx, "[Service: StartConversationBySessionID] Called")
+
+	dbReq := &db.UpdateIsStartedConversationSessionParams{
+		ID:                    uuid.MustParse(sessionId),
+		IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.UpdateIsStartedConversationSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: StartConversationBySessionID] Error updating started conversation", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

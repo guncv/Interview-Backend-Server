@@ -63,21 +63,22 @@ type Evaluations struct {
 }
 
 type InterviewSessions struct {
-	ID           uuid.UUID      `json:"id"`
-	UserID       uuid.UUID      `json:"user_id"`
-	ResumeID     uuid.UUID      `json:"resume_id"`
-	Position     string         `json:"position"`
-	Modality     string         `json:"modality"`
-	Status       string         `json:"status"`
-	IsConsent    bool           `json:"is_consent"`
-	StartedAt    sql.NullTime   `json:"started_at"`
-	EndedAt      sql.NullTime   `json:"ended_at"`
-	OverallScore sql.NullString `json:"overall_score"`
-	SummaryMd    sql.NullString `json:"summary_md"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
-	DeletedAt    sql.NullTime   `json:"deleted_at"`
-	SoftDelete   sql.NullBool   `json:"soft_delete"`
+	ID                    uuid.UUID      `json:"id"`
+	UserID                uuid.UUID      `json:"user_id"`
+	ResumeID              uuid.UUID      `json:"resume_id"`
+	Position              string         `json:"position"`
+	Modality              string         `json:"modality"`
+	Status                string         `json:"status"`
+	IsConsent             bool           `json:"is_consent"`
+	StartedAt             sql.NullTime   `json:"started_at"`
+	EndedAt               sql.NullTime   `json:"ended_at"`
+	OverallScore          sql.NullString `json:"overall_score"`
+	SummaryMd             sql.NullString `json:"summary_md"`
+	CreatedAt             sql.NullTime   `json:"created_at"`
+	UpdatedAt             sql.NullTime   `json:"updated_at"`
+	DeletedAt             sql.NullTime   `json:"deleted_at"`
+	SoftDelete            sql.NullBool   `json:"soft_delete"`
+	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
 }
 
 type InterviewTurns struct {

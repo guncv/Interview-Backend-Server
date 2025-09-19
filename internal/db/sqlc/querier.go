@@ -38,6 +38,7 @@ type Querier interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
+	GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 	ListIssueCategories(ctx context.Context) ([]ListIssueCategoriesRow, error)
@@ -50,7 +51,9 @@ type Querier interface {
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
+	UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
+	UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
 	UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (UpdateUserIssueReportByIDRow, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)

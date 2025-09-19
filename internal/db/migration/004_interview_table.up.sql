@@ -10,7 +10,7 @@ CREATE TABLE interview_sessions (
             CHECK (status IN ('pending','on_going','completed','aborted','cancelled','timed_out')),
 
     is_consent BOOLEAN NOT NULL DEFAULT TRUE,
-    started_at TIMESTAMPTZ DEFAULT now(),
+    started_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
     overall_score NUMERIC(5,2),
     summary_md TEXT,

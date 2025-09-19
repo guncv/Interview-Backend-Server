@@ -60,7 +60,7 @@ func TestResumeService_ListResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -128,7 +128,7 @@ func TestResumeService_ListResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -171,7 +171,7 @@ func TestResumeService_ListResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -205,7 +205,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := &db.Resumes{
@@ -260,7 +260,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				mockResumeRepository.EXPECT().
@@ -318,7 +318,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(mock.AnythingOfType("*context.timerCtx"), fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(mock.AnythingOfType("*context.timerCtx"), fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				mockResumeRepository.EXPECT().
@@ -392,7 +392,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", errors.New("redis error"))
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -422,7 +422,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("invalid json", nil)
 
 				defaultResume := db.Resumes{
@@ -476,7 +476,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				mockResumeRepository.EXPECT().
@@ -514,7 +514,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				mockResumeRepository.EXPECT().
@@ -552,7 +552,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -609,7 +609,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -665,7 +665,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -732,7 +732,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -787,7 +787,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				resumeList := []db.Resumes{
@@ -851,7 +851,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -930,7 +930,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -1009,7 +1009,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				// No regular resumes
@@ -1052,7 +1052,7 @@ func TestResumeService_ListResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				resumeList := []db.Resumes{
@@ -1192,7 +1192,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -1200,7 +1200,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					Return(nil)
 
 				mockRedisClient.EXPECT().
-					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Delete(mock.AnythingOfType("*context.timerCtx"), constants.RedisPrefixDefaultResume+userID.String()).
 					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -1230,7 +1230,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", errors.New("redis error")).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -1265,7 +1265,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -1297,7 +1297,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				defaultResume := db.Resumes{
@@ -1320,7 +1320,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					Return(nil)
 
 				mockRedisClient.EXPECT().
-					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Delete(mock.AnythingOfType("*context.timerCtx"), constants.RedisPrefixDefaultResume+userID.String()).
 					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -1401,7 +1401,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
 				mockResumeRepository.EXPECT().
@@ -1440,7 +1440,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -1476,7 +1476,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				// Return invalid JSON that will fail to unmarshal
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("invalid json", nil)
 
 				// After unmarshal failure, it falls back to database
@@ -1500,7 +1500,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					Return(nil)
 
 				mockRedisClient.EXPECT().
-					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Delete(mock.AnythingOfType("*context.timerCtx"), constants.RedisPrefixDefaultResume+userID.String()).
 					Return(nil).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient
@@ -1531,7 +1531,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 
 				// Return invalid JSON that will fail to unmarshal
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("invalid json", nil)
 
 				// After unmarshal failure, database fallback also fails
@@ -1571,7 +1571,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 				}
 
 				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())).
+					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return(`{"id":"`+defaultResume.ID.String()+`","file_name":"default.pdf","mime_type":"application/pdf","byte_size":1024,"is_default":true,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}`, nil)
 
 				mockResumeRepository.EXPECT().
@@ -1579,7 +1579,7 @@ func TestResumeService_SwitchDefaultResume(t *testing.T) {
 					Return(nil)
 
 				mockRedisClient.EXPECT().
-					Delete(ctx, constants.RedisPrefixDefaultResume+":"+userID.String()).
+					Delete(mock.AnythingOfType("*context.timerCtx"), constants.RedisPrefixDefaultResume+userID.String()).
 					Return(errors.New("task publishing failed")).Maybe()
 
 				return mockResumeRepository, mockAuthContext, mockRedisTaskPublisher, mockRedisClient

@@ -33,6 +33,7 @@ type Client struct {
 	PreviousSegmentExpiredAt time.Time
 	StartSessionTime         time.Time
 	lastPongTime             time.Time
+	isStartedConversation    bool
 	pongReceived             chan struct{}
 	connected                bool
 	cancelFunc               context.CancelFunc
@@ -142,6 +143,7 @@ func (s *webSocketServer) HandleConnection(
 		lastPongTime:             time.Now(),
 		pongReceived:             make(chan struct{}, 1),
 		connected:                true,
+		isStartedConversation:    false,
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
@@ -169,6 +171,13 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.SessionID] = true
 	s.mu.Unlock()
 
+	resp, err := s.logic.checkExistsAndInitStartedAtInterviewSession(ctx, client)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking exists and initializing started at interview session", err)
+		s.Disconnect(ctx, client)
+		return nil
+	}
+
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
@@ -190,10 +199,22 @@ func (s *webSocketServer) HandleConnection(
 	client.cancelFunc = cancel
 
 	s.writeJSON(ctx, client, map[string]any{
-		"type": "connection_established", "session_id": client.SessionID,
+		"type":       constants.WebSocketMessageTypeConnectionEstablished,
+		"started_at": resp.StartedAt,
+		"session_id": client.SessionID,
 	})
+	client.StartSessionTime = utils.ParseToTime(resp.StartedAt)
 
-	s.logic.sendStartSessionConversationMessage(ctx, client)
+	if !resp.IsStartedConversation {
+		s.logic.sendStartSessionConversationMessage(ctx, client)
+	} else {
+		client.isStartedConversation = true
+		s.writeJSON(ctx, client, map[string]any{
+			"type":       constants.WebSocketMessageTypeConversationStarted,
+			"session_id": client.SessionID,
+		})
+	}
+
 	// go s.pingLoop(cancelCtx, client)
 	go s.readLoop(cancelCtx, client)
 

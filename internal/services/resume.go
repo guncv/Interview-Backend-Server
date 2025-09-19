@@ -84,7 +84,7 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 		resumeList    []db.Resumes
 	)
 
-	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, userID.String())
+	defaultResumeKey := fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())
 	cacheValue, err := s.redisClient.Get(ctx, defaultResumeKey)
 
 	if err == nil {
@@ -295,7 +295,7 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	}
 
 	var defaultResume *db.Resumes
-	defaultResumeKey := fmt.Sprintf("%s:%s", constants.RedisPrefixDefaultResume, authCtx.Payload.UserID)
+	defaultResumeKey := fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, authCtx.Payload.UserID)
 	defaultResumeFromRedis, err := s.redisClient.Get(ctx, defaultResumeKey)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -334,7 +334,10 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	}
 
 	go func() {
-		_ = s.redisClient.Delete(ctx, constants.RedisPrefixDefaultResume+":"+authCtx.Payload.UserID)
+		cacheCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		_ = s.redisClient.Delete(cacheCtx, constants.RedisPrefixDefaultResume+authCtx.Payload.UserID)
 	}()
 
 	return nil

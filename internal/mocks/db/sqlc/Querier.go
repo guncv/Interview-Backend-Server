@@ -1469,6 +1469,63 @@ func (_c *MockQuerier_GetSessionByID_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
+// GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetStartedAndIsStartedConversationSession")
+	}
+
+	var r0 db.GetStartedAndIsStartedConversationSessionRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetStartedAndIsStartedConversationSessionRow); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(db.GetStartedAndIsStartedConversationSessionRow)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetStartedAndIsStartedConversationSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStartedAndIsStartedConversationSession'
+type MockQuerier_GetStartedAndIsStartedConversationSession_Call struct {
+	*mock.Call
+}
+
+// GetStartedAndIsStartedConversationSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockQuerier_Expecter) GetStartedAndIsStartedConversationSession(ctx interface{}, id interface{}) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+	return &MockQuerier_GetStartedAndIsStartedConversationSession_Call{Call: _e.mock.On("GetStartedAndIsStartedConversationSession", ctx, id)}
+}
+
+func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) Return(_a0 db.GetStartedAndIsStartedConversationSessionRow, _a1 error) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error)) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserIssueReportUserIDAndStatusByID provides a mock function with given fields: ctx, id
 func (_m *MockQuerier) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (db.GetUserIssueReportUserIDAndStatusByIDRow, error) {
 	ret := _m.Called(ctx, id)
@@ -2132,6 +2189,63 @@ func (_c *MockQuerier_UpdateInterviewSessionStatus_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// UpdateIsStartedConversationSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateIsStartedConversationSession(ctx context.Context, arg db.UpdateIsStartedConversationSessionParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIsStartedConversationSession")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsStartedConversationSessionParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsStartedConversationSessionParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateIsStartedConversationSessionParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateIsStartedConversationSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsStartedConversationSession'
+type MockQuerier_UpdateIsStartedConversationSession_Call struct {
+	*mock.Call
+}
+
+// UpdateIsStartedConversationSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateIsStartedConversationSessionParams
+func (_e *MockQuerier_Expecter) UpdateIsStartedConversationSession(ctx interface{}, arg interface{}) *MockQuerier_UpdateIsStartedConversationSession_Call {
+	return &MockQuerier_UpdateIsStartedConversationSession_Call{Call: _e.mock.On("UpdateIsStartedConversationSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateIsStartedConversationSession_Call) Run(run func(ctx context.Context, arg db.UpdateIsStartedConversationSessionParams)) *MockQuerier_UpdateIsStartedConversationSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateIsStartedConversationSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsStartedConversationSession_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateIsStartedConversationSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, db.UpdateIsStartedConversationSessionParams) (int64, error)) *MockQuerier_UpdateIsStartedConversationSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateResetTokenUsed provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) UpdateResetTokenUsed(ctx context.Context, arg db.UpdateResetTokenUsedParams) (int64, error) {
 	ret := _m.Called(ctx, arg)
@@ -2185,6 +2299,63 @@ func (_c *MockQuerier_UpdateResetTokenUsed_Call) Return(_a0 int64, _a1 error) *M
 }
 
 func (_c *MockQuerier_UpdateResetTokenUsed_Call) RunAndReturn(run func(context.Context, db.UpdateResetTokenUsedParams) (int64, error)) *MockQuerier_UpdateResetTokenUsed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateStartedAtInterviewSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateStartedAtInterviewSession(ctx context.Context, arg db.UpdateStartedAtInterviewSessionParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStartedAtInterviewSession")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateStartedAtInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStartedAtInterviewSession'
+type MockQuerier_UpdateStartedAtInterviewSession_Call struct {
+	*mock.Call
+}
+
+// UpdateStartedAtInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateStartedAtInterviewSessionParams
+func (_e *MockQuerier_Expecter) UpdateStartedAtInterviewSession(ctx interface{}, arg interface{}) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	return &MockQuerier_UpdateStartedAtInterviewSession_Call{Call: _e.mock.On("UpdateStartedAtInterviewSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) Run(run func(ctx context.Context, arg db.UpdateStartedAtInterviewSessionParams)) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateStartedAtInterviewSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) RunAndReturn(run func(context.Context, db.UpdateStartedAtInterviewSessionParams) (int64, error)) *MockQuerier_UpdateStartedAtInterviewSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

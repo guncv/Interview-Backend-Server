@@ -1,0 +1,1 @@
+ALTER TABLE interview_sessions ADD COLUMN is_started_conversation BOOLEAN DEFAULT FALSE;

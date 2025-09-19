@@ -568,3 +568,306 @@ func TestInterviewSessionRepository_InterviewFeedbackAndScore(t *testing.T) {
 		})
 	}
 }
+
+func TestInterviewSessionRepository_UpdateStartedAtInterviewSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	startedAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
+
+	testCases := []struct {
+		name   string
+		input  *db.UpdateStartedAtInterviewSessionParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &db.UpdateStartedAtInterviewSessionParams{
+				ID:        updateID,
+				StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+			},
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateStartedAtInterviewSession(ctx, db.UpdateStartedAtInterviewSessionParams{
+						ID:        updateID,
+						StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+					}).
+					Return(1, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error - WithUpdateStartedAtInterviewSessionNotFound",
+			input: &db.UpdateStartedAtInterviewSessionParams{
+				ID:        updateID,
+				StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+			},
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateStartedAtInterviewSession(ctx, db.UpdateStartedAtInterviewSessionParams{
+						ID:        updateID,
+						StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+					}).
+					Return(0, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+			},
+		},
+		{
+			name: "Error - WithUpdateStartedAtInterviewSessionError",
+			input: &db.UpdateStartedAtInterviewSessionParams{
+				ID:        updateID,
+				StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+			},
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateStartedAtInterviewSession(ctx, db.UpdateStartedAtInterviewSessionParams{
+						ID:        updateID,
+						StartedAt: sql.NullTime{Time: startedAt, Valid: true},
+					}).
+					Return(0, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotErr := svc.UpdateStartedAtInterviewSession(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionRepository_GetStartedAndIsStartedConversationSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	startedAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
+
+	testCases := []struct {
+		name   string
+		input  uuid.UUID
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotResp *db.GetStartedAndIsStartedConversationSessionRow, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetStartedAndIsStartedConversationSession(ctx, updateID).
+					Return(db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: startedAt, Valid: true},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetStartedAndIsStartedConversationSessionRow, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, startedAt, gotResp.StartedAt.Time)
+				assert.True(t, gotResp.StartedAt.Valid)
+				assert.Equal(t, true, gotResp.IsStartedConversation.Bool)
+				assert.True(t, gotResp.IsStartedConversation.Valid)
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAndIsStartedConversationSessionNotFound",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetStartedAndIsStartedConversationSession(ctx, updateID).
+					Return(db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, sql.ErrNoRows)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetStartedAndIsStartedConversationSessionRow, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAndIsStartedConversationSessionError",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetStartedAndIsStartedConversationSession(ctx, updateID).
+					Return(db.GetStartedAndIsStartedConversationSessionRow{}, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetStartedAndIsStartedConversationSessionRow, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotResp, gotErr := svc.GetStartedAndIsStartedConversationSession(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionRepository_UpdateIsStartedConversationSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	req := &db.UpdateIsStartedConversationSessionParams{
+		ID:                    updateID,
+		IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *db.UpdateIsStartedConversationSessionParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateIsStartedConversationSession(ctx, db.UpdateIsStartedConversationSessionParams{
+						ID:                    updateID,
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}).
+					Return(1, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAndIsStartedConversationSessionNotFound",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateIsStartedConversationSession(ctx, db.UpdateIsStartedConversationSessionParams{
+						ID:                    req.ID,
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}).
+					Return(0, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAndIsStartedConversationSessionError",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateIsStartedConversationSession(ctx, db.UpdateIsStartedConversationSessionParams{
+						ID:                    req.ID,
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}).
+					Return(0, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotErr := svc.UpdateIsStartedConversationSession(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}

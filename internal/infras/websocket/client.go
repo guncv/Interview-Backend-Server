@@ -311,15 +311,6 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				}
 				c.cb.OnConnectionEstablished(ctx, msg.SessionID)
 
-			case constants.WebSocketMessageTypeUserPartialTranscript:
-				var msg MsgUserPartialTranscript
-
-				if json.Unmarshal(data, &msg) != nil {
-					c.disconnect(ctx)
-					return
-				}
-				c.cb.OnUserPartialTranscript(ctx, msg)
-
 			case constants.WebSocketMessageTypeUserFullTranscript:
 				var msg MsgUserFullTranscript
 
