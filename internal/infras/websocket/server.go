@@ -169,6 +169,13 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.SessionID] = true
 	s.mu.Unlock()
 
+	startedAt, isStarted, err := s.logic.checkExistsAndInitStartedAtInterviewSession(ctx, client)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking exists and initializing started at interview session", err)
+		s.Disconnect(ctx, client)
+		return nil
+	}
+
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
@@ -190,10 +197,14 @@ func (s *webSocketServer) HandleConnection(
 	client.cancelFunc = cancel
 
 	s.writeJSON(ctx, client, map[string]any{
-		"type": "connection_established", "session_id": client.SessionID,
+		"type":       "connection_established",
+		"started_at": startedAt,
+		"session_id": client.SessionID,
 	})
 
-	s.logic.sendStartSessionConversationMessage(ctx, client)
+	if isStarted {
+		s.logic.sendStartSessionConversationMessage(ctx, client)
+	}
 	// go s.pingLoop(cancelCtx, client)
 	go s.readLoop(cancelCtx, client)
 

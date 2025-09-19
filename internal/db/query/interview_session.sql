@@ -42,3 +42,12 @@ FROM interview_sessions i
 JOIN resumes r ON i.resume_id = r.id
 WHERE i.id = $1;
 
+-- name: UpdateStartedAtInterviewSession :execrows
+UPDATE interview_sessions
+SET started_at = $2
+WHERE id = $1 AND started_at IS NULL;
+
+-- name: GetStartedAtInterviewSession :one
+SELECT started_at
+FROM interview_sessions
+WHERE id = $1;

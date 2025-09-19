@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -4585,6 +4586,141 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 			gotResp, gotErr := svc.GetInterviewSessionInformation(ctx, tC.input)
 
 			tC.verify(t, gotErr, gotResp)
+		})
+	}
+}
+
+func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	globalID := "550e8400-e29b-41d4-a716-446655440000"
+	startAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
+
+	req := &entities.CheckExistsAndInitStartedAtInterviewSessionReq{
+		SessionID: globalID,
+	}
+
+	validResp := &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+		StartedAt: utilsPkg.FormatToUTCString(startAt),
+		IsStarted: true,
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.CheckExistsAndInitStartedAtInterviewSessionReq
+		setup  func() *mockRepositories.MockInterviewSessionRepository
+		verify func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error)
+	}{
+		{
+			name:  "Success - WithStartedAtValid",
+			input: req,
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockInterviewSessionRepo.EXPECT().
+					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
+					Return(sql.NullTime{Time: startAt, Valid: true}, nil)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Success - WithStartedAtInvalid",
+			input: req,
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockInterviewSessionRepo.EXPECT().
+					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
+					Return(sql.NullTime{Time: time.Time{}, Valid: false}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					UpdateStartedAtInterviewSession(ctx, mock.MatchedBy(func(req *db.UpdateStartedAtInterviewSessionParams) bool {
+						return req.ID == uuid.MustParse(globalID)
+					})).
+					Return(nil)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, false, gotResp.IsStarted)
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAtInterviewSessionError",
+			input: req,
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockInterviewSessionRepo.EXPECT().
+					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
+					Return(sql.NullTime{Time: time.Time{}, Valid: false}, errors.New("get started at interview session error"))
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error - WithUpdateStartedAtInterviewSessionError",
+			input: req,
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				mockInterviewSessionRepo.EXPECT().
+					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
+					Return(sql.NullTime{Time: time.Time{}, Valid: false}, nil)
+
+				mockInterviewSessionRepo.EXPECT().
+					UpdateStartedAtInterviewSession(ctx, mock.MatchedBy(func(req *db.UpdateStartedAtInterviewSessionParams) bool {
+						return req.ID == uuid.MustParse(globalID)
+					})).
+					Return(errors.New("update started at interview session error"))
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewSessionRepo := tC.setup()
+			defer func() {
+				if mockInterviewSessionRepo != nil {
+					mockInterviewSessionRepo.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.CheckExistsAndInitStartedAtInterviewSession(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
 		})
 	}
 }

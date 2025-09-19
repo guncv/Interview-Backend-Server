@@ -53,6 +53,22 @@ func NewWebSocketServerLogic(
 	}
 }
 
+func (s *WebSocketServerLogic) checkExistsAndInitStartedAtInterviewSession(ctx context.Context, client *Client) (string, bool, error) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Called")
+
+	req := &entities.CheckExistsAndInitStartedAtInterviewSessionReq{
+		SessionID: client.SessionID,
+	}
+
+	resp, err := s.interviewSessionService.CheckExistsAndInitStartedAtInterviewSession(ctx, req)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Error checking exists and initializing started at interview session", err)
+		return "", false, err
+	}
+
+	return resp.StartedAt, resp.IsStarted, nil
+}
+
 func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Called")
 

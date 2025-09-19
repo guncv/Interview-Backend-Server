@@ -118,6 +118,19 @@ func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UU
 	return i, err
 }
 
+const getStartedAtInterviewSession = `-- name: GetStartedAtInterviewSession :one
+SELECT started_at
+FROM interview_sessions
+WHERE id = $1
+`
+
+func (q *Queries) GetStartedAtInterviewSession(ctx context.Context, id uuid.UUID) (sql.NullTime, error) {
+	row := q.db.QueryRowContext(ctx, getStartedAtInterviewSession, id)
+	var started_at sql.NullTime
+	err := row.Scan(&started_at)
+	return started_at, err
+}
+
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
@@ -133,6 +146,25 @@ type UpdateInterviewSessionStatusParams struct {
 
 func (q *Queries) UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Column2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateStartedAtInterviewSession = `-- name: UpdateStartedAtInterviewSession :execrows
+UPDATE interview_sessions
+SET started_at = $2
+WHERE id = $1 AND started_at IS NULL
+`
+
+type UpdateStartedAtInterviewSessionParams struct {
+	ID        uuid.UUID    `json:"id"`
+	StartedAt sql.NullTime `json:"started_at"`
+}
+
+func (q *Queries) UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateStartedAtInterviewSession, arg.ID, arg.StartedAt)
 	if err != nil {
 		return 0, err
 	}

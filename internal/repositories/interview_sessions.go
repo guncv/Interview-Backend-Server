@@ -3,6 +3,7 @@ package repositories
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,8 @@ type InterviewSessionRepository interface {
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
 	InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error)
 	GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error)
+	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
+	GetStartedAtInterviewSession(ctx context.Context, sessionID uuid.UUID) (sql.NullTime, error)
 }
 
 type interviewSessionRepository struct {
@@ -204,4 +207,41 @@ func (r *interviewSessionRepository) GetInterviewSessionInformation(ctx context.
 		return nil, app_error.HandleDatabaseError(err)
 	}
 	return &session, nil
+}
+
+func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateStartedAtInterviewSession] Called")
+
+	rowAffected, err := r.db.UpdateStartedAtInterviewSession(ctx, db.UpdateStartedAtInterviewSessionParams{
+		ID:        req.ID,
+		StartedAt: req.StartedAt,
+	})
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateStartedAtInterviewSession] Error updating interview session started at", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: UpdateStartedAtInterviewSession] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
+}
+
+func (r *interviewSessionRepository) GetStartedAtInterviewSession(ctx context.Context, sessionID uuid.UUID) (sql.NullTime, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetStartedAtInterviewSession] Called")
+
+	startedAt, err := r.db.GetStartedAtInterviewSession(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetStartedAtInterviewSession] Started at interview session not found", err)
+			return sql.NullTime{}, app_error.New(err, app_error.ErrCodeSessionNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetStartedAtInterviewSession] Error getting started at interview session", err)
+		return sql.NullTime{}, app_error.HandleDatabaseError(err)
+	}
+
+	return startedAt, nil
 }

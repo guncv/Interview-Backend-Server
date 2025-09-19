@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,6 +39,7 @@ type InterviewSessionService interface {
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
+	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, req *entities.CheckExistsAndInitStartedAtInterviewSessionReq) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
 }
 
 type interviewSessionService struct {
@@ -798,6 +800,41 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 	}
 
 	return resp, nil
+}
+
+func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, req *entities.CheckExistsAndInitStartedAtInterviewSessionReq) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetStartedAtInterviewSession] Called")
+
+	startedAt, err := s.interviewSessionRepo.GetStartedAtInterviewSession(ctx, uuid.MustParse(req.SessionID))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error getting started at interview session", err)
+		return nil, err
+	}
+
+	if startedAt.Valid {
+		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+			StartedAt: utils.FormatToUTCString(startedAt.Time),
+			IsStarted: true,
+		}, nil
+	} else {
+		currStartedAt := time.Now()
+
+		updateReq := &db.UpdateStartedAtInterviewSessionParams{
+			ID:        uuid.MustParse(req.SessionID),
+			StartedAt: sql.NullTime{Time: currStartedAt, Valid: true},
+		}
+
+		err := s.interviewSessionRepo.UpdateStartedAtInterviewSession(ctx, updateReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error updating started at interview session", err)
+			return nil, err
+		}
+
+		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+			StartedAt: utils.FormatToUTCString(currStartedAt),
+			IsStarted: false,
+		}, nil
+	}
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

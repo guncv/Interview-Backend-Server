@@ -8,6 +8,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 
+	sql "database/sql"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -1469,6 +1471,63 @@ func (_c *MockQuerier_GetSessionByID_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
+// GetStartedAtInterviewSession provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetStartedAtInterviewSession(ctx context.Context, id uuid.UUID) (sql.NullTime, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetStartedAtInterviewSession")
+	}
+
+	var r0 sql.NullTime
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (sql.NullTime, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) sql.NullTime); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(sql.NullTime)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetStartedAtInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStartedAtInterviewSession'
+type MockQuerier_GetStartedAtInterviewSession_Call struct {
+	*mock.Call
+}
+
+// GetStartedAtInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockQuerier_Expecter) GetStartedAtInterviewSession(ctx interface{}, id interface{}) *MockQuerier_GetStartedAtInterviewSession_Call {
+	return &MockQuerier_GetStartedAtInterviewSession_Call{Call: _e.mock.On("GetStartedAtInterviewSession", ctx, id)}
+}
+
+func (_c *MockQuerier_GetStartedAtInterviewSession_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetStartedAtInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetStartedAtInterviewSession_Call) Return(_a0 sql.NullTime, _a1 error) *MockQuerier_GetStartedAtInterviewSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetStartedAtInterviewSession_Call) RunAndReturn(run func(context.Context, uuid.UUID) (sql.NullTime, error)) *MockQuerier_GetStartedAtInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserIssueReportUserIDAndStatusByID provides a mock function with given fields: ctx, id
 func (_m *MockQuerier) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (db.GetUserIssueReportUserIDAndStatusByIDRow, error) {
 	ret := _m.Called(ctx, id)
@@ -2185,6 +2244,63 @@ func (_c *MockQuerier_UpdateResetTokenUsed_Call) Return(_a0 int64, _a1 error) *M
 }
 
 func (_c *MockQuerier_UpdateResetTokenUsed_Call) RunAndReturn(run func(context.Context, db.UpdateResetTokenUsedParams) (int64, error)) *MockQuerier_UpdateResetTokenUsed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateStartedAtInterviewSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateStartedAtInterviewSession(ctx context.Context, arg db.UpdateStartedAtInterviewSessionParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStartedAtInterviewSession")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateStartedAtInterviewSessionParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateStartedAtInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStartedAtInterviewSession'
+type MockQuerier_UpdateStartedAtInterviewSession_Call struct {
+	*mock.Call
+}
+
+// UpdateStartedAtInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateStartedAtInterviewSessionParams
+func (_e *MockQuerier_Expecter) UpdateStartedAtInterviewSession(ctx interface{}, arg interface{}) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	return &MockQuerier_UpdateStartedAtInterviewSession_Call{Call: _e.mock.On("UpdateStartedAtInterviewSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) Run(run func(ctx context.Context, arg db.UpdateStartedAtInterviewSessionParams)) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateStartedAtInterviewSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) RunAndReturn(run func(context.Context, db.UpdateStartedAtInterviewSessionParams) (int64, error)) *MockQuerier_UpdateStartedAtInterviewSession_Call {
 	_c.Call.Return(run)
 	return _c
 }
