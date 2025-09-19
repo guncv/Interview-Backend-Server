@@ -964,7 +964,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return(`[{"id":"`+dbResp[0].ID.String()+`","name":"`+dbResp[0].Name+`"}]`, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(nil).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository
@@ -992,7 +992,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return(dbResp, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(nil).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository
@@ -1020,7 +1020,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return(dbResp, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(nil).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository
@@ -1048,7 +1048,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return([]db.ListIssueCategoriesRow{}, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(nil).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository
@@ -1074,7 +1074,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return(dbResp, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(mockErr).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository
@@ -1102,7 +1102,7 @@ func TestIssueReportsService_ListIssueCategories(t *testing.T) {
 					Return(dbResp, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Set(mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("database.RedisPayload")).
 					Return(mockErr).Maybe()
 
 				return mockRedisClient, mockIssueCategoriesRepository

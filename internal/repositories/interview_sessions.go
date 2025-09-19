@@ -27,7 +27,8 @@ type InterviewSessionRepository interface {
 	InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error)
 	GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
-	GetStartedAtInterviewSession(ctx context.Context, sessionID uuid.UUID) (sql.NullTime, error)
+	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
+	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
 }
 
 type interviewSessionRepository struct {
@@ -230,18 +231,36 @@ func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context
 	return nil
 }
 
-func (r *interviewSessionRepository) GetStartedAtInterviewSession(ctx context.Context, sessionID uuid.UUID) (sql.NullTime, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetStartedAtInterviewSession] Called")
+func (r *interviewSessionRepository) GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Called")
 
-	startedAt, err := r.db.GetStartedAtInterviewSession(ctx, sessionID)
+	resp, err := r.db.GetStartedAndIsStartedConversationSession(ctx, sessionID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			r.log.ErrorWithID(ctx, "[Repository: GetStartedAtInterviewSession] Started at interview session not found", err)
-			return sql.NullTime{}, app_error.New(err, app_error.ErrCodeSessionNotFound)
+			r.log.ErrorWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Started at interview session not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeSessionNotFound)
 		}
-		r.log.ErrorWithID(ctx, "[Repository: GetStartedAtInterviewSession] Error getting started at interview session", err)
-		return sql.NullTime{}, app_error.HandleDatabaseError(err)
+		r.log.ErrorWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Error getting started at interview session", err)
+		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	return startedAt, nil
+	return &resp, nil
+}
+
+func (r *interviewSessionRepository) UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateIsStartedConversationSession] Called")
+
+	rowAffected, err := r.db.UpdateIsStartedConversationSession(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsStartedConversationSession] Error updating interview session is started conversation", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsStartedConversationSession] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
 }

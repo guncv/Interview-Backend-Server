@@ -1,0 +1,1 @@
+ALTER TABLE interview_sessions DROP COLUMN is_started_conversation_session;

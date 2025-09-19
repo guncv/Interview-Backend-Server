@@ -24,6 +24,7 @@ const (
 	WebSocketMessageTypeUserPartialTranscript    = "user_partial_transcript"
 	WebSocketMessageTypeUserFullTranscript       = "user_full_transcript"
 	WebSocketMessageTypeInterviewerResponse      = "interviewer_response"
+	WebSocketMessageTypeConversationStarted      = "conversation_started"
 
 	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"

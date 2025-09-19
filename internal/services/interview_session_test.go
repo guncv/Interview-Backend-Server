@@ -110,7 +110,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 					CreateInterviewSessionWithNewResumeTx(ctx, mock.AnythingOfType("*repositories.CreateInterviewSessionTxReq")).
 					Return(nil)
 
-				// Mock Redis client
+				// Mock Redis Set call
 				mockRedisClient.EXPECT().
 					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
 					Return(nil)
@@ -4279,7 +4279,7 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, database.RedisPayload{
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
 						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
@@ -4334,7 +4334,7 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, database.RedisPayload{
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
 						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
@@ -4389,7 +4389,7 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					}, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, database.RedisPayload{
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
 						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
@@ -4596,30 +4596,29 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 	globalID := "550e8400-e29b-41d4-a716-446655440000"
 	startAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
 
-	req := &entities.CheckExistsAndInitStartedAtInterviewSessionReq{
-		SessionID: globalID,
-	}
-
 	validResp := &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
-		StartedAt: utilsPkg.FormatToUTCString(startAt),
-		IsStarted: true,
+		StartedAt:             utilsPkg.FormatToUTCString(startAt),
+		IsStartedConversation: true,
 	}
 
 	testCases := []struct {
 		name   string
-		input  *entities.CheckExistsAndInitStartedAtInterviewSessionReq
+		input  string
 		setup  func() *mockRepositories.MockInterviewSessionRepository
 		verify func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error)
 	}{
 		{
 			name:  "Success - WithStartedAtValid",
-			input: req,
+			input: globalID,
 			setup: func() *mockRepositories.MockInterviewSessionRepository {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 
 				mockInterviewSessionRepo.EXPECT().
-					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
-					Return(sql.NullTime{Time: startAt, Valid: true}, nil)
+					GetStartedAndIsStartedConversationSession(ctx, uuid.MustParse(globalID)).
+					Return(&db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: startAt, Valid: true},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, nil)
 
 				return mockInterviewSessionRepo
 			},
@@ -4630,13 +4629,16 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 		},
 		{
 			name:  "Success - WithStartedAtInvalid",
-			input: req,
+			input: globalID,
 			setup: func() *mockRepositories.MockInterviewSessionRepository {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 
 				mockInterviewSessionRepo.EXPECT().
-					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
-					Return(sql.NullTime{Time: time.Time{}, Valid: false}, nil)
+					GetStartedAndIsStartedConversationSession(ctx, uuid.MustParse(globalID)).
+					Return(&db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: time.Time{}, Valid: false},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, nil)
 
 				mockInterviewSessionRepo.EXPECT().
 					UpdateStartedAtInterviewSession(ctx, mock.MatchedBy(func(req *db.UpdateStartedAtInterviewSessionParams) bool {
@@ -4648,18 +4650,36 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 			},
 			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
 				assert.NoError(t, gotErr)
-				assert.Equal(t, false, gotResp.IsStarted)
+				assert.Equal(t, true, gotResp.IsStartedConversation)
 			},
 		},
 		{
 			name:  "Error - WithGetStartedAtInterviewSessionError",
-			input: req,
+			input: "invalid_session_id",
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.CheckExistsAndInitStartedAtInterviewSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error - WithGetStartedAtInterviewSessionError",
+			input: globalID,
 			setup: func() *mockRepositories.MockInterviewSessionRepository {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 
 				mockInterviewSessionRepo.EXPECT().
-					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
-					Return(sql.NullTime{Time: time.Time{}, Valid: false}, errors.New("get started at interview session error"))
+					GetStartedAndIsStartedConversationSession(ctx, uuid.MustParse(globalID)).
+					Return(&db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: time.Time{}, Valid: false},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, errors.New("get started at interview session error"))
 
 				return mockInterviewSessionRepo
 			},
@@ -4670,13 +4690,16 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 		},
 		{
 			name:  "Error - WithUpdateStartedAtInterviewSessionError",
-			input: req,
+			input: globalID,
 			setup: func() *mockRepositories.MockInterviewSessionRepository {
 				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
 
 				mockInterviewSessionRepo.EXPECT().
-					GetStartedAtInterviewSession(ctx, uuid.MustParse(globalID)).
-					Return(sql.NullTime{Time: time.Time{}, Valid: false}, nil)
+					GetStartedAndIsStartedConversationSession(ctx, uuid.MustParse(globalID)).
+					Return(&db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: time.Time{}, Valid: false},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, nil)
 
 				mockInterviewSessionRepo.EXPECT().
 					UpdateStartedAtInterviewSession(ctx, mock.MatchedBy(func(req *db.UpdateStartedAtInterviewSessionParams) bool {

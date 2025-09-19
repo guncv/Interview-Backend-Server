@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -108,7 +109,7 @@ func TestEvaluationService_GetRubricWithCriteriaByName(t *testing.T) {
 					Return(repoResp, nil)
 
 				mockRedisClient.EXPECT().
-					Set(ctx, database.RedisPayload{
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s:%s", constants.RedisPrefixEvaluationRubric, "test"),
 						Value: jsonValidResp,
 						TTL:   constants.RedisTTLEvaluationRubric,

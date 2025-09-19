@@ -39,7 +39,8 @@ type InterviewSessionService interface {
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
-	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, req *entities.CheckExistsAndInitStartedAtInterviewSessionReq) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
+	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
+	StartConversationBySessionID(ctx context.Context, sessionId string) error
 }
 
 type interviewSessionService struct {
@@ -805,39 +806,60 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 	return resp, nil
 }
 
-func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, req *entities.CheckExistsAndInitStartedAtInterviewSessionReq) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
+func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetStartedAtInterviewSession] Called")
 
-	startedAt, err := s.interviewSessionRepo.GetStartedAtInterviewSession(ctx, uuid.MustParse(req.SessionID))
+	sessionID, err := uuid.Parse(sessionId)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.interviewSessionRepo.GetStartedAndIsStartedConversationSession(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error getting started at interview session", err)
 		return nil, err
 	}
 
-	if startedAt.Valid {
+	if dbResp.StartedAt.Valid {
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
-			StartedAt: utils.FormatToUTCString(startedAt.Time),
-			IsStarted: true,
+			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
+			IsStartedConversation: dbResp.IsStartedConversation.Bool,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
 
 		updateReq := &db.UpdateStartedAtInterviewSessionParams{
-			ID:        uuid.MustParse(req.SessionID),
+			ID:        sessionID,
 			StartedAt: sql.NullTime{Time: currStartedAt, Valid: true},
 		}
 
-		err := s.interviewSessionRepo.UpdateStartedAtInterviewSession(ctx, updateReq)
-		if err != nil {
+		if err := s.interviewSessionRepo.UpdateStartedAtInterviewSession(ctx, updateReq); err != nil {
 			s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error updating started at interview session", err)
 			return nil, err
 		}
 
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
-			StartedAt: utils.FormatToUTCString(currStartedAt),
-			IsStarted: false,
+			StartedAt:             utils.FormatToUTCString(currStartedAt),
+			IsStartedConversation: dbResp.IsStartedConversation.Bool,
 		}, nil
 	}
+}
+
+func (s *interviewSessionService) StartConversationBySessionID(ctx context.Context, sessionId string) error {
+	s.log.InfoWithID(ctx, "[Service: StartConversationBySessionID] Called")
+
+	dbReq := &db.UpdateIsStartedConversationSessionParams{
+		ID:                    uuid.MustParse(sessionId),
+		IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.UpdateIsStartedConversationSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: StartConversationBySessionID] Error updating started conversation", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

@@ -47,7 +47,12 @@ UPDATE interview_sessions
 SET started_at = $2
 WHERE id = $1 AND started_at IS NULL;
 
--- name: GetStartedAtInterviewSession :one
-SELECT started_at
+-- name: UpdateIsStartedConversationSession :execrows
+UPDATE interview_sessions
+SET is_started_conversation = $2
+WHERE id = $1;
+
+-- name: GetStartedAndIsStartedConversationSession :one
+SELECT started_at, is_started_conversation
 FROM interview_sessions
 WHERE id = $1;

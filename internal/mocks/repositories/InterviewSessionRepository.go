@@ -10,8 +10,6 @@ import (
 
 	repositories "gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 
-	sql "database/sql"
-
 	uuid "github.com/google/uuid"
 )
 
@@ -285,23 +283,25 @@ func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) Ru
 	return _c
 }
 
-// GetStartedAtInterviewSession provides a mock function with given fields: ctx, sessionID
-func (_m *MockInterviewSessionRepository) GetStartedAtInterviewSession(ctx context.Context, sessionID uuid.UUID) (sql.NullTime, error) {
+// GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, sessionID
+func (_m *MockInterviewSessionRepository) GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error) {
 	ret := _m.Called(ctx, sessionID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetStartedAtInterviewSession")
+		panic("no return value specified for GetStartedAndIsStartedConversationSession")
 	}
 
-	var r0 sql.NullTime
+	var r0 *db.GetStartedAndIsStartedConversationSessionRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (sql.NullTime, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)); ok {
 		return rf(ctx, sessionID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) sql.NullTime); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.GetStartedAndIsStartedConversationSessionRow); ok {
 		r0 = rf(ctx, sessionID)
 	} else {
-		r0 = ret.Get(0).(sql.NullTime)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.GetStartedAndIsStartedConversationSessionRow)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -313,31 +313,31 @@ func (_m *MockInterviewSessionRepository) GetStartedAtInterviewSession(ctx conte
 	return r0, r1
 }
 
-// MockInterviewSessionRepository_GetStartedAtInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStartedAtInterviewSession'
-type MockInterviewSessionRepository_GetStartedAtInterviewSession_Call struct {
+// MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStartedAndIsStartedConversationSession'
+type MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call struct {
 	*mock.Call
 }
 
-// GetStartedAtInterviewSession is a helper method to define mock.On call
+// GetStartedAndIsStartedConversationSession is a helper method to define mock.On call
 //   - ctx context.Context
 //   - sessionID uuid.UUID
-func (_e *MockInterviewSessionRepository_Expecter) GetStartedAtInterviewSession(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call {
-	return &MockInterviewSessionRepository_GetStartedAtInterviewSession_Call{Call: _e.mock.On("GetStartedAtInterviewSession", ctx, sessionID)}
+func (_e *MockInterviewSessionRepository_Expecter) GetStartedAndIsStartedConversationSession(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call {
+	return &MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call{Call: _e.mock.On("GetStartedAndIsStartedConversationSession", ctx, sessionID)}
 }
 
-func (_c *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call {
+func (_c *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call) Return(_a0 sql.NullTime, _a1 error) *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call {
+func (_c *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call) Return(_a0 *db.GetStartedAndIsStartedConversationSessionRow, _a1 error) *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call) RunAndReturn(run func(context.Context, uuid.UUID) (sql.NullTime, error)) *MockInterviewSessionRepository_GetStartedAtInterviewSession_Call {
+func (_c *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)) *MockInterviewSessionRepository_GetStartedAndIsStartedConversationSession_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -444,6 +444,53 @@ func (_c *MockInterviewSessionRepository_UpdateInterviewSessionStatus_Call) Retu
 }
 
 func (_c *MockInterviewSessionRepository_UpdateInterviewSessionStatus_Call) RunAndReturn(run func(context.Context, *db.UpdateInterviewSessionStatusParams) error) *MockInterviewSessionRepository_UpdateInterviewSessionStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIsStartedConversationSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIsStartedConversationSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.UpdateIsStartedConversationSessionParams) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsStartedConversationSession'
+type MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call struct {
+	*mock.Call
+}
+
+// UpdateIsStartedConversationSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.UpdateIsStartedConversationSessionParams
+func (_e *MockInterviewSessionRepository_Expecter) UpdateIsStartedConversationSession(ctx interface{}, req interface{}) *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call {
+	return &MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call{Call: _e.mock.On("UpdateIsStartedConversationSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call) Run(run func(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams)) *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.UpdateIsStartedConversationSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call) Return(_a0 error) *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, *db.UpdateIsStartedConversationSessionParams) error) *MockInterviewSessionRepository_UpdateIsStartedConversationSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

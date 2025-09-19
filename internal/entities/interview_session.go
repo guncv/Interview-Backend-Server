@@ -143,11 +143,7 @@ type DownloadResumeBySessionTokenResp struct {
 	FileName string `json:"file_name"`
 }
 
-type CheckExistsAndInitStartedAtInterviewSessionReq struct {
-	SessionID string `json:"session_id" binding:"required"`
-}
-
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {
-	StartedAt string `json:"started_at"`
-	IsStarted bool   `json:"is_started"`
+	StartedAt             string `json:"started_at"`
+	IsStartedConversation bool   `json:"is_started_conversation"`
 }

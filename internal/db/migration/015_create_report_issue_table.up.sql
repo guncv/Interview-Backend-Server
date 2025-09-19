@@ -37,4 +37,3 @@ CREATE TABLE issue_comments (
 CREATE INDEX idx_issue_reports_user_soft_delete_created_at ON issue_reports (user_id, soft_delete, created_at DESC);
 CREATE INDEX idx_issue_categories_id_soft_delete ON issue_categories (id) WHERE soft_delete = false;
 CREATE INDEX idx_issue_categories_soft_delete ON issue_categories (soft_delete);
-

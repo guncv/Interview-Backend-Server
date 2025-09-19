@@ -52,13 +52,14 @@ type MsgUserFullTranscript struct {
 }
 
 type MsgInterviewerResp struct {
-	Type         string `json:"type"`
-	Author       string `json:"author"`
-	SessionID    string `json:"session_id"`
-	Message      string `json:"message"`
-	StartedAt    string `json:"started_at,omitempty"`
-	EndedAt      string `json:"ended_at,omitempty"`
-	CurrentState string `json:"current_state,omitempty"`
+	Type             string `json:"type"`
+	Author           string `json:"author"`
+	SessionID        string `json:"session_id"`
+	Message          string `json:"message"`
+	StartedAt        string `json:"started_at,omitempty"`
+	EndedAt          string `json:"ended_at,omitempty"`
+	CurrentState     string `json:"current_state,omitempty"`
+	AllowUserToSpeak bool   `json:"allow_user_to_speak,omitempty"`
 }
 
 type ConversationTurn struct {

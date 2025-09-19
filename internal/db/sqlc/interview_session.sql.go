@@ -118,17 +118,22 @@ func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UU
 	return i, err
 }
 
-const getStartedAtInterviewSession = `-- name: GetStartedAtInterviewSession :one
-SELECT started_at
+const getStartedAndIsStartedConversationSession = `-- name: GetStartedAndIsStartedConversationSession :one
+SELECT started_at, is_started_conversation
 FROM interview_sessions
 WHERE id = $1
 `
 
-func (q *Queries) GetStartedAtInterviewSession(ctx context.Context, id uuid.UUID) (sql.NullTime, error) {
-	row := q.db.QueryRowContext(ctx, getStartedAtInterviewSession, id)
-	var started_at sql.NullTime
-	err := row.Scan(&started_at)
-	return started_at, err
+type GetStartedAndIsStartedConversationSessionRow struct {
+	StartedAt             sql.NullTime `json:"started_at"`
+	IsStartedConversation sql.NullBool `json:"is_started_conversation"`
+}
+
+func (q *Queries) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error) {
+	row := q.db.QueryRowContext(ctx, getStartedAndIsStartedConversationSession, id)
+	var i GetStartedAndIsStartedConversationSessionRow
+	err := row.Scan(&i.StartedAt, &i.IsStartedConversation)
+	return i, err
 }
 
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
@@ -146,6 +151,25 @@ type UpdateInterviewSessionStatusParams struct {
 
 func (q *Queries) UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Column2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateIsStartedConversationSession = `-- name: UpdateIsStartedConversationSession :execrows
+UPDATE interview_sessions
+SET is_started_conversation = $2
+WHERE id = $1
+`
+
+type UpdateIsStartedConversationSessionParams struct {
+	ID                    uuid.UUID    `json:"id"`
+	IsStartedConversation sql.NullBool `json:"is_started_conversation"`
+}
+
+func (q *Queries) UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateIsStartedConversationSession, arg.ID, arg.IsStartedConversation)
 	if err != nil {
 		return 0, err
 	}

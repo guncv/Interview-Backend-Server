@@ -53,40 +53,32 @@ func NewWebSocketServerLogic(
 	}
 }
 
-func (s *WebSocketServerLogic) checkExistsAndInitStartedAtInterviewSession(ctx context.Context, client *Client) (string, bool, error) {
+func (s *WebSocketServerLogic) checkExistsAndInitStartedAtInterviewSession(ctx context.Context, client *Client) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Called")
 
-	req := &entities.CheckExistsAndInitStartedAtInterviewSessionReq{
-		SessionID: client.SessionID,
-	}
-
-	resp, err := s.interviewSessionService.CheckExistsAndInitStartedAtInterviewSession(ctx, req)
+	resp, err := s.interviewSessionService.CheckExistsAndInitStartedAtInterviewSession(ctx, client.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Error checking exists and initializing started at interview session", err)
-		return "", false, err
+		return nil, err
 	}
 
-	return resp.StartedAt, resp.IsStarted, nil
+	return resp, nil
 }
 
 func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Called")
 
-	go func() {
-		time.Sleep(2 * time.Second)
+	openingMsg := MsgStartSessionConversation{
+		Type:      constants.WebSocketMessageTypeStartSessionConversation,
+		SessionID: client.SessionID,
+	}
 
-		openingMsg := MsgStartSessionConversation{
-			Type:      constants.WebSocketMessageTypeStartSessionConversation,
-			SessionID: client.SessionID,
+	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
+		if err := agentClient.StartSessionConversation(ctx, openingMsg); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Error forwarding audio to AI agent", err)
+			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		}
-
-		if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
-			if err := agentClient.StartSessionConversation(ctx, openingMsg); err != nil {
-				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Error forwarding audio to AI agent", err)
-				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
-			}
-		}
-	}()
+	}
 }
 
 func (s *WebSocketServerLogic) handleUserAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
@@ -406,6 +398,21 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		return
 	} else {
 		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Last message created")
+	}
+
+	if !client.isStartedConversation {
+		if err := s.interviewSessionService.StartConversationBySessionID(context.Background(), req.SessionID); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error starting conversation", err)
+			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+			return
+		}
+
+		client.isStartedConversation = true
+
+		s.writeJSON(ctx, client, map[string]interface{}{
+			"type":       constants.WebSocketMessageTypeConversationStarted,
+			"session_id": req.SessionID,
+		})
 	}
 
 	s.writeJSON(ctx, client, map[string]interface{}{
