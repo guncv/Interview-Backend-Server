@@ -35,14 +35,6 @@ type MsgSegmentEnd struct {
 	SegmentID string `json:"segment_id"`
 }
 
-type MsgUserPartialTranscript struct {
-	Type       string `json:"type"`
-	Author     string `json:"author"`
-	SessionID  string `json:"session_id"`
-	SegmentID  string `json:"segment_id"`
-	Transcript string `json:"transcript"`
-}
-
 type MsgUserFullTranscript struct {
 	Type       string `json:"type"`
 	Author     string `json:"author"`

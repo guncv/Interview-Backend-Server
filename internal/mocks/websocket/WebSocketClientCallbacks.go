@@ -192,40 +192,6 @@ func (_c *MockWebSocketClientCallbacks_OnUserFullTranscript_Call) RunAndReturn(r
 	return _c
 }
 
-// OnUserPartialTranscript provides a mock function with given fields: ctx, req
-func (_m *MockWebSocketClientCallbacks) OnUserPartialTranscript(ctx context.Context, req websocket.MsgUserPartialTranscript) {
-	_m.Called(ctx, req)
-}
-
-// MockWebSocketClientCallbacks_OnUserPartialTranscript_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OnUserPartialTranscript'
-type MockWebSocketClientCallbacks_OnUserPartialTranscript_Call struct {
-	*mock.Call
-}
-
-// OnUserPartialTranscript is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req websocket.MsgUserPartialTranscript
-func (_e *MockWebSocketClientCallbacks_Expecter) OnUserPartialTranscript(ctx interface{}, req interface{}) *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call {
-	return &MockWebSocketClientCallbacks_OnUserPartialTranscript_Call{Call: _e.mock.On("OnUserPartialTranscript", ctx, req)}
-}
-
-func (_c *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call) Run(run func(ctx context.Context, req websocket.MsgUserPartialTranscript)) *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(websocket.MsgUserPartialTranscript))
-	})
-	return _c
-}
-
-func (_c *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call) Return() *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call) RunAndReturn(run func(context.Context, websocket.MsgUserPartialTranscript)) *MockWebSocketClientCallbacks_OnUserPartialTranscript_Call {
-	_c.Run(run)
-	return _c
-}
-
 // NewMockWebSocketClientCallbacks creates a new instance of MockWebSocketClientCallbacks. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockWebSocketClientCallbacks(t interface {

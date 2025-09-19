@@ -203,11 +203,7 @@ func (s *webSocketServer) HandleConnection(
 		"started_at": resp.StartedAt,
 		"session_id": client.SessionID,
 	})
-
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Interview session started at updated", map[string]any{
-		"session_id": client.SessionID,
-		"started_at": resp.StartedAt,
-	})
+	client.StartSessionTime = utils.ParseToTime(resp.StartedAt)
 
 	if !resp.IsStartedConversation {
 		s.logic.sendStartSessionConversationMessage(ctx, client)

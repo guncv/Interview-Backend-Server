@@ -22,6 +22,15 @@ func FormatToUTCString(t time.Time) string {
 	return t.UTC().Format("2006-01-02T15:04:05Z")
 }
 
+func ParseToTime(t string) time.Time {
+	parsedTime, err := time.Parse(time.RFC3339Nano, t)
+	if err != nil {
+		return time.Time{}
+	}
+
+	return parsedTime
+}
+
 func FormatSecondsToMMSS(seconds float64) string {
 	minutes := int(seconds) / 60
 	secs := int(seconds) % 60

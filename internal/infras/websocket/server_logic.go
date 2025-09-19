@@ -253,32 +253,6 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 	}
 }
 
-func (s *WebSocketServerLogic) sendMessageTypeUserPartialTranscript(ctx context.Context, client *Client, req MsgUserPartialTranscript) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserPartialTranscript] Called")
-
-	if client.SessionID != req.SessionID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserPartialTranscript] Security violation: Session ID mismatch")
-		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
-		return
-	}
-
-	if client.CurrentSegmentID != req.SegmentID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserPartialTranscript] Security violation: Segment ID mismatch")
-		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSegmentID)
-		return
-	}
-
-	request := map[string]interface{}{
-		"type":       req.Type,
-		"author":     req.Author,
-		"session_id": req.SessionID,
-		"segment_id": req.SegmentID,
-		"transcript": req.Transcript,
-	}
-
-	s.writeJSON(ctx, client, request)
-}
-
 func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Context, client *Client, req MsgUserFullTranscript) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Called")
 
@@ -326,6 +300,21 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		InterviewerMessage: lastMessage.Message,
 		CurrentState:       lastMessage.CurrentState,
 	}
+
+	timeDuration, err := s.interviewSessionService.GetSessionStartedAtAndEndedAt(ctx, client.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error getting interview session start end time", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":       constants.WebSocketMessageTypeUserFullTranscript,
+		"message":    req.Transcript,
+		"session_id": client.SessionID,
+		"started_at": timeDuration["started_at"],
+		"ended_at":   timeDuration["ended_at"],
+	})
 
 	if err := s.publisher.PublishTaskCalculateTurnScore(context.Background(), calculateTurnScoreReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error publishing task calculate turn score", err)
@@ -419,8 +408,8 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		"type":          req.Type,
 		"session_id":    req.SessionID,
 		"message":       req.Message,
-		"started_at":    req.StartedAt,
-		"ended_at":      req.EndedAt,
+		"started_at":    startedAt,
+		"ended_at":      endedAt,
 		"current_state": req.CurrentState,
 	})
 }

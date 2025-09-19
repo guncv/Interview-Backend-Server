@@ -30,6 +30,7 @@ type InterviewSessionService interface {
 	CreateInterviewSessionWithNewResume(ctx context.Context, req *entities.CreateInterviewSessionWithNewResumeRequest) (*entities.CreateInterviewSessionWithNewResumeResponse, error)
 	CreateInterviewSessionWithExistingResume(ctx context.Context, req *entities.CreateInterviewSessionWithExistingResumeReq) (*entities.CreateInterviewSessionWithExistingResumeResp, error)
 	CreateUserSessionTurnBySessionID(ctx context.Context, req *entities.CreateUserSessionTurnBySessionIDReq) error
+	GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error)
 	CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error
 	UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error
 	SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error
@@ -375,20 +376,10 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 		return err
 	}
 
-	redisKey = fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
-	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
+	timeDuration, err := s.GetSessionStartedAtAndEndedAt(ctx, req.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Error getting interview session start end time", err)
 		return err
-	} else if len(timeDuration) == 0 {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session start end time not found")
-		return app_error.New(constants.ErrInterviewSessionStartEndTimeNotFound, app_error.ErrCodeInterviewSessionStartEndTimeNotFound)
-	} else if timeDuration["started_at"] == "" {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session start time not found")
-		return app_error.New(constants.ErrInterviewSessionStartTimeNotFound, app_error.ErrCodeInterviewSessionStartTimeNotFound)
-	} else if timeDuration["ended_at"] == "" {
-		s.log.ErrorWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Interview session end time not found")
-		return app_error.New(constants.ErrInterviewSessionEndTimeNotFound, app_error.ErrCodeInterviewSessionEndTimeNotFound)
 	}
 
 	dbReq := &db.CreateInterviewTurnParams{
@@ -409,6 +400,29 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 
 	s.cacheMaxTurnNo(context.Background(), req.SessionID, maxTurnNo)
 	return nil
+}
+
+func (s *interviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Called")
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, sessionID)
+
+	timeDuration, err := s.redisClient.HGetAll(context.Background(), redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Error getting interview session start end time", err)
+		return nil, err
+	} else if len(timeDuration) == 0 {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session start end time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionStartEndTimeNotFound, app_error.ErrCodeInterviewSessionStartEndTimeNotFound)
+	} else if timeDuration["started_at"] == "" {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session start time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionStartTimeNotFound, app_error.ErrCodeInterviewSessionStartTimeNotFound)
+	} else if timeDuration["ended_at"] == "" {
+		s.log.ErrorWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Interview session end time not found")
+		return nil, app_error.New(constants.ErrInterviewSessionEndTimeNotFound, app_error.ErrCodeInterviewSessionEndTimeNotFound)
+	}
+
+	return timeDuration, nil
 }
 
 func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, sessionID uuid.UUID, redisKey string) (int64, error) {

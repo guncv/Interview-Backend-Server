@@ -21,7 +21,6 @@ const (
 	WebSocketMessageTypeSegmentEnd               = "segment_end"
 	WebSocketBineryTypeAudioChunk                = "audio_chunk"
 	WebSocketMessageTypeError                    = "error"
-	WebSocketMessageTypeUserPartialTranscript    = "user_partial_transcript"
 	WebSocketMessageTypeUserFullTranscript       = "user_full_transcript"
 	WebSocketMessageTypeInterviewerResponse      = "interviewer_response"
 	WebSocketMessageTypeConversationStarted      = "conversation_started"
