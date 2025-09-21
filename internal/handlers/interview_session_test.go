@@ -9,7 +9,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -420,7 +422,6 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
 				mockInterviewSessionService := new(services.MockInterviewSessionService)
-				// Create a real validator instance
 				realValidator := validator.New()
 
 				// Mock UUID validation (session token) - should fail for empty string
@@ -445,10 +446,8 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
 				mockInterviewSessionService := new(services.MockInterviewSessionService)
-				// Create a real validator instance for UUID validation failure
 				realValidator := validator.New()
 
-				// Mock UUID validation failure (session token) - should fail
 				mockValidator.EXPECT().
 					GetValidate().
 					Return(realValidator)
@@ -470,7 +469,6 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
 				mockInterviewSessionService := new(services.MockInterviewSessionService)
-				// Create a real validator instance
 				realValidator := validator.New()
 
 				// Mock UUID validation (session token) - should pass
@@ -478,7 +476,6 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 					GetValidate().
 					Return(realValidator)
 
-				// Mock required validation (access token) - should fail for empty string
 				mockValidator.EXPECT().
 					GetValidate().
 					Return(realValidator)
@@ -500,20 +497,16 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				mockWsServer := new(ws.MockWebSocketServerInterface)
 				mockAuthMiddleware := new(middleware.MockAuthMiddleware)
 				mockInterviewSessionService := new(services.MockInterviewSessionService)
-				// Create a real validator instance
 				realValidator := validator.New()
 
-				// Mock UUID validation (session token) - should pass
 				mockValidator.EXPECT().
 					GetValidate().
 					Return(realValidator)
 
-				// Mock required validation (access token) - should pass for non-empty string
 				mockValidator.EXPECT().
 					GetValidate().
 					Return(realValidator)
 
-				// Mock JWT token verification failure
 				mockAuthMiddleware.EXPECT().
 					VerifyAndRenewAccessToken(mock.Anything, "invalid_token").
 					Return(nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken))
@@ -1049,6 +1042,423 @@ func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
 
 			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
 			handler.GetInterviewSessionInformation(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	validResp := &entities.ListInterviewSessionsByUserIDResp{
+		Sessions: []entities.InterviewSessionSummary{
+			{
+				ID:        uuid.New().String(),
+				Position:  "position",
+				Status:    "status",
+				CreatedAt: time.Now().Format(time.RFC3339),
+			},
+		},
+		NextCursor: &entities.Cursor{
+			ID:        uuid.New().String(),
+			CreatedAt: time.Now().Format(time.RFC3339),
+		},
+		HasMore: true,
+	}
+
+	authError := app_error.New(errors.New("auth error"), app_error.ErrCodeAuthInvalidToken)
+	serviceError := app_error.New(errors.New("service error"), app_error.ErrCodeGeneralServerUnavailable)
+
+	tests := []struct {
+		name           string
+		queryParams    map[string]string
+		setup          func() (*middleware.MockAuthContext, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:        "Success - NoQueryParameters",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithSearchTextOnly",
+			queryParams: map[string]string{"search_text": "software engineer"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText != nil && *req.SearchText == "software engineer" && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithStatusOnly",
+			queryParams: map[string]string{"status": "completed"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status != nil && *req.Status == "completed" && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithLimitOnly",
+			queryParams: map[string]string{"limit": "10"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit != nil && *req.Limit == 10 && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithCursorOnly",
+			queryParams: map[string]string{"cursor_id": "123", "cursor_created_at": "2023-01-01T00:00:00Z"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor != nil && req.Cursor.ID == "123" && req.Cursor.CreatedAt == "2023-01-01T00:00:00Z"
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "Success - WithAllParameters",
+			queryParams: map[string]string{
+				"search_text":       "software engineer",
+				"status":            "completed",
+				"limit":             "5",
+				"cursor_id":         "123",
+				"cursor_created_at": "2023-01-01T00:00:00Z",
+			},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText != nil && *req.SearchText == "software engineer" &&
+							req.Status != nil && *req.Status == "completed" &&
+							req.Limit != nil && *req.Limit == 5 &&
+							req.Cursor != nil && req.Cursor.ID == "123" && req.Cursor.CreatedAt == "2023-01-01T00:00:00Z"
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithEmptySearchText",
+			queryParams: map[string]string{"search_text": ""},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithEmptyStatus",
+			queryParams: map[string]string{"status": ""},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithZeroLimit",
+			queryParams: map[string]string{"limit": "0"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithNegativeLimit",
+			queryParams: map[string]string{"limit": "-5"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithPartialCursorMissingCursorCreatedAt",
+			queryParams: map[string]string{"cursor_id": "123"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithPartialCursorMissingCursorId",
+			queryParams: map[string]string{"cursor_created_at": "2023-01-01T00:00:00Z"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Error - WithInvalidLimitNonNumeric",
+			queryParams: map[string]string{"limit": "invalid"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - WithExtractAuthContextError",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:        "Error - WithServiceLayerError",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserID(mock.Anything, mock.Anything).
+					Return(nil, serviceError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			baseURL := "/api/v1/sessions"
+			if len(tt.queryParams) > 0 {
+				u, err := url.Parse(baseURL)
+				if err != nil {
+					t.Fatalf("Failed to parse base URL: %v", err)
+				}
+				q := u.Query()
+				for key, value := range tt.queryParams {
+					q.Set(key, value)
+				}
+				u.RawQuery = q.Encode()
+				baseURL = u.String()
+			}
+
+			c.Request = httptest.NewRequest(http.MethodGet, baseURL, nil)
+
+			mockAuthContext, mockInterviewSessionService := tt.setup()
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, nil, nil, nil, nil)
+			handler.ListInterviewSessionsByUserID(c)
 
 			tt.verify(t, w)
 		})

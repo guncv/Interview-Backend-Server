@@ -8,11 +8,12 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralDatabaseConnection:  ErrHttpCodeInternalServerError,
 	ErrCodeGeneralConstraintViolation: ErrHttpCodeBadRequest,
 	ErrCodeGeneralInvalidUUID:         ErrHttpCodeBadRequest,
+	ErrCodeGeneralInvalidTime:         ErrHttpCodeBadRequest,
 	ErrCodeGeneralRedisSetFailed:      ErrHttpCodeInternalServerError,
 	ErrCodeGeneralRedisGetFailed:      ErrHttpCodeInternalServerError,
 	ErrCodeGeneralUnmarshalFailed:     ErrHttpCodeInternalServerError,
 	ErrCodeGeneralPermissionDenied:    ErrHttpCodeUnauthorized,
-
+	ErrCodeGeneralInvalidLimit:        ErrHttpCodeBadRequest,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
 	ErrCodeAuthExpiredToken:            ErrHttpCodeUnauthorized,
@@ -86,10 +87,12 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralDatabaseConnection:  ErrMessageGeneralDatabaseConnection,
 	ErrCodeGeneralConstraintViolation: ErrMessageGeneralConstraintViolation,
 	ErrCodeGeneralInvalidUUID:         ErrMessageGeneralInvalidUUID,
+	ErrCodeGeneralInvalidTime:         ErrMessageGeneralInvalidTime,
 	ErrCodeGeneralRedisSetFailed:      ErrMessageGeneralRedisSetFailed,
 	ErrCodeGeneralRedisGetFailed:      ErrMessageGeneralRedisGetFailed,
 	ErrCodeGeneralUnmarshalFailed:     ErrMessageGeneralUnmarshalFailed,
 	ErrCodeGeneralPermissionDenied:    ErrMessageGeneralPermissionDenied,
+	ErrCodeGeneralInvalidLimit:        ErrMessageGeneralInvalidLimit,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,

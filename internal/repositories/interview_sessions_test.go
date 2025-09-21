@@ -483,7 +483,7 @@ func TestInterviewSessionRepository_InterviewFeedbackAndScore(t *testing.T) {
 		verify         func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error)
 	}{
 		{
-			name:  "Success - With interview feedback and score",
+			name:  "Success",
 			input: validReq,
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "POST", r.Method)
@@ -531,7 +531,7 @@ func TestInterviewSessionRepository_InterviewFeedbackAndScore(t *testing.T) {
 			},
 		},
 		{
-			name:  "Error - With post feedback and score failed",
+			name:  "Error - WithPostFeedbackAndScoreFailed",
 			input: validReq,
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "POST", r.Method)
@@ -540,6 +540,36 @@ func TestInterviewSessionRepository_InterviewFeedbackAndScore(t *testing.T) {
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
+			},
+			verify: func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error - WithUnmarshalFailed",
+			input: validReq,
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, "/api/v1/feedback-and-score", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "application/json")
+
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+
+				var receivedReq InterviewFeedbackAndScoreReq
+				err = json.Unmarshal(body, &receivedReq)
+				assert.NoError(t, err)
+
+				assert.Equal(t, userMessage, receivedReq.UserMessage)
+				assert.Equal(t, interviewerMessage, receivedReq.InterviewerMessage)
+				assert.Equal(t, rubricName, receivedReq.RubricName)
+				assert.Equal(t, rubricDescriptionMd, receivedReq.RubricDescriptionMd)
+				assert.Equal(t, criteria, receivedReq.Criteria)
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode("Invalid JSON")
 			},
 			verify: func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error) {
 				assert.Error(t, gotErr)

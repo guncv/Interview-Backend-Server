@@ -55,3 +55,40 @@ WHERE id = $1;
 SELECT started_at, is_started_conversation
 FROM interview_sessions
 WHERE id = $1;
+
+-- name: ListInterviewSessionsByUserID :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $2::text IS NULL
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+    AND (
+        $3::text IS NULL
+        OR status = $3
+    )
+    AND (
+        $4::timestamp IS NULL
+        OR created_at < $4
+        OR (
+            created_at = $4
+            AND (
+                $5::uuid IS NULL
+                OR id < $5
+            )
+        )
+    )
+ORDER BY created_at DESC, id DESC
+LIMIT $6;

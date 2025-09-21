@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -134,6 +135,106 @@ func (q *Queries) GetStartedAndIsStartedConversationSession(ctx context.Context,
 	var i GetStartedAndIsStartedConversationSessionRow
 	err := row.Scan(&i.StartedAt, &i.IsStartedConversation)
 	return i, err
+}
+
+const listInterviewSessionsByUserID = `-- name: ListInterviewSessionsByUserID :many
+SELECT
+    id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        COALESCE($2, '') = ''
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+    AND (
+        COALESCE($3, '') = ''
+        OR status = $3
+    )
+    AND (
+        COALESCE($4::timestamp, NULL) IS NULL
+        OR created_at < $4
+        OR (
+            created_at = $4
+            AND (
+                COALESCE($5::uuid, NULL) IS NULL
+                OR id < $5
+            )
+        )
+    )
+ORDER BY created_at DESC, id DESC
+LIMIT $6
+`
+
+type ListInterviewSessionsByUserIDParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	Column2 interface{} `json:"column_2"`
+	Column3 interface{} `json:"column_3"`
+	Column4 time.Time   `json:"column_4"`
+	Column5 uuid.UUID   `json:"column_5"`
+	Limit   int32       `json:"limit"`
+}
+
+type ListInterviewSessionsByUserIDRow struct {
+	ID             uuid.UUID       `json:"id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
+}
+
+func (q *Queries) ListInterviewSessionsByUserID(ctx context.Context, arg ListInterviewSessionsByUserIDParams) ([]ListInterviewSessionsByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInterviewSessionsByUserID,
+		arg.UserID,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListInterviewSessionsByUserIDRow{}
+	for rows.Next() {
+		var i ListInterviewSessionsByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResumeID,
+			&i.ResumeFileName,
+			&i.Position,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.OverallScore,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows

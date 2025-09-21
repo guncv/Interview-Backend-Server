@@ -142,3 +142,32 @@ type EndInterviewSessionReq struct {
 	SessionId string `json:"session_id" binding:"required"`
 	Status    string `json:"status" binding:"required"`
 }
+
+type ListInterviewSessionsByUserIDReq struct {
+	SearchText *string `form:"search_text"`
+	Status     *string `form:"status"`
+	Cursor     *Cursor `form:"cursor"`
+	Limit      *int    `form:"limit"`
+}
+
+type Cursor struct {
+	CreatedAt string `json:"created_at"`
+	ID        string `json:"id"`
+}
+
+type ListInterviewSessionsByUserIDResp struct {
+	Sessions   []InterviewSessionSummary `json:"sessions"`
+	NextCursor *Cursor                   `json:"next_cursor,omitempty"`
+	HasMore    bool                      `json:"has_more"`
+}
+
+type InterviewSessionSummary struct {
+	ID             string  `json:"id"`
+	ResumeID       string  `json:"resume_id"`
+	ResumeFileName string  `json:"resume_file_name"`
+	Position       string  `json:"position"`
+	Status         string  `json:"status"`
+	TotalTime      string  `json:"total_time"`
+	OverallScore   float64 `json:"overall_score,omitempty"`
+	CreatedAt      string  `json:"created_at"`
+}

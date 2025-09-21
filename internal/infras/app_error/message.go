@@ -10,11 +10,12 @@ const (
 	ErrMessageGeneralDatabaseConnection  ErrorMessage = "Database connection error. Please try again."
 	ErrMessageGeneralConstraintViolation ErrorMessage = "The data violates database constraints."
 	ErrMessageGeneralInvalidUUID         ErrorMessage = "The UUID is invalid. Please try again."
+	ErrMessageGeneralInvalidTime         ErrorMessage = "The time format is invalid. Please try again."
 	ErrMessageGeneralRedisSetFailed      ErrorMessage = "Failed to set the value in Redis. Please try again."
 	ErrMessageGeneralRedisGetFailed      ErrorMessage = "Failed to get the value from Redis. Please try again."
 	ErrMessageGeneralUnmarshalFailed     ErrorMessage = "Failed to unmarshal the value. Please try again."
 	ErrMessageGeneralPermissionDenied    ErrorMessage = "You are not authorized to perform this action."
-
+	ErrMessageGeneralInvalidLimit        ErrorMessage = "The limit is invalid. Please try again."
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."
 	ErrMessageAuthExpiredToken            ErrorMessage = "Your token has expired. Please log in again."

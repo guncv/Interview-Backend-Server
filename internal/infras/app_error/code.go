@@ -12,10 +12,12 @@ const (
 	ErrCodeGeneralDatabaseConnection  ErrorCode = "INS0105"
 	ErrCodeGeneralConstraintViolation ErrorCode = "INS0106"
 	ErrCodeGeneralInvalidUUID         ErrorCode = "INS0107"
-	ErrCodeGeneralRedisSetFailed      ErrorCode = "INS0108"
-	ErrCodeGeneralRedisGetFailed      ErrorCode = "INS0109"
-	ErrCodeGeneralUnmarshalFailed     ErrorCode = "INS0110"
-	ErrCodeGeneralPermissionDenied    ErrorCode = "INS0111"
+	ErrCodeGeneralInvalidTime         ErrorCode = "INS0108"
+	ErrCodeGeneralRedisSetFailed      ErrorCode = "INS0109"
+	ErrCodeGeneralRedisGetFailed      ErrorCode = "INS0110"
+	ErrCodeGeneralUnmarshalFailed     ErrorCode = "INS0111"
+	ErrCodeGeneralPermissionDenied    ErrorCode = "INS0112"
+	ErrCodeGeneralInvalidLimit        ErrorCode = "INS0113"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "INS0200"

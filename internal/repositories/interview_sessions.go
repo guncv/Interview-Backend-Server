@@ -29,6 +29,7 @@ type InterviewSessionRepository interface {
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
 	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
 	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
+	ListInterviewSessionsByUserID(ctx context.Context, req *db.ListInterviewSessionsByUserIDParams) ([]db.ListInterviewSessionsByUserIDRow, error)
 }
 
 type interviewSessionRepository struct {
@@ -264,4 +265,16 @@ func (r *interviewSessionRepository) UpdateIsStartedConversationSession(ctx cont
 	}
 
 	return nil
+}
+
+func (r *interviewSessionRepository) ListInterviewSessionsByUserID(ctx context.Context, req *db.ListInterviewSessionsByUserIDParams) ([]db.ListInterviewSessionsByUserIDRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserID] Called")
+
+	resp, err := r.db.ListInterviewSessionsByUserID(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListInterviewSessionsByUserID] Error listing interview sessions by user ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
 }

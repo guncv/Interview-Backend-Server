@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -289,6 +290,85 @@ func (h *InterviewSessionHandler) GetInterviewSessionInformation(c *gin.Context)
 	resp, err := h.interviewSessionService.GetInterviewSessionInformation(ctx, &req)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: GetInterviewSessionInformation] Error getting interview session information", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ListInterviewSessionsByUserID godoc
+// @Summary List interview sessions by user ID
+// @Description Get a paginated list of interview sessions for the authenticated user with optional search and filtering
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param search_text query string false "Search text to filter sessions by resume name or position"
+// @Param status query string false "Filter sessions by status"
+// @Param cursor_id query string false "Cursor ID for pagination"
+// @Param cursor_created_at query string false "Cursor created_at for pagination (RFC3339 format)"
+// @Param limit query int false "Number of sessions to return (default: 20)"
+// @Security BearerAuth
+// @Success 200 {object} entities.ListInterviewSessionsByUserIDResp "List of interview sessions"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /sessions [get]
+func (h *InterviewSessionHandler) ListInterviewSessionsByUserID(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Called")
+
+	req := entities.ListInterviewSessionsByUserIDReq{}
+
+	if searchText := c.Query("search_text"); searchText != "" {
+		req.SearchText = &searchText
+	} else {
+		req.SearchText = nil
+	}
+
+	if status := c.Query("status"); status != "" {
+		req.Status = &status
+	} else {
+		req.Status = nil
+	}
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			h.log.ErrorWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Invalid limit", err)
+			utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeGeneralInvalidLimit))
+			return
+		}
+		if limit > 0 {
+			req.Limit = &limit
+		} else {
+			req.Limit = nil
+		}
+	} else {
+		req.Limit = nil
+	}
+
+	cursorID := c.Query("cursor_id")
+	cursorCreatedAt := c.Query("cursor_created_at")
+	if cursorID != "" && cursorCreatedAt != "" {
+		req.Cursor = &entities.Cursor{
+			ID:        cursorID,
+			CreatedAt: cursorCreatedAt,
+		}
+	} else {
+		req.Cursor = nil
+	}
+
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.interviewSessionService.ListInterviewSessionsByUserID(ctx, &req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Error listing interview sessions", err)
 		utils.RespondWithError(c, err)
 		return
 	}
