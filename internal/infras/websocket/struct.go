@@ -43,6 +43,16 @@ type MsgUserFullTranscript struct {
 	Transcript string `json:"transcript"`
 }
 
+type MsgInterviewTurnStart struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
+type MsgInterviewTurnEnd struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
 type MsgInterviewerResp struct {
 	Type             string `json:"type"`
 	Author           string `json:"author"`

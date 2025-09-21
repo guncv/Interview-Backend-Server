@@ -458,6 +458,36 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
 	})
 }
 
+func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Context, client *Client, req MsgInterviewTurnStart) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnStart] Called")
+
+	if client.SessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnStart] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":       constants.WebSocketMessageTypeInterviewTurnStart,
+		"session_id": req.SessionID,
+	})
+}
+
+func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Context, client *Client, req MsgInterviewTurnEnd) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnEnd] Called")
+
+	if client.SessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnEnd] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":       constants.WebSocketMessageTypeInterviewTurnEnd,
+		"session_id": req.SessionID,
+	})
+}
+
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
 
