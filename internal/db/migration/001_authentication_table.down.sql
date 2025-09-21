@@ -9,10 +9,10 @@ DROP INDEX IF EXISTS idx_user_roles_user_id;
 
 DROP INDEX IF EXISTS idx_users_email;
 
-DROP INDEX IF EXISTS idx_sessions_token_hash;
-DROP INDEX IF EXISTS idx_sessions_user_id;
+DROP INDEX IF EXISTS idx_auth_sessions_token_hash;
+DROP INDEX IF EXISTS idx_auth_sessions_user_id;
 
 DROP TABLE IF EXISTS security_alerts;
 DROP TABLE IF EXISTS user_roles;
-DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS auth_sessions;
 DROP TABLE IF EXISTS users;

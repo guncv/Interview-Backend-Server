@@ -299,6 +299,53 @@ func (_c *MockQuerier_CreateAdminIssueCategory_Call) RunAndReturn(run func(conte
 	return _c
 }
 
+// CreateAuthSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateAuthSession(ctx context.Context, arg db.CreateAuthSessionParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAuthSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateAuthSessionParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_CreateAuthSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAuthSession'
+type MockQuerier_CreateAuthSession_Call struct {
+	*mock.Call
+}
+
+// CreateAuthSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateAuthSessionParams
+func (_e *MockQuerier_Expecter) CreateAuthSession(ctx interface{}, arg interface{}) *MockQuerier_CreateAuthSession_Call {
+	return &MockQuerier_CreateAuthSession_Call{Call: _e.mock.On("CreateAuthSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateAuthSession_Call) Run(run func(ctx context.Context, arg db.CreateAuthSessionParams)) *MockQuerier_CreateAuthSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateAuthSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateAuthSession_Call) Return(_a0 error) *MockQuerier_CreateAuthSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_CreateAuthSession_Call) RunAndReturn(run func(context.Context, db.CreateAuthSessionParams) error) *MockQuerier_CreateAuthSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateEvaluation provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateEvaluation(ctx context.Context, arg db.CreateEvaluationParams) error {
 	ret := _m.Called(ctx, arg)
@@ -628,53 +675,6 @@ func (_c *MockQuerier_CreateResume_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
-// CreateSession provides a mock function with given fields: ctx, arg
-func (_m *MockQuerier) CreateSession(ctx context.Context, arg db.CreateSessionParams) error {
-	ret := _m.Called(ctx, arg)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateSession")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateSessionParams) error); ok {
-		r0 = rf(ctx, arg)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockQuerier_CreateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSession'
-type MockQuerier_CreateSession_Call struct {
-	*mock.Call
-}
-
-// CreateSession is a helper method to define mock.On call
-//   - ctx context.Context
-//   - arg db.CreateSessionParams
-func (_e *MockQuerier_Expecter) CreateSession(ctx interface{}, arg interface{}) *MockQuerier_CreateSession_Call {
-	return &MockQuerier_CreateSession_Call{Call: _e.mock.On("CreateSession", ctx, arg)}
-}
-
-func (_c *MockQuerier_CreateSession_Call) Run(run func(ctx context.Context, arg db.CreateSessionParams)) *MockQuerier_CreateSession_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.CreateSessionParams))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_CreateSession_Call) Return(_a0 error) *MockQuerier_CreateSession_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockQuerier_CreateSession_Call) RunAndReturn(run func(context.Context, db.CreateSessionParams) error) *MockQuerier_CreateSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateUser provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.Users, error) {
 	ret := _m.Called(ctx, arg)
@@ -889,6 +889,63 @@ func (_c *MockQuerier_EndInterviewSession_Call) Return(_a0 int64, _a1 error) *Mo
 }
 
 func (_c *MockQuerier_EndInterviewSession_Call) RunAndReturn(run func(context.Context, db.EndInterviewSessionParams) (int64, error)) *MockQuerier_EndInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAuthSessionByID provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetAuthSessionByID(ctx context.Context, id uuid.UUID) (db.AuthSessions, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAuthSessionByID")
+	}
+
+	var r0 db.AuthSessions
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.AuthSessions, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.AuthSessions); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(db.AuthSessions)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetAuthSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAuthSessionByID'
+type MockQuerier_GetAuthSessionByID_Call struct {
+	*mock.Call
+}
+
+// GetAuthSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockQuerier_Expecter) GetAuthSessionByID(ctx interface{}, id interface{}) *MockQuerier_GetAuthSessionByID_Call {
+	return &MockQuerier_GetAuthSessionByID_Call{Call: _e.mock.On("GetAuthSessionByID", ctx, id)}
+}
+
+func (_c *MockQuerier_GetAuthSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetAuthSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetAuthSessionByID_Call) Return(_a0 db.AuthSessions, _a1 error) *MockQuerier_GetAuthSessionByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetAuthSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.AuthSessions, error)) *MockQuerier_GetAuthSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1412,63 +1469,6 @@ func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// GetSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockQuerier) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
-	ret := _m.Called(ctx, id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetSessionByID")
-	}
-
-	var r0 db.Sessions
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.Sessions, error)); ok {
-		return rf(ctx, id)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.Sessions); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Get(0).(db.Sessions)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockQuerier_GetSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSessionByID'
-type MockQuerier_GetSessionByID_Call struct {
-	*mock.Call
-}
-
-// GetSessionByID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id uuid.UUID
-func (_e *MockQuerier_Expecter) GetSessionByID(ctx interface{}, id interface{}) *MockQuerier_GetSessionByID_Call {
-	return &MockQuerier_GetSessionByID_Call{Call: _e.mock.On("GetSessionByID", ctx, id)}
-}
-
-func (_c *MockQuerier_GetSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetSessionByID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockQuerier_GetSessionByID_Call) Return(_a0 db.Sessions, _a1 error) *MockQuerier_GetSessionByID_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockQuerier_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.Sessions, error)) *MockQuerier_GetSessionByID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, id
 func (_m *MockQuerier) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error) {
 	ret := _m.Called(ctx, id)
@@ -1875,12 +1875,12 @@ func (_c *MockQuerier_ResetUserPassword_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
-// RevokeSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockQuerier) RevokeSessionByID(ctx context.Context, id uuid.UUID) error {
+// RevokeAuthSessionByID provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) RevokeAuthSessionByID(ctx context.Context, id uuid.UUID) error {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for RevokeSessionByID")
+		panic("no return value specified for RevokeAuthSessionByID")
 	}
 
 	var r0 error
@@ -1893,31 +1893,31 @@ func (_m *MockQuerier) RevokeSessionByID(ctx context.Context, id uuid.UUID) erro
 	return r0
 }
 
-// MockQuerier_RevokeSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeSessionByID'
-type MockQuerier_RevokeSessionByID_Call struct {
+// MockQuerier_RevokeAuthSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeAuthSessionByID'
+type MockQuerier_RevokeAuthSessionByID_Call struct {
 	*mock.Call
 }
 
-// RevokeSessionByID is a helper method to define mock.On call
+// RevokeAuthSessionByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockQuerier_Expecter) RevokeSessionByID(ctx interface{}, id interface{}) *MockQuerier_RevokeSessionByID_Call {
-	return &MockQuerier_RevokeSessionByID_Call{Call: _e.mock.On("RevokeSessionByID", ctx, id)}
+func (_e *MockQuerier_Expecter) RevokeAuthSessionByID(ctx interface{}, id interface{}) *MockQuerier_RevokeAuthSessionByID_Call {
+	return &MockQuerier_RevokeAuthSessionByID_Call{Call: _e.mock.On("RevokeAuthSessionByID", ctx, id)}
 }
 
-func (_c *MockQuerier_RevokeSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_RevokeSessionByID_Call {
+func (_c *MockQuerier_RevokeAuthSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_RevokeAuthSessionByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockQuerier_RevokeSessionByID_Call) Return(_a0 error) *MockQuerier_RevokeSessionByID_Call {
+func (_c *MockQuerier_RevokeAuthSessionByID_Call) Return(_a0 error) *MockQuerier_RevokeAuthSessionByID_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockQuerier_RevokeSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockQuerier_RevokeSessionByID_Call {
+func (_c *MockQuerier_RevokeAuthSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockQuerier_RevokeAuthSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

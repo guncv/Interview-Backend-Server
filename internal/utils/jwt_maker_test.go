@@ -591,7 +591,7 @@ func TestJwtToken_GraceWindow(t *testing.T) {
 
 	logger := log.Initialize(constants.TestAppEnv)
 
-	mockSessionRepo := &repositories.MockSessionRepository{}
+	mockSessionRepo := &repositories.MockAuthSessionRepository{}
 
 	jwtMaker := NewJwtToken(cfg, logger, mockSessionRepo)
 	ctx := context.Background()

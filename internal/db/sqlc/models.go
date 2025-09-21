@@ -11,6 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
+type AuthSessions struct {
+	ID               uuid.UUID    `json:"id"`
+	UserID           uuid.UUID    `json:"user_id"`
+	RefreshTokenHash string       `json:"refresh_token_hash"`
+	UserAgent        string       `json:"user_agent"`
+	IpAddress        string       `json:"ip_address"`
+	LoginTime        sql.NullTime `json:"login_time"`
+	LastActive       sql.NullTime `json:"last_active"`
+	ExpiresAt        sql.NullTime `json:"expires_at"`
+	IsRevoked        sql.NullBool `json:"is_revoked"`
+	CreatedAt        sql.NullTime `json:"created_at"`
+	UpdatedAt        sql.NullTime `json:"updated_at"`
+}
+
 type EvaluationCriteria struct {
 	ID            uuid.UUID      `json:"id"`
 	RubricID      uuid.UUID      `json:"rubric_id"`
@@ -169,20 +183,6 @@ type ReviewComments struct {
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
 	SoftDelete   sql.NullBool   `json:"soft_delete"`
-}
-
-type Sessions struct {
-	ID               uuid.UUID    `json:"id"`
-	UserID           uuid.UUID    `json:"user_id"`
-	RefreshTokenHash string       `json:"refresh_token_hash"`
-	UserAgent        string       `json:"user_agent"`
-	IpAddress        string       `json:"ip_address"`
-	LoginTime        sql.NullTime `json:"login_time"`
-	LastActive       sql.NullTime `json:"last_active"`
-	ExpiresAt        sql.NullTime `json:"expires_at"`
-	IsRevoked        sql.NullBool `json:"is_revoked"`
-	CreatedAt        sql.NullTime `json:"created_at"`
-	UpdatedAt        sql.NullTime `json:"updated_at"`
 }
 
 type UserTurnImprovements struct {

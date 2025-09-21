@@ -15,11 +15,11 @@ import (
 	mockSqlc "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/db/sqlc"
 )
 
-func TestResumeRepository_GetSessionByID(t *testing.T) {
+func TestAuthSessionRepository_GetAuthSessionByID(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 
-	successResp := db.Sessions{
+	successResp := db.AuthSessions{
 		ID:               uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
 		UserID:           uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
 		RefreshTokenHash: "test",
@@ -37,7 +37,7 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 		name   string
 		input  uuid.UUID
 		setup  func() *mockSqlc.MockStore
-		verify func(t *testing.T, got *db.Sessions, gotErr error)
+		verify func(t *testing.T, got *db.AuthSessions, gotErr error)
 	}{
 		{
 			name:  "Success - Get session by ID",
@@ -46,12 +46,12 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					GetSessionByID(ctx, successResp.ID).
+					GetAuthSessionByID(ctx, successResp.ID).
 					Return(successResp, nil)
 
 				return mockStore
 			},
-			verify: func(t *testing.T, got *db.Sessions, gotErr error) {
+			verify: func(t *testing.T, got *db.AuthSessions, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.Equal(t, got, &successResp)
 			},
@@ -63,12 +63,12 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					GetSessionByID(ctx, successResp.ID).
-					Return(db.Sessions{}, sql.ErrNoRows)
+					GetAuthSessionByID(ctx, successResp.ID).
+					Return(db.AuthSessions{}, sql.ErrNoRows)
 
 				return mockStore
 			},
-			verify: func(t *testing.T, got *db.Sessions, gotErr error) {
+			verify: func(t *testing.T, got *db.AuthSessions, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 				assert.Contains(t, gotErr.Error(), "[INS0218]")
@@ -82,12 +82,12 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					GetSessionByID(ctx, successResp.ID).
-					Return(db.Sessions{}, errors.New("error"))
+					GetAuthSessionByID(ctx, successResp.ID).
+					Return(db.AuthSessions{}, errors.New("error"))
 
 				return mockStore
 			},
-			verify: func(t *testing.T, got *db.Sessions, gotErr error) {
+			verify: func(t *testing.T, got *db.AuthSessions, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
 				assert.Contains(t, gotErr.Error(), "[INS0101]")
@@ -106,19 +106,19 @@ func TestResumeRepository_GetSessionByID(t *testing.T) {
 				}
 			}()
 
-			svc := NewSessionRepository(lgr, mockStore)
-			got, gotErr := svc.GetSessionByID(ctx, tC.input)
+			svc := NewAuthSessionRepository(lgr, mockStore)
+			got, gotErr := svc.GetAuthSessionByID(ctx, tC.input)
 
 			tC.verify(t, got, gotErr)
 		})
 	}
 }
 
-func TestResumeRepository_RevokeSessionByID(t *testing.T) {
+func TestAuthSessionRepository_RevokeAuthSessionByID(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 
-	successResp := db.Sessions{
+	successResp := db.AuthSessions{
 		ID:               uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
 		UserID:           uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
 		RefreshTokenHash: "test",
@@ -145,7 +145,7 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					RevokeSessionByID(ctx, successResp.ID).
+					RevokeAuthSessionByID(ctx, successResp.ID).
 					Return(nil)
 
 				return mockStore
@@ -161,7 +161,7 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					RevokeSessionByID(ctx, successResp.ID).
+					RevokeAuthSessionByID(ctx, successResp.ID).
 					Return(sql.ErrNoRows)
 
 				return mockStore
@@ -179,7 +179,7 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					RevokeSessionByID(ctx, successResp.ID).
+					RevokeAuthSessionByID(ctx, successResp.ID).
 					Return(errors.New("error"))
 
 				return mockStore
@@ -202,8 +202,8 @@ func TestResumeRepository_RevokeSessionByID(t *testing.T) {
 				}
 			}()
 
-			svc := NewSessionRepository(lgr, mockStore)
-			gotErr := svc.RevokeSessionByID(ctx, tC.input)
+			svc := NewAuthSessionRepository(lgr, mockStore)
+			gotErr := svc.RevokeAuthSessionByID(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

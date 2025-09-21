@@ -138,7 +138,7 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 			return app_error.New(err, app_error.ErrCodeAuthUserNotFound)
 		}
 
-		sessionReq := db.CreateSessionParams{
+		sessionReq := db.CreateAuthSessionParams{
 			ID:               req.SessionID,
 			UserID:           req.UserID,
 			RefreshTokenHash: req.RefreshTokenHash,
@@ -148,7 +148,7 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 			ExpiresAt:        sql.NullTime{Time: req.ExpiresAt, Valid: true},
 		}
 
-		err = q.CreateSession(ctx, sessionReq)
+		err = q.CreateAuthSession(ctx, sessionReq)
 		if err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Error creating session", err)
 			return app_error.HandleDatabaseError(err)

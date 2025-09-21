@@ -38,7 +38,7 @@ type UserService interface {
 type userService struct {
 	log                *log.Logger
 	userRepo           repositories.UserRepository
-	sessionRepo        repositories.SessionRepository
+	sessionRepo        repositories.AuthSessionRepository
 	jwtToken           utils.JwtToken
 	config             *config.Config
 	db                 db.Store
@@ -52,7 +52,7 @@ type userService struct {
 
 func NewUserService(l *log.Logger,
 	r repositories.UserRepository,
-	s repositories.SessionRepository,
+	s repositories.AuthSessionRepository,
 	jt utils.JwtToken,
 	db db.Store,
 	config *config.Config,
@@ -625,7 +625,7 @@ func (s *userService) SignOut(ctx context.Context) error {
 		return app_error.New(errors.New("invalid auth payload"), app_error.ErrCodeAuthInvalidToken)
 	}
 
-	if err := s.sessionRepo.RevokeSessionByID(ctx, authCtx.Payload.ID); err != nil {
+	if err := s.sessionRepo.RevokeAuthSessionByID(ctx, authCtx.Payload.ID); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: SignOut] Error revoking session", err)
 		return err
 	}

@@ -4198,13 +4198,13 @@ func TestUserService_SignOut(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		setup  func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext)
+		setup  func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
 			name: "Success",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				mockAuthContext.EXPECT().
@@ -4216,11 +4216,11 @@ func TestUserService_SignOut(t *testing.T) {
 					}, nil)
 
 				// Mock session revocation
-				mockSessionRepo.EXPECT().
-					RevokeSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+				mockAuthSessionRepo.EXPECT().
+					RevokeAuthSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
-				return mockSessionRepo, mockAuthContext
+				return mockAuthSessionRepo, mockAuthContext
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -4228,7 +4228,7 @@ func TestUserService_SignOut(t *testing.T) {
 		},
 		{
 			name: "Error_AuthContextFailed",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				// Mock auth context retrieval fails
@@ -4244,8 +4244,8 @@ func TestUserService_SignOut(t *testing.T) {
 		},
 		{
 			name: "Error_SessionRevocationFailed",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				// Mock auth context retrieval
@@ -4258,11 +4258,11 @@ func TestUserService_SignOut(t *testing.T) {
 					}, nil)
 
 				// Mock session revocation fails
-				mockSessionRepo.EXPECT().
-					RevokeSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+				mockAuthSessionRepo.EXPECT().
+					RevokeAuthSessionByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(mockErr)
 
-				return mockSessionRepo, mockAuthContext
+				return mockAuthSessionRepo, mockAuthContext
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -4271,7 +4271,7 @@ func TestUserService_SignOut(t *testing.T) {
 		},
 		{
 			name: "Error_InvalidAuthPayload",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				// Mock auth context retrieval returns invalid payload
@@ -4289,7 +4289,7 @@ func TestUserService_SignOut(t *testing.T) {
 		},
 		{
 			name: "Error_NilAuthContext",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				// Mock auth context retrieval returns nil
@@ -4305,8 +4305,8 @@ func TestUserService_SignOut(t *testing.T) {
 		},
 		{
 			name: "Error_InvalidSessionID",
-			setup: func() (*repositories.MockSessionRepository, *middlewareMocks.MockAuthContext) {
-				mockSessionRepo := new(repositories.MockSessionRepository)
+			setup: func() (*repositories.MockAuthSessionRepository, *middlewareMocks.MockAuthContext) {
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
 				mockAuthContext := new(middlewareMocks.MockAuthContext)
 
 				// Mock auth context retrieval returns invalid session ID
@@ -4318,7 +4318,7 @@ func TestUserService_SignOut(t *testing.T) {
 						},
 					}, nil)
 
-				return mockSessionRepo, mockAuthContext
+				return mockAuthSessionRepo, mockAuthContext
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -4328,17 +4328,17 @@ func TestUserService_SignOut(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockSessionRepo, mockAuthContext := tC.setup()
+			mockAuthSessionRepo, mockAuthContext := tC.setup()
 			defer func() {
-				if mockSessionRepo != nil {
-					mockSessionRepo.AssertExpectations(t)
+				if mockAuthSessionRepo != nil {
+					mockAuthSessionRepo.AssertExpectations(t)
 				}
 				if mockAuthContext != nil {
 					mockAuthContext.AssertExpectations(t)
 				}
 			}()
 
-			svc := NewUserService(lgr, nil, mockSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil)
 			gotErr := svc.SignOut(ctx)
 
 			tC.verify(t, gotErr)

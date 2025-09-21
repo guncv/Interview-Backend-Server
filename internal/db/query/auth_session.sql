@@ -1,5 +1,5 @@
--- name: CreateSession :exec
-INSERT INTO sessions (
+-- name: CreateAuthSession :exec
+INSERT INTO auth_sessions (
     id,
     user_id,
     refresh_token_hash,
@@ -11,13 +11,13 @@ INSERT INTO sessions (
     $1, $2, $3, $4, $5, $6, $7
 );
 
--- name: GetSessionByID :one
-SELECT * FROM sessions
+-- name: GetAuthSessionByID :one
+SELECT * FROM auth_sessions
 WHERE id = $1 AND is_revoked = false
 LIMIT 1;
 
--- name: RevokeSessionByID :exec
-UPDATE sessions
+-- name: RevokeAuthSessionByID :exec
+UPDATE auth_sessions
 SET is_revoked = true
 WHERE id = $1;
 

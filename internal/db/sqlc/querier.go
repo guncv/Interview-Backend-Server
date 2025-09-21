@@ -16,6 +16,7 @@ type Querier interface {
 	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
+	CreateAuthSession(ctx context.Context, arg CreateAuthSessionParams) error
 	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
 	CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error
@@ -23,11 +24,11 @@ type Querier interface {
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
-	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
+	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error)
@@ -37,7 +38,6 @@ type Querier interface {
 	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
-	GetSessionByID(ctx context.Context, id uuid.UUID) (Sessions, error)
 	GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
@@ -45,7 +45,7 @@ type Querier interface {
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
-	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
+	RevokeAuthSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
