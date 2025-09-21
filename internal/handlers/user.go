@@ -191,7 +191,7 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 }
 
 // SignInAdminByEmailAndPassword godoc
-// @Summary User authentication
+// @Summary Admin authentication
 // @Description Authenticate admin with email and password, returns access and refresh tokens
 // @Tags Auth
 // @Accept json
