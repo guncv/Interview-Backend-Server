@@ -231,7 +231,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "User authentication",
+                "summary": "Admin authentication",
                 "parameters": [
                     {
                         "description": "Login credentials",
@@ -484,50 +484,6 @@
             }
         },
         "/issue-reports": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of all user issue reports for the authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Issue Reports"
-                ],
-                "summary": "List user issue reports",
-                "responses": {
-                    "200": {
-                        "description": "List user issue reports response",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListUserIssueReportsResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -577,69 +533,6 @@
                     },
                     "404": {
                         "description": "Issue category not found",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/issue-reports/{issue_report_id}": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update a user issue report by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Issue Reports"
-                ],
-                "summary": "Update user issue report by ID",
-                "parameters": [
-                    {
-                        "description": "Update user issue report request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UpdateUserIssueReportByIDReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Update user issue report response",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "404": {
-                        "description": "User is not the owner of the issue report",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
                         }
@@ -1439,17 +1332,6 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListUserIssueReportsResp": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport"
-                    }
-                }
-            }
-        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetUserPasswordRequest": {
             "type": "object",
             "required": [
@@ -1591,23 +1473,6 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.UpdateUserIssueReportByIDReq": {
-            "type": "object",
-            "required": [
-                "category_id",
-                "description"
-            ],
-            "properties": {
-                "category_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "minLength": 1
-                }
-            }
-        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.UserIssueReport": {
             "type": "object",
             "properties": {
@@ -1727,6 +1592,7 @@
                 "INS0500",
                 "INS0501",
                 "INS0600",
+                "INS0601",
                 "INS0700",
                 "INS0701",
                 "INS0702",
@@ -1789,7 +1655,8 @@
                 "ErrCodeWebSocketInvalidSessionID",
                 "ErrCodeEvaluationRubricNotFound",
                 "ErrCodeEvaluationRubricCriteriaNotFound",
-                "ErrCodeInterviewTurnsLastMessageNotFound",
+                "ErrCodeInterviewTurnLastMessageNotFound",
+                "ErrCodeInterviewTurnsMaxTurnNoNotFound",
                 "ErrCodeIssueReportNotFound",
                 "ErrCodeIssueReportNotOpen",
                 "ErrCodeIssueReportUnauthorized",
