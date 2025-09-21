@@ -454,7 +454,7 @@ func TestResumeHandler_GetResumeByID(t *testing.T) {
 	}
 }
 
-func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
+func TestResumeHandler_DownloadResumeByResumeId(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	log := log.Initialize("test")
 	ctx := context.Background()
@@ -462,14 +462,14 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		sessionToken   string
+		resumeId       string
 		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService)
 		verify         func(t *testing.T, w *httptest.ResponseRecorder)
 		expectedStatus int
 	}{
 		{
-			name:         "Success",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			name:     "Success",
+			resumeId: "123e4567-e89b-12d3-a456-426614174000",
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -486,10 +486,9 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 					Return(ctx, nil)
 
 				mockResumeService.EXPECT().
-					DownloadResumeBySessionToken(mock.Anything, mock.Anything).
-					Return(&entities.DownloadResumeBySessionTokenResp{
-						FileUrl:  "https://example.com/resume.pdf",
-						FileName: "file_name",
+					DownloadResumeByResumeId(mock.Anything, mock.Anything).
+					Return(&entities.DownloadResumeByResumeIdResp{
+						FileUrl: "https://example.com/resume.pdf",
 					}, nil)
 
 				return mockValidator, mockAuthContext, mockResumeService
@@ -500,8 +499,8 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:         "Error - WithNonSessionTokenParam",
-			sessionToken: "",
+			name:     "Error - WithNonResumeIdParam",
+			resumeId: "",
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -516,8 +515,8 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:         "Error With Validation",
-			sessionToken: "invalid-session-token",
+			name:     "Error With Validation",
+			resumeId: "invalid-resume-id",
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -538,8 +537,8 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:         "Error - WithExtractAuthContextError",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			name:     "Error - WithExtractAuthContextError",
+			resumeId: "123e4567-e89b-12d3-a456-426614174000",
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -565,8 +564,8 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:         "Error - WithDownloadResumeBySessionTokenError",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			name:     "Error - WithDownloadResumeBySessionTokenError",
+			resumeId: "123e4567-e89b-12d3-a456-426614174000",
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockResumeService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -584,7 +583,7 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 
 				serviceErr := app_error.New(err, app_error.ErrCodeSessionNotFound)
 				mockResumeService.EXPECT().
-					DownloadResumeBySessionToken(mock.Anything, mock.Anything).
+					DownloadResumeByResumeId(mock.Anything, mock.Anything).
 					Return(nil, serviceErr)
 
 				return mockValidator, mockAuthContext, mockResumeService
@@ -602,10 +601,10 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
-			url := fmt.Sprintf("/api/v1/resumes/download/%s", tt.sessionToken)
+			url := fmt.Sprintf("/api/v1/resumes/download/%s", tt.resumeId)
 
 			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
-			c.Params = gin.Params{{Key: "session_token", Value: tt.sessionToken}}
+			c.Params = gin.Params{{Key: "resume_id", Value: tt.resumeId}}
 
 			mockValidator, mockAuthContext, mockResumeService := tt.setup()
 			defer mockValidator.AssertExpectations(t)
@@ -613,7 +612,7 @@ func TestResumeHandler_DownloadResumeBySessionToken(t *testing.T) {
 			defer mockResumeService.AssertExpectations(t)
 
 			handler := NewResumeHandler(mockResumeService, log, mockAuthContext, mockValidator)
-			handler.DownloadResumeBySessionToken(c)
+			handler.DownloadResumeByResumeId(c)
 
 			tt.verify(t, w)
 		})

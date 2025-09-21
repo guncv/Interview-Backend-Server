@@ -26,7 +26,7 @@ type ResumeService interface {
 	ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error)
 	SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error
 	GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error)
-	DownloadResumeBySessionToken(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error)
+	DownloadResumeByResumeId(ctx context.Context, req *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error)
 }
 
 type resumeService struct {
@@ -377,47 +377,46 @@ func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResu
 	return &resp, nil
 }
 
-func (s *resumeService) DownloadResumeBySessionToken(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error) {
-	s.log.InfoWithID(ctx, "[Service: DownloadResumeBySessionToken] Called")
+func (s *resumeService) DownloadResumeByResumeId(ctx context.Context, req *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error) {
+	s.log.InfoWithID(ctx, "[Service: DownloadResumeByResumeId] Called")
+
+	resumeID, err := uuid.Parse(req.ResumeID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Invalid resume ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
 
 	authContext, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting auth context", err)
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Error getting auth context", err)
 		return nil, err
 	}
 
-	sessionPayload, err := s.interviewSessionService.IsSessionValid(ctx, &entities.IsSessionValidReq{
-		SessionToken: req.SessionToken,
-		UserID:       authContext.Payload.UserID,
-	})
+	userID, err := uuid.Parse(authContext.Payload.UserID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Invalid session", err)
-		return nil, err
-	}
-
-	s.log.InfoWithID(ctx, "[Service: DownloadResumeBySessionToken] Session payload", sessionPayload)
-
-	resumeID, err := uuid.Parse(sessionPayload.ResumeID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Invalid resume ID", err)
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Invalid user ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
 	resume, err := s.resumeRepo.GetResumeByID(ctx, resumeID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting resume", err)
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Error getting resume", err)
 		return nil, err
+	}
+
+	if resume.UserID != userID {
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Resume does not belong to user", err)
+		return nil, app_error.New(constants.ErrResumeDoesNotBelongToUser, app_error.ErrCodeResumeInvalidRequest)
 	}
 
 	fileUrl, err := s.s3Storage.GeneratePresignedURL(ctx, resume.StorageKey, constants.S3PresignedURLTTL)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: DownloadResumeBySessionToken] Error getting file URL", err)
+		s.log.ErrorWithID(ctx, "[Service: DownloadResumeByResumeId] Error getting file URL", err)
 		return nil, err
 	}
 
-	resp := &entities.DownloadResumeBySessionTokenResp{
-		FileUrl:  fileUrl,
-		FileName: resume.FileName,
+	resp := &entities.DownloadResumeByResumeIdResp{
+		FileUrl: fileUrl,
 	}
 
 	return resp, nil

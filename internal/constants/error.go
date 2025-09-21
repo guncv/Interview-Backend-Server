@@ -28,4 +28,7 @@ var (
 	ErrIssueReportNotOpen      = errors.New("issue report not open")
 	ErrIssueReportUnauthorized = errors.New("this user is not the owner of the issue report")
 	ErrIssueReportIDRequired   = errors.New("issue report ID is required")
+
+	// Resume
+	ErrResumeDoesNotBelongToUser = errors.New("resume does not belong to user")
 )
