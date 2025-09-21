@@ -44,7 +44,6 @@ type Querier interface {
 	ListIssueCategories(ctx context.Context) ([]ListIssueCategoriesRow, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
-	ListUserIssueReports(ctx context.Context, userID uuid.NullUUID) ([]ListUserIssueReportsRow, error)
 	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
@@ -55,7 +54,6 @@ type Querier interface {
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
-	UpdateUserIssueReportByID(ctx context.Context, arg UpdateUserIssueReportByIDParams) (UpdateUserIssueReportByIDRow, error)
 	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
 }
 

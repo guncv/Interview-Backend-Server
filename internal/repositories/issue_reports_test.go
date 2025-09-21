@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -14,109 +13,6 @@ import (
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	mockSqlc "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/db/sqlc"
 )
-
-func TestIssueReportsRepository_UpdateUserIssueReportByID(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	mockErr := errors.New("error")
-
-	fixedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	validResp := db.UpdateUserIssueReportByIDRow{
-		ID:           uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
-		Description:  "test description",
-		CategoryID:   uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
-		Status:       "test status",
-		Acknowledged: true,
-		CommentCount: 1,
-		CreatedAt:    fixedTime,
-		UpdatedAt:    fixedTime,
-	}
-
-	req := &db.UpdateUserIssueReportByIDParams{
-		ID:          uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
-		Description: "test description",
-		CategoryID:  uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
-		UpdatedAt:   fixedTime,
-	}
-
-	testCases := []struct {
-		name   string
-		input  *db.UpdateUserIssueReportByIDParams
-		setup  func() *mockSqlc.MockStore
-		verify func(t *testing.T, gotResp *db.UpdateUserIssueReportByIDRow, gotErr error)
-	}{
-		{
-			name:  "Success",
-			input: req,
-			setup: func() *mockSqlc.MockStore {
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().
-					UpdateUserIssueReportByID(ctx, *req).
-					Return(validResp, nil)
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotResp *db.UpdateUserIssueReportByIDRow, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, &validResp, gotResp)
-			},
-		},
-		{
-			name:  "Error - WithUpdateUserIssueReportByIDError",
-			input: req,
-			setup: func() *mockSqlc.MockStore {
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().
-					UpdateUserIssueReportByID(ctx, *req).
-					Return(db.UpdateUserIssueReportByIDRow{}, mockErr)
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotResp *db.UpdateUserIssueReportByIDRow, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.ErrorIs(t, gotErr, mockErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name:  "Error - WithUpdateUserIssueReportByIDNotFound",
-			input: req,
-			setup: func() *mockSqlc.MockStore {
-				mockStore := new(mockSqlc.MockStore)
-
-				mockStore.EXPECT().
-					UpdateUserIssueReportByID(ctx, *req).
-					Return(db.UpdateUserIssueReportByIDRow{}, sql.ErrNoRows)
-
-				return mockStore
-			},
-			verify: func(t *testing.T, gotResp *db.UpdateUserIssueReportByIDRow, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.ErrorIs(t, gotErr, sql.ErrNoRows)
-				assert.Nil(t, gotResp)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockStore := tC.setup()
-
-			defer func() {
-				if mockStore != nil {
-					mockStore.AssertExpectations(t)
-				}
-			}()
-
-			svc := NewIssueReportsRepository(lgr, mockStore)
-			gotResp, gotErr := svc.UpdateUserIssueReportByID(ctx, tC.input)
-
-			tC.verify(t, gotResp, gotErr)
-		})
-	}
-}
 
 func TestIssueReportsRepository_GetUserIssueReportUserIDAndStatusByID(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)

@@ -286,7 +286,7 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		Transcript:   req.Transcript,
 	}
 
-	if err := s.interviewSessionService.CreateUserSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+	if err := s.interviewSessionService.CreateUserSessionTurnBySessionID(context.Background(), createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
@@ -356,7 +356,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		CurrentState: req.CurrentState,
 	}
 
-	if err := s.interviewSessionService.CreateInterviewerSessionTurnBySessionID(ctx, createSessionTurnReq); err != nil {
+	if err := s.interviewSessionService.CreateInterviewerSessionTurnBySessionID(context.Background(), createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return

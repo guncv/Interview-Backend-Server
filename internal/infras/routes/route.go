@@ -125,8 +125,6 @@ func issueReportsRoutes(eg *gin.RouterGroup, issueReportsHandler *handlers.Issue
 
 	{
 		issueReportsMiddleRoutes.POST("", issueReportsHandler.CreateUserIssueReport)
-		issueReportsMiddleRoutes.GET("", issueReportsHandler.ListUserIssueReports)
-		issueReportsMiddleRoutes.PATCH("/:issue_report_id", issueReportsHandler.UpdateUserIssueReportByID)
 	}
 }
 
