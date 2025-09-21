@@ -3,12 +3,13 @@ INSERT INTO interview_sessions (
     id,
     user_id,
     resume_id,
+    resume_file_name,
     position,
     modality,
     status,
     is_consent
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 );
 
 -- name: EndInterviewSession :execrows
@@ -35,12 +36,10 @@ SELECT EXISTS (
 
 -- name: GetInterviewSessionInformation :one
 SELECT
-    i.user_id AS user_id,
-    i.position AS position,
-    r.file_name AS file_name
-FROM interview_sessions i
-JOIN resumes r ON i.resume_id = r.id
-WHERE i.id = $1;
+    user_id,
+    position
+FROM interview_sessions
+WHERE id = $1;
 
 -- name: UpdateStartedAtInterviewSession :execrows
 UPDATE interview_sessions

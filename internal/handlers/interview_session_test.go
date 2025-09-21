@@ -925,7 +925,6 @@ func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
 					GetInterviewSessionInformation(mock.Anything, mock.Anything).
 					Return(&entities.GetInterviewSessionInformationResp{
 						Position: "position",
-						FileName: "file_name",
 					}, nil)
 
 				return mockValidator, mockAuthContext, mockInterviewSessionService

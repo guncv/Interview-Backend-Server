@@ -93,6 +93,7 @@ type InterviewSessions struct {
 	DeletedAt             sql.NullTime   `json:"deleted_at"`
 	SoftDelete            sql.NullBool   `json:"soft_delete"`
 	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
+	ResumeFileName        string         `json:"resume_file_name"`
 }
 
 type InterviewTurns struct {

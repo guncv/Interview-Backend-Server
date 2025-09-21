@@ -40,6 +40,7 @@ type InterviewSessionService interface {
 	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
 	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
 	StartConversationBySessionID(ctx context.Context, sessionId string) error
+	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
 }
 
 type interviewSessionService struct {
@@ -261,13 +262,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	createInterviewSessionWithExistingResumeReq := &db.CreateInterviewSessionParams{
-		ID:        sessionID,
-		ResumeID:  resumeID,
-		UserID:    userID,
-		Position:  req.Position,
-		Status:    constants.StatusPending,
-		Modality:  constants.ModalityVoiceChat,
-		IsConsent: req.IsConsent,
+		ID:             sessionID,
+		ResumeID:       resumeID,
+		UserID:         userID,
+		ResumeFileName: resume.FileName,
+		Position:       req.Position,
+		Status:         constants.StatusPending,
+		Modality:       constants.ModalityVoiceChat,
+		IsConsent:      req.IsConsent,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -771,7 +773,6 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 		dbSession = &db.GetInterviewSessionInformationRow{
 			UserID:   sessionResp.UserID,
 			Position: sessionResp.Position,
-			FileName: sessionResp.FileName,
 		}
 
 		if jsonBytes, err := json.Marshal(dbSession); err == nil {
@@ -797,7 +798,6 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 
 	resp := &entities.GetInterviewSessionInformationResp{
 		Position: dbSession.Position,
-		FileName: dbSession.FileName,
 	}
 
 	return resp, nil
@@ -855,6 +855,12 @@ func (s *interviewSessionService) StartConversationBySessionID(ctx context.Conte
 		s.log.ErrorWithID(ctx, "[Service: StartConversationBySessionID] Error updating started conversation", err)
 		return err
 	}
+
+	return nil
+}
+
+func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
+	s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Called")
 
 	return nil
 }

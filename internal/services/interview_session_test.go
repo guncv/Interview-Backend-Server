@@ -4072,7 +4072,6 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 
 	validResp := &entities.GetInterviewSessionInformationResp{
 		Position: "position",
-		FileName: "file_name",
 	}
 
 	testCases := []struct {
@@ -4110,7 +4109,7 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\",\"file_name\":\"file_name\"}", nil)
+					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"}", nil)
 
 				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
 			},
@@ -4155,13 +4154,12 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					Return(&db.GetInterviewSessionInformationRow{
 						UserID:   uuid.MustParse(globalID),
 						Position: "position",
-						FileName: "file_name",
 					}, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
+						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
 					}).
 					Return(nil).
@@ -4210,13 +4208,12 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					Return(&db.GetInterviewSessionInformationRow{
 						UserID:   uuid.MustParse(globalID),
 						Position: "position",
-						FileName: "file_name",
 					}, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
+						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
 					}).
 					Return(nil).
@@ -4258,20 +4255,19 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\",\"file_name\":\"file_name\"", nil)
+					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"", nil)
 
 				mockInterviewSessionRepo.EXPECT().
 					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
 					Return(&db.GetInterviewSessionInformationRow{
 						UserID:   uuid.MustParse(globalID),
 						Position: "position",
-						FileName: "file_name",
 					}, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\",\"file_name\":\"file_name\"}",
+						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
 						TTL:   constants.RedisTTLInterviewSessionInformation,
 					}).
 					Return(nil).
@@ -4376,7 +4372,6 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 					Return(&db.GetInterviewSessionInformationRow{
 						UserID:   uuid.MustParse(globalID),
 						Position: "position",
-						FileName: "file_name",
 					}, errors.New("get interview session information error"))
 
 				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
@@ -4415,7 +4410,7 @@ func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
 
 				mockRedisClient.EXPECT().
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+anotherID+"\",\"position\":\"position\",\"file_name\":\"file_name\"}", nil)
+					Return("{\"user_id\":\""+anotherID+"\",\"position\":\"position\"}", nil)
 
 				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
 			},

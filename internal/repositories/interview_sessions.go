@@ -115,13 +115,14 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 		}
 
 		if err := q.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
-			ID:        req.SessionID,
-			UserID:    req.UserID,
-			ResumeID:  req.ResumeID,
-			Position:  req.Position,
-			Status:    req.Status,
-			Modality:  req.Modality,
-			IsConsent: req.IsConsent,
+			ID:             req.SessionID,
+			UserID:         req.UserID,
+			ResumeID:       req.ResumeID,
+			ResumeFileName: req.FileName,
+			Position:       req.Position,
+			Status:         req.Status,
+			Modality:       req.Modality,
+			IsConsent:      req.IsConsent,
 		}); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)

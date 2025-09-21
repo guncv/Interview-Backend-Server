@@ -53,6 +53,11 @@ type MsgInterviewTurnEnd struct {
 	SessionID string `json:"session_id"`
 }
 
+type MsgEndInterviewSession struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+}
+
 type MsgInterviewerResp struct {
 	Type             string `json:"type"`
 	Author           string `json:"author"`

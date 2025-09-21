@@ -32,23 +32,25 @@ INSERT INTO interview_sessions (
     id,
     user_id,
     resume_id,
+    resume_file_name,
     position,
     modality,
     status,
     is_consent
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
 type CreateInterviewSessionParams struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
-	ResumeID  uuid.UUID `json:"resume_id"`
-	Position  string    `json:"position"`
-	Modality  string    `json:"modality"`
-	Status    string    `json:"status"`
-	IsConsent bool      `json:"is_consent"`
+	ID             uuid.UUID `json:"id"`
+	UserID         uuid.UUID `json:"user_id"`
+	ResumeID       uuid.UUID `json:"resume_id"`
+	ResumeFileName string    `json:"resume_file_name"`
+	Position       string    `json:"position"`
+	Modality       string    `json:"modality"`
+	Status         string    `json:"status"`
+	IsConsent      bool      `json:"is_consent"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -56,6 +58,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.ID,
 		arg.UserID,
 		arg.ResumeID,
+		arg.ResumeFileName,
 		arg.Position,
 		arg.Modality,
 		arg.Status,
@@ -97,24 +100,21 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 
 const getInterviewSessionInformation = `-- name: GetInterviewSessionInformation :one
 SELECT
-    i.user_id AS user_id,
-    i.position AS position,
-    r.file_name AS file_name
-FROM interview_sessions i
-JOIN resumes r ON i.resume_id = r.id
-WHERE i.id = $1
+    user_id,
+    position
+FROM interview_sessions
+WHERE id = $1
 `
 
 type GetInterviewSessionInformationRow struct {
 	UserID   uuid.UUID `json:"user_id"`
 	Position string    `json:"position"`
-	FileName string    `json:"file_name"`
 }
 
 func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error) {
 	row := q.db.QueryRowContext(ctx, getInterviewSessionInformation, id)
 	var i GetInterviewSessionInformationRow
-	err := row.Scan(&i.UserID, &i.Position, &i.FileName)
+	err := row.Scan(&i.UserID, &i.Position)
 	return i, err
 }
 

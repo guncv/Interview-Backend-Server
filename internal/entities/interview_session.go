@@ -131,10 +131,14 @@ type GetInterviewSessionInformationReq struct {
 
 type GetInterviewSessionInformationResp struct {
 	Position string `json:"position"`
-	FileName string `json:"file_name"`
 }
 
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
+}
+
+type EndInterviewSessionReq struct {
+	SessionId string `json:"session_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
 }
