@@ -60,3 +60,37 @@ func (q *Queries) CreateEvaluation(ctx context.Context, arg CreateEvaluationPara
 	)
 	return err
 }
+
+const getAllEvaluationsBySessionID = `-- name: GetAllEvaluationsBySessionID :many
+SELECT overall_score, summary_md
+FROM evaluations
+WHERE session_id = $1 and soft_delete = false
+`
+
+type GetAllEvaluationsBySessionIDRow struct {
+	OverallScore string `json:"overall_score"`
+	SummaryMd    string `json:"summary_md"`
+}
+
+func (q *Queries) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetAllEvaluationsBySessionIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllEvaluationsBySessionID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAllEvaluationsBySessionIDRow{}
+	for rows.Next() {
+		var i GetAllEvaluationsBySessionIDRow
+		if err := rows.Scan(&i.OverallScore, &i.SummaryMd); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

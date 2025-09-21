@@ -28,6 +28,7 @@ type Querier interface {
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
+	GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetAllEvaluationsBySessionIDRow, error)
 	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)

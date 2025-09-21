@@ -15,17 +15,19 @@ const (
 
 	ModalityVoiceChat = "voice_chat"
 
-	WebSocketMessageTypeHello                    = "hello"
-	WebSocketMessageTypeStartSessionConversation = "start_session_conversation"
-	WebSocketMessageTypeSegmentStart             = "segment_start"
-	WebSocketMessageTypeSegmentEnd               = "segment_end"
-	WebSocketBineryTypeAudioChunk                = "audio_chunk"
-	WebSocketMessageTypeError                    = "error"
-	WebSocketMessageTypeUserFullTranscript       = "user_full_transcript"
-	WebSocketMessageTypeInterviewerResponse      = "interviewer_response"
-	WebSocketMessageTypeConversationStarted      = "conversation_started"
-	WebSocketMessageTypeInterviewTurnStart       = "interviewer_turn_start"
-	WebSocketMessageTypeInterviewTurnEnd         = "interviewer_turn_end"
+	WebSocketMessageTypeHello                     = "hello"
+	WebSocketMessageTypeStartSessionConversation  = "start_session_conversation"
+	WebSocketMessageTypeSegmentStart              = "segment_start"
+	WebSocketMessageTypeSegmentEnd                = "segment_end"
+	WebSocketBineryTypeAudioChunk                 = "audio_chunk"
+	WebSocketMessageTypeError                     = "error"
+	WebSocketMessageTypeUserFullTranscript        = "user_full_transcript"
+	WebSocketMessageTypeInterviewerResponse       = "interviewer_response"
+	WebSocketMessageTypeConversationStarted       = "conversation_started"
+	WebSocketMessageTypeInterviewTurnStart        = "interviewer_turn_start"
+	WebSocketMessageTypeInterviewTurnEnd          = "interviewer_turn_end"
+	WebSocketMessageTypeEndInterviewSession       = "end_interview_session"
+	WebSocketMessageTypeSummarizeInterviewSession = "summarize_interview_session"
 
 	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"
@@ -44,17 +46,6 @@ const (
 	// Interviewer Constants
 	ActorInterviewer = "interviewer"
 	ActorUser        = "user"
+
+	BlankOverallSummaryMd = "The interview session ended without any responses from the candidate."
 )
-
-const (
-	LanguageThai    = "thai"
-	LanguageEnglish = "english"
-
-	LanguageCodeThai    = "th-TH"
-	LanguageCodeEnglish = "en-US"
-)
-
-var LanguageMapping = map[string]string{
-	LanguageThai:    LanguageCodeThai,
-	LanguageEnglish: LanguageCodeEnglish,
-}

@@ -253,6 +253,39 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 	}
 }
 
+func (s *WebSocketServerLogic) endInterviewSession(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: endInterviewSession] Called")
+
+	var req MsgEndInterviewSession
+	if json.Unmarshal(payload, &req) != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Invalid end interview session message")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	if client.SessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	endInterviewSessionReq := &entities.EndInterviewSessionReq{
+		SessionId: req.SessionID,
+		Status:    constants.StatusCancelled,
+	}
+
+	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewSessionReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Error ending interview session", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":       constants.WebSocketMessageTypeSummarizeInterviewSession,
+		"session_id": req.SessionID,
+	})
+}
+
 func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Context, client *Client, req MsgUserFullTranscript) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Called")
 

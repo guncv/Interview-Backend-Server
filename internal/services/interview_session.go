@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -861,6 +863,59 @@ func (s *interviewSessionService) StartConversationBySessionID(ctx context.Conte
 
 func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
 	s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Called")
+
+	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, uuid.MustParse(req.SessionId))
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting all evaluations by session ID", err)
+		return err
+	}
+
+	var overallScore float64
+	var overallSummaryMd string
+
+	evaluationCount := len(evaluations)
+	if evaluationCount > 0 {
+		createEvaluationOverallSummaryTxReq := &repositories.CreateEvaluationOverallSummaryTxReq{
+			SummaryMd: []string{},
+		}
+
+		for _, evaluation := range evaluations {
+			overallScoreFloat, err := strconv.ParseFloat(evaluation.OverallScore, 64)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error parsing overall score", err)
+				return err
+			}
+			overallScore += overallScoreFloat
+			createEvaluationOverallSummaryTxReq.SummaryMd = append(createEvaluationOverallSummaryTxReq.SummaryMd, evaluation.SummaryMd)
+		}
+
+		overallScore = overallScore / float64(evaluationCount)
+
+		overallSummary, err := s.evaluationScoresRepo.GetEvaluationOverallSummary(ctx, createEvaluationOverallSummaryTxReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting evaluation overall summary", err)
+			return err
+		}
+
+		overallSummaryMd = overallSummary.OverallSummaryMd
+	} else {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] No evaluations found")
+		overallScore = 0.0
+		overallSummaryMd = constants.BlankOverallSummaryMd
+	}
+
+	dbReq := &db.EndInterviewSessionParams{
+		ID:           uuid.MustParse(req.SessionId),
+		Status:       req.Status,
+		EndedAt:      sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		OverallScore: sql.NullFloat64{Float64: math.Round(overallScore*100) / 100, Valid: true},
+		SummaryMd:    sql.NullString{String: overallSummaryMd, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.EndInterviewSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error ending interview session", err)
+		return err
+	}
 
 	return nil
 }

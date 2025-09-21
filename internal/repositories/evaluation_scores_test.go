@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	config "gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -306,7 +307,9 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveS
 				}
 			}()
 
-			svc := NewEvaluationScoresRepository(lgr, mockStore)
+			cfg := &config.Config{}
+
+			svc := NewEvaluationScoresRepository(lgr, mockStore, cfg)
 
 			gotErr := svc.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, tC.input)
 

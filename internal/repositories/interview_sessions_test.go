@@ -144,7 +144,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 				ID:           updateID,
 				Status:       updateStatus,
 				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-				OverallScore: sql.NullString{String: "100", Valid: true},
+				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
 			setup: func() *mockSqlc.MockStore {
@@ -155,7 +155,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 						ID:           updateID,
 						Status:       updateStatus,
 						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-						OverallScore: sql.NullString{String: "100", Valid: true},
+						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
 					Return(1, nil)
@@ -172,7 +172,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 				ID:           updateID,
 				Status:       updateStatus,
 				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-				OverallScore: sql.NullString{String: "100", Valid: true},
+				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
 			setup: func() *mockSqlc.MockStore {
@@ -183,7 +183,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 						ID:           updateID,
 						Status:       updateStatus,
 						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-						OverallScore: sql.NullString{String: "100", Valid: true},
+						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
 					Return(0, errors.New("database error"))
@@ -200,7 +200,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 				ID:           updateID,
 				Status:       updateStatus,
 				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-				OverallScore: sql.NullString{String: "100", Valid: true},
+				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
 			setup: func() *mockSqlc.MockStore {
@@ -211,7 +211,7 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 						ID:           updateID,
 						Status:       updateStatus,
 						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
-						OverallScore: sql.NullString{String: "100", Valid: true},
+						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
 					Return(0, nil)

@@ -77,11 +77,11 @@ WHERE id = $1
 `
 
 type EndInterviewSessionParams struct {
-	ID           uuid.UUID      `json:"id"`
-	Status       string         `json:"status"`
-	EndedAt      sql.NullTime   `json:"ended_at"`
-	OverallScore sql.NullString `json:"overall_score"`
-	SummaryMd    sql.NullString `json:"summary_md"`
+	ID           uuid.UUID       `json:"id"`
+	Status       string          `json:"status"`
+	EndedAt      sql.NullTime    `json:"ended_at"`
+	OverallScore sql.NullFloat64 `json:"overall_score"`
+	SummaryMd    sql.NullString  `json:"summary_md"`
 }
 
 func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error) {

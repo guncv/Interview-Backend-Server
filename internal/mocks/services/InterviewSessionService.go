@@ -340,6 +340,53 @@ func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) Run
 	return _c
 }
 
+// EndInterviewSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EndInterviewSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.EndInterviewSessionReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_EndInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EndInterviewSession'
+type MockInterviewSessionService_EndInterviewSession_Call struct {
+	*mock.Call
+}
+
+// EndInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.EndInterviewSessionReq
+func (_e *MockInterviewSessionService_Expecter) EndInterviewSession(ctx interface{}, req interface{}) *MockInterviewSessionService_EndInterviewSession_Call {
+	return &MockInterviewSessionService_EndInterviewSession_Call{Call: _e.mock.On("EndInterviewSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) Run(run func(ctx context.Context, req *entities.EndInterviewSessionReq)) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.EndInterviewSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) Return(_a0 error) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) RunAndReturn(run func(context.Context, *entities.EndInterviewSessionReq) error) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetChatHistoryBySessionToken provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
 	ret := _m.Called(ctx, req)

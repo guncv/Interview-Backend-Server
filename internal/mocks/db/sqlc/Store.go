@@ -940,6 +940,65 @@ func (_c *MockStore_ExecTx_Call) RunAndReturn(run func(context.Context, func(*db
 	return _c
 }
 
+// GetAllEvaluationsBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockStore) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllEvaluationsBySessionID")
+	}
+
+	var r0 []db.GetAllEvaluationsBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetAllEvaluationsBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetAllEvaluationsBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetAllEvaluationsBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllEvaluationsBySessionID'
+type MockStore_GetAllEvaluationsBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetAllEvaluationsBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockStore_Expecter) GetAllEvaluationsBySessionID(ctx interface{}, sessionID interface{}) *MockStore_GetAllEvaluationsBySessionID_Call {
+	return &MockStore_GetAllEvaluationsBySessionID_Call{Call: _e.mock.On("GetAllEvaluationsBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) Return(_a0 []db.GetAllEvaluationsBySessionIDRow, _a1 error) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error)) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAuthSessionByID provides a mock function with given fields: ctx, id
 func (_m *MockStore) GetAuthSessionByID(ctx context.Context, id uuid.UUID) (db.AuthSessions, error) {
 	ret := _m.Called(ctx, id)

@@ -297,6 +297,10 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				s.logic.sendMessageTypeSegmentEnd(ctx, c, payload)
 				continue
 
+			case constants.WebSocketMessageTypeEndInterviewSession:
+				s.logic.endInterviewSession(ctx, c, payload)
+				continue
+
 			case constants.WebSocketMessageTypeClose:
 				s.log.InfoWithID(ctx, "[WebSocketServer] Received close message from client", map[string]any{
 					"session_id": c.SessionID,
