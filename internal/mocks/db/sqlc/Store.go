@@ -1805,6 +1805,65 @@ func (_c *MockStore_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// ListInterviewSessionsByUserIDFirstPage provides a mock function with given fields: ctx, arg
+func (_m *MockStore) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDFirstPage")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDFirstPageRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) []db.ListInterviewSessionsByUserIDFirstPageRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDFirstPageRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListInterviewSessionsByUserIDFirstPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDFirstPage'
+type MockStore_ListInterviewSessionsByUserIDFirstPage_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDFirstPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.ListInterviewSessionsByUserIDFirstPageParams
+func (_e *MockStore_Expecter) ListInterviewSessionsByUserIDFirstPage(ctx interface{}, arg interface{}) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	return &MockStore_ListInterviewSessionsByUserIDFirstPage_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDFirstPage", ctx, arg)}
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) Run(run func(ctx context.Context, arg db.ListInterviewSessionsByUserIDFirstPageParams)) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.ListInterviewSessionsByUserIDFirstPageParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) Return(_a0 []db.ListInterviewSessionsByUserIDFirstPageRow, _a1 error) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) RunAndReturn(run func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, arg
 func (_m *MockStore) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, arg db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
 	ret := _m.Called(ctx, arg)

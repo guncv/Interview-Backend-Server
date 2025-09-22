@@ -458,6 +458,65 @@ func (_c *MockInterviewSessionRepository_InterviewFeedbackAndScore_Call) RunAndR
 	return _c
 }
 
+// ListInterviewSessionsByUserIDFirstPage provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDFirstPage")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDFirstPageRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) []db.ListInterviewSessionsByUserIDFirstPageRow); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDFirstPageRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDFirstPage'
+type MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDFirstPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.ListInterviewSessionsByUserIDFirstPageParams
+func (_e *MockInterviewSessionRepository_Expecter) ListInterviewSessionsByUserIDFirstPage(ctx interface{}, req interface{}) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	return &MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDFirstPage", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) Run(run func(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.ListInterviewSessionsByUserIDFirstPageParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) Return(_a0 []db.ListInterviewSessionsByUserIDFirstPageRow, _a1 error) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) RunAndReturn(run func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
 	ret := _m.Called(ctx, req)
