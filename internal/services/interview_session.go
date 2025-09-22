@@ -722,7 +722,7 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 			TranscriptText: chat.TranscriptText,
 			StartAt:        chat.StartAt,
 			EndAt:          chat.EndAt,
-			CreatedAt:      utils.FormatToBangkokTime(chat.CreatedAt),
+			CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
 		}
 	}
 
@@ -1008,7 +1008,7 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				Position:         row.Position,
 				Status:           row.Status,
 				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
 			}
 
 			if row.OverallScore.Valid {
@@ -1069,7 +1069,7 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				Position:         row.Position,
 				Status:           row.Status,
 				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
 			}
 
 			if row.OverallScore.Valid {
@@ -1183,7 +1183,7 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 			Position:         row.Position,
 			Status:           row.Status,
 			CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-			CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+			CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
 		}
 
 		if row.OverallScore.Valid {
