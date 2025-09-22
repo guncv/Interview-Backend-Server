@@ -12,7 +12,7 @@ CREATE TABLE interview_sessions (
     is_consent BOOLEAN NOT NULL DEFAULT TRUE,
     started_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
-    overall_score NUMERIC(5,2),
+    overall_score REAL,
     summary_md TEXT,
 
     created_at TIMESTAMPTZ DEFAULT now(),

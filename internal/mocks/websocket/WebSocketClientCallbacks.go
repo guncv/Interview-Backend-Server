@@ -90,6 +90,74 @@ func (_c *MockWebSocketClientCallbacks_OnDisconnect_Call) RunAndReturn(run func(
 	return _c
 }
 
+// OnInterviewTurnEnd provides a mock function with given fields: ctx, req
+func (_m *MockWebSocketClientCallbacks) OnInterviewTurnEnd(ctx context.Context, req websocket.MsgInterviewTurnEnd) {
+	_m.Called(ctx, req)
+}
+
+// MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OnInterviewTurnEnd'
+type MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call struct {
+	*mock.Call
+}
+
+// OnInterviewTurnEnd is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req websocket.MsgInterviewTurnEnd
+func (_e *MockWebSocketClientCallbacks_Expecter) OnInterviewTurnEnd(ctx interface{}, req interface{}) *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call {
+	return &MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call{Call: _e.mock.On("OnInterviewTurnEnd", ctx, req)}
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call) Run(run func(ctx context.Context, req websocket.MsgInterviewTurnEnd)) *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(websocket.MsgInterviewTurnEnd))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call) Return() *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call) RunAndReturn(run func(context.Context, websocket.MsgInterviewTurnEnd)) *MockWebSocketClientCallbacks_OnInterviewTurnEnd_Call {
+	_c.Run(run)
+	return _c
+}
+
+// OnInterviewTurnStart provides a mock function with given fields: ctx, req
+func (_m *MockWebSocketClientCallbacks) OnInterviewTurnStart(ctx context.Context, req websocket.MsgInterviewTurnStart) {
+	_m.Called(ctx, req)
+}
+
+// MockWebSocketClientCallbacks_OnInterviewTurnStart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OnInterviewTurnStart'
+type MockWebSocketClientCallbacks_OnInterviewTurnStart_Call struct {
+	*mock.Call
+}
+
+// OnInterviewTurnStart is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req websocket.MsgInterviewTurnStart
+func (_e *MockWebSocketClientCallbacks_Expecter) OnInterviewTurnStart(ctx interface{}, req interface{}) *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call {
+	return &MockWebSocketClientCallbacks_OnInterviewTurnStart_Call{Call: _e.mock.On("OnInterviewTurnStart", ctx, req)}
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call) Run(run func(ctx context.Context, req websocket.MsgInterviewTurnStart)) *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(websocket.MsgInterviewTurnStart))
+	})
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call) Return() *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call) RunAndReturn(run func(context.Context, websocket.MsgInterviewTurnStart)) *MockWebSocketClientCallbacks_OnInterviewTurnStart_Call {
+	_c.Run(run)
+	return _c
+}
+
 // OnInterviewerAudioChunk provides a mock function with given fields: ctx, data
 func (_m *MockWebSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, data []byte) {
 	_m.Called(ctx, data)

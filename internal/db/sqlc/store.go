@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
@@ -47,4 +48,16 @@ func (store *SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) erro
 	}
 
 	return tx.Commit()
+}
+
+// LogQuery logs SQL queries for debugging
+func (store *SQLStore) LogQuery(ctx context.Context, query string, args ...interface{}) {
+	start := time.Now()
+	store.log.InfoWithID(ctx, fmt.Sprintf("🔍 SQL Query: %s", query), "args", args)
+
+	// Log query execution time
+	defer func() {
+		duration := time.Since(start)
+		store.log.InfoWithID(ctx, fmt.Sprintf("⏱️ Query executed in: %v", duration))
+	}()
 }

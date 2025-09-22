@@ -1784,23 +1784,23 @@ func TestResumeService_GetResumeByID(t *testing.T) {
 	}
 }
 
-func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
+func TestResumeService_DownloadResumeByResumeId(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	resumeID := "01234567-89ab-cdef-0123-456789abcdef"
-	sessionToken := "01234567-89ab-cdef-0123-456789abcdef"
 	userID := "01234567-89ab-cdef-0123-456789abcdef"
+	anotherUserID := "00234567-89ab-cdef-0123-456789abcdef"
 
 	testCases := []struct {
 		name   string
-		input  *entities.DownloadResumeBySessionTokenReq
+		input  *entities.DownloadResumeByResumeIdReq
 		setup  func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService)
-		verify func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error)
+		verify func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error)
 	}{
 		{
 			name: "Success",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
 			},
 			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)
@@ -1828,15 +1828,6 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 						},
 					}, nil)
 
-				mockInterviewSessionService.EXPECT().
-					IsSessionValid(ctx, &entities.IsSessionValidReq{
-						SessionToken: sessionToken,
-						UserID:       userID,
-					}).
-					Return(&entities.IsSessionValidResp{
-						ResumeID: resumeID,
-					}, nil)
-
 				mockResumeRepository.EXPECT().
 					GetResumeByID(ctx, uuid.MustParse(resumeID)).
 					Return(&resume, nil)
@@ -1847,17 +1838,36 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 
 				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
 			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, "resume.pdf", gotResp.FileName)
 				assert.Equal(t, "https://s3.amazonaws.com/presigned-url", gotResp.FileUrl)
 			},
 		},
 		{
+			name: "Error - WithInvalidResumeID",
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: "invalid-resume-id",
+			},
+			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockS3Storage := new(mockS3.MockS3Storage)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockInterviewSessionService := new(mockServices.MockInterviewSessionService)
+
+				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
 			name: "Error - InvalidAuthContext",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
 			},
 			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)
@@ -1871,16 +1881,16 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 
 				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
 			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, gotResp)
 				assert.Equal(t, "invalid auth context", gotErr.Error())
 			},
 		},
 		{
-			name: "Error - InvalidSession",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
+			name: "Error - WithInvalidUserIDFromAuthContext",
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
 			},
 			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)
@@ -1893,66 +1903,23 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 					Return(&middleware.AuthPayload{
 						Payload: &utilsPkg.SignInTokenPayload{
 							ID:     uuid.MustParse(userID),
-							UserID: userID,
+							UserID: "invalid-user-id",
 						},
-					}, nil)
-
-				mockInterviewSessionService.EXPECT().
-					IsSessionValid(ctx, &entities.IsSessionValidReq{
-						SessionToken: sessionToken,
-						UserID:       userID,
-					}).
-					Return(nil, errors.New("session not found"))
-
-				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-				assert.Contains(t, gotErr.Error(), "session not found")
-			},
-		},
-		{
-			name: "Error - WithInvalidResumeID",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
-			},
-			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
-				mockResumeRepository := new(mockResume.MockResumeReposity)
-				mockS3Storage := new(mockS3.MockS3Storage)
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionService := new(mockServices.MockInterviewSessionService)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							ID:     uuid.MustParse(userID),
-							UserID: userID,
-						},
-					}, nil)
-
-				mockInterviewSessionService.EXPECT().
-					IsSessionValid(ctx, &entities.IsSessionValidReq{
-						SessionToken: sessionToken,
-						UserID:       userID,
-					}).
-					Return(&entities.IsSessionValidResp{
-						ResumeID: "invalid-resume-id",
 					}, nil)
 
 				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
 			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, gotResp)
-				assert.Contains(t, gotErr.Error(), "invalid UUID")
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
 			},
 		},
 		{
 			name: "Error - WithResumeNotFound",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
 			},
 			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)
@@ -1967,15 +1934,6 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 							ID:     uuid.MustParse(userID),
 							UserID: userID,
 						},
-					}, nil)
-
-				mockInterviewSessionService.EXPECT().
-					IsSessionValid(ctx, &entities.IsSessionValidReq{
-						SessionToken: sessionToken,
-						UserID:       userID,
-					}).
-					Return(&entities.IsSessionValidResp{
-						ResumeID: resumeID,
 					}, nil)
 
 				mockResumeRepository.EXPECT().
@@ -1984,16 +1942,59 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 
 				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
 			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, gotResp)
 				assert.Equal(t, "resume not found", gotErr.Error())
 			},
 		},
 		{
+			name: "Error - WithResumeDoesNotBelongToUser",
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
+			},
+			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
+				mockResumeRepository := new(mockResume.MockResumeReposity)
+				mockS3Storage := new(mockS3.MockS3Storage)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockInterviewSessionService := new(mockServices.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							ID:     uuid.MustParse(userID),
+							UserID: userID,
+						},
+					}, nil)
+
+				mockResumeRepository.EXPECT().
+					GetResumeByID(ctx, uuid.MustParse(resumeID)).
+					Return(&db.Resumes{
+						ID:         uuid.MustParse(resumeID),
+						UserID:     uuid.MustParse(anotherUserID),
+						FileName:   "resume.pdf",
+						StorageKey: "s3-key-123",
+						MimeType:   "application/pdf",
+						ByteSize:   1024,
+						IsDefault:  true,
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
+					}, nil)
+
+				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "The request is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0306]")
+			},
+		},
+		{
 			name: "Error - WithPresignedURLGenerationFailure",
-			input: &entities.DownloadResumeBySessionTokenReq{
-				SessionToken: sessionToken,
+			input: &entities.DownloadResumeByResumeIdReq{
+				ResumeID: resumeID,
 			},
 			setup: func() (*mockResume.MockResumeReposity, *mockS3.MockS3Storage, *mockMiddleware.MockAuthContext, *mockServices.MockInterviewSessionService) {
 				mockResumeRepository := new(mockResume.MockResumeReposity)
@@ -2021,15 +2022,6 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 						},
 					}, nil)
 
-				mockInterviewSessionService.EXPECT().
-					IsSessionValid(ctx, &entities.IsSessionValidReq{
-						SessionToken: sessionToken,
-						UserID:       userID,
-					}).
-					Return(&entities.IsSessionValidResp{
-						ResumeID: resumeID,
-					}, nil)
-
 				mockResumeRepository.EXPECT().
 					GetResumeByID(ctx, uuid.MustParse(resumeID)).
 					Return(&resume, nil)
@@ -2040,7 +2032,7 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 
 				return mockResumeRepository, mockS3Storage, mockAuthContext, mockInterviewSessionService
 			},
-			verify: func(t *testing.T, gotResp *entities.DownloadResumeBySessionTokenResp, gotErr error) {
+			verify: func(t *testing.T, gotResp *entities.DownloadResumeByResumeIdResp, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, gotResp)
 				assert.Equal(t, "S3 error", gotErr.Error())
@@ -2067,7 +2059,7 @@ func TestResumeService_DownloadResumeBySessionToken(t *testing.T) {
 			}()
 
 			svc := NewResumeService(lgr, mockResumeRepository, mockAuthContext, mockS3Storage, nil, nil, nil, nil, mockInterviewSessionService)
-			gotResp, gotErr := svc.DownloadResumeBySessionToken(ctx, tC.input)
+			gotResp, gotErr := svc.DownloadResumeByResumeId(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

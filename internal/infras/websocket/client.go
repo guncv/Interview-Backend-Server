@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -40,7 +39,6 @@ type webSocketClient struct {
 
 	conn         *websocket.Conn
 	connected    bool
-	mu           sync.Mutex
 	lastPongTime time.Time
 	pongReceived chan struct{}
 	cancelFunc   context.CancelFunc
@@ -329,6 +327,24 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 					return
 				}
 				c.cb.OnInterviewerResp(ctx, msg)
+
+			case constants.WebSocketMessageTypeInterviewTurnStart:
+				var msg MsgInterviewTurnStart
+
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
+				}
+				c.cb.OnInterviewTurnStart(ctx, msg)
+
+			case constants.WebSocketMessageTypeInterviewTurnEnd:
+				var msg MsgInterviewTurnEnd
+
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
+				}
+				c.cb.OnInterviewTurnEnd(ctx, msg)
 			}
 
 		case websocket.BinaryMessage:
@@ -344,9 +360,7 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 	defer t.Stop()
 
 	for range t.C {
-		c.mu.Lock()
 		timeSinceLastPong := time.Since(c.lastPongTime)
-		c.mu.Unlock()
 
 		if timeSinceLastPong > constants.WebSocketPongTimeout {
 			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Pong timeout - no pong received", map[string]interface{}{
@@ -360,9 +374,7 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 			return
 		}
 
-		c.mu.Lock()
 		err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
-		c.mu.Unlock()
 		if err != nil {
 			c.log.ErrorWithID(ctx, "[WebSocketClient: pingLoop] Error writing ping message", err)
 			c.connected = false

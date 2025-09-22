@@ -6,16 +6,21 @@ type ErrorCode string
 
 const (
 	// General
-	ErrCodeGeneralServerUnavailable   ErrorCode = "INS0101"
-	ErrCodeGeneralRequestTimeout      ErrorCode = "INS0102"
-	ErrCodeGeneralResourceNotFound    ErrorCode = "INS0104"
-	ErrCodeGeneralDatabaseConnection  ErrorCode = "INS0105"
-	ErrCodeGeneralConstraintViolation ErrorCode = "INS0106"
-	ErrCodeGeneralInvalidUUID         ErrorCode = "INS0107"
-	ErrCodeGeneralRedisSetFailed      ErrorCode = "INS0108"
-	ErrCodeGeneralRedisGetFailed      ErrorCode = "INS0109"
-	ErrCodeGeneralUnmarshalFailed     ErrorCode = "INS0110"
-	ErrCodeGeneralPermissionDenied    ErrorCode = "INS0111"
+	ErrCodeGeneralServerUnavailable     ErrorCode = "INS0101"
+	ErrCodeGeneralRequestTimeout        ErrorCode = "INS0102"
+	ErrCodeGeneralResourceNotFound      ErrorCode = "INS0104"
+	ErrCodeGeneralDatabaseConnection    ErrorCode = "INS0105"
+	ErrCodeGeneralConstraintViolation   ErrorCode = "INS0106"
+	ErrCodeGeneralInvalidUUID           ErrorCode = "INS0107"
+	ErrCodeGeneralInvalidTime           ErrorCode = "INS0108"
+	ErrCodeGeneralRedisSetFailed        ErrorCode = "INS0109"
+	ErrCodeGeneralRedisGetFailed        ErrorCode = "INS0110"
+	ErrCodeGeneralUnmarshalFailed       ErrorCode = "INS0111"
+	ErrCodeGeneralPermissionDenied      ErrorCode = "INS0112"
+	ErrCodeGeneralInvalidLimit          ErrorCode = "INS0113"
+	ErrCodeGeneralInvalidNumber         ErrorCode = "INS0114"
+	ErrCodeGeneralInvalidOffset         ErrorCode = "INS0115"
+	ErrCodeGeneralInvalidPaginationType ErrorCode = "INS0116"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "INS0200"

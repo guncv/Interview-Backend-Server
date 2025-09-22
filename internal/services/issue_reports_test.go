@@ -667,7 +667,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "You are not authorized to perform this action")
-				assert.Contains(t, gotErr.Error(), "[INS0111]")
+				assert.Contains(t, gotErr.Error(), "[INS0112]")
 			},
 		},
 		{

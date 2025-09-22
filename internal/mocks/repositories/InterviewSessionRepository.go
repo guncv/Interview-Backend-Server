@@ -83,6 +83,63 @@ func (_c *MockInterviewSessionRepository_CheckInterviewSessionExists_Call) RunAn
 	return _c
 }
 
+// CountInterviewSessionsByUserID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountInterviewSessionsByUserID")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.CountInterviewSessionsByUserIDParams) (int64, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.CountInterviewSessionsByUserIDParams) int64); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.CountInterviewSessionsByUserIDParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountInterviewSessionsByUserID'
+type MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call struct {
+	*mock.Call
+}
+
+// CountInterviewSessionsByUserID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.CountInterviewSessionsByUserIDParams
+func (_e *MockInterviewSessionRepository_Expecter) CountInterviewSessionsByUserID(ctx interface{}, req interface{}) *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call {
+	return &MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call{Call: _e.mock.On("CountInterviewSessionsByUserID", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call) Run(run func(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams)) *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.CountInterviewSessionsByUserIDParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call) Return(_a0 int64, _a1 error) *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call) RunAndReturn(run func(context.Context, *db.CountInterviewSessionsByUserIDParams) (int64, error)) *MockInterviewSessionRepository_CountInterviewSessionsByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateInterviewSession provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error {
 	ret := _m.Called(ctx, req)
@@ -397,6 +454,183 @@ func (_c *MockInterviewSessionRepository_InterviewFeedbackAndScore_Call) Return(
 }
 
 func (_c *MockInterviewSessionRepository_InterviewFeedbackAndScore_Call) RunAndReturn(run func(context.Context, *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error)) *MockInterviewSessionRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDFirstPage provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDFirstPage")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDFirstPageRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) []db.ListInterviewSessionsByUserIDFirstPageRow); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDFirstPageRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDFirstPage'
+type MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDFirstPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.ListInterviewSessionsByUserIDFirstPageParams
+func (_e *MockInterviewSessionRepository_Expecter) ListInterviewSessionsByUserIDFirstPage(ctx interface{}, req interface{}) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	return &MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDFirstPage", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) Run(run func(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.ListInterviewSessionsByUserIDFirstPageParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) Return(_a0 []db.ListInterviewSessionsByUserIDFirstPageRow, _a1 error) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call) RunAndReturn(run func(context.Context, *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithCursor")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDWithCursorRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDWithCursorParams) []db.ListInterviewSessionsByUserIDWithCursorRow); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDWithCursorRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.ListInterviewSessionsByUserIDWithCursorParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithCursor'
+type MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithCursor is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.ListInterviewSessionsByUserIDWithCursorParams
+func (_e *MockInterviewSessionRepository_Expecter) ListInterviewSessionsByUserIDWithCursor(ctx interface{}, req interface{}) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call {
+	return &MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithCursor", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call) Run(run func(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.ListInterviewSessionsByUserIDWithCursorParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call) Return(_a0 []db.ListInterviewSessionsByUserIDWithCursorRow, _a1 error) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call) RunAndReturn(run func(context.Context, *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithJumpPagination")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDWithJumpPaginationRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) []db.ListInterviewSessionsByUserIDWithJumpPaginationRow); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithJumpPagination'
+type MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams
+func (_e *MockInterviewSessionRepository_Expecter) ListInterviewSessionsByUserIDWithJumpPagination(ctx interface{}, req interface{}) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	return &MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithJumpPagination", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call) Run(run func(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.ListInterviewSessionsByUserIDWithJumpPaginationParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call) Return(_a0 []db.ListInterviewSessionsByUserIDWithJumpPaginationRow, _a1 error) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call) RunAndReturn(run func(context.Context, *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)) *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPagination_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -27,28 +27,55 @@ func (q *Queries) CheckInterviewSessionExists(ctx context.Context, id uuid.UUID)
 	return exists, err
 }
 
+const countInterviewSessionsByUserID = `-- name: CountInterviewSessionsByUserID :one
+SELECT COUNT(*)
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $2::text IS NULL OR $2::text = ''
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+`
+
+type CountInterviewSessionsByUserIDParams struct {
+	UserID  uuid.UUID `json:"user_id"`
+	Column2 string    `json:"column_2"`
+}
+
+func (q *Queries) CountInterviewSessionsByUserID(ctx context.Context, arg CountInterviewSessionsByUserIDParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countInterviewSessionsByUserID, arg.UserID, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createInterviewSession = `-- name: CreateInterviewSession :exec
 INSERT INTO interview_sessions (
     id,
     user_id,
     resume_id,
+    resume_file_name,
     position,
     modality,
     status,
     is_consent
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
 type CreateInterviewSessionParams struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id"`
-	ResumeID  uuid.UUID `json:"resume_id"`
-	Position  string    `json:"position"`
-	Modality  string    `json:"modality"`
-	Status    string    `json:"status"`
-	IsConsent bool      `json:"is_consent"`
+	ID             uuid.UUID `json:"id"`
+	UserID         uuid.UUID `json:"user_id"`
+	ResumeID       uuid.UUID `json:"resume_id"`
+	ResumeFileName string    `json:"resume_file_name"`
+	Position       string    `json:"position"`
+	Modality       string    `json:"modality"`
+	Status         string    `json:"status"`
+	IsConsent      bool      `json:"is_consent"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -56,6 +83,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.ID,
 		arg.UserID,
 		arg.ResumeID,
+		arg.ResumeFileName,
 		arg.Position,
 		arg.Modality,
 		arg.Status,
@@ -74,11 +102,11 @@ WHERE id = $1
 `
 
 type EndInterviewSessionParams struct {
-	ID           uuid.UUID      `json:"id"`
-	Status       string         `json:"status"`
-	EndedAt      sql.NullTime   `json:"ended_at"`
-	OverallScore sql.NullString `json:"overall_score"`
-	SummaryMd    sql.NullString `json:"summary_md"`
+	ID           uuid.UUID       `json:"id"`
+	Status       string          `json:"status"`
+	EndedAt      sql.NullTime    `json:"ended_at"`
+	OverallScore sql.NullFloat64 `json:"overall_score"`
+	SummaryMd    sql.NullString  `json:"summary_md"`
 }
 
 func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error) {
@@ -97,24 +125,21 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 
 const getInterviewSessionInformation = `-- name: GetInterviewSessionInformation :one
 SELECT
-    i.user_id AS user_id,
-    i.position AS position,
-    r.file_name AS file_name
-FROM interview_sessions i
-JOIN resumes r ON i.resume_id = r.id
-WHERE i.id = $1
+    user_id,
+    position
+FROM interview_sessions
+WHERE id = $1
 `
 
 type GetInterviewSessionInformationRow struct {
 	UserID   uuid.UUID `json:"user_id"`
 	Position string    `json:"position"`
-	FileName string    `json:"file_name"`
 }
 
 func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error) {
 	row := q.db.QueryRowContext(ctx, getInterviewSessionInformation, id)
 	var i GetInterviewSessionInformationRow
-	err := row.Scan(&i.UserID, &i.Position, &i.FileName)
+	err := row.Scan(&i.UserID, &i.Position)
 	return i, err
 }
 
@@ -134,6 +159,263 @@ func (q *Queries) GetStartedAndIsStartedConversationSession(ctx context.Context,
 	var i GetStartedAndIsStartedConversationSessionRow
 	err := row.Scan(&i.StartedAt, &i.IsStartedConversation)
 	return i, err
+}
+
+const listInterviewSessionsByUserIDFirstPage = `-- name: ListInterviewSessionsByUserIDFirstPage :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $2::text IS NULL OR $2::text = ''
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+ORDER BY created_at DESC, id DESC
+LIMIT $3
+`
+
+type ListInterviewSessionsByUserIDFirstPageParams struct {
+	UserID  uuid.UUID `json:"user_id"`
+	Column2 string    `json:"column_2"`
+	Limit   int32     `json:"limit"`
+}
+
+type ListInterviewSessionsByUserIDFirstPageRow struct {
+	ID             uuid.UUID       `json:"id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
+}
+
+func (q *Queries) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg ListInterviewSessionsByUserIDFirstPageParams) ([]ListInterviewSessionsByUserIDFirstPageRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInterviewSessionsByUserIDFirstPage, arg.UserID, arg.Column2, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListInterviewSessionsByUserIDFirstPageRow{}
+	for rows.Next() {
+		var i ListInterviewSessionsByUserIDFirstPageRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResumeID,
+			&i.ResumeFileName,
+			&i.Position,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.OverallScore,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInterviewSessionsByUserIDWithCursor = `-- name: ListInterviewSessionsByUserIDWithCursor :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $2::text IS NULL OR $2::text = ''
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+    AND (
+        $4 = 'next'
+        AND (
+            created_at < $3
+            OR (created_at = $3 AND id < $5)
+        )
+        OR (
+            $4 = 'prev'
+            AND (
+                created_at > $3
+                OR (created_at = $3 AND id > $5)
+            )
+        )
+    )
+ORDER BY
+    CASE WHEN $4 = 'next' THEN created_at END DESC,
+    CASE WHEN $4 = 'next' THEN id END DESC,
+    CASE WHEN $4 = 'prev' THEN created_at END ASC,
+    CASE WHEN $4 = 'prev' THEN id END ASC
+LIMIT $6
+`
+
+type ListInterviewSessionsByUserIDWithCursorParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	Column2   string       `json:"column_2"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	Column4   interface{}  `json:"column_4"`
+	ID        uuid.UUID    `json:"id"`
+	Limit     int32        `json:"limit"`
+}
+
+type ListInterviewSessionsByUserIDWithCursorRow struct {
+	ID             uuid.UUID       `json:"id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
+}
+
+func (q *Queries) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, arg ListInterviewSessionsByUserIDWithCursorParams) ([]ListInterviewSessionsByUserIDWithCursorRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInterviewSessionsByUserIDWithCursor,
+		arg.UserID,
+		arg.Column2,
+		arg.CreatedAt,
+		arg.Column4,
+		arg.ID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListInterviewSessionsByUserIDWithCursorRow{}
+	for rows.Next() {
+		var i ListInterviewSessionsByUserIDWithCursorRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResumeID,
+			&i.ResumeFileName,
+			&i.Position,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.OverallScore,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInterviewSessionsByUserIDWithJumpPagination = `-- name: ListInterviewSessionsByUserIDWithJumpPagination :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $4::text IS NULL OR $4::text = ''
+        OR position ILIKE '%' || $4 || '%'
+        OR status ILIKE '%' || $4 || '%'
+        OR resume_file_name ILIKE '%' || $4 || '%'
+    )
+ORDER BY created_at DESC, id DESC
+OFFSET ($2 - 1) * $3
+LIMIT $3
+`
+
+type ListInterviewSessionsByUserIDWithJumpPaginationParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	Column2 interface{} `json:"column_2"`
+	Limit   int32       `json:"limit"`
+	Column4 string      `json:"column_4"`
+}
+
+type ListInterviewSessionsByUserIDWithJumpPaginationRow struct {
+	ID             uuid.UUID       `json:"id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
+}
+
+func (q *Queries) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, arg ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]ListInterviewSessionsByUserIDWithJumpPaginationRow, error) {
+	rows, err := q.db.QueryContext(ctx, listInterviewSessionsByUserIDWithJumpPagination,
+		arg.UserID,
+		arg.Column2,
+		arg.Limit,
+		arg.Column4,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListInterviewSessionsByUserIDWithJumpPaginationRow{}
+	for rows.Next() {
+		var i ListInterviewSessionsByUserIDWithJumpPaginationRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResumeID,
+			&i.ResumeFileName,
+			&i.Position,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.OverallScore,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows

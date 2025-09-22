@@ -105,7 +105,7 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 		resumeMiddleRoutes.POST("/switch-default", resumeHandler.SwitchDefaultResume)
 		resumeMiddleRoutes.GET("/:id", resumeHandler.GetResumeByID)
 		resumeMiddleRoutes.GET("/list", resumeHandler.ListResume)
-		resumeMiddleRoutes.GET("/download/:session_token", resumeHandler.DownloadResumeBySessionToken)
+		resumeMiddleRoutes.GET("/download/:resume_id", resumeHandler.DownloadResumeByResumeId)
 	}
 }
 
@@ -117,6 +117,8 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 		interviewSessionMiddleRoutes.GET("/chat-history/:session_token", interviewSessionHandler.GetChatHistoryBySessionToken)
 		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
+		interviewSessionMiddleRoutes.GET("/cursor", interviewSessionHandler.ListInterviewSessionsByUserIDWithCursor)
+		interviewSessionMiddleRoutes.GET("/jump", interviewSessionHandler.ListInterviewSessionsByUserIDWithJumpPagination)
 	}
 }
 

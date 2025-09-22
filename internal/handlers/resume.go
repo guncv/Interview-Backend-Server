@@ -165,51 +165,51 @@ func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// DownloadResumeBySessionToken godoc
-// @Summary Download resume by session token
-// @Description Download a specific resume by its session token
+// DownloadResumeByResumeId godoc
+// @Summary Download resume by resume ID
+// @Description Download a specific resume by its resume ID
 // @Tags Resumes
 // @Accept json
 // @Produce json
-// @Param session_token path string true "Session token (UUID)"
+// @Param resume_id path string true "Resume ID (UUID)"
 // @Security BearerAuth
-// @Success 200 {object} entities.DownloadResumeBySessionTokenResp
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid session token"
+// @Success 200 {object} entities.DownloadResumeByResumeIdResp
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid resume ID"
 // @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
 // @Failure 404 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Session not found"
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /resumes/download/{session_token} [get]
-func (h *ResumeHandler) DownloadResumeBySessionToken(c *gin.Context) {
+// @Router /resumes/download/{resume_id} [get]
+func (h *ResumeHandler) DownloadResumeByResumeId(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: DownloadResumeBySessionToken] Called")
+	h.log.InfoWithID(ctx, "[Handler: DownloadResumeByResumeId] Called")
 
-	sessionToken := c.Param("session_token")
-	if sessionToken == "" {
-		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Session token is required")
-		utils.RespondWithError(c, app_error.New(errors.New("session token is required"), app_error.ErrCodeResumeInvalidRequest))
+	resumeId := c.Param("resume_id")
+	if resumeId == "" {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeByResumeId] Resume ID is required")
+		utils.RespondWithError(c, app_error.New(errors.New("resume ID is required"), app_error.ErrCodeResumeInvalidRequest))
 		return
 	}
 
-	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Invalid session token", err)
+	if err := h.validator.GetValidate().Var(resumeId, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeByResumeId] Invalid resume ID", err)
 		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeResumeInvalidRequest))
 		return
 	}
 
-	req := entities.DownloadResumeBySessionTokenReq{
-		SessionToken: sessionToken,
+	req := entities.DownloadResumeByResumeIdReq{
+		ResumeID: resumeId,
 	}
 
 	ctx, err := h.authContext.ExtractAuthContext(c)
 	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Error getting auth context", err)
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeByResumeId] Error getting auth context", err)
 		utils.RespondWithError(c, err)
 		return
 	}
 
-	resp, err := h.resumeService.DownloadResumeBySessionToken(ctx, &req)
+	resp, err := h.resumeService.DownloadResumeByResumeId(ctx, &req)
 	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeBySessionToken] Error downloading resume", err)
+		h.log.ErrorWithID(ctx, "[Handler: DownloadResumeByResumeId] Error downloading resume", err)
 		utils.RespondWithError(c, err)
 		return
 	}

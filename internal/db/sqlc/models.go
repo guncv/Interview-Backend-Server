@@ -11,6 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
+type AuthSessions struct {
+	ID               uuid.UUID    `json:"id"`
+	UserID           uuid.UUID    `json:"user_id"`
+	RefreshTokenHash string       `json:"refresh_token_hash"`
+	UserAgent        string       `json:"user_agent"`
+	IpAddress        string       `json:"ip_address"`
+	LoginTime        sql.NullTime `json:"login_time"`
+	LastActive       sql.NullTime `json:"last_active"`
+	ExpiresAt        sql.NullTime `json:"expires_at"`
+	IsRevoked        sql.NullBool `json:"is_revoked"`
+	CreatedAt        sql.NullTime `json:"created_at"`
+	UpdatedAt        sql.NullTime `json:"updated_at"`
+}
+
 type EvaluationCriteria struct {
 	ID            uuid.UUID      `json:"id"`
 	RubricID      uuid.UUID      `json:"rubric_id"`
@@ -63,22 +77,23 @@ type Evaluations struct {
 }
 
 type InterviewSessions struct {
-	ID                    uuid.UUID      `json:"id"`
-	UserID                uuid.UUID      `json:"user_id"`
-	ResumeID              uuid.UUID      `json:"resume_id"`
-	Position              string         `json:"position"`
-	Modality              string         `json:"modality"`
-	Status                string         `json:"status"`
-	IsConsent             bool           `json:"is_consent"`
-	StartedAt             sql.NullTime   `json:"started_at"`
-	EndedAt               sql.NullTime   `json:"ended_at"`
-	OverallScore          sql.NullString `json:"overall_score"`
-	SummaryMd             sql.NullString `json:"summary_md"`
-	CreatedAt             sql.NullTime   `json:"created_at"`
-	UpdatedAt             sql.NullTime   `json:"updated_at"`
-	DeletedAt             sql.NullTime   `json:"deleted_at"`
-	SoftDelete            sql.NullBool   `json:"soft_delete"`
-	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
+	ID                    uuid.UUID       `json:"id"`
+	UserID                uuid.UUID       `json:"user_id"`
+	ResumeID              uuid.UUID       `json:"resume_id"`
+	Position              string          `json:"position"`
+	Modality              string          `json:"modality"`
+	Status                string          `json:"status"`
+	IsConsent             bool            `json:"is_consent"`
+	StartedAt             sql.NullTime    `json:"started_at"`
+	EndedAt               sql.NullTime    `json:"ended_at"`
+	OverallScore          sql.NullFloat64 `json:"overall_score"`
+	SummaryMd             sql.NullString  `json:"summary_md"`
+	CreatedAt             sql.NullTime    `json:"created_at"`
+	UpdatedAt             sql.NullTime    `json:"updated_at"`
+	DeletedAt             sql.NullTime    `json:"deleted_at"`
+	SoftDelete            sql.NullBool    `json:"soft_delete"`
+	IsStartedConversation sql.NullBool    `json:"is_started_conversation"`
+	ResumeFileName        string          `json:"resume_file_name"`
 }
 
 type InterviewTurns struct {
@@ -169,20 +184,6 @@ type ReviewComments struct {
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
 	SoftDelete   sql.NullBool   `json:"soft_delete"`
-}
-
-type Sessions struct {
-	ID               uuid.UUID    `json:"id"`
-	UserID           uuid.UUID    `json:"user_id"`
-	RefreshTokenHash string       `json:"refresh_token_hash"`
-	UserAgent        string       `json:"user_agent"`
-	IpAddress        string       `json:"ip_address"`
-	LoginTime        sql.NullTime `json:"login_time"`
-	LastActive       sql.NullTime `json:"last_active"`
-	ExpiresAt        sql.NullTime `json:"expires_at"`
-	IsRevoked        sql.NullBool `json:"is_revoked"`
-	CreatedAt        sql.NullTime `json:"created_at"`
-	UpdatedAt        sql.NullTime `json:"updated_at"`
 }
 
 type UserTurnImprovements struct {

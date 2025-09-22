@@ -25,7 +25,7 @@ func (_m *MockSessionRepository) EXPECT() *MockSessionRepository_Expecter {
 }
 
 // CreateSession provides a mock function with given fields: ctx, req
-func (_m *MockSessionRepository) CreateSession(ctx context.Context, req *db.CreateSessionParams) error {
+func (_m *MockSessionRepository) CreateSession(ctx context.Context, req *db.CreateAuthSessionParams) error {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
@@ -33,7 +33,7 @@ func (_m *MockSessionRepository) CreateSession(ctx context.Context, req *db.Crea
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *db.CreateSessionParams) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *db.CreateAuthSessionParams) error); ok {
 		r0 = rf(ctx, req)
 	} else {
 		r0 = ret.Error(0)
@@ -49,14 +49,14 @@ type MockSessionRepository_CreateSession_Call struct {
 
 // CreateSession is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *db.CreateSessionParams
+//   - req *db.CreateAuthSessionParams
 func (_e *MockSessionRepository_Expecter) CreateSession(ctx interface{}, req interface{}) *MockSessionRepository_CreateSession_Call {
 	return &MockSessionRepository_CreateSession_Call{Call: _e.mock.On("CreateSession", ctx, req)}
 }
 
-func (_c *MockSessionRepository_CreateSession_Call) Run(run func(ctx context.Context, req *db.CreateSessionParams)) *MockSessionRepository_CreateSession_Call {
+func (_c *MockSessionRepository_CreateSession_Call) Run(run func(ctx context.Context, req *db.CreateAuthSessionParams)) *MockSessionRepository_CreateSession_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*db.CreateSessionParams))
+		run(args[0].(context.Context), args[1].(*db.CreateAuthSessionParams))
 	})
 	return _c
 }
@@ -66,29 +66,29 @@ func (_c *MockSessionRepository_CreateSession_Call) Return(_a0 error) *MockSessi
 	return _c
 }
 
-func (_c *MockSessionRepository_CreateSession_Call) RunAndReturn(run func(context.Context, *db.CreateSessionParams) error) *MockSessionRepository_CreateSession_Call {
+func (_c *MockSessionRepository_CreateSession_Call) RunAndReturn(run func(context.Context, *db.CreateAuthSessionParams) error) *MockSessionRepository_CreateSession_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (*db.Sessions, error) {
+func (_m *MockSessionRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (*db.AuthSessions, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSessionByID")
 	}
 
-	var r0 *db.Sessions
+	var r0 *db.AuthSessions
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.Sessions, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.AuthSessions, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.Sessions); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.AuthSessions); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.Sessions)
+			r0 = ret.Get(0).(*db.AuthSessions)
 		}
 	}
 
@@ -120,12 +120,12 @@ func (_c *MockSessionRepository_GetSessionByID_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockSessionRepository_GetSessionByID_Call) Return(_a0 *db.Sessions, _a1 error) *MockSessionRepository_GetSessionByID_Call {
+func (_c *MockSessionRepository_GetSessionByID_Call) Return(_a0 *db.AuthSessions, _a1 error) *MockSessionRepository_GetSessionByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockSessionRepository_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.Sessions, error)) *MockSessionRepository_GetSessionByID_Call {
+func (_c *MockSessionRepository_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.AuthSessions, error)) *MockSessionRepository_GetSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

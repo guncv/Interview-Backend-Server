@@ -340,6 +340,53 @@ func (_c *MockInterviewSessionService_CreateUserSessionTurnBySessionID_Call) Run
 	return _c
 }
 
+// EndInterviewSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EndInterviewSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.EndInterviewSessionReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionService_EndInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EndInterviewSession'
+type MockInterviewSessionService_EndInterviewSession_Call struct {
+	*mock.Call
+}
+
+// EndInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.EndInterviewSessionReq
+func (_e *MockInterviewSessionService_Expecter) EndInterviewSession(ctx interface{}, req interface{}) *MockInterviewSessionService_EndInterviewSession_Call {
+	return &MockInterviewSessionService_EndInterviewSession_Call{Call: _e.mock.On("EndInterviewSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) Run(run func(ctx context.Context, req *entities.EndInterviewSessionReq)) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.EndInterviewSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) Return(_a0 error) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_EndInterviewSession_Call) RunAndReturn(run func(context.Context, *entities.EndInterviewSessionReq) error) *MockInterviewSessionService_EndInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetChatHistoryBySessionToken provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
 	ret := _m.Called(ctx, req)
@@ -631,6 +678,124 @@ func (_c *MockInterviewSessionService_IsSessionValid_Call) Return(_a0 *entities.
 }
 
 func (_c *MockInterviewSessionService_IsSessionValid_Call) RunAndReturn(run func(context.Context, *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)) *MockInterviewSessionService_IsSessionValid_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithCursor")
+	}
+
+	var r0 *entities.ListInterviewSessionsByUserIDResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithCursorReq) *entities.ListInterviewSessionsByUserIDResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ListInterviewSessionsByUserIDResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithCursorReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithCursor'
+type MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithCursor is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ListInterviewSessionsByUserIDWithCursorReq
+func (_e *MockInterviewSessionService_Expecter) ListInterviewSessionsByUserIDWithCursor(ctx interface{}, req interface{}) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call {
+	return &MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithCursor", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call) Run(run func(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq)) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ListInterviewSessionsByUserIDWithCursorReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call) Return(_a0 *entities.ListInterviewSessionsByUserIDResp, _a1 error) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call) RunAndReturn(run func(context.Context, *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithJumpPagination")
+	}
+
+	var r0 *entities.ListInterviewSessionsByUserIDResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) *entities.ListInterviewSessionsByUserIDResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ListInterviewSessionsByUserIDResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithJumpPagination'
+type MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq
+func (_e *MockInterviewSessionService_Expecter) ListInterviewSessionsByUserIDWithJumpPagination(ctx interface{}, req interface{}) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	return &MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithJumpPagination", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call) Run(run func(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq)) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.ListInterviewSessionsByUserIDWithJumpPaginationReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call) Return(_a0 *entities.ListInterviewSessionsByUserIDResp, _a1 error) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call) RunAndReturn(run func(context.Context, *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)) *MockInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination_Call {
 	_c.Call.Return(run)
 	return _c
 }

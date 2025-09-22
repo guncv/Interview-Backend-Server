@@ -131,19 +131,54 @@ type GetInterviewSessionInformationReq struct {
 
 type GetInterviewSessionInformationResp struct {
 	Position string `json:"position"`
-	FileName string `json:"file_name"`
-}
-
-type DownloadResumeBySessionTokenReq struct {
-	SessionToken string `json:"session_token" binding:"required"`
-}
-
-type DownloadResumeBySessionTokenResp struct {
-	FileUrl  string `json:"file_url"`
-	FileName string `json:"file_name"`
 }
 
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
+}
+
+type EndInterviewSessionReq struct {
+	SessionId string `json:"session_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
+}
+
+type ListInterviewSessionsByUserIDWithCursorReq struct {
+	SearchText *string `form:"search_text"`
+	Status     *string `form:"status"`
+	Cursor     *Cursor `form:"cursor"`
+	Limit      *int    `form:"limit"`
+	Type       *string `form:"type"`
+}
+
+type ListInterviewSessionsByUserIDWithJumpPaginationReq struct {
+	SearchText *string `form:"search_text"`
+	Status     *string `form:"status"`
+	Offset     *int    `form:"offset"`
+	Limit      *int    `form:"limit"`
+}
+
+type Cursor struct {
+	CreatedAt string `json:"created_at"`
+	ID        string `json:"id"`
+}
+
+type ListInterviewSessionsByUserIDResp struct {
+	Sessions   []InterviewSessionSummary `json:"sessions"`
+	PrevCursor *Cursor                   `json:"prev_cursor,omitempty"`
+	NextCursor *Cursor                   `json:"next_cursor,omitempty"`
+	TotalPages int                       `json:"total_pages"`
+	PageSize   int                       `json:"page_size"`
+}
+
+type InterviewSessionSummary struct {
+	ID               string  `json:"id"`
+	ResumeID         string  `json:"resume_id"`
+	ResumeFileName   string  `json:"resume_file_name"`
+	Position         string  `json:"position"`
+	Status           string  `json:"status"`
+	TotalTime        string  `json:"total_time"`
+	OverallScore     float64 `json:"overall_score,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+	CreatedAtDisplay string  `json:"created_at_display"`
 }

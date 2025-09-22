@@ -22,28 +22,28 @@ func (_m *MockResumeService) EXPECT() *MockResumeService_Expecter {
 	return &MockResumeService_Expecter{mock: &_m.Mock}
 }
 
-// DownloadResumeBySessionToken provides a mock function with given fields: ctx, req
-func (_m *MockResumeService) DownloadResumeBySessionToken(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error) {
+// DownloadResumeByResumeId provides a mock function with given fields: ctx, req
+func (_m *MockResumeService) DownloadResumeByResumeId(ctx context.Context, req *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
-		panic("no return value specified for DownloadResumeBySessionToken")
+		panic("no return value specified for DownloadResumeByResumeId")
 	}
 
-	var r0 *entities.DownloadResumeBySessionTokenResp
+	var r0 *entities.DownloadResumeByResumeIdResp
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.DownloadResumeBySessionTokenReq) *entities.DownloadResumeBySessionTokenResp); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.DownloadResumeByResumeIdReq) *entities.DownloadResumeByResumeIdResp); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.DownloadResumeBySessionTokenResp)
+			r0 = ret.Get(0).(*entities.DownloadResumeByResumeIdResp)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.DownloadResumeBySessionTokenReq) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.DownloadResumeByResumeIdReq) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -52,31 +52,31 @@ func (_m *MockResumeService) DownloadResumeBySessionToken(ctx context.Context, r
 	return r0, r1
 }
 
-// MockResumeService_DownloadResumeBySessionToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DownloadResumeBySessionToken'
-type MockResumeService_DownloadResumeBySessionToken_Call struct {
+// MockResumeService_DownloadResumeByResumeId_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DownloadResumeByResumeId'
+type MockResumeService_DownloadResumeByResumeId_Call struct {
 	*mock.Call
 }
 
-// DownloadResumeBySessionToken is a helper method to define mock.On call
+// DownloadResumeByResumeId is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *entities.DownloadResumeBySessionTokenReq
-func (_e *MockResumeService_Expecter) DownloadResumeBySessionToken(ctx interface{}, req interface{}) *MockResumeService_DownloadResumeBySessionToken_Call {
-	return &MockResumeService_DownloadResumeBySessionToken_Call{Call: _e.mock.On("DownloadResumeBySessionToken", ctx, req)}
+//   - req *entities.DownloadResumeByResumeIdReq
+func (_e *MockResumeService_Expecter) DownloadResumeByResumeId(ctx interface{}, req interface{}) *MockResumeService_DownloadResumeByResumeId_Call {
+	return &MockResumeService_DownloadResumeByResumeId_Call{Call: _e.mock.On("DownloadResumeByResumeId", ctx, req)}
 }
 
-func (_c *MockResumeService_DownloadResumeBySessionToken_Call) Run(run func(ctx context.Context, req *entities.DownloadResumeBySessionTokenReq)) *MockResumeService_DownloadResumeBySessionToken_Call {
+func (_c *MockResumeService_DownloadResumeByResumeId_Call) Run(run func(ctx context.Context, req *entities.DownloadResumeByResumeIdReq)) *MockResumeService_DownloadResumeByResumeId_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.DownloadResumeBySessionTokenReq))
+		run(args[0].(context.Context), args[1].(*entities.DownloadResumeByResumeIdReq))
 	})
 	return _c
 }
 
-func (_c *MockResumeService_DownloadResumeBySessionToken_Call) Return(_a0 *entities.DownloadResumeBySessionTokenResp, _a1 error) *MockResumeService_DownloadResumeBySessionToken_Call {
+func (_c *MockResumeService_DownloadResumeByResumeId_Call) Return(_a0 *entities.DownloadResumeByResumeIdResp, _a1 error) *MockResumeService_DownloadResumeByResumeId_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockResumeService_DownloadResumeBySessionToken_Call) RunAndReturn(run func(context.Context, *entities.DownloadResumeBySessionTokenReq) (*entities.DownloadResumeBySessionTokenResp, error)) *MockResumeService_DownloadResumeBySessionToken_Call {
+func (_c *MockResumeService_DownloadResumeByResumeId_Call) RunAndReturn(run func(context.Context, *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error)) *MockResumeService_DownloadResumeByResumeId_Call {
 	_c.Call.Return(run)
 	return _c
 }

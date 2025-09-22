@@ -35,13 +35,13 @@ type JwtToken interface {
 type jwtToken struct {
 	config            *config.Config
 	logger            *log.Logger
-	sessionRepository repositories.SessionRepository
+	sessionRepository repositories.AuthSessionRepository
 }
 
 func NewJwtToken(
 	config *config.Config,
 	logger *log.Logger,
-	sessionRepository repositories.SessionRepository,
+	sessionRepository repositories.AuthSessionRepository,
 ) JwtToken {
 	return &jwtToken{
 		config:            config,
@@ -228,9 +228,9 @@ func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string,
 	return accessToken, refreshPayload, nil
 }
 
-func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *SignInTokenPayload) (*db.Sessions, error) {
+func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *SignInTokenPayload) (*db.AuthSessions, error) {
 
-	session, err := maker.sessionRepository.GetSessionByID(ctx, refreshPayload.ID)
+	session, err := maker.sessionRepository.GetAuthSessionByID(ctx, refreshPayload.ID)
 	if err != nil {
 		maker.logger.ErrorWithID(ctx, "[Utils: checkSessionByID] Error getting session", "error", err)
 		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
@@ -254,7 +254,7 @@ func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *Sig
 	return session, nil
 }
 
-func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token string, session *db.Sessions) error {
+func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token string, session *db.AuthSessions) error {
 	maker.logger.InfoWithID(ctx, "[Utils: isRefreshTokenValidWithSession] Checking refresh token with session")
 	refreshTokenHash := maker.HashTokenSHA256(ctx, token)
 

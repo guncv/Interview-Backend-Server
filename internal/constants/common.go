@@ -77,3 +77,10 @@ var (
 	}
 	ResumeMaxFileSize = 5 * 1024 * 1024 // 5MB
 )
+
+// Pagination Constants
+const (
+	DefaultPageSize          = 20
+	PaginationCursorTypeNext = "next"
+	PaginationCursorTypePrev = "prev"
+)

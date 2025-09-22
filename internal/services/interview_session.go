@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,6 +43,9 @@ type InterviewSessionService interface {
 	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
 	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
 	StartConversationBySessionID(ctx context.Context, sessionId string) error
+	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
+	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)
+	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 }
 
 type interviewSessionService struct {
@@ -261,13 +267,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	createInterviewSessionWithExistingResumeReq := &db.CreateInterviewSessionParams{
-		ID:        sessionID,
-		ResumeID:  resumeID,
-		UserID:    userID,
-		Position:  req.Position,
-		Status:    constants.StatusPending,
-		Modality:  constants.ModalityVoiceChat,
-		IsConsent: req.IsConsent,
+		ID:             sessionID,
+		ResumeID:       resumeID,
+		UserID:         userID,
+		ResumeFileName: resume.FileName,
+		Position:       req.Position,
+		Status:         constants.StatusPending,
+		Modality:       constants.ModalityVoiceChat,
+		IsConsent:      req.IsConsent,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -771,7 +778,6 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 		dbSession = &db.GetInterviewSessionInformationRow{
 			UserID:   sessionResp.UserID,
 			Position: sessionResp.Position,
-			FileName: sessionResp.FileName,
 		}
 
 		if jsonBytes, err := json.Marshal(dbSession); err == nil {
@@ -797,7 +803,6 @@ func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Con
 
 	resp := &entities.GetInterviewSessionInformationResp{
 		Position: dbSession.Position,
-		FileName: dbSession.FileName,
 	}
 
 	return resp, nil
@@ -857,6 +862,374 @@ func (s *interviewSessionService) StartConversationBySessionID(ctx context.Conte
 	}
 
 	return nil
+}
+
+func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
+	s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Called")
+
+	sessionID, err := uuid.Parse(req.SessionId)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting all evaluations by session ID", err)
+		return err
+	}
+
+	var overallScore float64
+	var overallSummaryMd string
+
+	evaluationCount := len(evaluations)
+	if evaluationCount > 0 {
+		createEvaluationOverallSummaryTxReq := &repositories.CreateEvaluationOverallSummaryTxReq{
+			SummaryMd: []string{},
+		}
+
+		for _, evaluation := range evaluations {
+			overallScoreFloat, err := strconv.ParseFloat(evaluation.OverallScore, 64)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error parsing overall score", err)
+				return app_error.New(err, app_error.ErrCodeGeneralInvalidNumber)
+			}
+			overallScore += overallScoreFloat
+			createEvaluationOverallSummaryTxReq.SummaryMd = append(createEvaluationOverallSummaryTxReq.SummaryMd, evaluation.SummaryMd)
+		}
+
+		overallScore = overallScore / float64(evaluationCount)
+
+		overallSummary, err := s.evaluationScoresRepo.GetEvaluationOverallSummary(ctx, createEvaluationOverallSummaryTxReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting evaluation overall summary", err)
+			return err
+		}
+
+		overallSummaryMd = overallSummary.OverallSummaryMd
+	} else {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] No evaluations found")
+		overallScore = 0.0
+		overallSummaryMd = constants.BlankOverallSummaryMd
+	}
+
+	dbReq := &db.EndInterviewSessionParams{
+		ID:           sessionID,
+		Status:       req.Status,
+		EndedAt:      sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		OverallScore: sql.NullFloat64{Float64: math.Round(overallScore*100) / 100, Valid: true},
+		SummaryMd:    sql.NullString{String: overallSummaryMd, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.EndInterviewSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error ending interview session", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
+	s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error getting auth context", err)
+		return nil, err
+	}
+
+	userId, err := uuid.Parse(authContext.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid user ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	var limit int32 = 20
+	if req.Limit != nil {
+		limit = int32(*req.Limit)
+	}
+
+	paginationType := constants.PaginationCursorTypeNext
+	if req.Type != nil {
+		if *req.Type != constants.PaginationCursorTypeNext && *req.Type != constants.PaginationCursorTypePrev {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid pagination type", "pagination_type", *req.Type)
+			return nil, app_error.New(errors.New("invalid pagination type"), app_error.ErrCodeGeneralInvalidPaginationType)
+		} else {
+			paginationType = *req.Type
+		}
+	}
+
+	countReq := &db.CountInterviewSessionsByUserIDParams{
+		UserID: userId,
+	}
+
+	searchText := ""
+	if req.SearchText != nil {
+		searchText = *req.SearchText
+		countReq.Column2 = *req.SearchText
+	} else {
+		s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Search text is nil", "search_text", "NULL")
+		countReq.Column2 = ""
+	}
+
+	totalCount, err := s.interviewSessionRepo.CountInterviewSessionsByUserID(ctx, countReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error counting interview sessions by user ID", err)
+		return nil, err
+	}
+
+	pageSize := int(limit)
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	if paginationType == constants.PaginationCursorTypePrev {
+		limit += 1
+	}
+
+	var sessions []entities.InterviewSessionSummary
+	if req.Cursor == nil {
+		firstPageReq := &db.ListInterviewSessionsByUserIDFirstPageParams{
+			UserID:  userId,
+			Column2: searchText,
+			Limit:   limit,
+		}
+
+		dbResp, err := s.interviewSessionRepo.ListInterviewSessionsByUserIDFirstPage(ctx, firstPageReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error listing interview sessions by user ID first page", err)
+			return nil, err
+		}
+
+		sessions = make([]entities.InterviewSessionSummary, 0, len(dbResp))
+		for _, row := range dbResp {
+			session := entities.InterviewSessionSummary{
+				ID:               row.ID.String(),
+				ResumeID:         row.ResumeID.String(),
+				ResumeFileName:   row.ResumeFileName,
+				Position:         row.Position,
+				Status:           row.Status,
+				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+			}
+
+			if row.OverallScore.Valid {
+				session.OverallScore = row.OverallScore.Float64
+			} else {
+				session.OverallScore = 0.00
+			}
+
+			if row.StartedAt.Valid && row.EndedAt.Valid {
+				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
+				totalMinutes := int(duration.Minutes())
+				totalSeconds := int(duration.Seconds()) % 60
+				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+			} else {
+				session.TotalTime = "00.00"
+			}
+
+			sessions = append(sessions, session)
+		}
+	} else {
+		cursorID, err := uuid.Parse(req.Cursor.ID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid cursor ID", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		}
+
+		cursorCreatedAt, err := time.Parse(time.RFC3339, req.Cursor.CreatedAt)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid cursor created at", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidTime)
+		}
+
+		cursorReq := &db.ListInterviewSessionsByUserIDWithCursorParams{
+			UserID:    userId,
+			Column2:   searchText,
+			CreatedAt: sql.NullTime{Time: cursorCreatedAt, Valid: true},
+			Column4:   paginationType,
+			ID:        cursorID,
+			Limit:     limit,
+		}
+
+		dbResp, err := s.interviewSessionRepo.ListInterviewSessionsByUserIDWithCursor(ctx, cursorReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error listing interview sessions by user ID with cursor", err)
+			return nil, err
+		}
+
+		sessions = make([]entities.InterviewSessionSummary, 0, len(dbResp))
+		for _, row := range dbResp {
+			if paginationType == constants.PaginationCursorTypePrev && row.ID == cursorID {
+				continue
+			}
+
+			session := entities.InterviewSessionSummary{
+				ID:               row.ID.String(),
+				ResumeID:         row.ResumeID.String(),
+				ResumeFileName:   row.ResumeFileName,
+				Position:         row.Position,
+				Status:           row.Status,
+				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+			}
+
+			if row.OverallScore.Valid {
+				session.OverallScore = row.OverallScore.Float64
+			} else {
+				session.OverallScore = 0.00
+			}
+
+			if row.StartedAt.Valid && row.EndedAt.Valid {
+				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
+				totalMinutes := int(duration.Minutes())
+				totalSeconds := int(duration.Seconds()) % 60
+				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+			} else {
+				session.TotalTime = "00.00"
+			}
+
+			sessions = append(sessions, session)
+		}
+	}
+
+	if paginationType == constants.PaginationCursorTypePrev {
+		for i, j := 0, len(sessions)-1; i < j; i, j = i+1, j-1 {
+			sessions[i], sessions[j] = sessions[j], sessions[i]
+		}
+	}
+
+	resp := entities.ListInterviewSessionsByUserIDResp{
+		Sessions:   sessions,
+		TotalPages: totalPages,
+		PageSize:   pageSize,
+	}
+
+	if len(sessions) > 0 {
+		lastSession := sessions[len(sessions)-1]
+		resp.NextCursor = &entities.Cursor{
+			ID:        lastSession.ID,
+			CreatedAt: lastSession.CreatedAt,
+		}
+
+		if req.Cursor != nil {
+			firstSession := sessions[0]
+			resp.PrevCursor = &entities.Cursor{
+				ID:        firstSession.ID,
+				CreatedAt: firstSession.CreatedAt,
+			}
+		}
+	}
+
+	return &resp, nil
+}
+
+func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
+	s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Called")
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error getting auth context", err)
+		return nil, err
+	}
+
+	userId, err := uuid.Parse(authContext.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid user ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	var dbResp []db.ListInterviewSessionsByUserIDWithJumpPaginationRow
+	var limit int32 = 20
+	if req.Limit != nil {
+		limit = int32(*req.Limit)
+	}
+
+	dbReq := &db.ListInterviewSessionsByUserIDWithJumpPaginationParams{
+		UserID: userId,
+		Limit:  limit,
+	}
+
+	if req.Offset != nil {
+		dbReq.Column2 = *req.Offset
+	} else {
+		dbReq.Column2 = 1
+	}
+
+	countReq := &db.CountInterviewSessionsByUserIDParams{
+		UserID: userId,
+	}
+	if req.SearchText != nil {
+		countReq.Column2 = *req.SearchText
+		dbReq.Column4 = *req.SearchText
+	}
+
+	totalCount, err := s.interviewSessionRepo.CountInterviewSessionsByUserID(ctx, countReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error counting interview sessions by user ID", err)
+		return nil, err
+	}
+
+	dbResp, err = s.interviewSessionRepo.ListInterviewSessionsByUserIDWithJumpPagination(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Error listing interview sessions by user ID with search and jump pagination", err)
+		return nil, err
+	}
+
+	sessions := make([]entities.InterviewSessionSummary, 0, len(dbResp))
+	for _, row := range dbResp {
+		session := entities.InterviewSessionSummary{
+			ID:               row.ID.String(),
+			ResumeID:         row.ResumeID.String(),
+			ResumeFileName:   row.ResumeFileName,
+			Position:         row.Position,
+			Status:           row.Status,
+			CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+			CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
+		}
+
+		if row.OverallScore.Valid {
+			session.OverallScore = row.OverallScore.Float64
+		} else {
+			session.OverallScore = 0.00
+		}
+
+		if row.StartedAt.Valid && row.EndedAt.Valid {
+			duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
+			totalMinutes := int(duration.Minutes())
+			totalSeconds := int(duration.Seconds()) % 60
+			session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+		} else {
+			session.TotalTime = "00.00"
+		}
+
+		sessions = append(sessions, session)
+	}
+
+	pageSize := int(limit)
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	resp := entities.ListInterviewSessionsByUserIDResp{
+		Sessions:   sessions,
+		TotalPages: totalPages,
+		PageSize:   pageSize,
+	}
+
+	if len(sessions) > 0 {
+		lastSession := sessions[len(sessions)-1]
+		resp.NextCursor = &entities.Cursor{
+			ID:        lastSession.ID,
+			CreatedAt: lastSession.CreatedAt,
+		}
+
+		if req.Offset != nil {
+			firstSession := sessions[0]
+			resp.PrevCursor = &entities.Cursor{
+				ID:        firstSession.ID,
+				CreatedAt: firstSession.CreatedAt,
+			}
+		}
+	}
+
+	return &resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

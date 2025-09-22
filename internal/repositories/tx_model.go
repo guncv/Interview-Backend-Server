@@ -151,3 +151,11 @@ type CreateScoreTxReq struct {
 	Score       int
 	CommentMd   string
 }
+
+type CreateEvaluationOverallSummaryTxReq struct {
+	SummaryMd []string `json:"summary_md"`
+}
+
+type CreateEvaluationOverallSummaryTxResp struct {
+	OverallSummaryMd string `json:"overall_summary_md"`
+}

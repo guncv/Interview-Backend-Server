@@ -252,6 +252,63 @@ func (_c *MockStore_CheckIsUserExistsByID_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// CountInterviewSessionsByUserID provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CountInterviewSessionsByUserID(ctx context.Context, arg db.CountInterviewSessionsByUserIDParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountInterviewSessionsByUserID")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CountInterviewSessionsByUserIDParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.CountInterviewSessionsByUserIDParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.CountInterviewSessionsByUserIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_CountInterviewSessionsByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountInterviewSessionsByUserID'
+type MockStore_CountInterviewSessionsByUserID_Call struct {
+	*mock.Call
+}
+
+// CountInterviewSessionsByUserID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CountInterviewSessionsByUserIDParams
+func (_e *MockStore_Expecter) CountInterviewSessionsByUserID(ctx interface{}, arg interface{}) *MockStore_CountInterviewSessionsByUserID_Call {
+	return &MockStore_CountInterviewSessionsByUserID_Call{Call: _e.mock.On("CountInterviewSessionsByUserID", ctx, arg)}
+}
+
+func (_c *MockStore_CountInterviewSessionsByUserID_Call) Run(run func(ctx context.Context, arg db.CountInterviewSessionsByUserIDParams)) *MockStore_CountInterviewSessionsByUserID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CountInterviewSessionsByUserIDParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CountInterviewSessionsByUserID_Call) Return(_a0 int64, _a1 error) *MockStore_CountInterviewSessionsByUserID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_CountInterviewSessionsByUserID_Call) RunAndReturn(run func(context.Context, db.CountInterviewSessionsByUserIDParams) (int64, error)) *MockStore_CountInterviewSessionsByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateAdminIssueCategory provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateAdminIssueCategory(ctx context.Context, arg db.CreateAdminIssueCategoryParams) error {
 	ret := _m.Called(ctx, arg)
@@ -295,6 +352,53 @@ func (_c *MockStore_CreateAdminIssueCategory_Call) Return(_a0 error) *MockStore_
 }
 
 func (_c *MockStore_CreateAdminIssueCategory_Call) RunAndReturn(run func(context.Context, db.CreateAdminIssueCategoryParams) error) *MockStore_CreateAdminIssueCategory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateAuthSession provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateAuthSession(ctx context.Context, arg db.CreateAuthSessionParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAuthSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateAuthSessionParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_CreateAuthSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAuthSession'
+type MockStore_CreateAuthSession_Call struct {
+	*mock.Call
+}
+
+// CreateAuthSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateAuthSessionParams
+func (_e *MockStore_Expecter) CreateAuthSession(ctx interface{}, arg interface{}) *MockStore_CreateAuthSession_Call {
+	return &MockStore_CreateAuthSession_Call{Call: _e.mock.On("CreateAuthSession", ctx, arg)}
+}
+
+func (_c *MockStore_CreateAuthSession_Call) Run(run func(ctx context.Context, arg db.CreateAuthSessionParams)) *MockStore_CreateAuthSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateAuthSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreateAuthSession_Call) Return(_a0 error) *MockStore_CreateAuthSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_CreateAuthSession_Call) RunAndReturn(run func(context.Context, db.CreateAuthSessionParams) error) *MockStore_CreateAuthSession_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -628,53 +732,6 @@ func (_c *MockStore_CreateResume_Call) RunAndReturn(run func(context.Context, db
 	return _c
 }
 
-// CreateSession provides a mock function with given fields: ctx, arg
-func (_m *MockStore) CreateSession(ctx context.Context, arg db.CreateSessionParams) error {
-	ret := _m.Called(ctx, arg)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateSession")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.CreateSessionParams) error); ok {
-		r0 = rf(ctx, arg)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockStore_CreateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSession'
-type MockStore_CreateSession_Call struct {
-	*mock.Call
-}
-
-// CreateSession is a helper method to define mock.On call
-//   - ctx context.Context
-//   - arg db.CreateSessionParams
-func (_e *MockStore_Expecter) CreateSession(ctx interface{}, arg interface{}) *MockStore_CreateSession_Call {
-	return &MockStore_CreateSession_Call{Call: _e.mock.On("CreateSession", ctx, arg)}
-}
-
-func (_c *MockStore_CreateSession_Call) Run(run func(ctx context.Context, arg db.CreateSessionParams)) *MockStore_CreateSession_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(db.CreateSessionParams))
-	})
-	return _c
-}
-
-func (_c *MockStore_CreateSession_Call) Return(_a0 error) *MockStore_CreateSession_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockStore_CreateSession_Call) RunAndReturn(run func(context.Context, db.CreateSessionParams) error) *MockStore_CreateSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateUser provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.Users, error) {
 	ret := _m.Called(ctx, arg)
@@ -936,6 +993,122 @@ func (_c *MockStore_ExecTx_Call) Return(_a0 error) *MockStore_ExecTx_Call {
 }
 
 func (_c *MockStore_ExecTx_Call) RunAndReturn(run func(context.Context, func(*db.Queries) error) error) *MockStore_ExecTx_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAllEvaluationsBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockStore) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllEvaluationsBySessionID")
+	}
+
+	var r0 []db.GetAllEvaluationsBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetAllEvaluationsBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetAllEvaluationsBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetAllEvaluationsBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllEvaluationsBySessionID'
+type MockStore_GetAllEvaluationsBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetAllEvaluationsBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockStore_Expecter) GetAllEvaluationsBySessionID(ctx interface{}, sessionID interface{}) *MockStore_GetAllEvaluationsBySessionID_Call {
+	return &MockStore_GetAllEvaluationsBySessionID_Call{Call: _e.mock.On("GetAllEvaluationsBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) Return(_a0 []db.GetAllEvaluationsBySessionIDRow, _a1 error) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetAllEvaluationsBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error)) *MockStore_GetAllEvaluationsBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAuthSessionByID provides a mock function with given fields: ctx, id
+func (_m *MockStore) GetAuthSessionByID(ctx context.Context, id uuid.UUID) (db.AuthSessions, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAuthSessionByID")
+	}
+
+	var r0 db.AuthSessions
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.AuthSessions, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.AuthSessions); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(db.AuthSessions)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetAuthSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAuthSessionByID'
+type MockStore_GetAuthSessionByID_Call struct {
+	*mock.Call
+}
+
+// GetAuthSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockStore_Expecter) GetAuthSessionByID(ctx interface{}, id interface{}) *MockStore_GetAuthSessionByID_Call {
+	return &MockStore_GetAuthSessionByID_Call{Call: _e.mock.On("GetAuthSessionByID", ctx, id)}
+}
+
+func (_c *MockStore_GetAuthSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_GetAuthSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetAuthSessionByID_Call) Return(_a0 db.AuthSessions, _a1 error) *MockStore_GetAuthSessionByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetAuthSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.AuthSessions, error)) *MockStore_GetAuthSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1459,63 +1632,6 @@ func (_c *MockStore_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(cont
 	return _c
 }
 
-// GetSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockStore) GetSessionByID(ctx context.Context, id uuid.UUID) (db.Sessions, error) {
-	ret := _m.Called(ctx, id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetSessionByID")
-	}
-
-	var r0 db.Sessions
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.Sessions, error)); ok {
-		return rf(ctx, id)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.Sessions); ok {
-		r0 = rf(ctx, id)
-	} else {
-		r0 = ret.Get(0).(db.Sessions)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockStore_GetSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSessionByID'
-type MockStore_GetSessionByID_Call struct {
-	*mock.Call
-}
-
-// GetSessionByID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - id uuid.UUID
-func (_e *MockStore_Expecter) GetSessionByID(ctx interface{}, id interface{}) *MockStore_GetSessionByID_Call {
-	return &MockStore_GetSessionByID_Call{Call: _e.mock.On("GetSessionByID", ctx, id)}
-}
-
-func (_c *MockStore_GetSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_GetSessionByID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
-	})
-	return _c
-}
-
-func (_c *MockStore_GetSessionByID_Call) Return(_a0 db.Sessions, _a1 error) *MockStore_GetSessionByID_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockStore_GetSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.Sessions, error)) *MockStore_GetSessionByID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, id
 func (_m *MockStore) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error) {
 	ret := _m.Called(ctx, id)
@@ -1685,6 +1801,183 @@ func (_c *MockStore_ListAllResumesFileNameByUserID_Call) Return(_a0 []string, _a
 }
 
 func (_c *MockStore_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]string, error)) *MockStore_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDFirstPage provides a mock function with given fields: ctx, arg
+func (_m *MockStore) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDFirstPage")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDFirstPageRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) []db.ListInterviewSessionsByUserIDFirstPageRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDFirstPageRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListInterviewSessionsByUserIDFirstPage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDFirstPage'
+type MockStore_ListInterviewSessionsByUserIDFirstPage_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDFirstPage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.ListInterviewSessionsByUserIDFirstPageParams
+func (_e *MockStore_Expecter) ListInterviewSessionsByUserIDFirstPage(ctx interface{}, arg interface{}) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	return &MockStore_ListInterviewSessionsByUserIDFirstPage_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDFirstPage", ctx, arg)}
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) Run(run func(ctx context.Context, arg db.ListInterviewSessionsByUserIDFirstPageParams)) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.ListInterviewSessionsByUserIDFirstPageParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) Return(_a0 []db.ListInterviewSessionsByUserIDFirstPageRow, _a1 error) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDFirstPage_Call) RunAndReturn(run func(context.Context, db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)) *MockStore_ListInterviewSessionsByUserIDFirstPage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, arg
+func (_m *MockStore) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, arg db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithCursor")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDWithCursorRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDWithCursorParams) []db.ListInterviewSessionsByUserIDWithCursorRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDWithCursorRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.ListInterviewSessionsByUserIDWithCursorParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListInterviewSessionsByUserIDWithCursor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithCursor'
+type MockStore_ListInterviewSessionsByUserIDWithCursor_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithCursor is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.ListInterviewSessionsByUserIDWithCursorParams
+func (_e *MockStore_Expecter) ListInterviewSessionsByUserIDWithCursor(ctx interface{}, arg interface{}) *MockStore_ListInterviewSessionsByUserIDWithCursor_Call {
+	return &MockStore_ListInterviewSessionsByUserIDWithCursor_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithCursor", ctx, arg)}
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithCursor_Call) Run(run func(ctx context.Context, arg db.ListInterviewSessionsByUserIDWithCursorParams)) *MockStore_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.ListInterviewSessionsByUserIDWithCursorParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithCursor_Call) Return(_a0 []db.ListInterviewSessionsByUserIDWithCursorRow, _a1 error) *MockStore_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithCursor_Call) RunAndReturn(run func(context.Context, db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)) *MockStore_ListInterviewSessionsByUserIDWithCursor_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination provides a mock function with given fields: ctx, arg
+func (_m *MockStore) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, arg db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListInterviewSessionsByUserIDWithJumpPagination")
+	}
+
+	var r0 []db.ListInterviewSessionsByUserIDWithJumpPaginationRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.ListInterviewSessionsByUserIDWithJumpPaginationParams) []db.ListInterviewSessionsByUserIDWithJumpPaginationRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.ListInterviewSessionsByUserIDWithJumpPaginationParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListInterviewSessionsByUserIDWithJumpPagination'
+type MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call struct {
+	*mock.Call
+}
+
+// ListInterviewSessionsByUserIDWithJumpPagination is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.ListInterviewSessionsByUserIDWithJumpPaginationParams
+func (_e *MockStore_Expecter) ListInterviewSessionsByUserIDWithJumpPagination(ctx interface{}, arg interface{}) *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	return &MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call{Call: _e.mock.On("ListInterviewSessionsByUserIDWithJumpPagination", ctx, arg)}
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call) Run(run func(ctx context.Context, arg db.ListInterviewSessionsByUserIDWithJumpPaginationParams)) *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.ListInterviewSessionsByUserIDWithJumpPaginationParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call) Return(_a0 []db.ListInterviewSessionsByUserIDWithJumpPaginationRow, _a1 error) *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call) RunAndReturn(run func(context.Context, db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)) *MockStore_ListInterviewSessionsByUserIDWithJumpPagination_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1922,12 +2215,12 @@ func (_c *MockStore_ResetUserPassword_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// RevokeSessionByID provides a mock function with given fields: ctx, id
-func (_m *MockStore) RevokeSessionByID(ctx context.Context, id uuid.UUID) error {
+// RevokeAuthSessionByID provides a mock function with given fields: ctx, id
+func (_m *MockStore) RevokeAuthSessionByID(ctx context.Context, id uuid.UUID) error {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for RevokeSessionByID")
+		panic("no return value specified for RevokeAuthSessionByID")
 	}
 
 	var r0 error
@@ -1940,31 +2233,31 @@ func (_m *MockStore) RevokeSessionByID(ctx context.Context, id uuid.UUID) error 
 	return r0
 }
 
-// MockStore_RevokeSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeSessionByID'
-type MockStore_RevokeSessionByID_Call struct {
+// MockStore_RevokeAuthSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeAuthSessionByID'
+type MockStore_RevokeAuthSessionByID_Call struct {
 	*mock.Call
 }
 
-// RevokeSessionByID is a helper method to define mock.On call
+// RevokeAuthSessionByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockStore_Expecter) RevokeSessionByID(ctx interface{}, id interface{}) *MockStore_RevokeSessionByID_Call {
-	return &MockStore_RevokeSessionByID_Call{Call: _e.mock.On("RevokeSessionByID", ctx, id)}
+func (_e *MockStore_Expecter) RevokeAuthSessionByID(ctx interface{}, id interface{}) *MockStore_RevokeAuthSessionByID_Call {
+	return &MockStore_RevokeAuthSessionByID_Call{Call: _e.mock.On("RevokeAuthSessionByID", ctx, id)}
 }
 
-func (_c *MockStore_RevokeSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_RevokeSessionByID_Call {
+func (_c *MockStore_RevokeAuthSessionByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_RevokeAuthSessionByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockStore_RevokeSessionByID_Call) Return(_a0 error) *MockStore_RevokeSessionByID_Call {
+func (_c *MockStore_RevokeAuthSessionByID_Call) Return(_a0 error) *MockStore_RevokeAuthSessionByID_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockStore_RevokeSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockStore_RevokeSessionByID_Call {
+func (_c *MockStore_RevokeAuthSessionByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockStore_RevokeAuthSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
