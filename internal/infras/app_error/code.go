@@ -18,6 +18,8 @@ const (
 	ErrCodeGeneralUnmarshalFailed     ErrorCode = "INS0111"
 	ErrCodeGeneralPermissionDenied    ErrorCode = "INS0112"
 	ErrCodeGeneralInvalidLimit        ErrorCode = "INS0113"
+	ErrCodeGeneralInvalidNumber       ErrorCode = "INS0114"
+	ErrCodeGeneralInvalidOffset       ErrorCode = "INS0115"
 
 	// Auth
 	ErrCodeAuthInvalidToken            ErrorCode = "INS0200"

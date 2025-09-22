@@ -16,6 +16,8 @@ const (
 	ErrMessageGeneralUnmarshalFailed     ErrorMessage = "Failed to unmarshal the value. Please try again."
 	ErrMessageGeneralPermissionDenied    ErrorMessage = "You are not authorized to perform this action."
 	ErrMessageGeneralInvalidLimit        ErrorMessage = "The limit is invalid. Please try again."
+	ErrMessageGeneralInvalidNumber       ErrorMessage = "The number is invalid. Please try again."
+	ErrMessageGeneralInvalidOffset       ErrorMessage = "The offset is invalid. Please try again."
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."
 	ErrMessageAuthExpiredToken            ErrorMessage = "Your token has expired. Please log in again."

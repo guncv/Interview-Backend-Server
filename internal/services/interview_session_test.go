@@ -4624,7 +4624,255 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 	}
 }
 
-func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
+func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	validScore := []db.GetAllEvaluationsBySessionIDRow{
+		{
+			OverallScore: "3.5",
+			SummaryMd:    "summary1",
+		},
+		{
+			OverallScore: "2.5",
+			SummaryMd:    "summary2",
+		},
+		{
+			OverallScore: "3",
+			SummaryMd:    "summary3",
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.EndInterviewSessionReq
+		setup  func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(validScore, nil)
+
+				getOverallSummary := &repositories.CreateEvaluationOverallSummaryTxReq{
+					SummaryMd: []string{
+						"summary1",
+						"summary2",
+						"summary3",
+					},
+				}
+
+				mockEvaluationScoresRepo.EXPECT().GetEvaluationOverallSummary(ctx, getOverallSummary).
+					Return(&repositories.CreateEvaluationOverallSummaryTxResp{
+						OverallSummaryMd: "summary overall",
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
+					return req.ID == sessionID && req.Status == "completed" && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+				})).
+					Return(nil)
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Success - NoEvaluations",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return([]db.GetAllEvaluationsBySessionIDRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
+					return req.ID == sessionID && req.Status == "completed" && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 0.00 && req.SummaryMd.String == constants.BlankOverallSummaryMd
+				})).
+					Return(nil)
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error - WithInvalidSessionID",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: "invalid-session-id",
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name: "Error - WithOverallScoreInvalid",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				invalidScore := make([]db.GetAllEvaluationsBySessionIDRow, len(validScore))
+				copy(invalidScore, validScore)
+				invalidScore[0].OverallScore = "invalid"
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(invalidScore, nil)
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The number is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0114]")
+			},
+		},
+		{
+			name: "Error - GetAllEvaluationsBySessionIDError",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(nil, errors.New("get all evaluations by session id error"))
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "get all evaluations by session id error")
+			},
+		},
+		{
+			name: "Error - WithGetEvaluationOverallSummaryError",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(validScore, nil)
+
+				getOverallSummary := &repositories.CreateEvaluationOverallSummaryTxReq{
+					SummaryMd: []string{
+						"summary1",
+						"summary2",
+						"summary3",
+					},
+				}
+
+				mockEvaluationScoresRepo.EXPECT().GetEvaluationOverallSummary(ctx, getOverallSummary).
+					Return(nil, errors.New("get evaluation overall summary error"))
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "get evaluation overall summary error")
+			},
+		},
+		{
+			name: "Error - WithEndInterviewSessionRepoError",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(validScore, nil)
+
+				getOverallSummary := &repositories.CreateEvaluationOverallSummaryTxReq{
+					SummaryMd: []string{
+						"summary1",
+						"summary2",
+						"summary3",
+					},
+				}
+
+				mockEvaluationScoresRepo.EXPECT().GetEvaluationOverallSummary(ctx, getOverallSummary).
+					Return(&repositories.CreateEvaluationOverallSummaryTxResp{
+						OverallSummaryMd: "summary overall",
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
+					return req.ID == sessionID && req.Status == "completed" && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+				})).
+					Return(errors.New("end interview session repo error"))
+
+				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "end interview session repo error")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockEvaluationScoresRepo, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockEvaluationScoresRepo,
+				nil,
+			)
+
+			gotErr := svc.EndInterviewSession(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
@@ -4649,13 +4897,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *entities.ListInterviewSessionsByUserIDReq
+		input  *entities.ListInterviewSessionsByUserIDWithCursorReq
 		setup  func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository)
 		verify func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error)
 	}{
 		{
 			name:  "Success - ListInterviewSessionsWithDefaultParameters",
-			input: &entities.ListInterviewSessionsByUserIDReq{},
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
 				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
@@ -4666,7 +4914,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				dbRows := []db.ListInterviewSessionsByUserIDRow{
+				dbRows := []db.ListInterviewSessionsByUserIDWithCursorRow{
 					{
 						ID:             userID,
 						ResumeID:       userID,
@@ -4680,10 +4928,14 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).
 					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -4697,13 +4949,14 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
 				assert.Equal(t, 85.5, gotResp.Sessions[0].OverallScore)
 				assert.Equal(t, "30.00", gotResp.Sessions[0].TotalTime)
-				assert.False(t, gotResp.HasMore)
-				assert.Nil(t, gotResp.NextCursor)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithCustomLimit",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Limit: func() *int {
 					limit := 10
 					return &limit
@@ -4718,10 +4971,14 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 						UserID: userID.String(),
 					},
 				}, nil)
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 10 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 10 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).
-					Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -4729,13 +4986,14 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 0)
-				assert.False(t, gotResp.HasMore)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 10, gotResp.PageSize)
 				assert.Nil(t, gotResp.NextCursor)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithSearchText",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				SearchText: func() *string { search := "engineer"; return &search }(),
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -4748,21 +5006,28 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 != nil && *req.Column2.(*string) == "engineer" && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "engineer" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).
-					Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "engineer" && req.Column3 == ""
+				})).Return(int64(0), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithStatusFilter",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Status: func() *string { status := "completed"; return &status }(),
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -4775,21 +5040,28 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == nil && req.Column3 != nil && *req.Column3.(*string) == "completed" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "completed" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).
-					Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == "completed"
+				})).Return(int64(0), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithCursor",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Cursor: validCursor,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -4802,22 +5074,29 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(parsedTime) && req.Column5 == uuid.MustParse(validCursor.ID)
+				parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(parsedTime) && req.Column5 == uuid.MustParse(validCursor.ID) && req.Column7 == "next"
 				})).
-					Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithAllParameters",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				SearchText: func() *string { search := "engineer"; return &search }(),
 				Status:     func() *string { status := "completed"; return &status }(),
 				Cursor:     validCursor,
@@ -4833,22 +5112,29 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
-					return req.UserID == userID && req.Limit == 15 && req.Column2 != nil && *req.Column2.(*string) == "engineer" && req.Column3 != nil && *req.Column3.(*string) == "completed" && req.Column4.Equal(parsedTime) && req.Column5 == uuid.MustParse(validCursor.ID)
+				parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 15 && req.Column2 == "engineer" && req.Column3 == "completed" && req.Column4.Equal(parsedTime) && req.Column5 == uuid.MustParse(validCursor.ID) && req.Column7 == "next"
 				})).
-					Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "engineer" && req.Column3 == "completed"
+				})).Return(int64(0), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 15, gotResp.PageSize)
 			},
 		},
 		{
 			name: "Success - ListInterviewSessionsWithPaginationHasMore",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Limit: func() *int { limit := 2; return &limit }(),
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -4861,7 +5147,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				dbRows := []db.ListInterviewSessionsByUserIDRow{
+				dbRows := []db.ListInterviewSessionsByUserIDWithCursorRow{
 					{
 						ID:             userID,
 						ResumeID:       userID,
@@ -4886,9 +5172,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 2 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 2 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(5), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -4896,14 +5186,15 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 2)
-				assert.True(t, gotResp.HasMore)
+				assert.Equal(t, 3, gotResp.TotalPages)
+				assert.Equal(t, 2, gotResp.PageSize)
 				assert.NotNil(t, gotResp.NextCursor)
 				assert.Equal(t, "550e8400-e29b-41d4-a716-446655440001", gotResp.NextCursor.ID)
 			},
 		},
 		{
 			name:  "Success - ListInterviewSessionsWithNullScoresAndTimes",
-			input: &entities.ListInterviewSessionsByUserIDReq{},
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
 				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
@@ -4915,7 +5206,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				}, nil)
 
 				// Mock response with null scores and times
-				dbRows := []db.ListInterviewSessionsByUserIDRow{
+				dbRows := []db.ListInterviewSessionsByUserIDWithCursorRow{
 					{
 						ID:             userID,
 						ResumeID:       userID,
@@ -4929,9 +5220,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -4941,11 +5236,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				assert.Len(t, gotResp.Sessions, 1)
 				assert.Equal(t, 0.00, gotResp.Sessions[0].OverallScore)
 				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
 			},
 		},
 		{
 			name:  "Error - Auth context failure",
-			input: &entities.ListInterviewSessionsByUserIDReq{},
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
 				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
@@ -4961,8 +5258,30 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 			},
 		},
 		{
+			name:  "Error - InvalidUserId",
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: "invalid-user-id",
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
 			name: "Error - InvalidCursorID",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Cursor: invalidCursorID,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -4989,7 +5308,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 		},
 		{
 			name: "Error - InvalidCursorTime",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Cursor: invalidCursorTime,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
@@ -5016,7 +5335,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 		},
 		{
 			name:  "Error - DatabaseError",
-			input: &entities.ListInterviewSessionsByUserIDReq{},
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
 				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
@@ -5027,8 +5346,12 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == nil && req.Column3 == nil && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
 				})).Return(nil, errors.New("database error"))
 
 				return mockAuthContext, mockInterviewSessionRepo
@@ -5041,7 +5364,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 		},
 		{
 			name: "Success - AllNilFields",
-			input: &entities.ListInterviewSessionsByUserIDReq{
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				SearchText: nil,
 				Status:     nil,
 				Cursor:     nil,
@@ -5057,7 +5380,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 					},
 				}, nil)
 
-				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserID(ctx, mock.AnythingOfType("*db.ListInterviewSessionsByUserIDParams")).Return([]db.ListInterviewSessionsByUserIDRow{}, nil)
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
+				})).Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -5065,8 +5394,131 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 0)
-				assert.False(t, gotResp.HasMore)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
 				assert.Nil(t, gotResp.NextCursor)
+			},
+		},
+		{
+			name: "Success - ListInterviewSessionsWithPrevPagination",
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
+				Type:   func() *string { paginationType := "prev"; return &paginationType }(),
+				Cursor: validCursor,
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithCursorRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume1.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+					{
+						ID:             uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+						ResumeID:       userID,
+						ResumeFileName: "test-resume2.pdf",
+						Position:       "Senior Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now().Add(-time.Hour), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 90.0, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-90 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now().Add(-60 * time.Minute), Valid: true},
+					},
+				}
+
+				parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(parsedTime) && req.Column5 == uuid.MustParse(validCursor.ID) && req.Column7 == "prev"
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(2), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 2)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
+				assert.Equal(t, userID.String(), gotResp.NextCursor.ID)
+			},
+		},
+		{
+			name: "Success - ListInterviewSessionsWithCustomPaginationType",
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
+				Type: func() *string { paginationType := "next"; return &paginationType }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.Column3 == "" && req.Column4.Equal(time.Time{}) && req.Column5 == uuid.Nil && req.Column7 == "next"
+				})).
+					Return([]db.ListInterviewSessionsByUserIDWithCursorRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+			},
+		},
+		{
+			name:  "Error - CountInterviewSessionsByUserIDFailure",
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), errors.New("count error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Equal(t, "count error", gotErr.Error())
 			},
 		},
 	}
@@ -5091,7 +5543,573 @@ func TestInterviewSessionService_ListInterviewSessionsByUserID(t *testing.T) {
 				nil,
 			)
 
-			gotResp, gotErr := svc.ListInterviewSessionsByUserID(ctx, tC.input)
+			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithCursor(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	testCases := []struct {
+		name   string
+		input  *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq
+		setup  func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error)
+	}{
+		{
+			name:  "Success - ListInterviewSessionsWithDefaultParameters",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, userID.String(), gotResp.Sessions[0].ID)
+				assert.Equal(t, "test-resume.pdf", gotResp.Sessions[0].ResumeFileName)
+				assert.Equal(t, "Software Engineer", gotResp.Sessions[0].Position)
+				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
+				assert.Equal(t, 85.5, gotResp.Sessions[0].OverallScore)
+				assert.Equal(t, "30.00", gotResp.Sessions[0].TotalTime)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
+				assert.Nil(t, gotResp.PrevCursor) // No offset means no prev cursor
+			},
+		},
+		{
+			name: "Success - WithCustomLimit",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{
+				Limit: func() *int { limit := 10; return &limit }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 10 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 10, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
+				assert.Nil(t, gotResp.PrevCursor)
+			},
+		},
+		{
+			name: "Success - WithOffset",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{
+				Offset: func() *int { offset := 2; return &offset }(),
+				Limit:  func() *int { limit := 5; return &limit }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 5 && req.Column2 == 2 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(10), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, 2, gotResp.TotalPages)
+				assert.Equal(t, 5, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
+				assert.NotNil(t, gotResp.PrevCursor) // With offset, prev cursor should be present
+			},
+		},
+		{
+			name: "Success - WithSearchText",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{
+				SearchText: func() *string { search := "engineer"; return &search }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "engineer" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "engineer" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, "Software Engineer", gotResp.Sessions[0].Position)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+			},
+		},
+		{
+			name: "Success - WithStatusFilter",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{
+				Status: func() *string { status := "completed"; return &status }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == "completed"
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == "completed"
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+			},
+		},
+		{
+			name:  "Success - EmptyResults",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow{}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 0)
+				assert.Equal(t, 0, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+				assert.Nil(t, gotResp.NextCursor)
+				assert.Nil(t, gotResp.PrevCursor)
+			},
+		},
+		{
+			name:  "Error - AuthContextError",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(nil, errors.New("auth context error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "auth context error")
+			},
+		},
+		{
+			name:  "Error - InvalidUserID",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: "invalid-uuid",
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "invalid UUID")
+			},
+		},
+		{
+			name:  "Error - CountInterviewSessionsError",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(0), errors.New("database error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "database error")
+			},
+		},
+		{
+			name:  "Error - ListInterviewSessionsError",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(nil, errors.New("database query error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Contains(t, gotErr.Error(), "database query error")
+			},
+		},
+		{
+			name:  "Success - DataTransformationWithNullValues",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Valid: false}, // Null score
+						StartedAt:      sql.NullTime{Valid: false},    // Null started_at
+						EndedAt:        sql.NullTime{Valid: false},    // Null ended_at
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, 0.0, gotResp.Sessions[0].OverallScore)  // Should be 0.0 for null score
+				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime) // Should be "00.00" for null times
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+			},
+		},
+		{
+			name:  "Success - DataTransformationWithPartialTimes",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 75.0, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-45 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Valid: false}, // Only started_at is valid
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 20 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(1), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, 75.0, gotResp.Sessions[0].OverallScore)
+				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime) // Should be "00.00" when ended_at is null
+				assert.Equal(t, 1, gotResp.TotalPages)
+				assert.Equal(t, 20, gotResp.PageSize)
+			},
+		},
+		{
+			name: "Success - MultiplePages",
+			input: &entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{
+				Limit: func() *int { limit := 5; return &limit }(),
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListInterviewSessionsByUserIDWithJumpPaginationRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithJumpPagination(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) bool {
+					return req.UserID == userID && req.Limit == 5 && req.Column2 == 1 && req.Column4 == "" && req.Column5 == ""
+				})).
+					Return(dbRows, nil)
+
+				mockInterviewSessionRepo.EXPECT().CountInterviewSessionsByUserID(ctx, mock.MatchedBy(func(req *db.CountInterviewSessionsByUserIDParams) bool {
+					return req.UserID == userID && req.Column2 == "" && req.Column3 == ""
+				})).Return(int64(12), nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, 3, gotResp.TotalPages) // 12 items with page size 5 = 3 pages
+				assert.Equal(t, 5, gotResp.PageSize)
+				assert.NotNil(t, gotResp.NextCursor)
+				assert.Nil(t, gotResp.PrevCursor)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockAuthContext, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				mockAuthContext,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithJumpPagination(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

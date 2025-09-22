@@ -14,6 +14,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeGeneralUnmarshalFailed:     ErrHttpCodeInternalServerError,
 	ErrCodeGeneralPermissionDenied:    ErrHttpCodeUnauthorized,
 	ErrCodeGeneralInvalidLimit:        ErrHttpCodeBadRequest,
+	ErrCodeGeneralInvalidNumber:       ErrHttpCodeBadRequest,
+	ErrCodeGeneralInvalidOffset:       ErrHttpCodeBadRequest,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrHttpCodeUnauthorized,
 	ErrCodeAuthExpiredToken:            ErrHttpCodeUnauthorized,
@@ -93,6 +95,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeGeneralUnmarshalFailed:     ErrMessageGeneralUnmarshalFailed,
 	ErrCodeGeneralPermissionDenied:    ErrMessageGeneralPermissionDenied,
 	ErrCodeGeneralInvalidLimit:        ErrMessageGeneralInvalidLimit,
+	ErrCodeGeneralInvalidNumber:       ErrMessageGeneralInvalidNumber,
+	ErrCodeGeneralInvalidOffset:       ErrMessageGeneralInvalidOffset,
 	// Auth
 	ErrCodeAuthInvalidToken:            ErrMessageAuthInvalidToken,
 	ErrCodeAuthExpiredToken:            ErrMessageAuthExpiredToken,

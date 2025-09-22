@@ -56,7 +56,7 @@ SELECT started_at, is_started_conversation
 FROM interview_sessions
 WHERE id = $1;
 
--- name: ListInterviewSessionsByUserID :many
+-- name: ListInterviewSessionsByUserIDWithCursor :many
 SELECT id,
     resume_id,
     resume_file_name,
@@ -81,14 +81,68 @@ WHERE user_id = $1
     )
     AND (
         $4::timestamp IS NULL
-        OR created_at < $4
         OR (
-            created_at = $4
+            $7 = 'next'
             AND (
-                $5::uuid IS NULL
-                OR id < $5
+                created_at < $4
+                OR (created_at = $4 AND ($5::uuid IS NULL OR id < $5))
+            )
+        )
+        OR (
+            $7 = 'prev'
+            AND (
+                created_at > $4
+                OR (created_at = $4 AND ($5::uuid IS NULL OR id > $5))
             )
         )
     )
-ORDER BY created_at DESC, id DESC
+ORDER BY
+    CASE WHEN $7 = 'next' THEN created_at END DESC,
+    CASE WHEN $7 = 'next' THEN id END DESC,
+    CASE WHEN $7 = 'prev' THEN created_at END ASC,
+    CASE WHEN $7 = 'prev' THEN id END ASC
 LIMIT $6;
+
+-- name: ListInterviewSessionsByUserIDWithJumpPagination :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $4::text IS NULL
+        OR position ILIKE '%' || $4 || '%'
+        OR status ILIKE '%' || $4 || '%'
+        OR resume_file_name ILIKE '%' || $4 || '%'
+    )
+    AND (
+        $5::text IS NULL
+        OR status = $5
+    )
+ORDER BY created_at DESC, id DESC
+OFFSET ($2 - 1) * $3
+LIMIT $3;
+
+-- name: CountInterviewSessionsByUserID :one
+SELECT COUNT(*)
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND (
+        $2::text IS NULL
+        OR position ILIKE '%' || $2 || '%'
+        OR status ILIKE '%' || $2 || '%'
+        OR resume_file_name ILIKE '%' || $2 || '%'
+    )
+    AND (
+        $3::text IS NULL
+        OR status = $3
+    );
+

@@ -143,10 +143,18 @@ type EndInterviewSessionReq struct {
 	Status    string `json:"status" binding:"required"`
 }
 
-type ListInterviewSessionsByUserIDReq struct {
+type ListInterviewSessionsByUserIDWithCursorReq struct {
 	SearchText *string `form:"search_text"`
 	Status     *string `form:"status"`
 	Cursor     *Cursor `form:"cursor"`
+	Limit      *int    `form:"limit"`
+	Type       *string `form:"type"`
+}
+
+type ListInterviewSessionsByUserIDWithJumpPaginationReq struct {
+	SearchText *string `form:"search_text"`
+	Status     *string `form:"status"`
+	Offset     *int    `form:"offset"`
 	Limit      *int    `form:"limit"`
 }
 
@@ -157,8 +165,10 @@ type Cursor struct {
 
 type ListInterviewSessionsByUserIDResp struct {
 	Sessions   []InterviewSessionSummary `json:"sessions"`
+	PrevCursor *Cursor                   `json:"prev_cursor,omitempty"`
 	NextCursor *Cursor                   `json:"next_cursor,omitempty"`
-	HasMore    bool                      `json:"has_more"`
+	TotalPages int                       `json:"total_pages"`
+	PageSize   int                       `json:"page_size"`
 }
 
 type InterviewSessionSummary struct {

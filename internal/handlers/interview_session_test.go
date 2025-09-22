@@ -1048,7 +1048,7 @@ func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
 	}
 }
 
-func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
+func TestInterviewSessionHandler_ListInterviewSessionsByUserIDWithCursor(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	log := log.Initialize("test")
 	ctx := context.Background()
@@ -1062,11 +1062,16 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 				CreatedAt: time.Now().Format(time.RFC3339),
 			},
 		},
+		PrevCursor: &entities.Cursor{
+			ID:        uuid.New().String(),
+			CreatedAt: time.Now().Format(time.RFC3339),
+		},
 		NextCursor: &entities.Cursor{
 			ID:        uuid.New().String(),
 			CreatedAt: time.Now().Format(time.RFC3339),
 		},
-		HasMore: true,
+		TotalPages: 1,
+		PageSize:   1,
 	}
 
 	authError := app_error.New(errors.New("auth error"), app_error.ErrCodeAuthInvalidToken)
@@ -1091,7 +1096,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1115,7 +1120,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText != nil && *req.SearchText == "software engineer" && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1139,7 +1144,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status != nil && *req.Status == "completed" && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1163,7 +1168,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit != nil && *req.Limit == 10 && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1187,7 +1192,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor != nil && req.Cursor.ID == "123" && req.Cursor.CreatedAt == "2023-01-01T00:00:00Z"
 					})).
 					Return(validResp, nil)
@@ -1217,7 +1222,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText != nil && *req.SearchText == "software engineer" &&
 							req.Status != nil && *req.Status == "completed" &&
 							req.Limit != nil && *req.Limit == 5 &&
@@ -1244,7 +1249,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1268,7 +1273,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1292,7 +1297,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1316,7 +1321,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1340,7 +1345,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1364,7 +1369,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDReq) bool {
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
 						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Cursor == nil
 					})).
 					Return(validResp, nil)
@@ -1409,6 +1414,31 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
+			name:        "Success - WithTypeParameter",
+			queryParams: map[string]string{"type": "prev", "cursor_id": "123", "cursor_created_at": "2023-01-01T00:00:00Z"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithCursorReq) bool {
+						return req.Type != nil && *req.Type == "prev" &&
+							req.Cursor != nil && req.Cursor.ID == "123" && req.Cursor.CreatedAt == "2023-01-01T00:00:00Z"
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
 			name:        "Error - WithServiceLayerError",
 			queryParams: map[string]string{},
 			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
@@ -1420,7 +1450,7 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 					Return(ctx, nil)
 
 				mockInterviewSessionService.EXPECT().
-					ListInterviewSessionsByUserID(mock.Anything, mock.Anything).
+					ListInterviewSessionsByUserIDWithCursor(mock.Anything, mock.Anything).
 					Return(nil, serviceError)
 
 				return mockAuthContext, mockInterviewSessionService
@@ -1458,7 +1488,419 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserID(t *testing.T) {
 			defer mockInterviewSessionService.AssertExpectations(t)
 
 			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, nil, nil, nil, nil)
-			handler.ListInterviewSessionsByUserID(c)
+			handler.ListInterviewSessionsByUserIDWithCursor(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestInterviewSessionHandler_ListInterviewSessionsByUserIDWithJumpPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	validResp := &entities.ListInterviewSessionsByUserIDResp{
+		Sessions: []entities.InterviewSessionSummary{
+			{
+				ID:        uuid.New().String(),
+				Position:  "position",
+				Status:    "status",
+				CreatedAt: time.Now().Format(time.RFC3339),
+			},
+		},
+		PrevCursor: &entities.Cursor{
+			ID:        uuid.New().String(),
+			CreatedAt: time.Now().Format(time.RFC3339),
+		},
+		NextCursor: &entities.Cursor{
+			ID:        uuid.New().String(),
+			CreatedAt: time.Now().Format(time.RFC3339),
+		},
+		TotalPages: 1,
+		PageSize:   1,
+	}
+
+	authError := app_error.New(errors.New("auth error"), app_error.ErrCodeAuthInvalidToken)
+	serviceError := app_error.New(errors.New("service error"), app_error.ErrCodeGeneralServerUnavailable)
+
+	tests := []struct {
+		name           string
+		queryParams    map[string]string
+		setup          func() (*middleware.MockAuthContext, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:        "Success - NoQueryParameters",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithSearchTextOnly",
+			queryParams: map[string]string{"search_text": "software engineer"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText != nil && *req.SearchText == "software engineer" && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithStatusOnly",
+			queryParams: map[string]string{"status": "completed"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status != nil && *req.Status == "completed" && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithLimitOnly",
+			queryParams: map[string]string{"limit": "10"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit != nil && *req.Limit == 10 && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithOffsetOnly",
+			queryParams: map[string]string{"offset": "3"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset != nil && *req.Offset == 3
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "Success - WithAllParameters",
+			queryParams: map[string]string{
+				"search_text":       "software engineer",
+				"status":            "completed",
+				"limit":             "5",
+				"offset":            "3",
+				"cursor_created_at": "2023-01-01T00:00:00Z",
+			},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText != nil && *req.SearchText == "software engineer" &&
+							req.Status != nil && *req.Status == "completed" &&
+							req.Limit != nil && *req.Limit == 5 &&
+							req.Offset != nil && *req.Offset == 3
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithEmptySearchText",
+			queryParams: map[string]string{"search_text": ""},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithEmptyStatus",
+			queryParams: map[string]string{"status": ""},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithZeroLimit",
+			queryParams: map[string]string{"limit": "0"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithNegativeLimit",
+			queryParams: map[string]string{"limit": "-5"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Error - WithInvalidLimitNonNumeric",
+			queryParams: map[string]string{"limit": "invalid"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Success - WithNegativeOffset",
+			queryParams: map[string]string{"offset": "-5"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.MatchedBy(func(req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) bool {
+						return req.SearchText == nil && req.Status == nil && req.Limit == nil && req.Offset == nil
+					})).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Error - WithInvalidOffsetNonNumeric",
+			queryParams: map[string]string{"offset": "invalid"},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - WithExtractAuthContextError",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:        "Error - WithServiceLayerError",
+			queryParams: map[string]string{},
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListInterviewSessionsByUserIDWithJumpPagination(mock.Anything, mock.Anything).
+					Return(nil, serviceError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			baseURL := "/api/v1/sessions"
+			if len(tt.queryParams) > 0 {
+				u, err := url.Parse(baseURL)
+				if err != nil {
+					t.Fatalf("Failed to parse base URL: %v", err)
+				}
+				q := u.Query()
+				for key, value := range tt.queryParams {
+					q.Set(key, value)
+				}
+				u.RawQuery = q.Encode()
+				baseURL = u.String()
+			}
+
+			c.Request = httptest.NewRequest(http.MethodGet, baseURL, nil)
+
+			mockAuthContext, mockInterviewSessionService := tt.setup()
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, nil, nil, nil, nil)
+			handler.ListInterviewSessionsByUserIDWithJumpPagination(c)
 
 			tt.verify(t, w)
 		})

@@ -29,7 +29,9 @@ type InterviewSessionRepository interface {
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
 	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
 	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
-	ListInterviewSessionsByUserID(ctx context.Context, req *db.ListInterviewSessionsByUserIDParams) ([]db.ListInterviewSessionsByUserIDRow, error)
+	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)
+	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)
+	CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error)
 }
 
 type interviewSessionRepository struct {
@@ -267,14 +269,38 @@ func (r *interviewSessionRepository) UpdateIsStartedConversationSession(ctx cont
 	return nil
 }
 
-func (r *interviewSessionRepository) ListInterviewSessionsByUserID(ctx context.Context, req *db.ListInterviewSessionsByUserIDParams) ([]db.ListInterviewSessionsByUserIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserID] Called")
+func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithCursor] Called")
 
-	resp, err := r.db.ListInterviewSessionsByUserID(ctx, *req)
+	resp, err := r.db.ListInterviewSessionsByUserIDWithCursor(ctx, *req)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: ListInterviewSessionsByUserID] Error listing interview sessions by user ID", err)
+		r.log.ErrorWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithCursor] Error listing interview sessions by user ID with cursor", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 
 	return resp, nil
+}
+
+func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithJumpPagination] Called")
+
+	resp, err := r.db.ListInterviewSessionsByUserIDWithJumpPagination(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithJumpPagination] Error listing interview sessions by user ID with jump pagination", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
+}
+
+func (r *interviewSessionRepository) CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error) {
+	r.log.InfoWithID(ctx, "[Repository: CountInterviewSessionsByUserID] Called")
+
+	count, err := r.db.CountInterviewSessionsByUserID(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: CountInterviewSessionsByUserID] Error counting interview sessions by user ID", err)
+		return 0, app_error.HandleDatabaseError(err)
+	}
+
+	return count, nil
 }
