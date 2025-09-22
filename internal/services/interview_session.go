@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -948,9 +949,14 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 		limit = int32(*req.Limit)
 	}
 
-	paginationType := "next"
+	paginationType := constants.PaginationCursorTypeNext
 	if req.Type != nil {
-		paginationType = *req.Type
+		if *req.Type != constants.PaginationCursorTypeNext && *req.Type != constants.PaginationCursorTypePrev {
+			s.log.ErrorWithID(ctx, "[Service: ListInterviewSessionsByUserID] Invalid pagination type", "pagination_type", *req.Type)
+			return nil, app_error.New(errors.New("invalid pagination type"), app_error.ErrCodeGeneralInvalidPaginationType)
+		} else {
+			paginationType = *req.Type
+		}
 	}
 
 	countReq := &db.CountInterviewSessionsByUserIDParams{
@@ -972,6 +978,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 		return nil, err
 	}
 
+	pageSize := int(limit)
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	if paginationType == constants.PaginationCursorTypePrev {
+		limit += 1
+	}
+
 	var sessions []entities.InterviewSessionSummary
 	if req.Cursor == nil {
 		firstPageReq := &db.ListInterviewSessionsByUserIDFirstPageParams{
@@ -989,12 +1002,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 		sessions = make([]entities.InterviewSessionSummary, 0, len(dbResp))
 		for _, row := range dbResp {
 			session := entities.InterviewSessionSummary{
-				ID:             row.ID.String(),
-				ResumeID:       row.ResumeID.String(),
-				ResumeFileName: row.ResumeFileName,
-				Position:       row.Position,
-				Status:         row.Status,
-				CreatedAt:      utils.FormatToBangkokTime(row.CreatedAt.Time),
+				ID:               row.ID.String(),
+				ResumeID:         row.ResumeID.String(),
+				ResumeFileName:   row.ResumeFileName,
+				Position:         row.Position,
+				Status:           row.Status,
+				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
 			}
 
 			if row.OverallScore.Valid {
@@ -1044,13 +1058,18 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 
 		sessions = make([]entities.InterviewSessionSummary, 0, len(dbResp))
 		for _, row := range dbResp {
+			if paginationType == constants.PaginationCursorTypePrev && row.ID == cursorID {
+				continue
+			}
+
 			session := entities.InterviewSessionSummary{
-				ID:             row.ID.String(),
-				ResumeID:       row.ResumeID.String(),
-				ResumeFileName: row.ResumeFileName,
-				Position:       row.Position,
-				Status:         row.Status,
-				CreatedAt:      utils.FormatToUTCString(row.CreatedAt.Time),
+				ID:               row.ID.String(),
+				ResumeID:         row.ResumeID.String(),
+				ResumeFileName:   row.ResumeFileName,
+				Position:         row.Position,
+				Status:           row.Status,
+				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+				CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
 			}
 
 			if row.OverallScore.Valid {
@@ -1070,16 +1089,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 
 			sessions = append(sessions, session)
 		}
-
-		if paginationType == "prev" {
-			for i, j := 0, len(sessions)-1; i < j; i, j = i+1, j-1 {
-				sessions[i], sessions[j] = sessions[j], sessions[i]
-			}
-		}
 	}
 
-	pageSize := int(limit)
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	if paginationType == constants.PaginationCursorTypePrev {
+		for i, j := 0, len(sessions)-1; i < j; i, j = i+1, j-1 {
+			sessions[i], sessions[j] = sessions[j], sessions[i]
+		}
+	}
 
 	resp := entities.ListInterviewSessionsByUserIDResp{
 		Sessions:   sessions,
@@ -1161,12 +1177,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 	sessions := make([]entities.InterviewSessionSummary, 0, len(dbResp))
 	for _, row := range dbResp {
 		session := entities.InterviewSessionSummary{
-			ID:             row.ID.String(),
-			ResumeID:       row.ResumeID.String(),
-			ResumeFileName: row.ResumeFileName,
-			Position:       row.Position,
-			Status:         row.Status,
-			CreatedAt:      utils.FormatToUTCString(row.CreatedAt.Time),
+			ID:               row.ID.String(),
+			ResumeID:         row.ResumeID.String(),
+			ResumeFileName:   row.ResumeFileName,
+			Position:         row.Position,
+			Status:           row.Status,
+			CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
+			CreatedAtDisplay: utils.FormatToBangkokTime(row.CreatedAt.Time),
 		}
 
 		if row.OverallScore.Valid {

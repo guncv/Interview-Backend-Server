@@ -4879,6 +4879,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 	invalidUUID := "invalid-uuid"
 	validTime := "2023-01-01T12:00:00Z"
 	invalidTime := "invalid-time"
+	invalidPaginationType := "invalid-pagination-type"
 
 	validCursor := &entities.Cursor{
 		ID:        userID.String(),
@@ -5292,6 +5293,31 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 			},
 		},
 		{
+			name: "Error - InvalidPaginationType",
+			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
+				Type: &invalidPaginationType,
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListInterviewSessionsByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Equal(t, app_error.ErrCodeGeneralInvalidPaginationType, gotErr.(*app_error.AppError).Code)
+				assert.Contains(t, gotErr.Error(), "[INS0116]")
+				assert.Contains(t, gotErr.Error(), "The pagination type is invalid. Please try again.")
+			},
+		},
+		{
 			name: "Error - InvalidCursorID",
 			input: &entities.ListInterviewSessionsByUserIDWithCursorReq{
 				Cursor: invalidCursorID,
@@ -5469,15 +5495,15 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 
 				dbRows := []db.ListInterviewSessionsByUserIDWithCursorRow{
 					{
-						ID:             userID,
+						ID:             uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
 						ResumeID:       userID,
-						ResumeFileName: "test-resume1.pdf",
-						Position:       "Software Engineer",
+						ResumeFileName: "test-resume3.pdf",
+						Position:       "Senior Engineer",
 						Status:         "completed",
-						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
-						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
-						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
-						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+						CreatedAt:      sql.NullTime{Time: time.Now().Add(-2 * time.Hour), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 90.0, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-90 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now().Add(-60 * time.Minute), Valid: true},
 					},
 					{
 						ID:             uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
@@ -5490,11 +5516,22 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 						StartedAt:      sql.NullTime{Time: time.Now().Add(-90 * time.Minute), Valid: true},
 						EndedAt:        sql.NullTime{Time: time.Now().Add(-60 * time.Minute), Valid: true},
 					},
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume1.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
 				}
 
 				parsedTime, _ := time.Parse(time.RFC3339, validCursor.CreatedAt)
 				mockInterviewSessionRepo.EXPECT().ListInterviewSessionsByUserIDWithCursor(ctx, mock.MatchedBy(func(req *db.ListInterviewSessionsByUserIDWithCursorParams) bool {
-					return req.UserID == userID && req.Limit == 20 && req.Column2 == "" && req.CreatedAt.Time.Equal(parsedTime) && req.Column4 == "prev" && req.ID == uuid.MustParse(validCursor.ID)
+					return req.UserID == userID && req.Limit == 21 && req.Column2 == "" && req.CreatedAt.Time.Equal(parsedTime) && req.Column4 == "prev" && req.ID == uuid.MustParse(validCursor.ID)
 				})).
 					Return(dbRows, nil)
 
@@ -5510,8 +5547,8 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				assert.Len(t, gotResp.Sessions, 2)
 				assert.Equal(t, 1, gotResp.TotalPages)
 				assert.Equal(t, 20, gotResp.PageSize)
-				assert.NotNil(t, gotResp.NextCursor)
-				assert.Equal(t, userID.String(), gotResp.NextCursor.ID)
+				assert.Equal(t, "550e8400-e29b-41d4-a716-446655440002", gotResp.NextCursor.ID)
+				assert.Equal(t, "550e8400-e29b-41d4-a716-446655440001", gotResp.PrevCursor.ID)
 			},
 		},
 		{
@@ -5596,7 +5633,6 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 			)
 
 			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithCursor(ctx, tC.input)
-
 			tC.verify(t, gotResp, gotErr)
 		})
 	}

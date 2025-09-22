@@ -172,12 +172,13 @@ type ListInterviewSessionsByUserIDResp struct {
 }
 
 type InterviewSessionSummary struct {
-	ID             string  `json:"id"`
-	ResumeID       string  `json:"resume_id"`
-	ResumeFileName string  `json:"resume_file_name"`
-	Position       string  `json:"position"`
-	Status         string  `json:"status"`
-	TotalTime      string  `json:"total_time"`
-	OverallScore   float64 `json:"overall_score,omitempty"`
-	CreatedAt      string  `json:"created_at"`
+	ID               string  `json:"id"`
+	ResumeID         string  `json:"resume_id"`
+	ResumeFileName   string  `json:"resume_file_name"`
+	Position         string  `json:"position"`
+	Status           string  `json:"status"`
+	TotalTime        string  `json:"total_time"`
+	OverallScore     float64 `json:"overall_score,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+	CreatedAtDisplay string  `json:"created_at_display"`
 }

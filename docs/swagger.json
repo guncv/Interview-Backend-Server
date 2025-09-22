@@ -546,14 +546,14 @@
                 }
             }
         },
-        "/resumes/download/{session_token}": {
+        "/resumes/download/{resume_id}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Download a specific resume by its session token",
+                "description": "Download a specific resume by its resume ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -563,12 +563,12 @@
                 "tags": [
                     "Resumes"
                 ],
-                "summary": "Download resume by session token",
+                "summary": "Download resume by resume ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Session token (UUID)",
-                        "name": "session_token",
+                        "description": "Resume ID (UUID)",
+                        "name": "resume_id",
                         "in": "path",
                         "required": true
                     }
@@ -577,11 +577,11 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeBySessionTokenResp"
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeByResumeIdResp"
                         }
                     },
                     "400": {
-                        "description": "Invalid session token",
+                        "description": "Invalid resume ID",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
                         }
@@ -935,6 +935,90 @@
                 }
             }
         },
+        "/sessions/cursor": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of interview sessions for the authenticated user with optional search and filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "List interview sessions by user ID with cursor pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search text to filter sessions by resume name or position",
+                        "name": "search_text",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter sessions by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor ID for pagination",
+                        "name": "cursor_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor created_at for pagination (RFC3339 format)",
+                        "name": "cursor_created_at",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of sessions to return (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type of pagination (next or prev)",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of interview sessions",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListInterviewSessionsByUserIDResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/sessions/existing": {
             "post": {
                 "security": [
@@ -1028,6 +1112,78 @@
                     },
                     "400": {
                         "description": "Invalid session token or request",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/jump": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of interview sessions for the authenticated user with optional search and filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "List interview sessions by user ID with jump pagination",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search text to filter sessions by resume name or position",
+                        "name": "search_text",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter sessions by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of sessions to return (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of interview sessions",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListInterviewSessionsByUserIDResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
                         }
@@ -1194,12 +1350,20 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeBySessionTokenResp": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.Cursor": {
             "type": "object",
             "properties": {
-                "file_name": {
+                "created_at": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.DownloadResumeByResumeIdResp": {
+            "type": "object",
+            "properties": {
                 "file_url": {
                     "type": "string"
                 }
@@ -1231,9 +1395,6 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp": {
             "type": "object",
             "properties": {
-                "file_name": {
-                    "type": "string"
-                },
                 "position": {
                     "type": "string"
                 }
@@ -1296,6 +1457,38 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.InterviewSessionSummary": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "created_at_display": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "overall_score": {
+                    "type": "number"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "resume_file_name": {
+                    "type": "string"
+                },
+                "resume_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "total_time": {
+                    "type": "string"
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.IssueCategory": {
             "type": "object",
             "properties": {
@@ -1304,6 +1497,29 @@
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListInterviewSessionsByUserIDResp": {
+            "type": "object",
+            "properties": {
+                "next_cursor": {
+                    "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.Cursor"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "prev_cursor": {
+                    "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.Cursor"
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.InterviewSessionSummary"
+                    }
+                },
+                "total_pages": {
+                    "type": "integer"
                 }
             }
         },
@@ -1546,6 +1762,11 @@
                 "INS0109",
                 "INS0110",
                 "INS0111",
+                "INS0112",
+                "INS0113",
+                "INS0114",
+                "INS0115",
+                "INS0116",
                 "INS0200",
                 "INS0201",
                 "INS0202",
@@ -1606,10 +1827,15 @@
                 "ErrCodeGeneralDatabaseConnection",
                 "ErrCodeGeneralConstraintViolation",
                 "ErrCodeGeneralInvalidUUID",
+                "ErrCodeGeneralInvalidTime",
                 "ErrCodeGeneralRedisSetFailed",
                 "ErrCodeGeneralRedisGetFailed",
                 "ErrCodeGeneralUnmarshalFailed",
                 "ErrCodeGeneralPermissionDenied",
+                "ErrCodeGeneralInvalidLimit",
+                "ErrCodeGeneralInvalidNumber",
+                "ErrCodeGeneralInvalidOffset",
+                "ErrCodeGeneralInvalidPaginationType",
                 "ErrCodeAuthInvalidToken",
                 "ErrCodeAuthExpiredToken",
                 "ErrCodeAuthInvalidRefreshToken",
