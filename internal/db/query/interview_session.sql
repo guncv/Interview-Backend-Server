@@ -153,3 +153,8 @@ WHERE user_id = $1
         OR resume_file_name ILIKE '%' || $2 || '%'
     );
 
+-- name: DeleteUserInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET soft_delete = true
+WHERE id = $1
+    AND user_id = $2;

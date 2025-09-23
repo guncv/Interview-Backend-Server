@@ -33,6 +33,7 @@ type InterviewSessionRepository interface {
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)
 	CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error)
+	DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error
 }
 
 type interviewSessionRepository struct {
@@ -316,4 +317,22 @@ func (r *interviewSessionRepository) CountInterviewSessionsByUserID(ctx context.
 	}
 
 	return count, nil
+}
+
+func (r *interviewSessionRepository) DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error {
+	r.log.InfoWithID(ctx, "[Repository: DeleteUserInterviewSessionByID] Called")
+
+	rowAffected, err := r.db.DeleteUserInterviewSessionByID(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: DeleteUserInterviewSessionByID] Error deleting interview session", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: DeleteUserInterviewSessionByID] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
 }

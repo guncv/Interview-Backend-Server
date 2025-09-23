@@ -25,10 +25,11 @@ type Querier interface {
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
-	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) error
+	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) (int64, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
+	DeleteUserInterviewSessionByID(ctx context.Context, arg DeleteUserInterviewSessionByIDParams) (int64, error)
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetAllEvaluationsBySessionIDRow, error)
 	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)

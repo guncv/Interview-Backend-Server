@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createReviewComment = `-- name: CreateReviewComment :exec
+const createReviewComment = `-- name: CreateReviewComment :execrows
 INSERT INTO review_comments (
     id,
     session_id,
@@ -22,8 +22,13 @@ INSERT INTO review_comments (
     description,
     created_at,
     updated_at
-) VALUES (
+)
+SELECT
     $1, $2, $3, $4, $5, $6, $7, $8
+WHERE EXISTS (
+    SELECT 1
+    FROM interview_sessions
+    WHERE id = $2 AND soft_delete = false
 )
 `
 
@@ -38,8 +43,8 @@ type CreateReviewCommentParams struct {
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 }
 
-func (q *Queries) CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) error {
-	_, err := q.db.ExecContext(ctx, createReviewComment,
+func (q *Queries) CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createReviewComment,
 		arg.ID,
 		arg.SessionID,
 		arg.AuthorType,
@@ -49,5 +54,8 @@ func (q *Queries) CreateReviewComment(ctx context.Context, arg CreateReviewComme
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

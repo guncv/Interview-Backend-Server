@@ -117,6 +117,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
 		interviewSessionMiddleRoutes.GET("/cursor", interviewSessionHandler.ListInterviewSessionsByUserIDWithCursor)
 		interviewSessionMiddleRoutes.GET("/jump", interviewSessionHandler.ListInterviewSessionsByUserIDWithJumpPagination)
+		interviewSessionMiddleRoutes.DELETE("/:session_id", interviewSessionHandler.DeleteUserInterviewSessionByID)
 	}
 }
 

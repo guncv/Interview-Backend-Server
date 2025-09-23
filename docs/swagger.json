@@ -1257,6 +1257,58 @@
                 }
             }
         },
+        "/sessions/{session_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete an interview session by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Delete interview session by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Interview session deleted successfully"
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/ws/connect/{id}": {
             "get": {
                 "description": "Establish a WebSocket connection for real-time interview communication",
@@ -1390,7 +1442,6 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateReviewCommentReq": {
             "type": "object",
             "required": [
-                "comment",
                 "rating",
                 "session_id"
             ],
@@ -1883,6 +1934,7 @@
                 "INS0414",
                 "INS0415",
                 "INS0416",
+                "INS0417",
                 "INS0500",
                 "INS0501",
                 "INS0600",
@@ -1952,6 +2004,7 @@
                 "ErrCodeInterviewSessionEndTimeNotFound",
                 "ErrCodeWebSocketInvalidSegmentID",
                 "ErrCodeWebSocketInvalidSessionID",
+                "ErrCodeSessionInvalidSessionID",
                 "ErrCodeEvaluationRubricNotFound",
                 "ErrCodeEvaluationRubricCriteriaNotFound",
                 "ErrCodeInterviewTurnLastMessageNotFound",

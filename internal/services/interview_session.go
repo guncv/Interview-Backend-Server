@@ -46,6 +46,7 @@ type InterviewSessionService interface {
 	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)
+	DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error
 }
 
 type interviewSessionService struct {
@@ -1230,6 +1231,40 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error {
+	s.log.InfoWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Error getting auth context", err)
+		return err
+	}
+
+	userID, err := uuid.Parse(authContext.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.DeleteUserInterviewSessionByIDParams{
+		ID:     sessionID,
+		UserID: userID,
+	}
+
+	if err := s.interviewSessionRepo.DeleteUserInterviewSessionByID(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Error deleting interview session", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

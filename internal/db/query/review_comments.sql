@@ -1,4 +1,4 @@
--- name: CreateReviewComment :exec
+-- name: CreateReviewComment :execrows
 INSERT INTO review_comments (
     id,
     session_id,
@@ -8,6 +8,11 @@ INSERT INTO review_comments (
     description,
     created_at,
     updated_at
-) VALUES (
+)
+SELECT
     $1, $2, $3, $4, $5, $6, $7, $8
+WHERE EXISTS (
+    SELECT 1
+    FROM interview_sessions
+    WHERE id = $2 AND soft_delete = false
 );

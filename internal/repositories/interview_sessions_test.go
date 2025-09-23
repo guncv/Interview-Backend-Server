@@ -901,3 +901,94 @@ func TestInterviewSessionRepository_UpdateIsStartedConversationSession(t *testin
 		})
 	}
 }
+
+func TestInterviewSessionRepository_DeleteUserInterviewSessionByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	req := &db.DeleteUserInterviewSessionByIDParams{
+		ID:     updateID,
+		UserID: userID,
+	}
+
+	testCases := []struct {
+		name   string
+		input  *db.DeleteUserInterviewSessionByIDParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					DeleteUserInterviewSessionByID(ctx, *req).
+					Return(1, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error WithDeleteUserInterviewSessionByIDNotFound",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					DeleteUserInterviewSessionByID(ctx, *req).
+					Return(0, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+			},
+		},
+		{
+			name:  "Error WithDeleteUserInterviewSessionByIDError",
+			input: req,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					DeleteUserInterviewSessionByID(ctx, *req).
+					Return(0, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotErr := svc.DeleteUserInterviewSessionByID(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
