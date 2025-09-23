@@ -67,9 +67,14 @@ func (s *reviewCommentService) CreateReviewComment(ctx context.Context, req *ent
 		AuthorType:   string(authCtx.Payload.Role),
 		AuthorUserID: uuid.NullUUID{UUID: userID, Valid: true},
 		Rating:       sql.NullInt16{Int16: int16(req.Rating), Valid: true},
-		Description:  sql.NullString{String: req.Comment, Valid: true},
 		CreatedAt:    sql.NullTime{Time: time.Now(), Valid: true},
 		UpdatedAt:    sql.NullTime{Time: time.Now(), Valid: true},
+	}
+
+	if req.Comment != nil {
+		dbReq.Description = sql.NullString{String: *req.Comment, Valid: true}
+	} else {
+		dbReq.Description = sql.NullString{Valid: false}
 	}
 
 	if err := s.reviewCommentRepo.CreateReviewComment(ctx, dbReq); err != nil {

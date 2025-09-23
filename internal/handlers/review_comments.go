@@ -49,8 +49,8 @@ func (h *ReviewCommentHandler) CreateReviewComment(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: CreateReviewComment] Called")
 
-	var req entities.CreateReviewCommentReq
-	if err := h.validator.ValidateAndBind(c, &req, "CreateReviewComment"); err != nil {
+	req := &entities.CreateReviewCommentReq{}
+	if err := h.validator.ValidateAndBind(c, req, "CreateReviewComment"); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: CreateReviewComment] Error validating request", err)
 		utils.RespondWithError(c, err)
 		return
@@ -63,7 +63,7 @@ func (h *ReviewCommentHandler) CreateReviewComment(c *gin.Context) {
 		return
 	}
 
-	if err := h.reviewCommentService.CreateReviewComment(ctx, &req); err != nil {
+	if err := h.reviewCommentService.CreateReviewComment(ctx, req); err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: CreateReviewComment] Error creating review comment", err)
 		utils.RespondWithError(c, err)
 		return

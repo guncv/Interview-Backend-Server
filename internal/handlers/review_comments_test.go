@@ -26,11 +26,12 @@ func TestReviewCommentHandler_CreateReviewComment(t *testing.T) {
 	log := log.Initialize("test")
 	ctx := context.Background()
 	mockErr := errors.New("mock error")
+	comment := "Great job!"
 
 	validReq := &entities.CreateReviewCommentReq{
 		SessionID: "123e4567-e89b-12d3-a456-426614174000",
 		Rating:    5,
-		Comment:   "Great job!",
+		Comment:   &comment,
 	}
 
 	tests := []struct {

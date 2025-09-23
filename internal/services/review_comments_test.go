@@ -25,6 +25,7 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 	globalID := "01234567-89ab-cdef-0123-456789abcdef"
 	mockErr := errors.New("auth failed")
 	invalidID := "invalid-id"
+	comment := "Great job!"
 
 	testCases := []struct {
 		name   string
@@ -37,7 +38,7 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 			input: &entities.CreateReviewCommentReq{
 				SessionID: globalID,
 				Rating:    5,
-				Comment:   "Great job!",
+				Comment:   &comment,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
 				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)
@@ -75,11 +76,53 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 			},
 		},
 		{
+			name: "Success WithNonComment",
+			input: &entities.CreateReviewCommentReq{
+				SessionID: globalID,
+				Rating:    5,
+				Comment:   nil,
+			},
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
+				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)
+				mockAuthContext := new(mockMiddleware.MockAuthContext)
+				mockGenerator := new(mockGenerator.MockGenerator)
+
+				mockAuthContext.EXPECT().
+					GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utilsPkg.SignInTokenPayload{
+							UserID: globalID,
+							Role:   constants.UserRoleUser,
+						},
+					}, nil)
+
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse(globalID))
+
+				mockReviewCommentRepository.EXPECT().
+					CreateReviewComment(ctx, mock.MatchedBy(func(req *db.CreateReviewCommentParams) bool {
+						return req.ID == uuid.MustParse(globalID) &&
+							req.SessionID == uuid.MustParse(globalID) &&
+							req.AuthorType == string(constants.UserRoleUser) &&
+							req.AuthorUserID.UUID == uuid.MustParse(globalID) &&
+							req.Rating.Int16 == 5 &&
+							req.Description.Valid == false
+					})).
+					Return(nil)
+
+				return mockAuthContext, mockReviewCommentRepository, mockGenerator
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
 			name: "Error WithParseSessionIDError",
 			input: &entities.CreateReviewCommentReq{
 				SessionID: invalidID,
 				Rating:    5,
-				Comment:   "Great job!",
+				Comment:   &comment,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
 				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)
@@ -99,7 +142,7 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 			input: &entities.CreateReviewCommentReq{
 				SessionID: globalID,
 				Rating:    5,
-				Comment:   "Great job!",
+				Comment:   &comment,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
 				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)
@@ -122,7 +165,7 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 			input: &entities.CreateReviewCommentReq{
 				SessionID: globalID,
 				Rating:    5,
-				Comment:   "Great job!",
+				Comment:   &comment,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
 				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)
@@ -151,7 +194,7 @@ func TestReviewCommentService_CreateReviewComment(t *testing.T) {
 			input: &entities.CreateReviewCommentReq{
 				SessionID: globalID,
 				Rating:    5,
-				Comment:   "Great job!",
+				Comment:   &comment,
 			},
 			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockReviewCommentRepository, *mockGenerator.MockGenerator) {
 				mockReviewCommentRepository := new(mockRepositories.MockReviewCommentRepository)

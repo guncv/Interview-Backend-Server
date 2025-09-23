@@ -16,10 +16,8 @@ import (
 
 func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 
-	// Use configurable CORS origins
 	corsOrigins := cfg.AppConfig.CORSOrigins
 	if len(corsOrigins) == 0 {
-		// Fallback to default origins if none configured
 		corsOrigins = []string{"http://localhost:5173"}
 	}
 
@@ -48,13 +46,11 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 			return
 		}
 
-		// Use the configuration to determine the correct host
 		apiHost := cfg.AppConfig.APIHost
 		if apiHost == "" {
-			apiHost = "localhost:8080" // fallback
+			apiHost = "localhost:8080"
 		}
 
-		// Replace the placeholder with the actual host
 		swaggerContent := strings.ReplaceAll(string(swaggerBytes), "${API_HOST:-localhost:8080}", apiHost)
 
 		c.Header("Content-Type", "application/json")
