@@ -89,12 +89,10 @@ SELECT
     r.id AS rubric_id,
     r.name AS rubric_name,
     r.description_md AS rubric_description_md,
-    r.version_label AS rubric_version_label,
     c.id AS criterion_id,
     c.name AS criterion_name,
     c.description_md AS criterion_description_md,
-    c.weight AS criterion_weight,
-    c.max_score AS criterion_max_score
+    c.weight AS criterion_weight
 FROM evaluation_rubrics r
 JOIN evaluation_criteria c ON r.id = c.rubric_id
 WHERE r.soft_delete = false AND r.version_label = $1
@@ -105,12 +103,10 @@ type ListAllRubricsAndCriteriaRow struct {
 	RubricID               uuid.UUID      `json:"rubric_id"`
 	RubricName             string         `json:"rubric_name"`
 	RubricDescriptionMd    sql.NullString `json:"rubric_description_md"`
-	RubricVersionLabel     string         `json:"rubric_version_label"`
 	CriterionID            uuid.UUID      `json:"criterion_id"`
 	CriterionName          string         `json:"criterion_name"`
 	CriterionDescriptionMd sql.NullString `json:"criterion_description_md"`
 	CriterionWeight        string         `json:"criterion_weight"`
-	CriterionMaxScore      string         `json:"criterion_max_score"`
 }
 
 func (q *Queries) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]ListAllRubricsAndCriteriaRow, error) {
@@ -126,12 +122,10 @@ func (q *Queries) ListAllRubricsAndCriteria(ctx context.Context, versionLabel st
 			&i.RubricID,
 			&i.RubricName,
 			&i.RubricDescriptionMd,
-			&i.RubricVersionLabel,
 			&i.CriterionID,
 			&i.CriterionName,
 			&i.CriterionDescriptionMd,
 			&i.CriterionWeight,
-			&i.CriterionMaxScore,
 		); err != nil {
 			return nil, err
 		}

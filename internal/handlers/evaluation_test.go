@@ -33,14 +33,12 @@ func TestEvaluationHandler_ListAllRubricsAndCriteria(t *testing.T) {
 				ID:            rubricID.String(),
 				Name:          "test name",
 				DescriptionMd: "test description md",
-				VersionLabel:  "test version label",
 				Criteria: []entities.CriterionRow{
 					{
 						ID:            criteriaID.String(),
 						Name:          "test name",
 						DescriptionMd: "test description md",
 						Weight:        "test weight",
-						MaxScore:      "test max score",
 					},
 				},
 			},
@@ -71,7 +69,7 @@ func TestEvaluationHandler_ListAllRubricsAndCriteria(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"rubrics":[{"id":"`+resp.Rubrics[0].ID+`","name":"`+resp.Rubrics[0].Name+`","description_md":"`+resp.Rubrics[0].DescriptionMd+`","version_label":"`+resp.Rubrics[0].VersionLabel+`","criteria":[{"id":"`+resp.Rubrics[0].Criteria[0].ID+`","name":"`+resp.Rubrics[0].Criteria[0].Name+`","description_md":"`+resp.Rubrics[0].Criteria[0].DescriptionMd+`","weight":"`+resp.Rubrics[0].Criteria[0].Weight+`","max_score":"`+resp.Rubrics[0].Criteria[0].MaxScore+`"}]}]}`, w.Body.String())
+				assert.JSONEq(t, `{"rubrics":[{"id":"`+resp.Rubrics[0].ID+`","name":"`+resp.Rubrics[0].Name+`","description_md":"`+resp.Rubrics[0].DescriptionMd+`","criteria":[{"id":"`+resp.Rubrics[0].Criteria[0].ID+`","name":"`+resp.Rubrics[0].Criteria[0].Name+`","description_md":"`+resp.Rubrics[0].Criteria[0].DescriptionMd+`","weight":"`+resp.Rubrics[0].Criteria[0].Weight+`"}]}]}`, w.Body.String())
 			},
 		},
 		{

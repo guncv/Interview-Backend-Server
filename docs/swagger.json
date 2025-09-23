@@ -1529,9 +1529,6 @@
                 "id": {
                     "type": "string"
                 },
-                "max_score": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -1815,9 +1812,6 @@
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "version_label": {
                     "type": "string"
                 }
             }

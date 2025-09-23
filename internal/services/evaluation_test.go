@@ -237,12 +237,10 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 			RubricID:               globalID,
 			RubricName:             "test",
 			RubricDescriptionMd:    sql.NullString{String: "test", Valid: true},
-			RubricVersionLabel:     "test",
 			CriterionID:            globalID,
 			CriterionName:          "test",
 			CriterionDescriptionMd: sql.NullString{String: "test", Valid: true},
 			CriterionWeight:        "test",
-			CriterionMaxScore:      "test",
 		},
 	}
 
@@ -252,14 +250,12 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 				ID:            globalID.String(),
 				Name:          "test",
 				DescriptionMd: "test",
-				VersionLabel:  "test",
 				Criteria: []entities.CriterionRow{
 					{
 						ID:            globalID.String(),
 						Name:          "test",
 						DescriptionMd: "test",
 						Weight:        "test",
-						MaxScore:      "test",
 					},
 				},
 			},

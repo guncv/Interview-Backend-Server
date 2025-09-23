@@ -174,7 +174,6 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 				ID:            row.RubricID.String(),
 				Name:          row.RubricName,
 				DescriptionMd: row.RubricDescriptionMd.String,
-				VersionLabel:  row.RubricVersionLabel,
 				Criteria:      []entities.CriterionRow{},
 			}
 		}
@@ -184,7 +183,6 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 			Name:          row.CriterionName,
 			DescriptionMd: row.CriterionDescriptionMd.String,
 			Weight:        row.CriterionWeight,
-			MaxScore:      row.CriterionMaxScore,
 		}
 
 		rubricMap[rubricID].Criteria = append(rubricMap[rubricID].Criteria, criterion)

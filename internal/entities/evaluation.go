@@ -25,7 +25,6 @@ type RubricAndCriteriaRow struct {
 	ID            string         `json:"id"`
 	Name          string         `json:"name"`
 	DescriptionMd string         `json:"description_md"`
-	VersionLabel  string         `json:"version_label"`
 	Criteria      []CriterionRow `json:"criteria"`
 }
 
@@ -34,5 +33,4 @@ type CriterionRow struct {
 	Name          string `json:"name"`
 	DescriptionMd string `json:"description_md"`
 	Weight        string `json:"weight"`
-	MaxScore      string `json:"max_score"`
 }
