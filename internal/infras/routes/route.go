@@ -68,6 +68,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		interviewSessionHandler *handlers.InterviewSessionHandler,
 		issueReportsHandler *handlers.IssueReportsHandler,
 		issueCategoriesHandler *handlers.IssueReportsHandler,
+		reviewCommentHandler *handlers.ReviewCommentHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
@@ -76,6 +77,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
 		issueReportsRoutes(api_v1, issueReportsHandler, authMiddleware)
 		issueCategoriesRoutes(api_v1, issueCategoriesHandler, authMiddleware)
+		reviewCommentRoutes(api_v1, reviewCommentHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -144,5 +146,13 @@ func websocketRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.Inte
 
 	{
 		websocketRoutes.GET("/connect/:id", interviewSessionHandler.OpenWsConnection)
+	}
+}
+
+func reviewCommentRoutes(eg *gin.RouterGroup, reviewCommentHandler *handlers.ReviewCommentHandler, authMiddleware middleware.AuthMiddleware) {
+	reviewCommentMiddleRoutes := eg.Group("/review-comments").Use(authMiddleware.AuthMiddleware())
+
+	{
+		reviewCommentMiddleRoutes.POST("", reviewCommentHandler.CreateReviewComment)
 	}
 }

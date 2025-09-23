@@ -25,6 +25,7 @@ type Querier interface {
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
+	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error

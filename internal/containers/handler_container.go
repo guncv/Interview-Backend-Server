@@ -20,4 +20,8 @@ func (c *Container) HandlerProvider() {
 	if err := c.Container.Provide(handlers.NewIssueReportsHandler); err != nil {
 		c.Error = err
 	}
+
+	if err := c.Container.Provide(handlers.NewReviewCommentHandler); err != nil {
+		c.Error = err
+	}
 }

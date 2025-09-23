@@ -161,11 +161,13 @@ FetchBoth:
 		}()
 
 		var completed int
+		var errors []error
 		for completed < 2 {
 			select {
 			case err := <-errorChan:
 				s.log.ErrorWithID(ctx, "[Service: ListResume] Error in concurrent fetch", err)
-				return nil, err
+				errors = append(errors, err)
+				completed++
 			case list := <-resumeListChan:
 				resumeList = list
 				completed++
@@ -176,6 +178,11 @@ FetchBoth:
 				s.log.ErrorWithID(ctx, "[Service: ListResume] Context canceled", ctx.Err())
 				return nil, ctx.Err()
 			}
+		}
+
+		// If there were any errors, return the first one
+		if len(errors) > 0 {
+			return nil, errors[0]
 		}
 
 		if defaultResume.ID != uuid.Nil {
