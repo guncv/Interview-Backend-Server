@@ -1523,6 +1523,9 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CriterionRow": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "description_md": {
                     "type": "string"
                 },
@@ -1532,7 +1535,7 @@
                 "name": {
                     "type": "string"
                 },
-                "weight": {
+                "percentage": {
                     "type": "string"
                 }
             }

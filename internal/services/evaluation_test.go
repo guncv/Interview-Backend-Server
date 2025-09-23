@@ -232,7 +232,7 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 	ctx := context.Background()
 	globalID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 
-	validDBResp := []db.ListAllRubricsAndCriteriaRow{
+	validLowWeightDBResp := []db.ListAllRubricsAndCriteriaRow{
 		{
 			RubricID:               globalID,
 			RubricName:             "test",
@@ -240,11 +240,17 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 			CriterionID:            globalID,
 			CriterionName:          "test",
 			CriterionDescriptionMd: sql.NullString{String: "test", Valid: true},
-			CriterionWeight:        "test",
+			CriterionWeight:        "0.20",
 		},
 	}
 
-	validResp := &entities.ListAllRubricsAndCriteriaResp{
+	validMediumWeightDBResp := validLowWeightDBResp
+	validMediumWeightDBResp[0].CriterionWeight = "0.30"
+
+	validHighWeightDBResp := validLowWeightDBResp
+	validHighWeightDBResp[0].CriterionWeight = "0.40"
+
+	validLowWeightResp := &entities.ListAllRubricsAndCriteriaResp{
 		Rubrics: []entities.RubricAndCriteriaRow{
 			{
 				ID:            globalID.String(),
@@ -255,14 +261,33 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 						ID:            globalID.String(),
 						Name:          "test",
 						DescriptionMd: "test",
-						Weight:        "test",
+						Percentage:    "20.0",
+						Color:         constants.PercentageColorLow,
 					},
 				},
 			},
 		},
 	}
 
-	jsonValidResp, err := json.Marshal(validResp)
+	validMediumWeightResp := validLowWeightResp
+	validMediumWeightResp.Rubrics[0].Criteria[0].Percentage = "30.0"
+	validMediumWeightResp.Rubrics[0].Criteria[0].Color = constants.PercentageColorMedium
+
+	validHighWeightResp := validLowWeightResp
+	validHighWeightResp.Rubrics[0].Criteria[0].Percentage = "40.0"
+	validHighWeightResp.Rubrics[0].Criteria[0].Color = constants.PercentageColorHigh
+
+	jsonLowWeightValidResp, err := json.Marshal(validLowWeightResp)
+	if err != nil {
+		t.Fatalf("Failed to marshal valid response: %v", err)
+	}
+
+	jsonMediumWeightValidResp, err := json.Marshal(validMediumWeightResp)
+	if err != nil {
+		t.Fatalf("Failed to marshal valid response: %v", err)
+	}
+
+	jsonHighWeightValidResp, err := json.Marshal(validHighWeightResp)
 	if err != nil {
 		t.Fatalf("Failed to marshal valid response: %v", err)
 	}
@@ -279,14 +304,14 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 
 				mockRedisClient.EXPECT().
 					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
-					Return(string(jsonValidResp), nil)
+					Return(string(jsonLowWeightValidResp), nil)
 
 				return mockRedisClient, nil
 			},
 			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, validResp, gotResp)
+				assert.Equal(t, validLowWeightResp, gotResp)
 			},
 		},
 		{
@@ -301,12 +326,12 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 
 				mockEvaluationRubricsRepo.EXPECT().
 					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
-					Return(validDBResp, nil)
+					Return(validLowWeightDBResp, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   constants.RedisPrefixAllRubricsAndCriteria,
-						Value: jsonValidResp,
+						Value: jsonLowWeightValidResp,
 						TTL:   constants.RedisTTLEvaluationRubric,
 					}).
 					Return(nil).
@@ -317,7 +342,7 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, validResp, gotResp)
+				assert.Equal(t, validLowWeightResp, gotResp)
 			},
 		},
 		{
@@ -332,12 +357,12 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 
 				mockEvaluationRubricsRepo.EXPECT().
 					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
-					Return(validDBResp, nil)
+					Return(validLowWeightDBResp, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   constants.RedisPrefixAllRubricsAndCriteria,
-						Value: jsonValidResp,
+						Value: jsonLowWeightValidResp,
 						TTL:   constants.RedisTTLEvaluationRubric,
 					}).
 					Return(nil).
@@ -348,7 +373,7 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, validResp, gotResp)
+				assert.Equal(t, validLowWeightResp, gotResp)
 			},
 		},
 		{
@@ -363,12 +388,12 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 
 				mockEvaluationRubricsRepo.EXPECT().
 					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
-					Return(validDBResp, nil)
+					Return(validLowWeightDBResp, nil)
 
 				mockRedisClient.EXPECT().
 					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
 						Key:   constants.RedisPrefixAllRubricsAndCriteria,
-						Value: jsonValidResp,
+						Value: jsonLowWeightValidResp,
 						TTL:   constants.RedisTTLEvaluationRubric,
 					}).
 					Return(nil).
@@ -379,7 +404,69 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
-				assert.Equal(t, validResp, gotResp)
+				assert.Equal(t, validLowWeightResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheMissAndMediumWeight",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", redis.Nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(validMediumWeightDBResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
+						Key:   constants.RedisPrefixAllRubricsAndCriteria,
+						Value: jsonMediumWeightValidResp,
+						TTL:   constants.RedisTTLEvaluationRubric,
+					}).
+					Return(nil).
+					Maybe()
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validMediumWeightResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheMissAndHighWeight",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", redis.Nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(validHighWeightDBResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
+						Key:   constants.RedisPrefixAllRubricsAndCriteria,
+						Value: jsonHighWeightValidResp,
+						TTL:   constants.RedisTTLEvaluationRubric,
+					}).
+					Return(nil).
+					Maybe()
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validHighWeightResp, gotResp)
 			},
 		},
 		{

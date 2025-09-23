@@ -38,7 +38,8 @@ func TestEvaluationHandler_ListAllRubricsAndCriteria(t *testing.T) {
 						ID:            criteriaID.String(),
 						Name:          "test name",
 						DescriptionMd: "test description md",
-						Weight:        "test weight",
+						Percentage:    "test percentage",
+						Color:         "test color",
 					},
 				},
 			},
@@ -69,7 +70,7 @@ func TestEvaluationHandler_ListAllRubricsAndCriteria(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"rubrics":[{"id":"`+resp.Rubrics[0].ID+`","name":"`+resp.Rubrics[0].Name+`","description_md":"`+resp.Rubrics[0].DescriptionMd+`","criteria":[{"id":"`+resp.Rubrics[0].Criteria[0].ID+`","name":"`+resp.Rubrics[0].Criteria[0].Name+`","description_md":"`+resp.Rubrics[0].Criteria[0].DescriptionMd+`","weight":"`+resp.Rubrics[0].Criteria[0].Weight+`"}]}]}`, w.Body.String())
+				assert.JSONEq(t, `{"rubrics":[{"id":"`+resp.Rubrics[0].ID+`","name":"`+resp.Rubrics[0].Name+`","description_md":"`+resp.Rubrics[0].DescriptionMd+`","criteria":[{"id":"`+resp.Rubrics[0].Criteria[0].ID+`","name":"`+resp.Rubrics[0].Criteria[0].Name+`","description_md":"`+resp.Rubrics[0].Criteria[0].DescriptionMd+`","percentage":"`+resp.Rubrics[0].Criteria[0].Percentage+`","color":"`+resp.Rubrics[0].Criteria[0].Color+`"}]}]}`, w.Body.String())
 			},
 		},
 		{

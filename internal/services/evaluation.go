@@ -14,6 +14,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
 
 type EvaluationService interface {
@@ -178,11 +179,15 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 			}
 		}
 
+		percentage := utils.ConvertWeightToPercentage(row.CriterionWeight)
+		color := utils.GetPercentageColor(percentage)
+
 		criterion := entities.CriterionRow{
 			ID:            row.CriterionID.String(),
 			Name:          row.CriterionName,
 			DescriptionMd: row.CriterionDescriptionMd.String,
-			Weight:        row.CriterionWeight,
+			Percentage:    percentage,
+			Color:         color,
 		}
 
 		rubricMap[rubricID].Criteria = append(rubricMap[rubricID].Criteria, criterion)
