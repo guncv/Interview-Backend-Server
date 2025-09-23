@@ -234,6 +234,53 @@ func (_c *MockInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx_C
 	return _c
 }
 
+// DeleteUserInterviewSessionByID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUserInterviewSessionByID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.DeleteUserInterviewSessionByIDParams) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUserInterviewSessionByID'
+type MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call struct {
+	*mock.Call
+}
+
+// DeleteUserInterviewSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.DeleteUserInterviewSessionByIDParams
+func (_e *MockInterviewSessionRepository_Expecter) DeleteUserInterviewSessionByID(ctx interface{}, req interface{}) *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call {
+	return &MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call{Call: _e.mock.On("DeleteUserInterviewSessionByID", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call) Run(run func(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams)) *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.DeleteUserInterviewSessionByIDParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call) Return(_a0 error) *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call) RunAndReturn(run func(context.Context, *db.DeleteUserInterviewSessionByIDParams) error) *MockInterviewSessionRepository_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EndInterviewSession provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error {
 	ret := _m.Called(ctx, req)

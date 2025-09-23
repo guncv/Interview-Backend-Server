@@ -175,11 +175,10 @@ type Resumes struct {
 type ReviewComments struct {
 	ID           uuid.UUID      `json:"id"`
 	SessionID    uuid.UUID      `json:"session_id"`
-	TargetTurnID uuid.NullUUID  `json:"target_turn_id"`
 	AuthorType   string         `json:"author_type"`
 	AuthorUserID uuid.NullUUID  `json:"author_user_id"`
-	Category     sql.NullString `json:"category"`
-	BodyMd       string         `json:"body_md"`
+	Rating       sql.NullInt16  `json:"rating"`
+	Description  sql.NullString `json:"description"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`

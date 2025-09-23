@@ -92,6 +92,26 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 	return err
 }
 
+const deleteUserInterviewSessionByID = `-- name: DeleteUserInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET soft_delete = true
+WHERE id = $1
+    AND user_id = $2
+`
+
+type DeleteUserInterviewSessionByIDParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteUserInterviewSessionByID(ctx context.Context, arg DeleteUserInterviewSessionByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUserInterviewSessionByID, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const endInterviewSession = `-- name: EndInterviewSession :execrows
 UPDATE interview_sessions
 SET status = $2,

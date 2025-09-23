@@ -517,6 +517,8 @@ func TestResumeService_ListResume(t *testing.T) {
 					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixDefaultResume, userID.String())).
 					Return("", redis.Nil)
 
+				// Both goroutines will be started, but GetDefaultResumeByUserID will return an error first
+				// causing the service to return early. However, ListResumeByUserIDFirstPage should still be called
 				mockResumeRepository.EXPECT().
 					ListResumeByUserIDFirstPage(ctx, userID).
 					Return([]db.Resumes{}, nil)

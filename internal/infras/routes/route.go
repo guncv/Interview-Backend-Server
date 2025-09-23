@@ -16,10 +16,8 @@ import (
 
 func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 
-	// Use configurable CORS origins
 	corsOrigins := cfg.AppConfig.CORSOrigins
 	if len(corsOrigins) == 0 {
-		// Fallback to default origins if none configured
 		corsOrigins = []string{"http://localhost:5173"}
 	}
 
@@ -48,13 +46,11 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 			return
 		}
 
-		// Use the configuration to determine the correct host
 		apiHost := cfg.AppConfig.APIHost
 		if apiHost == "" {
-			apiHost = "localhost:8080" // fallback
+			apiHost = "localhost:8080"
 		}
 
-		// Replace the placeholder with the actual host
 		swaggerContent := strings.ReplaceAll(string(swaggerBytes), "${API_HOST:-localhost:8080}", apiHost)
 
 		c.Header("Content-Type", "application/json")
@@ -68,6 +64,8 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		interviewSessionHandler *handlers.InterviewSessionHandler,
 		issueReportsHandler *handlers.IssueReportsHandler,
 		issueCategoriesHandler *handlers.IssueReportsHandler,
+		reviewCommentHandler *handlers.ReviewCommentHandler,
+		evaluationHandler *handlers.EvaluationHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
@@ -76,6 +74,8 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		interviewSessionRoutes(api_v1, interviewSessionHandler, authMiddleware)
 		issueReportsRoutes(api_v1, issueReportsHandler, authMiddleware)
 		issueCategoriesRoutes(api_v1, issueCategoriesHandler, authMiddleware)
+		reviewCommentRoutes(api_v1, reviewCommentHandler, authMiddleware)
+		evaluationRoutes(api_v1, evaluationHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -119,6 +119,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
 		interviewSessionMiddleRoutes.GET("/cursor", interviewSessionHandler.ListInterviewSessionsByUserIDWithCursor)
 		interviewSessionMiddleRoutes.GET("/jump", interviewSessionHandler.ListInterviewSessionsByUserIDWithJumpPagination)
+		interviewSessionMiddleRoutes.DELETE("/:session_id", interviewSessionHandler.DeleteUserInterviewSessionByID)
 	}
 }
 
@@ -144,5 +145,21 @@ func websocketRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.Inte
 
 	{
 		websocketRoutes.GET("/connect/:id", interviewSessionHandler.OpenWsConnection)
+	}
+}
+
+func reviewCommentRoutes(eg *gin.RouterGroup, reviewCommentHandler *handlers.ReviewCommentHandler, authMiddleware middleware.AuthMiddleware) {
+	reviewCommentMiddleRoutes := eg.Group("/review-comments").Use(authMiddleware.AuthMiddleware())
+
+	{
+		reviewCommentMiddleRoutes.POST("", reviewCommentHandler.CreateReviewComment)
+	}
+}
+
+func evaluationRoutes(eg *gin.RouterGroup, evaluationHandler *handlers.EvaluationHandler, authMiddleware middleware.AuthMiddleware) {
+	evaluationMiddleRoutes := eg.Group("/evaluation").Use(authMiddleware.AuthMiddleware())
+
+	{
+		evaluationMiddleRoutes.GET("/rubrics", evaluationHandler.ListAllRubricsAndCriteria)
 	}
 }

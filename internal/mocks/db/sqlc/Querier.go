@@ -732,6 +732,63 @@ func (_c *MockQuerier_CreateResume_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
+// CreateReviewComment provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateReviewComment(ctx context.Context, arg db.CreateReviewCommentParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateReviewComment")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateReviewCommentParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateReviewCommentParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.CreateReviewCommentParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_CreateReviewComment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateReviewComment'
+type MockQuerier_CreateReviewComment_Call struct {
+	*mock.Call
+}
+
+// CreateReviewComment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateReviewCommentParams
+func (_e *MockQuerier_Expecter) CreateReviewComment(ctx interface{}, arg interface{}) *MockQuerier_CreateReviewComment_Call {
+	return &MockQuerier_CreateReviewComment_Call{Call: _e.mock.On("CreateReviewComment", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateReviewComment_Call) Run(run func(ctx context.Context, arg db.CreateReviewCommentParams)) *MockQuerier_CreateReviewComment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateReviewCommentParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateReviewComment_Call) Return(_a0 int64, _a1 error) *MockQuerier_CreateReviewComment_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_CreateReviewComment_Call) RunAndReturn(run func(context.Context, db.CreateReviewCommentParams) (int64, error)) *MockQuerier_CreateReviewComment_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUser provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.Users, error) {
 	ret := _m.Called(ctx, arg)
@@ -889,6 +946,63 @@ func (_c *MockQuerier_CreateUserTurnImprovement_Call) Return(_a0 error) *MockQue
 }
 
 func (_c *MockQuerier_CreateUserTurnImprovement_Call) RunAndReturn(run func(context.Context, db.CreateUserTurnImprovementParams) error) *MockQuerier_CreateUserTurnImprovement_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteUserInterviewSessionByID provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) DeleteUserInterviewSessionByID(ctx context.Context, arg db.DeleteUserInterviewSessionByIDParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUserInterviewSessionByID")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_DeleteUserInterviewSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUserInterviewSessionByID'
+type MockQuerier_DeleteUserInterviewSessionByID_Call struct {
+	*mock.Call
+}
+
+// DeleteUserInterviewSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.DeleteUserInterviewSessionByIDParams
+func (_e *MockQuerier_Expecter) DeleteUserInterviewSessionByID(ctx interface{}, arg interface{}) *MockQuerier_DeleteUserInterviewSessionByID_Call {
+	return &MockQuerier_DeleteUserInterviewSessionByID_Call{Call: _e.mock.On("DeleteUserInterviewSessionByID", ctx, arg)}
+}
+
+func (_c *MockQuerier_DeleteUserInterviewSessionByID_Call) Run(run func(ctx context.Context, arg db.DeleteUserInterviewSessionByIDParams)) *MockQuerier_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.DeleteUserInterviewSessionByIDParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_DeleteUserInterviewSessionByID_Call) Return(_a0 int64, _a1 error) *MockQuerier_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_DeleteUserInterviewSessionByID_Call) RunAndReturn(run func(context.Context, db.DeleteUserInterviewSessionByIDParams) (int64, error)) *MockQuerier_DeleteUserInterviewSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1754,6 +1868,65 @@ func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) Return(_a0 []string, 
 }
 
 func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]string, error)) *MockQuerier_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAllRubricsAndCriteria provides a mock function with given fields: ctx, versionLabel
+func (_m *MockQuerier) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error) {
+	ret := _m.Called(ctx, versionLabel)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAllRubricsAndCriteria")
+	}
+
+	var r0 []db.ListAllRubricsAndCriteriaRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)); ok {
+		return rf(ctx, versionLabel)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.ListAllRubricsAndCriteriaRow); ok {
+		r0 = rf(ctx, versionLabel)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListAllRubricsAndCriteriaRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, versionLabel)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_ListAllRubricsAndCriteria_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAllRubricsAndCriteria'
+type MockQuerier_ListAllRubricsAndCriteria_Call struct {
+	*mock.Call
+}
+
+// ListAllRubricsAndCriteria is a helper method to define mock.On call
+//   - ctx context.Context
+//   - versionLabel string
+func (_e *MockQuerier_Expecter) ListAllRubricsAndCriteria(ctx interface{}, versionLabel interface{}) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	return &MockQuerier_ListAllRubricsAndCriteria_Call{Call: _e.mock.On("ListAllRubricsAndCriteria", ctx, versionLabel)}
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) Run(run func(ctx context.Context, versionLabel string)) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) Return(_a0 []db.ListAllRubricsAndCriteriaRow, _a1 error) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) RunAndReturn(run func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)) *MockQuerier_ListAllRubricsAndCriteria_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -220,6 +221,258 @@ func TestEvaluationService_GetRubricWithCriteriaByName(t *testing.T) {
 			)
 
 			gotResp, gotErr := svc.GetRubricWithCriteriaByName(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	globalID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	validDBResp := []db.ListAllRubricsAndCriteriaRow{
+		{
+			RubricID:               globalID,
+			RubricName:             "test",
+			RubricDescriptionMd:    sql.NullString{String: "test", Valid: true},
+			CriterionID:            globalID,
+			CriterionName:          "test",
+			CriterionDescriptionMd: sql.NullString{String: "test", Valid: true},
+			CriterionWeight:        "test",
+		},
+	}
+
+	validResp := &entities.ListAllRubricsAndCriteriaResp{
+		Rubrics: []entities.RubricAndCriteriaRow{
+			{
+				ID:            globalID.String(),
+				Name:          "test",
+				DescriptionMd: "test",
+				Criteria: []entities.CriterionRow{
+					{
+						ID:            globalID.String(),
+						Name:          "test",
+						DescriptionMd: "test",
+						Weight:        "test",
+					},
+				},
+			},
+		},
+	}
+
+	jsonValidResp, err := json.Marshal(validResp)
+	if err != nil {
+		t.Fatalf("Failed to marshal valid response: %v", err)
+	}
+
+	testCases := []struct {
+		name   string
+		setup  func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository)
+		verify func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error)
+	}{
+		{
+			name: "Success WithCacheHit",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return(string(jsonValidResp), nil)
+
+				return mockRedisClient, nil
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", errors.New("cache error"))
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(validDBResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
+						Key:   constants.RedisPrefixAllRubricsAndCriteria,
+						Value: jsonValidResp,
+						TTL:   constants.RedisTTLEvaluationRubric,
+					}).
+					Return(nil).
+					Maybe()
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheMissAndUnmarshalFailed",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("invalid json", nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(validDBResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
+						Key:   constants.RedisPrefixAllRubricsAndCriteria,
+						Value: jsonValidResp,
+						TTL:   constants.RedisTTLEvaluationRubric,
+					}).
+					Return(nil).
+					Maybe()
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheMiss",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", redis.Nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(validDBResp, nil)
+
+				mockRedisClient.EXPECT().
+					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
+						Key:   constants.RedisPrefixAllRubricsAndCriteria,
+						Value: jsonValidResp,
+						TTL:   constants.RedisTTLEvaluationRubric,
+					}).
+					Return(nil).
+					Maybe()
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Success WithCacheMissAndGetEmptyResponseFromDB",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", redis.Nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return([]db.ListAllRubricsAndCriteriaRow{}, nil)
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, &entities.ListAllRubricsAndCriteriaResp{
+					Rubrics: []entities.RubricAndCriteriaRow{},
+				}, gotResp)
+			},
+		},
+		{
+			name: "Error WithCacheMissAndDBError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("", errors.New("cache miss"))
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(nil, errors.New("db error"))
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Equal(t, gotErr.Error(), "db error")
+				assert.Nil(t, gotResp)
+
+			},
+		},
+		{
+			name: "Error WithCacheHitButUnmarshalFailedAndDBError",
+			setup: func() (*mockDatabase.MockRedisClient, *mockRepositories.MockEvaluationRubricsRepository) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockEvaluationRubricsRepo := new(mockRepositories.MockEvaluationRubricsRepository)
+
+				mockRedisClient.EXPECT().
+					Get(ctx, constants.RedisPrefixAllRubricsAndCriteria).
+					Return("invalid json", nil)
+
+				mockEvaluationRubricsRepo.EXPECT().
+					ListAllRubricsAndCriteria(ctx, constants.CurrentCriteriaVersion).
+					Return(nil, errors.New("db error"))
+
+				return mockRedisClient, mockEvaluationRubricsRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListAllRubricsAndCriteriaResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Equal(t, gotErr.Error(), "db error")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockRedisClient, mockEvaluationRubricsRepo := tC.setup()
+
+			defer func() {
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+				if mockEvaluationRubricsRepo != nil {
+					mockEvaluationRubricsRepo.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewEvaluationService(
+				lgr,
+				mockRedisClient,
+				mockEvaluationRubricsRepo,
+			)
+
+			gotResp, gotErr := svc.ListAllRubricsAndCriteria(ctx)
 
 			tC.verify(t, gotResp, gotErr)
 		})

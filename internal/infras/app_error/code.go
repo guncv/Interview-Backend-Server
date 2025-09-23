@@ -70,6 +70,8 @@ const (
 	ErrCodeInterviewSessionEndTimeNotFound       ErrorCode = "INS0414"
 	ErrCodeWebSocketInvalidSegmentID             ErrorCode = "INS0415"
 	ErrCodeWebSocketInvalidSessionID             ErrorCode = "INS0416"
+	ErrCodeSessionInvalidSessionID               ErrorCode = "INS0417"
+	ErrCodeSessionNotFoundOrDeleted              ErrorCode = "INS0418"
 
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound         ErrorCode = "INS0500"

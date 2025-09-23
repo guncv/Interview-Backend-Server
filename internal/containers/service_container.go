@@ -45,4 +45,8 @@ func (c *Container) ServiceProvider() {
 	if err := c.Container.Provide(services.NewIssueReportsService); err != nil {
 		c.Error = err
 	}
+
+	if err := c.Container.Provide(services.NewReviewCommentService); err != nil {
+		c.Error = err
+	}
 }

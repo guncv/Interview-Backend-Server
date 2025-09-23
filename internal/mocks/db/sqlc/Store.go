@@ -732,6 +732,63 @@ func (_c *MockStore_CreateResume_Call) RunAndReturn(run func(context.Context, db
 	return _c
 }
 
+// CreateReviewComment provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateReviewComment(ctx context.Context, arg db.CreateReviewCommentParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateReviewComment")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateReviewCommentParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateReviewCommentParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.CreateReviewCommentParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_CreateReviewComment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateReviewComment'
+type MockStore_CreateReviewComment_Call struct {
+	*mock.Call
+}
+
+// CreateReviewComment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateReviewCommentParams
+func (_e *MockStore_Expecter) CreateReviewComment(ctx interface{}, arg interface{}) *MockStore_CreateReviewComment_Call {
+	return &MockStore_CreateReviewComment_Call{Call: _e.mock.On("CreateReviewComment", ctx, arg)}
+}
+
+func (_c *MockStore_CreateReviewComment_Call) Run(run func(ctx context.Context, arg db.CreateReviewCommentParams)) *MockStore_CreateReviewComment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateReviewCommentParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreateReviewComment_Call) Return(_a0 int64, _a1 error) *MockStore_CreateReviewComment_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_CreateReviewComment_Call) RunAndReturn(run func(context.Context, db.CreateReviewCommentParams) (int64, error)) *MockStore_CreateReviewComment_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUser provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.Users, error) {
 	ret := _m.Called(ctx, arg)
@@ -889,6 +946,63 @@ func (_c *MockStore_CreateUserTurnImprovement_Call) Return(_a0 error) *MockStore
 }
 
 func (_c *MockStore_CreateUserTurnImprovement_Call) RunAndReturn(run func(context.Context, db.CreateUserTurnImprovementParams) error) *MockStore_CreateUserTurnImprovement_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteUserInterviewSessionByID provides a mock function with given fields: ctx, arg
+func (_m *MockStore) DeleteUserInterviewSessionByID(ctx context.Context, arg db.DeleteUserInterviewSessionByIDParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUserInterviewSessionByID")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.DeleteUserInterviewSessionByIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_DeleteUserInterviewSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUserInterviewSessionByID'
+type MockStore_DeleteUserInterviewSessionByID_Call struct {
+	*mock.Call
+}
+
+// DeleteUserInterviewSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.DeleteUserInterviewSessionByIDParams
+func (_e *MockStore_Expecter) DeleteUserInterviewSessionByID(ctx interface{}, arg interface{}) *MockStore_DeleteUserInterviewSessionByID_Call {
+	return &MockStore_DeleteUserInterviewSessionByID_Call{Call: _e.mock.On("DeleteUserInterviewSessionByID", ctx, arg)}
+}
+
+func (_c *MockStore_DeleteUserInterviewSessionByID_Call) Run(run func(ctx context.Context, arg db.DeleteUserInterviewSessionByIDParams)) *MockStore_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.DeleteUserInterviewSessionByIDParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_DeleteUserInterviewSessionByID_Call) Return(_a0 int64, _a1 error) *MockStore_DeleteUserInterviewSessionByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_DeleteUserInterviewSessionByID_Call) RunAndReturn(run func(context.Context, db.DeleteUserInterviewSessionByIDParams) (int64, error)) *MockStore_DeleteUserInterviewSessionByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1801,6 +1915,65 @@ func (_c *MockStore_ListAllResumesFileNameByUserID_Call) Return(_a0 []string, _a
 }
 
 func (_c *MockStore_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]string, error)) *MockStore_ListAllResumesFileNameByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAllRubricsAndCriteria provides a mock function with given fields: ctx, versionLabel
+func (_m *MockStore) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error) {
+	ret := _m.Called(ctx, versionLabel)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAllRubricsAndCriteria")
+	}
+
+	var r0 []db.ListAllRubricsAndCriteriaRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)); ok {
+		return rf(ctx, versionLabel)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.ListAllRubricsAndCriteriaRow); ok {
+		r0 = rf(ctx, versionLabel)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListAllRubricsAndCriteriaRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, versionLabel)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_ListAllRubricsAndCriteria_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAllRubricsAndCriteria'
+type MockStore_ListAllRubricsAndCriteria_Call struct {
+	*mock.Call
+}
+
+// ListAllRubricsAndCriteria is a helper method to define mock.On call
+//   - ctx context.Context
+//   - versionLabel string
+func (_e *MockStore_Expecter) ListAllRubricsAndCriteria(ctx interface{}, versionLabel interface{}) *MockStore_ListAllRubricsAndCriteria_Call {
+	return &MockStore_ListAllRubricsAndCriteria_Call{Call: _e.mock.On("ListAllRubricsAndCriteria", ctx, versionLabel)}
+}
+
+func (_c *MockStore_ListAllRubricsAndCriteria_Call) Run(run func(ctx context.Context, versionLabel string)) *MockStore_ListAllRubricsAndCriteria_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockStore_ListAllRubricsAndCriteria_Call) Return(_a0 []db.ListAllRubricsAndCriteriaRow, _a1 error) *MockStore_ListAllRubricsAndCriteria_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_ListAllRubricsAndCriteria_Call) RunAndReturn(run func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)) *MockStore_ListAllRubricsAndCriteria_Call {
 	_c.Call.Return(run)
 	return _c
 }

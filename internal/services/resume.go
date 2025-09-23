@@ -161,11 +161,13 @@ FetchBoth:
 		}()
 
 		var completed int
+		var errors []error
 		for completed < 2 {
 			select {
 			case err := <-errorChan:
 				s.log.ErrorWithID(ctx, "[Service: ListResume] Error in concurrent fetch", err)
-				return nil, err
+				errors = append(errors, err)
+				completed++
 			case list := <-resumeListChan:
 				resumeList = list
 				completed++
@@ -176,6 +178,11 @@ FetchBoth:
 				s.log.ErrorWithID(ctx, "[Service: ListResume] Context canceled", ctx.Err())
 				return nil, ctx.Err()
 			}
+		}
+
+		// If there were any errors, return the first one
+		if len(errors) > 0 {
+			return nil, errors[0]
 		}
 
 		if defaultResume.ID != uuid.Nil {
@@ -204,8 +211,8 @@ Finalize:
 			FileName:  defaultResume.FileName,
 			MimeType:  defaultResume.MimeType,
 			ByteSize:  defaultResume.ByteSize,
-			CreatedAt: utils.FormatToBangkokTime(defaultResume.CreatedAt),
-			UpdatedAt: utils.FormatToBangkokTime(defaultResume.UpdatedAt),
+			CreatedAt: utils.FormatBangkokDateTimeFormat(defaultResume.CreatedAt),
+			UpdatedAt: utils.FormatBangkokDateTimeFormat(defaultResume.UpdatedAt),
 		}
 	} else {
 		defaultResumeResp = &entities.GetListResumeByIdResponse{
@@ -269,8 +276,8 @@ Finalize:
 					FileName:  resume.FileName,
 					MimeType:  resume.MimeType,
 					ByteSize:  resume.ByteSize,
-					CreatedAt: utils.FormatToBangkokTime(resume.CreatedAt),
-					UpdatedAt: utils.FormatToBangkokTime(resume.UpdatedAt),
+					CreatedAt: utils.FormatBangkokDateTimeFormat(resume.CreatedAt),
+					UpdatedAt: utils.FormatBangkokDateTimeFormat(resume.UpdatedAt),
 				})
 			}
 		}
@@ -370,8 +377,8 @@ func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResu
 		MimeType:  resume.MimeType,
 		ByteSize:  resume.ByteSize,
 		FileUrl:   fileUrl,
-		CreatedAt: utils.FormatToBangkokTime(resume.CreatedAt),
-		UpdatedAt: utils.FormatToBangkokTime(resume.UpdatedAt),
+		CreatedAt: utils.FormatBangkokDateTimeFormat(resume.CreatedAt),
+		UpdatedAt: utils.FormatBangkokDateTimeFormat(resume.UpdatedAt),
 	}
 
 	return &resp, nil

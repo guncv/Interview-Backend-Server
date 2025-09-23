@@ -36,6 +36,7 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Called")
 
+		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Debugging 1")
 		authorizationHeader := ctx.GetHeader(string(constants.AuthorizationHeaderKey))
 		if len(authorizationHeader) == 0 {
 			err := app_error.New(errors.New("authorization header is not provided"), app_error.ErrCodeAuthInvalidHeader)
@@ -44,6 +45,7 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Debugging 2")
 		fields := strings.Fields(authorizationHeader)
 		if len(fields) < 2 {
 			err := app_error.New(errors.New("invalid authorization header format"), app_error.ErrCodeAuthInvalidHeader)
@@ -52,6 +54,7 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Debugging 3")
 		authorizationType := strings.ToLower(fields[0])
 		if authorizationType != string(constants.AuthorizationTypeBearer) {
 			err := app_error.New(errors.New("authorization header must start with "+string(constants.AuthorizationTypeBearer)), app_error.ErrCodeAuthInvalidHeader)
@@ -60,6 +63,7 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Debugging 4")
 		accessToken := fields[1]
 		payload, err := m.VerifyAndRenewAccessToken(ctx, accessToken)
 		if err != nil {

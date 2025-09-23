@@ -165,8 +165,8 @@ type Cursor struct {
 
 type ListInterviewSessionsByUserIDResp struct {
 	Sessions   []InterviewSessionSummary `json:"sessions"`
-	PrevCursor *Cursor                   `json:"prev_cursor,omitempty"`
-	NextCursor *Cursor                   `json:"next_cursor,omitempty"`
+	PrevCursor *Cursor                   `json:"prev_cursor"`
+	NextCursor *Cursor                   `json:"next_cursor"`
 	TotalPages int                       `json:"total_pages"`
 	PageSize   int                       `json:"page_size"`
 }
@@ -178,7 +178,7 @@ type InterviewSessionSummary struct {
 	Position         string  `json:"position"`
 	Status           string  `json:"status"`
 	TotalTime        string  `json:"total_time"`
-	OverallScore     float64 `json:"overall_score,omitempty"`
+	OverallScore     float64 `json:"overall_score"`
 	CreatedAt        string  `json:"created_at"`
 	CreatedAtDisplay string  `json:"created_at_display"`
 }

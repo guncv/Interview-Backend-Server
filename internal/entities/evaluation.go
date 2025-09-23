@@ -16,3 +16,21 @@ type CritetiaRow struct {
 	CriterionWeight        string `json:"criterion_weight"`
 	CriterionMaxScore      string `json:"criterion_max_score"`
 }
+
+type ListAllRubricsAndCriteriaResp struct {
+	Rubrics []RubricAndCriteriaRow `json:"rubrics"`
+}
+
+type RubricAndCriteriaRow struct {
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	DescriptionMd string         `json:"description_md"`
+	Criteria      []CriterionRow `json:"criteria"`
+}
+
+type CriterionRow struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	DescriptionMd string `json:"description_md"`
+	Weight        string `json:"weight"`
+}

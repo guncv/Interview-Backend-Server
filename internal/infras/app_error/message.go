@@ -19,6 +19,7 @@ const (
 	ErrMessageGeneralInvalidNumber         ErrorMessage = "The number is invalid. Please try again."
 	ErrMessageGeneralInvalidOffset         ErrorMessage = "The offset is invalid. Please try again."
 	ErrMessageGeneralInvalidPaginationType ErrorMessage = "The pagination type is invalid. Please try again."
+
 	// Auth
 	ErrMessageAuthInvalidToken            ErrorMessage = "Your token is invalid. Please log in again."
 	ErrMessageAuthExpiredToken            ErrorMessage = "Your token has expired. Please log in again."
@@ -69,6 +70,8 @@ const (
 	ErrMessageInterviewSessionEndTimeNotFound       ErrorMessage = "Interview session end time not found. Please try again."
 	ErrMessageWebSocketInvalidSegmentID             ErrorMessage = "The segment ID is invalid or expired. Please try again."
 	ErrMessageWebSocketInvalidSessionID             ErrorMessage = "The session ID is invalid. Please try again."
+	ErrMessageSessionInvalidSessionID               ErrorMessage = "The session ID is invalid. Please try again."
+	ErrMessageSessionNotFoundOrDeleted              ErrorMessage = "The session was not found or deleted. Please try again."
 
 	// Evaluation
 	ErrMessageEvaluationRubricNotFound         ErrorMessage = "The rubric was not found. Please try again."

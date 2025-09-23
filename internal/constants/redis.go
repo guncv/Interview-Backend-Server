@@ -12,6 +12,7 @@ const (
 	RedisPrefixInterviewStartEndTime       = "interview:start_end_time:"
 	RedisPrefixInterviewLastMessage        = "interview:last_message:"
 	RedisPrefixEvaluationRubric            = "evaluation:rubric:general:"
+	RedisPrefixAllRubricsAndCriteria       = "evaluation:rubrics:all"
 	RedisPrefixInterviewSessionToken       = "interview:session_token:"
 	RedisPrefixInterviewSessionInformation = "interview:session_information:"
 	RedisPrefixIssueCategories             = "issue:categories"
