@@ -130,15 +130,20 @@ type GetInterviewSessionInformationReq struct {
 }
 
 type GetInterviewSessionInformationResp struct {
-	ResumeID       uuid.UUID `json:"resume_id"`
-	ResumeFileName string    `json:"resume_file_name"`
-	Position       string    `json:"position"`
-	Status         string    `json:"status"`
-	StartedAt      string    `json:"started_at"`
-	EndedAt        string    `json:"ended_at"`
-	OverallScore   float64   `json:"overall_score"`
-	SummaryMd      string    `json:"summary_md"`
-	CreatedAt      string    `json:"created_at"`
+	ResumeID            uuid.UUID `json:"resume_id"`
+	ResumeFileName      string    `json:"resume_file_name"`
+	Position            string    `json:"position"`
+	Status              string    `json:"status"`
+	StatusDisplayName   string    `json:"status_display_name"`
+	StatusColor         string    `json:"status_color"`
+	StartedAt           string    `json:"started_at"`
+	EndedAt             string    `json:"ended_at"`
+	OverallScore        float64   `json:"overall_score"`
+	OverallScorePercent string    `json:"overall_score_percent"`
+	OverallScoreColor   string    `json:"overall_score_color"`
+	SummaryMd           string    `json:"summary_md"`
+	CreatedAt           string    `json:"created_at"`
+	CreatedAtFullName   string    `json:"created_at_full_name"`
 }
 
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {

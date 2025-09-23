@@ -1211,16 +1211,37 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 		return nil, app_error.New(constants.ErrPermissionDenied, app_error.ErrCodeSessionUserNotMatch)
 	}
 
+	overallScore := utils.GetNullableFloat64(dbResp.OverallScore, 0.00)
+
+	if !utils.ValidateScoreRange(overallScore) {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid overall score", err)
+		return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+	}
+
+	if !utils.ValidateStatus(dbResp.Status) {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid status", err)
+		return nil, app_error.New(constants.ErrInterviewSessionInvalidStatus, app_error.ErrCodeSessionInvalidStatus)
+	}
+
+	overallScorePercent, overallScoreColor := utils.FormatScoreWithColor(overallScore)
+	statusColor := utils.GetStatusColor(dbResp.Status)
+	statusDisplayName := utils.GetStatusDisplayName(dbResp.Status)
+
 	resp := entities.GetInterviewSessionInformationResp{
-		ResumeID:       dbResp.ResumeID,
-		ResumeFileName: dbResp.ResumeFileName,
-		Position:       dbResp.Position,
-		Status:         dbResp.Status,
-		StartedAt:      utils.FormatNullableTimeToBangkokString(dbResp.StartedAt),
-		EndedAt:        utils.FormatNullableTimeToBangkokString(dbResp.EndedAt),
-		OverallScore:   utils.GetNullableFloat64(dbResp.OverallScore, 0.00),
-		SummaryMd:      utils.GetNullableString(dbResp.SummaryMd, constants.BlankOverallSummaryMd),
-		CreatedAt:      utils.FormatNullableTimeToBangkokString(dbResp.CreatedAt),
+		ResumeID:            dbResp.ResumeID,
+		ResumeFileName:      dbResp.ResumeFileName,
+		Position:            dbResp.Position,
+		Status:              dbResp.Status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utils.FormatNullableTimeToBangkokString(dbResp.StartedAt),
+		EndedAt:             utils.FormatNullableTimeToBangkokString(dbResp.EndedAt),
+		OverallScore:        overallScore,
+		OverallScorePercent: overallScorePercent,
+		OverallScoreColor:   overallScoreColor,
+		SummaryMd:           utils.GetNullableString(dbResp.SummaryMd, constants.BlankOverallSummaryMd),
+		CreatedAt:           utils.FormatNullableTimeToBangkokString(dbResp.CreatedAt),
+		CreatedAtFullName:   utils.FormatNullableTimeToBangkokStringFullTimeFormat(dbResp.CreatedAt),
 	}
 
 	return &resp, nil

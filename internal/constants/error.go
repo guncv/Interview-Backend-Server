@@ -23,6 +23,8 @@ var (
 	ErrInterviewSessionStartEndTimeNotFound = errors.New("interview session start end time not found")
 	ErrInterviewSessionStartTimeNotFound    = errors.New("interview session start time not found")
 	ErrInterviewSessionEndTimeNotFound      = errors.New("interview session end time not found")
+	ErrInterviewSessionInvalidOverallScore  = errors.New("interview session overall score is invalid")
+	ErrInterviewSessionInvalidStatus        = errors.New("interview session status is invalid")
 
 	// Issue Reports
 	ErrIssueReportNotOpen      = errors.New("issue report not open")

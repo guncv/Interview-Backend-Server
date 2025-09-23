@@ -67,6 +67,13 @@ func FormatNullableTimeToBangkokString(nullTime sql.NullTime) string {
 	return FormatBangkokDateTimeFormat(time.Now())
 }
 
+func FormatNullableTimeToBangkokStringFullTimeFormat(nullTime sql.NullTime) string {
+	if nullTime.Valid {
+		return FormatToBangkokFullTimeFormat(nullTime.Time)
+	}
+	return FormatToBangkokFullTimeFormat(time.Now())
+}
+
 func FormatNullableTimeToUTCString(nullTime sql.NullTime) string {
 	if nullTime.Valid {
 		return FormatToUTCString(nullTime.Time)
@@ -86,4 +93,99 @@ func GetNullableString(nullString sql.NullString, defaultValue string) string {
 		return nullString.String
 	}
 	return defaultValue
+}
+
+func GetStatusColor(status string) string {
+	switch status {
+	case constants.StatusPending:
+		return "#6C757D"
+	case constants.StatusOnGoing:
+		return "#007BFF"
+	case constants.StatusCompleted:
+		return "#28A745"
+	case constants.StatusAborted:
+		return "#DC3545"
+	case constants.StatusCancelled:
+		return "#6C757D"
+	case constants.StatusTimedOut:
+		return "#FF6B35"
+	default:
+		return "#6C757D"
+	}
+}
+
+func FormatScorePercentage(score float64) string {
+	if score < 0 {
+		score = 0
+	}
+	if score > 5 {
+		score = 5
+	}
+	// Convert score from 0-5 scale to percentage (multiply by 20)
+	percentage := score * 20
+	return fmt.Sprintf("%.1f%%", percentage)
+}
+
+func GetScoreColor(score float64) string {
+	// Convert score from 0-5 scale to percentage for color comparison
+	percentage := score * 20
+	switch {
+	case percentage >= 80:
+		return "#28A745"
+	case percentage >= 60:
+		return "#20C997"
+	case percentage >= 40:
+		return "#FFC107"
+	case percentage >= 20:
+		return "#FD7E14"
+	default:
+		return "#DC3545"
+	}
+}
+
+func FormatScoreWithColor(score float64) (string, string) {
+	percentage := FormatScorePercentage(score)
+	color := GetScoreColor(score)
+	return percentage, color
+}
+
+func ValidateScoreRange(score float64) bool {
+	return score >= 0 && score <= 5
+}
+
+func ValidateStatus(status string) bool {
+	validStatuses := []string{
+		constants.StatusPending,
+		constants.StatusOnGoing,
+		constants.StatusCompleted,
+		constants.StatusAborted,
+		constants.StatusCancelled,
+		constants.StatusTimedOut,
+	}
+
+	for _, validStatus := range validStatuses {
+		if status == validStatus {
+			return true
+		}
+	}
+	return false
+}
+
+func GetStatusDisplayName(status string) string {
+	switch status {
+	case constants.StatusPending:
+		return "Pending"
+	case constants.StatusOnGoing:
+		return "In Progress"
+	case constants.StatusCompleted:
+		return "Completed"
+	case constants.StatusAborted:
+		return "Aborted"
+	case constants.StatusCancelled:
+		return "Cancelled"
+	case constants.StatusTimedOut:
+		return "Timed Out"
+	default:
+		return "Unknown"
+	}
 }

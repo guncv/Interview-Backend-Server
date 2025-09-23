@@ -465,3 +465,474 @@ func TestFormatToBangkokTimeWithSecondDifferentHours(t *testing.T) {
 		})
 	}
 }
+
+func TestGetStatusColor(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   string
+		expected string
+	}{
+		{
+			name:     "Pending status",
+			status:   constants.StatusPending,
+			expected: "#6C757D", // Gray
+		},
+		{
+			name:     "OnGoing status",
+			status:   constants.StatusOnGoing,
+			expected: "#007BFF", // Blue
+		},
+		{
+			name:     "Completed status",
+			status:   constants.StatusCompleted,
+			expected: "#28A745", // Green
+		},
+		{
+			name:     "Aborted status",
+			status:   constants.StatusAborted,
+			expected: "#DC3545", // Red
+		},
+		{
+			name:     "Cancelled status",
+			status:   constants.StatusCancelled,
+			expected: "#6C757D", // Gray
+		},
+		{
+			name:     "TimedOut status",
+			status:   constants.StatusTimedOut,
+			expected: "#FF6B35", // Orange-red
+		},
+		{
+			name:     "Unknown status",
+			status:   "unknown_status",
+			expected: "#6C757D", // Default gray
+		},
+		{
+			name:     "Empty status",
+			status:   "",
+			expected: "#6C757D", // Default gray
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetStatusColor(tt.status)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFormatScorePercentage(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    float64
+		expected string
+	}{
+		{
+			name:     "Perfect score (5.0)",
+			score:    5.0,
+			expected: "100.0%",
+		},
+		{
+			name:     "High score (4.5)",
+			score:    4.5,
+			expected: "90.0%",
+		},
+		{
+			name:     "Medium score (3.75)",
+			score:    3.75,
+			expected: "75.0%",
+		},
+		{
+			name:     "Low score (2.25)",
+			score:    2.25,
+			expected: "45.0%",
+		},
+		{
+			name:     "Zero score",
+			score:    0.0,
+			expected: "0.0%",
+		},
+		{
+			name:     "Negative score (should clamp to 0)",
+			score:    -0.5,
+			expected: "0.0%",
+		},
+		{
+			name:     "Score over 5 (should clamp to 5)",
+			score:    7.5,
+			expected: "100.0%",
+		},
+		{
+			name:     "Decimal score",
+			score:    4.35,
+			expected: "87.0%",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatScorePercentage(tt.score)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetScoreColor(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    float64
+		expected string
+	}{
+		{
+			name:     "Excellent score (4.5+)",
+			score:    4.75,
+			expected: "#28A745", // Green
+		},
+		{
+			name:     "Excellent score (exactly 4.5)",
+			score:    4.5,
+			expected: "#28A745", // Green
+		},
+		{
+			name:     "Good score (4.0-4.49)",
+			score:    4.25,
+			expected: "#28A745", // Green (85%)
+		},
+		{
+			name:     "Good score (exactly 4.0)",
+			score:    4.0,
+			expected: "#28A745", // Green (80%)
+		},
+		{
+			name:     "Fair score (3.5-3.99)",
+			score:    3.75,
+			expected: "#20C997", // Teal (75%)
+		},
+		{
+			name:     "Fair score (exactly 3.5)",
+			score:    3.5,
+			expected: "#20C997", // Teal (70%)
+		},
+		{
+			name:     "Below average score (3.0-3.49)",
+			score:    3.25,
+			expected: "#20C997", // Teal (65%)
+		},
+		{
+			name:     "Below average score (exactly 3.0)",
+			score:    3.0,
+			expected: "#20C997", // Teal (60%)
+		},
+		{
+			name:     "Poor score (below 3.0)",
+			score:    2.25,
+			expected: "#FFC107", // Yellow (45%)
+		},
+		{
+			name:     "Zero score",
+			score:    0.0,
+			expected: "#DC3545", // Red
+		},
+		{
+			name:     "Negative score",
+			score:    -0.5,
+			expected: "#DC3545", // Red
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetScoreColor(tt.score)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFormatScoreWithColor(t *testing.T) {
+	tests := []struct {
+		name           string
+		score          float64
+		expectedFormat string
+		expectedColor  string
+	}{
+		{
+			name:           "Excellent score",
+			score:          4.775,
+			expectedFormat: "95.5%",
+			expectedColor:  "#28A745",
+		},
+		{
+			name:           "Good score",
+			score:          4.25,
+			expectedFormat: "85.0%",
+			expectedColor:  "#28A745",
+		},
+		{
+			name:           "Fair score",
+			score:          3.76,
+			expectedFormat: "75.2%",
+			expectedColor:  "#20C997",
+		},
+		{
+			name:           "Below average score",
+			score:          3.25,
+			expectedFormat: "65.0%",
+			expectedColor:  "#20C997",
+		},
+		{
+			name:           "Poor score",
+			score:          2.25,
+			expectedFormat: "45.0%",
+			expectedColor:  "#FFC107",
+		},
+		{
+			name:           "Zero score",
+			score:          0.0,
+			expectedFormat: "0.0%",
+			expectedColor:  "#DC3545",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			format, color := FormatScoreWithColor(tt.score)
+			assert.Equal(t, tt.expectedFormat, format)
+			assert.Equal(t, tt.expectedColor, color)
+		})
+	}
+}
+
+func TestFormatScoreWithColorConsistency(t *testing.T) {
+	score := 4.275
+	expectedFormat := "85.5%"
+	expectedColor := "#28A745" // 85.5% >= 80% = Green
+
+	for i := 0; i < 100; i++ {
+		format, color := FormatScoreWithColor(score)
+		assert.Equal(t, expectedFormat, format)
+		assert.Equal(t, expectedColor, color)
+	}
+}
+
+func TestFormatScoreWithColorEdgeCases(t *testing.T) {
+	tests := []struct {
+		name           string
+		score          float64
+		expectedFormat string
+		expectedColor  string
+	}{
+		{
+			name:           "Very high score",
+			score:          4.999,
+			expectedFormat: "100.0%",
+			expectedColor:  "#28A745",
+		},
+		{
+			name:           "Very low score",
+			score:          0.001,
+			expectedFormat: "0.0%",
+			expectedColor:  "#DC3545",
+		},
+		{
+			name:           "Boundary score (exactly 4.5)",
+			score:          4.5,
+			expectedFormat: "90.0%",
+			expectedColor:  "#28A745",
+		},
+		{
+			name:           "Boundary score (exactly 4.0)",
+			score:          4.0,
+			expectedFormat: "80.0%",
+			expectedColor:  "#28A745",
+		},
+		{
+			name:           "Boundary score (exactly 3.5)",
+			score:          3.5,
+			expectedFormat: "70.0%",
+			expectedColor:  "#20C997",
+		},
+		{
+			name:           "Boundary score (exactly 3.0)",
+			score:          3.0,
+			expectedFormat: "60.0%",
+			expectedColor:  "#20C997",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			format, color := FormatScoreWithColor(tt.score)
+			assert.Equal(t, tt.expectedFormat, format)
+			assert.Equal(t, tt.expectedColor, color)
+		})
+	}
+}
+
+func TestValidateScoreRange(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    float64
+		expected bool
+	}{
+		{
+			name:     "Valid score within range",
+			score:    3.75,
+			expected: true,
+		},
+		{
+			name:     "Valid score at minimum",
+			score:    0.0,
+			expected: true,
+		},
+		{
+			name:     "Valid score at maximum",
+			score:    5.0,
+			expected: true,
+		},
+		{
+			name:     "Invalid negative score",
+			score:    -0.5,
+			expected: false,
+		},
+		{
+			name:     "Invalid score over 5",
+			score:    7.5,
+			expected: false,
+		},
+		{
+			name:     "Edge case: very small positive score",
+			score:    0.001,
+			expected: true,
+		},
+		{
+			name:     "Edge case: score just under 5",
+			score:    4.999,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ValidateScoreRange(tt.score)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestValidateStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   string
+		expected bool
+	}{
+		{
+			name:     "Valid pending status",
+			status:   constants.StatusPending,
+			expected: true,
+		},
+		{
+			name:     "Valid ongoing status",
+			status:   constants.StatusOnGoing,
+			expected: true,
+		},
+		{
+			name:     "Valid completed status",
+			status:   constants.StatusCompleted,
+			expected: true,
+		},
+		{
+			name:     "Valid aborted status",
+			status:   constants.StatusAborted,
+			expected: true,
+		},
+		{
+			name:     "Valid cancelled status",
+			status:   constants.StatusCancelled,
+			expected: true,
+		},
+		{
+			name:     "Valid timed out status",
+			status:   constants.StatusTimedOut,
+			expected: true,
+		},
+		{
+			name:     "Invalid empty status",
+			status:   "",
+			expected: false,
+		},
+		{
+			name:     "Invalid unknown status",
+			status:   "unknown_status",
+			expected: false,
+		},
+		{
+			name:     "Invalid case-sensitive status",
+			status:   "PENDING",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ValidateStatus(tt.status)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetStatusDisplayName(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   string
+		expected string
+	}{
+		{
+			name:     "Pending status display",
+			status:   constants.StatusPending,
+			expected: "Pending",
+		},
+		{
+			name:     "OnGoing status display",
+			status:   constants.StatusOnGoing,
+			expected: "In Progress",
+		},
+		{
+			name:     "Completed status display",
+			status:   constants.StatusCompleted,
+			expected: "Completed",
+		},
+		{
+			name:     "Aborted status display",
+			status:   constants.StatusAborted,
+			expected: "Aborted",
+		},
+		{
+			name:     "Cancelled status display",
+			status:   constants.StatusCancelled,
+			expected: "Cancelled",
+		},
+		{
+			name:     "TimedOut status display",
+			status:   constants.StatusTimedOut,
+			expected: "Timed Out",
+		},
+		{
+			name:     "Unknown status display",
+			status:   "unknown_status",
+			expected: "Unknown",
+		},
+		{
+			name:     "Empty status display",
+			status:   "",
+			expected: "Unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetStatusDisplayName(tt.status)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

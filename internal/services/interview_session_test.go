@@ -5907,68 +5907,77 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 	dateNow := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC).In(time.UTC)
 	invalidSessionID := "invalid-session-id"
 	invalidUserID := "invalid-user-id"
+	status := constants.StatusCompleted
+	statusColor := "#28A745"
+	statusDisplayName := "Completed"
 
 	validDbResp := &db.GetInterviewSessionInformationByIDRow{
 		UserID:         userID,
 		ResumeID:       sessionID,
 		ResumeFileName: "resume_file_name",
 		Position:       "position",
-		Status:         "status",
+		Status:         status,
 		StartedAt:      sql.NullTime{Time: dateNow, Valid: true},
 		EndedAt:        sql.NullTime{Time: dateNow, Valid: true},
-		OverallScore:   sql.NullFloat64{Float64: 100, Valid: true},
+		OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
 		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
 		CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
 	}
 
 	validResp := &entities.GetInterviewSessionInformationResp{
-		ResumeID:       sessionID,
-		ResumeFileName: "resume_file_name",
-		Position:       "position",
-		Status:         "status",
-		StartedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
-		EndedAt:        utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
-		OverallScore:   100,
-		SummaryMd:      "summary_md",
-		CreatedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		ResumeID:            sessionID,
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		EndedAt:             utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		OverallScore:        5,
+		OverallScorePercent: "100.0%",
+		OverallScoreColor:   "#28A745",
+		SummaryMd:           "summary_md",
+		CreatedAt:           utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		CreatedAtFullName:   utilsPkg.FormatNullableTimeToBangkokStringFullTimeFormat(sql.NullTime{Time: dateNow, Valid: true}),
 	}
 
-	validDbUserRespNotMatch := &db.GetInterviewSessionInformationByIDRow{
-		UserID:         uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
-		ResumeID:       sessionID,
-		ResumeFileName: "resume_file_name",
-		Position:       "position",
-		Status:         "status",
-		StartedAt:      sql.NullTime{Time: dateNow, Valid: true},
-		EndedAt:        sql.NullTime{Time: dateNow, Valid: true},
-		OverallScore:   sql.NullFloat64{Float64: 100, Valid: true},
-		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
-		CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
-	}
+	validDbRespInvalidOverallScore := *validDbResp
+	validDbRespInvalidOverallScore.OverallScore = sql.NullFloat64{Float64: 10, Valid: true}
+
+	validDbRespInvalidStatus := *validDbResp
+	validDbRespInvalidStatus.Status = "invalid"
+
+	validDbUserRespNotMatch := *validDbResp
+	validDbUserRespNotMatch.UserID = uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 
 	validDbRespWithNullSomeValue := &db.GetInterviewSessionInformationByIDRow{
 		UserID:         userID,
 		ResumeID:       sessionID,
 		ResumeFileName: "resume_file_name",
 		Position:       "position",
-		Status:         "status",
+		Status:         status,
 		StartedAt:      sql.NullTime{Time: dateNow, Valid: false},
 		EndedAt:        sql.NullTime{Time: dateNow, Valid: false},
-		OverallScore:   sql.NullFloat64{Float64: 100, Valid: false},
+		OverallScore:   sql.NullFloat64{Float64: 5, Valid: false},
 		SummaryMd:      sql.NullString{String: "summary_md", Valid: false},
 		CreatedAt:      sql.NullTime{Time: dateNow, Valid: false},
 	}
 
 	validRespWithNullSomeValue := &entities.GetInterviewSessionInformationResp{
-		ResumeID:       sessionID,
-		ResumeFileName: "resume_file_name",
-		Position:       "position",
-		Status:         "status",
-		StartedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
-		EndedAt:        utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
-		OverallScore:   0.00,
-		SummaryMd:      constants.BlankOverallSummaryMd,
-		CreatedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		ResumeID:            sessionID,
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		EndedAt:             utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		OverallScore:        0.00,
+		OverallScorePercent: "0.0%",
+		OverallScoreColor:   "#DC3545",
+		SummaryMd:           constants.BlankOverallSummaryMd,
+		CreatedAt:           utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		CreatedAtFullName:   utilsPkg.FormatNullableTimeToBangkokStringFullTimeFormat(sql.NullTime{Time: dateNow, Valid: false}),
 	}
 
 	testCases := []struct {
@@ -6114,7 +6123,7 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 				}, nil)
 
 				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
-					Return(validDbUserRespNotMatch, nil)
+					Return(&validDbUserRespNotMatch, nil)
 
 				return mockAuthContext, mockInterviewSessionRepo
 			},
@@ -6122,6 +6131,54 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "This user does not have access to this session.")
 				assert.Contains(t, gotErr.Error(), "[INS0419]")
+			},
+		},
+		{
+			name:  "Error WithInvalidOverallScore",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(&validDbRespInvalidOverallScore, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+			},
+		},
+		{
+			name:  "Error WithInvalidStatus",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(&validDbRespInvalidStatus, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The status is invalid.")
+				assert.Contains(t, gotErr.Error(), "[INS0421]")
 			},
 		},
 	}

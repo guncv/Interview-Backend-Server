@@ -1586,11 +1586,20 @@
                 "created_at": {
                     "type": "string"
                 },
+                "created_at_full_name": {
+                    "type": "string"
+                },
                 "ended_at": {
                     "type": "string"
                 },
                 "overall_score": {
                     "type": "number"
+                },
+                "overall_score_color": {
+                    "type": "string"
+                },
+                "overall_score_percent": {
+                    "type": "string"
                 },
                 "position": {
                     "type": "string"
@@ -1605,6 +1614,12 @@
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                },
+                "status_color": {
+                    "type": "string"
+                },
+                "status_display_name": {
                     "type": "string"
                 },
                 "summary_md": {
@@ -2056,6 +2071,8 @@
                 "INS0417",
                 "INS0418",
                 "INS0419",
+                "INS0420",
+                "INS0421",
                 "INS0500",
                 "INS0501",
                 "INS0600",
@@ -2128,6 +2145,8 @@
                 "ErrCodeSessionInvalidSessionID",
                 "ErrCodeSessionNotFoundOrDeleted",
                 "ErrCodeSessionUserNotMatch",
+                "ErrCodeSessionInvalidOverallScore",
+                "ErrCodeSessionInvalidStatus",
                 "ErrCodeEvaluationRubricNotFound",
                 "ErrCodeEvaluationRubricCriteriaNotFound",
                 "ErrCodeInterviewTurnLastMessageNotFound",

@@ -2089,15 +2089,20 @@ func TestInterviewSessionHandler_GetInterviewSessionInformationByID(t *testing.T
 	sessionID := "123e4567-e89b-12d3-a456-426614174000"
 
 	validResp := &entities.GetInterviewSessionInformationResp{
-		ResumeID:       uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
-		ResumeFileName: "resume_file_name",
-		Position:       "position",
-		Status:         "status",
-		StartedAt:      time.Now().Format(time.RFC3339),
-		EndedAt:        time.Now().Format(time.RFC3339),
-		OverallScore:   100,
-		SummaryMd:      "summary_md",
-		CreatedAt:      time.Now().Format(time.RFC3339),
+		ResumeID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              "status",
+		StartedAt:           time.Now().Format(time.RFC3339),
+		EndedAt:             time.Now().Format(time.RFC3339),
+		OverallScore:        100,
+		SummaryMd:           "summary_md",
+		CreatedAt:           time.Now().Format(time.RFC3339),
+		CreatedAtFullName:   "created_at_full_name",
+		StatusDisplayName:   "status_display_name",
+		StatusColor:         "status_color",
+		OverallScorePercent: "overall_score_percent",
+		OverallScoreColor:   "overall_score_color",
 	}
 
 	tests := []struct {
