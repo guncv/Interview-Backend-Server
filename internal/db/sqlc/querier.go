@@ -45,6 +45,7 @@ type Querier interface {
 	GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
+	ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]ListAllRubricsAndCriteriaRow, error)
 	ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg ListInterviewSessionsByUserIDFirstPageParams) ([]ListInterviewSessionsByUserIDFirstPageRow, error)
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, arg ListInterviewSessionsByUserIDWithCursorParams) ([]ListInterviewSessionsByUserIDWithCursorRow, error)
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, arg ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]ListInterviewSessionsByUserIDWithJumpPaginationRow, error)

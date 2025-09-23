@@ -65,6 +65,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		issueReportsHandler *handlers.IssueReportsHandler,
 		issueCategoriesHandler *handlers.IssueReportsHandler,
 		reviewCommentHandler *handlers.ReviewCommentHandler,
+		evaluationHandler *handlers.EvaluationHandler,
 	) {
 		api_v1 := e.Group("/api/v1")
 		userRoutes(api_v1, userHandler, authMiddleware)
@@ -74,6 +75,7 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		issueReportsRoutes(api_v1, issueReportsHandler, authMiddleware)
 		issueCategoriesRoutes(api_v1, issueCategoriesHandler, authMiddleware)
 		reviewCommentRoutes(api_v1, reviewCommentHandler, authMiddleware)
+		evaluationRoutes(api_v1, evaluationHandler, authMiddleware)
 	}); err != nil {
 		panic(err)
 	}
@@ -151,5 +153,13 @@ func reviewCommentRoutes(eg *gin.RouterGroup, reviewCommentHandler *handlers.Rev
 
 	{
 		reviewCommentMiddleRoutes.POST("", reviewCommentHandler.CreateReviewComment)
+	}
+}
+
+func evaluationRoutes(eg *gin.RouterGroup, evaluationHandler *handlers.EvaluationHandler, authMiddleware middleware.AuthMiddleware) {
+	evaluationMiddleRoutes := eg.Group("/evaluation").Use(authMiddleware.AuthMiddleware())
+
+	{
+		evaluationMiddleRoutes.GET("/rubrics", evaluationHandler.ListAllRubricsAndCriteria)
 	}
 }

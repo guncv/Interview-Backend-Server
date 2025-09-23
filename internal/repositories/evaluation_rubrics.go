@@ -10,6 +10,7 @@ import (
 
 type EvaluationRubricsRepository interface {
 	GetRubricWithCriteriaByName(ctx context.Context, req *db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error)
+	ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error)
 }
 
 type evaluationRubricsRepository struct {
@@ -30,6 +31,18 @@ func (r *evaluationRubricsRepository) GetRubricWithCriteriaByName(ctx context.Co
 	resp, err := r.db.GetRubricWithCriteriaByName(ctx, *req)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetRubricWithCriteriaByName] Error getting rubric with criteria by name", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
+}
+
+func (r *evaluationRubricsRepository) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: ListAllRubricsAndCriteria] Called")
+
+	resp, err := r.db.ListAllRubricsAndCriteria(ctx, versionLabel)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListAllRubricsAndCriteria] Error getting all rubrics and criteria", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 

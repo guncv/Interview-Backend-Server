@@ -391,6 +391,52 @@
                 }
             }
         },
+        "/evaluation/rubrics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "List all rubrics and criteria",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "List all rubrics and criteria",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListAllRubricsAndCriteriaResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/issue-categories": {
             "get": {
                 "security": [
@@ -1474,6 +1520,26 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.CriterionRow": {
+            "type": "object",
+            "properties": {
+                "description_md": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "max_score": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "string"
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.Cursor": {
             "type": "object",
             "properties": {
@@ -1624,6 +1690,17 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListAllRubricsAndCriteriaResp": {
+            "type": "object",
+            "properties": {
+                "rubrics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.RubricAndCriteriaRow"
+                    }
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListInterviewSessionsByUserIDResp": {
             "type": "object",
             "properties": {
@@ -1719,6 +1796,29 @@
                     "items": {
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetListResumeByIdResponse"
                     }
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.RubricAndCriteriaRow": {
+            "type": "object",
+            "properties": {
+                "criteria": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CriterionRow"
+                    }
+                },
+                "description_md": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "version_label": {
+                    "type": "string"
                 }
             }
         },
@@ -1935,6 +2035,7 @@
                 "INS0415",
                 "INS0416",
                 "INS0417",
+                "INS0418",
                 "INS0500",
                 "INS0501",
                 "INS0600",
@@ -2005,6 +2106,7 @@
                 "ErrCodeWebSocketInvalidSegmentID",
                 "ErrCodeWebSocketInvalidSessionID",
                 "ErrCodeSessionInvalidSessionID",
+                "ErrCodeSessionNotFoundOrDeleted",
                 "ErrCodeEvaluationRubricNotFound",
                 "ErrCodeEvaluationRubricCriteriaNotFound",
                 "ErrCodeInterviewTurnLastMessageNotFound",

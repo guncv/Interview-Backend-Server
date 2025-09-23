@@ -1872,6 +1872,65 @@ func (_c *MockQuerier_ListAllResumesFileNameByUserID_Call) RunAndReturn(run func
 	return _c
 }
 
+// ListAllRubricsAndCriteria provides a mock function with given fields: ctx, versionLabel
+func (_m *MockQuerier) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error) {
+	ret := _m.Called(ctx, versionLabel)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAllRubricsAndCriteria")
+	}
+
+	var r0 []db.ListAllRubricsAndCriteriaRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)); ok {
+		return rf(ctx, versionLabel)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.ListAllRubricsAndCriteriaRow); ok {
+		r0 = rf(ctx, versionLabel)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ListAllRubricsAndCriteriaRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, versionLabel)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_ListAllRubricsAndCriteria_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAllRubricsAndCriteria'
+type MockQuerier_ListAllRubricsAndCriteria_Call struct {
+	*mock.Call
+}
+
+// ListAllRubricsAndCriteria is a helper method to define mock.On call
+//   - ctx context.Context
+//   - versionLabel string
+func (_e *MockQuerier_Expecter) ListAllRubricsAndCriteria(ctx interface{}, versionLabel interface{}) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	return &MockQuerier_ListAllRubricsAndCriteria_Call{Call: _e.mock.On("ListAllRubricsAndCriteria", ctx, versionLabel)}
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) Run(run func(ctx context.Context, versionLabel string)) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) Return(_a0 []db.ListAllRubricsAndCriteriaRow, _a1 error) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_ListAllRubricsAndCriteria_Call) RunAndReturn(run func(context.Context, string) ([]db.ListAllRubricsAndCriteriaRow, error)) *MockQuerier_ListAllRubricsAndCriteria_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListInterviewSessionsByUserIDFirstPage provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
 	ret := _m.Called(ctx, arg)

@@ -433,7 +433,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -456,7 +456,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -774,7 +774,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -796,7 +796,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -939,7 +939,7 @@ func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -961,7 +961,7 @@ func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -1962,7 +1962,7 @@ func TestInterviewSessionHandler_DeleteUserInterviewSessionByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -1984,7 +1984,7 @@ func TestInterviewSessionHandler_DeleteUserInterviewSessionByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -2006,7 +2006,7 @@ func TestInterviewSessionHandler_DeleteUserInterviewSessionByID(t *testing.T) {
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session ID is invalid")
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
