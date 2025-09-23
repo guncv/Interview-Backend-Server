@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -57,4 +58,32 @@ func ParseAndFormatDurationSince(dateAt string, startTime time.Time) (string, er
 	duration := parsedTime.Sub(startTime)
 	result := FormatSecondsToMMSS(duration.Seconds())
 	return result, nil
+}
+
+func FormatNullableTimeToBangkokString(nullTime sql.NullTime) string {
+	if nullTime.Valid {
+		return FormatBangkokDateTimeFormat(nullTime.Time)
+	}
+	return FormatBangkokDateTimeFormat(time.Now())
+}
+
+func FormatNullableTimeToUTCString(nullTime sql.NullTime) string {
+	if nullTime.Valid {
+		return FormatToUTCString(nullTime.Time)
+	}
+	return ""
+}
+
+func GetNullableFloat64(nullFloat sql.NullFloat64, defaultValue float64) float64 {
+	if nullFloat.Valid {
+		return nullFloat.Float64
+	}
+	return defaultValue
+}
+
+func GetNullableString(nullString sql.NullString, defaultValue string) string {
+	if nullString.Valid {
+		return nullString.String
+	}
+	return defaultValue
 }

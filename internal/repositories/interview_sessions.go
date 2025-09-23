@@ -25,7 +25,6 @@ type InterviewSessionRepository interface {
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
 	InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error)
-	GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
 	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
 	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
@@ -34,6 +33,7 @@ type InterviewSessionRepository interface {
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error)
 	CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error)
 	DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error
+	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
 }
 
 type interviewSessionRepository struct {
@@ -205,17 +205,6 @@ func (r *interviewSessionRepository) InterviewFeedbackAndScore(ctx context.Conte
 	return &result, nil
 }
 
-func (r *interviewSessionRepository) GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionInformation] Called")
-
-	session, err := r.db.GetInterviewSessionInformation(ctx, sessionID)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionInformation] Error getting interview session information", err)
-		return nil, app_error.HandleDatabaseError(err)
-	}
-	return &session, nil
-}
-
 func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error {
 	r.log.InfoWithID(ctx, "[Repository: UpdateStartedAtInterviewSession] Called")
 
@@ -335,4 +324,19 @@ func (r *interviewSessionRepository) DeleteUserInterviewSessionByID(ctx context.
 	}
 
 	return nil
+}
+
+func (r *interviewSessionRepository) GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionInformationByID] Called")
+
+	resp, err := r.db.GetInterviewSessionInformationByID(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionInformationByID] Interview session not found", err)
+			return nil, app_error.New(err, app_error.ErrCodeSessionNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionInformationByID] Error getting interview session information", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+	return &resp, nil
 }

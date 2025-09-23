@@ -130,7 +130,15 @@ type GetInterviewSessionInformationReq struct {
 }
 
 type GetInterviewSessionInformationResp struct {
-	Position string `json:"position"`
+	ResumeID       uuid.UUID `json:"resume_id"`
+	ResumeFileName string    `json:"resume_file_name"`
+	Position       string    `json:"position"`
+	Status         string    `json:"status"`
+	StartedAt      string    `json:"started_at"`
+	EndedAt        string    `json:"ended_at"`
+	OverallScore   float64   `json:"overall_score"`
+	SummaryMd      string    `json:"summary_md"`
+	CreatedAt      string    `json:"created_at"`
 }
 
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {

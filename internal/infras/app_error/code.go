@@ -72,6 +72,7 @@ const (
 	ErrCodeWebSocketInvalidSessionID             ErrorCode = "INS0416"
 	ErrCodeSessionInvalidSessionID               ErrorCode = "INS0417"
 	ErrCodeSessionNotFoundOrDeleted              ErrorCode = "INS0418"
+	ErrCodeSessionUserNotMatch                   ErrorCode = "INS0419"
 
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound         ErrorCode = "INS0500"

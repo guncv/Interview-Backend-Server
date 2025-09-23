@@ -1343,23 +1343,23 @@ func (_c *MockStore_GetDefaultResumeByUserID_Call) RunAndReturn(run func(context
 	return _c
 }
 
-// GetInterviewSessionInformation provides a mock function with given fields: ctx, id
-func (_m *MockStore) GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (db.GetInterviewSessionInformationRow, error) {
+// GetInterviewSessionInformationByID provides a mock function with given fields: ctx, id
+func (_m *MockStore) GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (db.GetInterviewSessionInformationByIDRow, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetInterviewSessionInformation")
+		panic("no return value specified for GetInterviewSessionInformationByID")
 	}
 
-	var r0 db.GetInterviewSessionInformationRow
+	var r0 db.GetInterviewSessionInformationByIDRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetInterviewSessionInformationRow, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetInterviewSessionInformationByIDRow, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetInterviewSessionInformationRow); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetInterviewSessionInformationByIDRow); ok {
 		r0 = rf(ctx, id)
 	} else {
-		r0 = ret.Get(0).(db.GetInterviewSessionInformationRow)
+		r0 = ret.Get(0).(db.GetInterviewSessionInformationByIDRow)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -1371,31 +1371,31 @@ func (_m *MockStore) GetInterviewSessionInformation(ctx context.Context, id uuid
 	return r0, r1
 }
 
-// MockStore_GetInterviewSessionInformation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformation'
-type MockStore_GetInterviewSessionInformation_Call struct {
+// MockStore_GetInterviewSessionInformationByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformationByID'
+type MockStore_GetInterviewSessionInformationByID_Call struct {
 	*mock.Call
 }
 
-// GetInterviewSessionInformation is a helper method to define mock.On call
+// GetInterviewSessionInformationByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockStore_Expecter) GetInterviewSessionInformation(ctx interface{}, id interface{}) *MockStore_GetInterviewSessionInformation_Call {
-	return &MockStore_GetInterviewSessionInformation_Call{Call: _e.mock.On("GetInterviewSessionInformation", ctx, id)}
+func (_e *MockStore_Expecter) GetInterviewSessionInformationByID(ctx interface{}, id interface{}) *MockStore_GetInterviewSessionInformationByID_Call {
+	return &MockStore_GetInterviewSessionInformationByID_Call{Call: _e.mock.On("GetInterviewSessionInformationByID", ctx, id)}
 }
 
-func (_c *MockStore_GetInterviewSessionInformation_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_GetInterviewSessionInformation_Call {
+func (_c *MockStore_GetInterviewSessionInformationByID_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_GetInterviewSessionInformationByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockStore_GetInterviewSessionInformation_Call) Return(_a0 db.GetInterviewSessionInformationRow, _a1 error) *MockStore_GetInterviewSessionInformation_Call {
+func (_c *MockStore_GetInterviewSessionInformationByID_Call) Return(_a0 db.GetInterviewSessionInformationByIDRow, _a1 error) *MockStore_GetInterviewSessionInformationByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockStore_GetInterviewSessionInformation_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetInterviewSessionInformationRow, error)) *MockStore_GetInterviewSessionInformation_Call {
+func (_c *MockStore_GetInterviewSessionInformationByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetInterviewSessionInformationByIDRow, error)) *MockStore_GetInterviewSessionInformationByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

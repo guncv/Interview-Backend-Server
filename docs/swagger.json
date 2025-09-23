@@ -1176,61 +1176,6 @@
                 }
             }
         },
-        "/sessions/information/{session_token}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get interview session information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Interview Sessions"
-                ],
-                "summary": "Get interview session information",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session token",
-                        "name": "session_token",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Interview session information",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid session token or request",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
         "/sessions/jump": {
             "get": {
                 "security": [
@@ -1304,6 +1249,59 @@
             }
         },
         "/sessions/{session_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get interview session information by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "Get interview session information by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Interview session information",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -1585,7 +1583,31 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetInterviewSessionInformationResp": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "overall_score": {
+                    "type": "number"
+                },
                 "position": {
+                    "type": "string"
+                },
+                "resume_file_name": {
+                    "type": "string"
+                },
+                "resume_id": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary_md": {
                     "type": "string"
                 }
             }
@@ -2033,6 +2055,7 @@
                 "INS0416",
                 "INS0417",
                 "INS0418",
+                "INS0419",
                 "INS0500",
                 "INS0501",
                 "INS0600",
@@ -2104,6 +2127,7 @@
                 "ErrCodeWebSocketInvalidSessionID",
                 "ErrCodeSessionInvalidSessionID",
                 "ErrCodeSessionNotFoundOrDeleted",
+                "ErrCodeSessionUserNotMatch",
                 "ErrCodeEvaluationRubricNotFound",
                 "ErrCodeEvaluationRubricCriteriaNotFound",
                 "ErrCodeInterviewTurnLastMessageNotFound",

@@ -34,13 +34,6 @@ SELECT EXISTS (
     WHERE id = $1
 );
 
--- name: GetInterviewSessionInformation :one
-SELECT
-    user_id,
-    position
-FROM interview_sessions
-WHERE id = $1;
-
 -- name: UpdateStartedAtInterviewSession :execrows
 UPDATE interview_sessions
 SET started_at = $2
@@ -158,3 +151,18 @@ UPDATE interview_sessions
 SET soft_delete = true
 WHERE id = $1
     AND user_id = $2;
+
+-- name: GetInterviewSessionInformationByID :one
+SELECT
+    user_id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    summary_md,
+    created_at
+FROM interview_sessions
+WHERE id = $1 AND soft_delete = false;

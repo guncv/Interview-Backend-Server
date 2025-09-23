@@ -143,23 +143,50 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 	return result.RowsAffected()
 }
 
-const getInterviewSessionInformation = `-- name: GetInterviewSessionInformation :one
+const getInterviewSessionInformationByID = `-- name: GetInterviewSessionInformationByID :one
 SELECT
     user_id,
-    position
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    summary_md,
+    created_at
 FROM interview_sessions
-WHERE id = $1
+WHERE id = $1 AND soft_delete = false
 `
 
-type GetInterviewSessionInformationRow struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Position string    `json:"position"`
+type GetInterviewSessionInformationByIDRow struct {
+	UserID         uuid.UUID       `json:"user_id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	SummaryMd      sql.NullString  `json:"summary_md"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
 }
 
-func (q *Queries) GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error) {
-	row := q.db.QueryRowContext(ctx, getInterviewSessionInformation, id)
-	var i GetInterviewSessionInformationRow
-	err := row.Scan(&i.UserID, &i.Position)
+func (q *Queries) GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getInterviewSessionInformationByID, id)
+	var i GetInterviewSessionInformationByIDRow
+	err := row.Scan(
+		&i.UserID,
+		&i.ResumeID,
+		&i.ResumeFileName,
+		&i.Position,
+		&i.Status,
+		&i.StartedAt,
+		&i.EndedAt,
+		&i.OverallScore,
+		&i.SummaryMd,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 

@@ -4065,407 +4065,6 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 	}
 }
 
-func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	globalID := "550e8400-e29b-41d4-a716-446655440000"
-	anotherID := "550e8400-e29b-41d4-a716-446655440001"
-
-	validResp := &entities.GetInterviewSessionInformationResp{
-		Position: "position",
-	}
-
-	testCases := []struct {
-		name   string
-		input  *entities.GetInterviewSessionInformationReq
-		setup  func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository)
-		verify func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp)
-	}{
-		{
-			name: "Success - WithRedisHit",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"}", nil)
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisMiss",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", redis.Nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisMissWithDBError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", errors.New("get redis client error"))
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisHitButUnmarshalError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Error - WithGetAuthContextError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(nil, errors.New("get auth context error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithIsSessionValidError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, errors.New("check is session valid error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithGetInterviewSessionInformationError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", errors.New("get redis client error"))
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, errors.New("get interview session information error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithRedisHitButUserIDMismatch",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+anotherID+"\",\"position\":\"position\"}", nil)
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo := tC.setup()
-			defer func() {
-				if mockRedisClient != nil {
-					mockRedisClient.AssertExpectations(t)
-				}
-				if mockAuthContext != nil {
-					mockAuthContext.AssertExpectations(t)
-				}
-				if mockInterviewTurnsRepo != nil {
-					mockInterviewTurnsRepo.AssertExpectations(t)
-				}
-				if mockRedisClient != nil {
-					mockRedisClient.AssertExpectations(t)
-				}
-				if mockInterviewSessionRepo != nil {
-					mockInterviewSessionRepo.AssertExpectations(t)
-				}
-			}()
-
-			svc := NewInterviewSessionService(
-				lgr,
-				mockAuthContext,
-				nil,
-				nil,
-				mockInterviewSessionRepo,
-				nil,
-				nil,
-				nil,
-				nil,
-				mockRedisClient,
-				nil,
-				nil,
-				mockInterviewTurnsRepo,
-			)
-
-			gotResp, gotErr := svc.GetInterviewSessionInformation(ctx, tC.input)
-
-			tC.verify(t, gotErr, gotResp)
-		})
-	}
-}
-
 func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
@@ -6296,6 +5895,260 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 			gotErr := svc.DeleteUserInterviewSessionByID(ctx, tC.input)
 
 			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	dateNow := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC).In(time.UTC)
+	invalidSessionID := "invalid-session-id"
+	invalidUserID := "invalid-user-id"
+
+	validDbResp := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         userID,
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      sql.NullTime{Time: dateNow, Valid: true},
+		EndedAt:        sql.NullTime{Time: dateNow, Valid: true},
+		OverallScore:   sql.NullFloat64{Float64: 100, Valid: true},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+		CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+	}
+
+	validResp := &entities.GetInterviewSessionInformationResp{
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		EndedAt:        utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		OverallScore:   100,
+		SummaryMd:      "summary_md",
+		CreatedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+	}
+
+	validDbUserRespNotMatch := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      sql.NullTime{Time: dateNow, Valid: true},
+		EndedAt:        sql.NullTime{Time: dateNow, Valid: true},
+		OverallScore:   sql.NullFloat64{Float64: 100, Valid: true},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+		CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+	}
+
+	validDbRespWithNullSomeValue := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         userID,
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      sql.NullTime{Time: dateNow, Valid: false},
+		EndedAt:        sql.NullTime{Time: dateNow, Valid: false},
+		OverallScore:   sql.NullFloat64{Float64: 100, Valid: false},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: false},
+		CreatedAt:      sql.NullTime{Time: dateNow, Valid: false},
+	}
+
+	validRespWithNullSomeValue := &entities.GetInterviewSessionInformationResp{
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		EndedAt:        utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		OverallScore:   0.00,
+		SummaryMd:      constants.BlankOverallSummaryMd,
+		CreatedAt:      utilsPkg.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+	}
+
+	testCases := []struct {
+		name   string
+		input  string
+		setup  func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbResp, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Success WithNullSomeValue",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithNullSomeValue, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validRespWithNullSomeValue, gotResp)
+			},
+		},
+		{
+			name:  "Error WithInvalidSessionID",
+			input: invalidSessionID,
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithGetAuthContextError",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(nil, errors.New("auth context error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "auth context error")
+			},
+		},
+		{
+			name:  "Error WithInvalidUserID",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: invalidUserID,
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithGetInterviewSessionInformationByIDError",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(nil, errors.New("error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Nil(t, gotResp)
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "error")
+			},
+		},
+		{
+			name:  "Error WithUserIDNotMatch",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utilsPkg.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbUserRespNotMatch, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "This user does not have access to this session.")
+				assert.Contains(t, gotErr.Error(), "[INS0419]")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockAuthContext, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				mockAuthContext,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.GetInterviewSessionInformationByID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
 		})
 	}
 }

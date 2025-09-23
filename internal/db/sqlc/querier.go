@@ -35,7 +35,7 @@ type Querier interface {
 	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
-	GetInterviewSessionInformation(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationRow, error)
+	GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationByIDRow, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)
 	GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (GetIssueCategoryIfExistsRow, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)

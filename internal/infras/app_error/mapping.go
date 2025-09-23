@@ -67,6 +67,8 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeWebSocketInvalidSessionID:             ErrHttpCodeBadRequest,
 	ErrCodeSessionInvalidSessionID:               ErrHttpCodeBadRequest,
 	ErrCodeSessionNotFoundOrDeleted:              ErrHttpCodeNotFound,
+	ErrCodeSessionUserNotMatch:                   ErrHttpCodeUnauthorized,
+
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrHttpCodeNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrHttpCodeNotFound,
@@ -150,6 +152,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeWebSocketInvalidSessionID:             ErrMessageWebSocketInvalidSessionID,
 	ErrCodeSessionInvalidSessionID:               ErrMessageSessionInvalidSessionID,
 	ErrCodeSessionNotFoundOrDeleted:              ErrMessageSessionNotFoundOrDeleted,
+	ErrCodeSessionUserNotMatch:                   ErrMessageSessionUserNotMatch,
+
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrMessageEvaluationRubricNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrMessageEvaluationRubricCriteriaNotFound,
