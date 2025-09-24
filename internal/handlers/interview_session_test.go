@@ -161,7 +161,6 @@ func TestInterviewSessionHandler_CreateInterviewSessionWithNewResume(t *testing.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a multipart form for the request
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
 
@@ -877,171 +876,6 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 
 			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
 			handler.GetChatHistoryBySessionToken(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestInterviewSessionHandler_GetInterviewSessionInformation(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-	err := errors.New("mock error")
-
-	tests := []struct {
-		name           string
-		sessionToken   string
-		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService)
-		verify         func(t *testing.T, w *httptest.ResponseRecorder)
-		expectedStatus int
-	}{
-		{
-			name:         "Success",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
-			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
-				mockValidator := new(utils.MockValidator)
-				mockAuthContext := new(middleware.MockAuthContext)
-				mockInterviewSessionService := new(services.MockInterviewSessionService)
-
-				realValidator := validator.New()
-
-				mockValidator.EXPECT().
-					GetValidate().
-					Return(realValidator)
-
-				mockAuthContext.EXPECT().
-					ExtractAuthContext(mock.Anything).
-					Return(ctx, nil)
-
-				mockInterviewSessionService.EXPECT().
-					GetInterviewSessionInformation(mock.Anything, mock.Anything).
-					Return(&entities.GetInterviewSessionInformationResp{
-						Position: "position",
-					}, nil)
-
-				return mockValidator, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name:         "Error - WithNonSessionTokenParam",
-			sessionToken: "",
-			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
-				mockValidator := new(utils.MockValidator)
-				mockAuthContext := new(middleware.MockAuthContext)
-				mockInterviewSessionService := new(services.MockInterviewSessionService)
-
-				return mockValidator, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:         "Error With Validation",
-			sessionToken: "invalid-session-token",
-			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
-				mockValidator := new(utils.MockValidator)
-				mockAuthContext := new(middleware.MockAuthContext)
-				mockInterviewSessionService := new(services.MockInterviewSessionService)
-
-				realValidator := validator.New()
-
-				mockValidator.EXPECT().
-					GetValidate().
-					Return(realValidator)
-
-				return mockValidator, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.Contains(t, w.Body.String(), "The session token is invalid. Please try again.")
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:         "Error - WithExtractAuthContextError",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
-			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
-				mockValidator := new(utils.MockValidator)
-				mockAuthContext := new(middleware.MockAuthContext)
-				mockInterviewSessionService := new(services.MockInterviewSessionService)
-
-				realValidator := validator.New()
-
-				mockValidator.EXPECT().
-					GetValidate().
-					Return(realValidator)
-
-				authErr := app_error.New(errors.New("extract auth context error"), app_error.ErrCodeAuthInvalidHeader)
-				mockAuthContext.EXPECT().
-					ExtractAuthContext(mock.Anything).
-					Return(ctx, authErr)
-
-				return mockValidator, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusUnauthorized, w.Code)
-				assert.Contains(t, w.Body.String(), "Please log in to continue")
-			},
-			expectedStatus: http.StatusUnauthorized,
-		},
-		{
-			name:         "Error - WithGetInterviewSessionInformationError",
-			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
-			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
-				mockValidator := new(utils.MockValidator)
-				mockAuthContext := new(middleware.MockAuthContext)
-				mockInterviewSessionService := new(services.MockInterviewSessionService)
-
-				realValidator := validator.New()
-
-				mockValidator.EXPECT().
-					GetValidate().
-					Return(realValidator)
-
-				mockAuthContext.EXPECT().
-					ExtractAuthContext(mock.Anything).
-					Return(ctx, nil)
-
-				serviceErr := app_error.New(err, app_error.ErrCodeSessionNotFound)
-				mockInterviewSessionService.EXPECT().
-					GetInterviewSessionInformation(mock.Anything, mock.Anything).
-					Return(nil, serviceErr)
-
-				return mockValidator, mockAuthContext, mockInterviewSessionService
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusNotFound, w.Code)
-				assert.Contains(t, w.Body.String(), "The session was not found")
-			},
-			expectedStatus: http.StatusNotFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-
-			url := fmt.Sprintf("/api/v1/sessions/information/%s", tt.sessionToken)
-
-			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
-			c.Params = gin.Params{{Key: "session_token", Value: tt.sessionToken}}
-
-			mockValidator, mockAuthContext, mockInterviewSessionService := tt.setup()
-			defer mockValidator.AssertExpectations(t)
-			defer mockAuthContext.AssertExpectations(t)
-			defer mockInterviewSessionService.AssertExpectations(t)
-
-			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
-			handler.GetInterviewSessionInformation(c)
 
 			tt.verify(t, w)
 		})
@@ -2241,6 +2075,761 @@ func TestInterviewSessionHandler_DeleteUserInterviewSessionByID(t *testing.T) {
 
 			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
 			handler.DeleteUserInterviewSessionByID(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestInterviewSessionHandler_GetChatHistoryBySessionIDWithEvaluation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	err := errors.New("mock error")
+	sessionID := "123e4567-e89b-12d3-a456-426614174000"
+
+	validResp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+		ChatHistory: []entities.ChatHistoryWithEvaluation{
+			{
+				ID:                uuid.New().String(),
+				TurnNo:            1,
+				Actor:             "user",
+				Content:           "Hello, how are you?",
+				StartAt:           time.Now().Format(time.RFC3339),
+				EndAt:             time.Now().Format(time.RFC3339),
+				Evaluation:        nil,
+				CorrectedSentence: nil,
+				CurrentState:      "completed",
+			},
+		},
+		CursorTurnNext: 2,
+	}
+
+	tests := []struct {
+		name           string
+		sessionID      string
+		queryParams    map[string]string
+		setup          func() (*utils.MockValidator, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:      "Success - WithoutTurnNo",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo == nil
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithValidTurnNo",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "5"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo != nil && *req.TurnNo == 5
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Success - WithZeroTurnNo",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "0"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo != nil && *req.TurnNo == 0
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Error - WithNegativeTurnNo",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "-1"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Success - WithLargeTurnNo",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "999999"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo != nil && *req.TurnNo == 999999
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:      "Error - EmptySessionID",
+			sessionID: "",
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error - InvalidSessionIDFormat",
+			sessionID: "invalid-session-id",
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error - InvalidUUIDFormat",
+			sessionID: "not-a-uuid",
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The session ID is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - InvalidTurnNoNonNumeric",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "invalid"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - InvalidTurnNoFloat",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "3.14"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - InvalidTurnNoEmptyString",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": ""},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo == nil
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Error - InvalidTurnNoWithSpaces",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": " 5 "},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:        "Error - InvalidTurnNoWithSpecialCharacters",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "5abc"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error - ServiceLayerErrorSessionNotFound",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeSessionNotFound)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, w.Code)
+				assert.Contains(t, w.Body.String(), "The session was not found")
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:      "Error - ServiceLayerErrorInvalidUUID",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The UUID is invalid. Please try again.")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error - ServiceLayerErrorPermissionDenied",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeGeneralPermissionDenied)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+				assert.Contains(t, w.Body.String(), "You are not authorized to perform this action")
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:      "Error - ServiceLayerErrorDatabaseConnection",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeGeneralDatabaseConnection)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				assert.Contains(t, w.Body.String(), "Database connection error")
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:      "Error - ServiceLayerErrorServerUnavailable",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				assert.Contains(t, w.Body.String(), "We're having trouble connecting to the server")
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:      "Error - ServiceLayerGenericError",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				serviceErr := errors.New("generic service error")
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.Anything).
+					Return(nil, serviceErr)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+				assert.Contains(t, w.Body.String(), "generic service error")
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:        "Success - WithMultipleQueryParameters",
+			sessionID:   sessionID,
+			queryParams: map[string]string{"turn_no": "10", "other_param": "value"},
+			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
+						return req.SessionID == sessionID && req.TurnNo != nil && *req.TurnNo == 10
+					})).
+					Return(validResp, nil)
+
+				return mockValidator, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			baseURL := fmt.Sprintf("/api/v1/sessions/%s/chat-history-with-evaluation", tt.sessionID)
+			if len(tt.queryParams) > 0 {
+				u, err := url.Parse(baseURL)
+				if err != nil {
+					t.Fatalf("Failed to parse base URL: %v", err)
+				}
+				q := u.Query()
+				for key, value := range tt.queryParams {
+					q.Set(key, value)
+				}
+				u.RawQuery = q.Encode()
+				baseURL = u.String()
+			}
+
+			c.Request = httptest.NewRequest(http.MethodGet, baseURL, nil)
+			c.Params = gin.Params{{Key: "session_id", Value: tt.sessionID}}
+
+			mockValidator, mockInterviewSessionService := tt.setup()
+			defer mockValidator.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, nil, mockValidator, nil, nil, nil)
+			handler.GetChatHistoryBySessionIDWithEvaluation(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestInterviewSessionHandler_GetInterviewSessionInformationByID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+	sessionID := "123e4567-e89b-12d3-a456-426614174000"
+
+	validResp := &entities.GetInterviewSessionInformationResp{
+		ResumeID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              "status",
+		StartedAt:           time.Now().Format(time.RFC3339),
+		EndedAt:             time.Now().Format(time.RFC3339),
+		OverallScore:        100,
+		SummaryMd:           "summary_md",
+		CreatedAt:           time.Now().Format(time.RFC3339),
+		CreatedAtFullName:   "created_at_full_name",
+		StatusDisplayName:   "status_display_name",
+		StatusColor:         "status_color",
+		OverallScorePercent: "overall_score_percent",
+		OverallScoreColor:   "overall_score_color",
+	}
+
+	tests := []struct {
+		name           string
+		sessionID      string
+		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name:      "Success",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validResp, nil)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				expectedBody, err := json.Marshal(validResp)
+				assert.NoError(t, err)
+				assert.JSONEq(t, string(expectedBody), w.Body.String())
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:      "Error WithEmptySessionID",
+			sessionID: "",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "{\"code\":\"INS0417\",\"message\":\"The session ID is invalid. Please try again.\"}")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error WithValidateError",
+			sessionID: "invalid-session-id",
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockValidate := validator.New()
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(mockValidate)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "{\"code\":\"INS0417\",\"message\":\"The session ID is invalid. Please try again.\"}")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:      "Error WithExtractAuthContextError",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				authError := app_error.New(errors.New("extract auth context error"), app_error.ErrCodeAuthInvalidHeader)
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authError)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+				assert.Contains(t, w.Body.String(), "Please log in to continue")
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:      "Error WithGetInterviewSessionInformationByIDError",
+			sessionID: sessionID,
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(nil, errors.New("get interview session information by id error"))
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			url := fmt.Sprintf("/api/v1/sessions/%s", tt.sessionID)
+			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
+			c.Params = gin.Params{{Key: "session_id", Value: tt.sessionID}}
+
+			mockValidator, mockAuthContext, mockInterviewSessionService := tt.setup()
+			defer mockValidator.AssertExpectations(t)
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, mockValidator, nil, nil, nil)
+			handler.GetInterviewSessionInformationByID(c)
 
 			tt.verify(t, w)
 		})

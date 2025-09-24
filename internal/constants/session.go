@@ -47,5 +47,7 @@ const (
 	ActorInterviewer = "interviewer"
 	ActorUser        = "user"
 
+	TurnNoDefault = 0
+
 	BlankOverallSummaryMd = "The interview session ended without any responses from the candidate."
 )

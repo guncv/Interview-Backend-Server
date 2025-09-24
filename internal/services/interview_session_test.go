@@ -31,7 +31,7 @@ import (
 	mockServices "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/services"
 	mockUtils "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
-	utilsPkg "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/utils"
 )
 
 func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.T) {
@@ -72,7 +72,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -156,7 +156,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -276,7 +276,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -330,7 +330,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: invalidUserID,
 							Role:   "user",
@@ -388,7 +388,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -445,7 +445,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -506,7 +506,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -571,7 +571,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -645,7 +645,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -718,7 +718,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -798,7 +798,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -851,7 +851,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -932,7 +932,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -986,7 +986,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1093,6 +1093,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithNewResume(ctx, tC.input)
@@ -1138,7 +1139,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1260,7 +1261,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1302,7 +1303,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1344,7 +1345,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1400,7 +1401,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1469,7 +1470,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1544,7 +1545,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: invalidUserID,
 							Role:   "user",
@@ -1618,7 +1619,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1691,7 +1692,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1779,7 +1780,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							ID:     userID,
 							UserID: userID.String(),
 							Role:   "user",
@@ -1890,6 +1891,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -2095,6 +2097,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -2318,6 +2321,7 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 				nil,
 				nil,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -2757,6 +2761,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotErr := svc.CreateUserSessionTurnBySessionID(ctx, tC.input)
@@ -3050,6 +3055,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotErr := svc.CreateInterviewerSessionTurnBySessionID(ctx, tC.input)
@@ -3630,6 +3636,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 				mockEvaluationService,
 				mockEvaluationScoresRepo,
 				nil,
+				nil,
 			)
 
 			gotErr := svc.CalculateTurnScore(ctx, tC.input)
@@ -3801,6 +3808,7 @@ func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetInterviewerLastMessage(ctx, tC.input)
@@ -3854,7 +3862,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							UserID: globalID,
 						},
 					}, nil)
@@ -3892,7 +3900,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							UserID: globalID,
 						},
 					}, nil)
@@ -3964,7 +3972,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							UserID: globalID,
 						},
 					}, nil)
@@ -3998,7 +4006,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				mockAuthContext.EXPECT().
 					GetAuthContext(ctx).
 					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
+						Payload: &utils.SignInTokenPayload{
 							UserID: globalID,
 						},
 					}, nil)
@@ -4056,410 +4064,10 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetChatHistoryBySessionToken(ctx, tC.input)
-
-			tC.verify(t, gotErr, gotResp)
-		})
-	}
-}
-
-func TestInterviewSessionService_GetInterviewSessionInformation(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	globalID := "550e8400-e29b-41d4-a716-446655440000"
-	anotherID := "550e8400-e29b-41d4-a716-446655440001"
-
-	validResp := &entities.GetInterviewSessionInformationResp{
-		Position: "position",
-	}
-
-	testCases := []struct {
-		name   string
-		input  *entities.GetInterviewSessionInformationReq
-		setup  func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository)
-		verify func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp)
-	}{
-		{
-			name: "Success - WithRedisHit",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"}", nil)
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisMiss",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", redis.Nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisMissWithDBError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", errors.New("get redis client error"))
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Success - WithRedisHitButUnmarshalError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"position\":\"position\"", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Set(mock.AnythingOfType("*context.timerCtx"), database.RedisPayload{
-						Key:   fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID),
-						Value: "{\"user_id\":\"" + globalID + "\",\"position\":\"position\"}",
-						TTL:   constants.RedisTTLInterviewSessionInformation,
-					}).
-					Return(nil).
-					Maybe()
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validResp, gotResp)
-			},
-		},
-		{
-			name: "Error - WithGetAuthContextError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(nil, errors.New("get auth context error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithIsSessionValidError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, errors.New("check is session valid error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithGetInterviewSessionInformationError",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("", errors.New("get redis client error"))
-
-				mockInterviewSessionRepo.EXPECT().
-					GetInterviewSessionInformation(ctx, uuid.MustParse(globalID)).
-					Return(&db.GetInterviewSessionInformationRow{
-						UserID:   uuid.MustParse(globalID),
-						Position: "position",
-					}, errors.New("get interview session information error"))
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-		{
-			name: "Error - WithRedisHitButUserIDMismatch",
-			input: &entities.GetInterviewSessionInformationReq{
-				SessionToken: globalID,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockAuthContext := new(mockMiddleware.MockAuthContext)
-				mockInterviewSessionRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewTurnsRepo := new(mockRepositories.MockInterviewTurnsRepository)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockAuthContext.EXPECT().
-					GetAuthContext(ctx).
-					Return(&middleware.AuthPayload{
-						Payload: &utilsPkg.SignInTokenPayload{
-							UserID: globalID,
-						},
-					}, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, globalID)).
-					Return("{\"user_id\":\""+globalID+"\",\"session_id\":\""+globalID+"\"}", nil)
-
-				mockInterviewSessionRepo.EXPECT().
-					CheckInterviewSessionExists(ctx, uuid.MustParse(globalID)).
-					Return(true, nil)
-
-				mockRedisClient.EXPECT().
-					Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, globalID)).
-					Return("{\"user_id\":\""+anotherID+"\",\"position\":\"position\"}", nil)
-
-				return mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error, gotResp *entities.GetInterviewSessionInformationResp) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, gotResp)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockRedisClient, mockAuthContext, mockInterviewTurnsRepo, mockInterviewSessionRepo := tC.setup()
-			defer func() {
-				if mockRedisClient != nil {
-					mockRedisClient.AssertExpectations(t)
-				}
-				if mockAuthContext != nil {
-					mockAuthContext.AssertExpectations(t)
-				}
-				if mockInterviewTurnsRepo != nil {
-					mockInterviewTurnsRepo.AssertExpectations(t)
-				}
-				if mockRedisClient != nil {
-					mockRedisClient.AssertExpectations(t)
-				}
-				if mockInterviewSessionRepo != nil {
-					mockInterviewSessionRepo.AssertExpectations(t)
-				}
-			}()
-
-			svc := NewInterviewSessionService(
-				lgr,
-				mockAuthContext,
-				nil,
-				nil,
-				mockInterviewSessionRepo,
-				nil,
-				nil,
-				nil,
-				nil,
-				mockRedisClient,
-				nil,
-				nil,
-				mockInterviewTurnsRepo,
-			)
-
-			gotResp, gotErr := svc.GetInterviewSessionInformation(ctx, tC.input)
 
 			tC.verify(t, gotErr, gotResp)
 		})
@@ -4473,7 +4081,7 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 	startAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
 
 	validResp := &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
-		StartedAt:             utilsPkg.FormatToUTCString(startAt),
+		StartedAt:             utils.FormatToUTCString(startAt),
 		IsStartedConversation: true,
 	}
 
@@ -4607,6 +4215,7 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 				nil,
 				nil,
 				mockInterviewSessionRepo,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -4863,6 +4472,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				nil,
 				mockEvaluationScoresRepo,
 				nil,
+				nil,
 			)
 
 			gotErr := svc.EndInterviewSession(ctx, tC.input)
@@ -4910,7 +4520,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -4968,7 +4578,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5002,7 +4612,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5036,7 +4646,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5071,7 +4681,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5120,7 +4730,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5155,7 +4765,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5213,7 +4823,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5278,7 +4888,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: "invalid-user-id",
 					},
 				}, nil)
@@ -5302,7 +4912,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5327,7 +4937,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5358,7 +4968,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5387,7 +4997,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5418,7 +5028,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5453,7 +5063,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5488,7 +5098,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5561,7 +5171,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5593,7 +5203,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5630,6 +5240,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithCursor(ctx, tC.input)
@@ -5657,7 +5268,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5713,7 +5324,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5764,7 +5375,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5814,7 +5425,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5861,7 +5472,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5912,7 +5523,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: "invalid-uuid",
 					},
 				}, nil)
@@ -5933,7 +5544,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5958,7 +5569,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -5988,7 +5599,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -6036,7 +5647,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -6086,7 +5697,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -6146,6 +5757,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithJumpPagination(ctx, tC.input)
@@ -6177,7 +5789,7 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -6233,7 +5845,7 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: invalidUserID,
 					},
 				}, nil)
@@ -6254,7 +5866,7 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
-					Payload: &utilsPkg.SignInTokenPayload{
+					Payload: &utils.SignInTokenPayload{
 						UserID: userID.String(),
 					},
 				}, nil)
@@ -6291,11 +5903,929 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotErr := svc.DeleteUserInterviewSessionByID(ctx, tC.input)
 
 			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	dateNow := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC).In(time.UTC)
+	invalidSessionID := "invalid-session-id"
+	invalidUserID := "invalid-user-id"
+	status := constants.StatusCompleted
+	statusColor := "#28A745"
+	statusDisplayName := "Completed"
+
+	validDbResp := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         userID,
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         status,
+		StartedAt:      sql.NullTime{Time: dateNow, Valid: true},
+		EndedAt:        sql.NullTime{Time: dateNow, Valid: true},
+		OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+		CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+	}
+
+	validResp := &entities.GetInterviewSessionInformationResp{
+		ResumeID:            sessionID,
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		EndedAt:             utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		OverallScore:        5,
+		OverallScorePercent: "100.0%",
+		OverallScoreColor:   "#28A745",
+		SummaryMd:           "summary_md",
+		CreatedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
+		CreatedAtFullName:   utils.FormatNullableTimeToBangkokStringFullTimeFormat(sql.NullTime{Time: dateNow, Valid: true}),
+	}
+
+	validDbRespInvalidOverallScore := *validDbResp
+	validDbRespInvalidOverallScore.OverallScore = sql.NullFloat64{Float64: 10, Valid: true}
+
+	validDbRespInvalidStatus := *validDbResp
+	validDbRespInvalidStatus.Status = "invalid"
+
+	validDbUserRespNotMatch := *validDbResp
+	validDbUserRespNotMatch.UserID = uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+
+	validDbRespWithNullSomeValue := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         userID,
+		ResumeID:       sessionID,
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         status,
+		StartedAt:      sql.NullTime{Time: dateNow, Valid: false},
+		EndedAt:        sql.NullTime{Time: dateNow, Valid: false},
+		OverallScore:   sql.NullFloat64{Float64: 5, Valid: false},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: false},
+		CreatedAt:      sql.NullTime{Time: dateNow, Valid: false},
+	}
+
+	validRespWithNullSomeValue := &entities.GetInterviewSessionInformationResp{
+		ResumeID:            sessionID,
+		ResumeFileName:      "resume_file_name",
+		Position:            "position",
+		Status:              status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		EndedAt:             utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		OverallScore:        0.00,
+		OverallScorePercent: "0.0%",
+		OverallScoreColor:   "#DC3545",
+		SummaryMd:           constants.BlankOverallSummaryMd,
+		CreatedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
+		CreatedAtFullName:   utils.FormatNullableTimeToBangkokStringFullTimeFormat(sql.NullTime{Time: dateNow, Valid: false}),
+	}
+
+	testCases := []struct {
+		name   string
+		input  string
+		setup  func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbResp, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Success WithNullSomeValue",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithNullSomeValue, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validRespWithNullSomeValue, gotResp)
+			},
+		},
+		{
+			name:  "Error WithInvalidSessionID",
+			input: invalidSessionID,
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithGetAuthContextError",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(nil, errors.New("auth context error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "auth context error")
+			},
+		},
+		{
+			name:  "Error WithInvalidUserID",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: invalidUserID,
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithGetInterviewSessionInformationByIDError",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(nil, errors.New("error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Nil(t, gotResp)
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "error")
+			},
+		},
+		{
+			name:  "Error WithUserIDNotMatch",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(&validDbUserRespNotMatch, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "This user does not have access to this session.")
+				assert.Contains(t, gotErr.Error(), "[INS0419]")
+			},
+		},
+		{
+			name:  "Error WithInvalidOverallScore",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(&validDbRespInvalidOverallScore, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+			},
+		},
+		{
+			name:  "Error WithInvalidStatus",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(&validDbRespInvalidStatus, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The status is invalid.")
+				assert.Contains(t, gotErr.Error(), "[INS0421]")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockAuthContext, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				mockAuthContext,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.GetInterviewSessionInformationByID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetChatHistoryBySessionIDWithEvaluation(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	defaultTurnNo := int32(constants.TurnNoDefault)
+
+	evaluationData := map[string]interface{}{
+		"overall_score": "4.20",
+		"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+		"scores": []map[string]interface{}{
+			{
+				"criterion_id":   "1",
+				"criterion_name": "Communication",
+				"score":          "4.00",
+				"comment":        "Clear and articulate communication.",
+			},
+			{
+				"criterion_id":   "2",
+				"criterion_name": "Enthusiasm",
+				"score":          "5.00",
+				"comment":        "Shows genuine interest in the role.",
+			},
+		},
+	}
+	evaluationJSON, _ := json.Marshal(evaluationData)
+
+	dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+		TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		TurnNo:            1,
+		Actor:             "user",
+		TranscriptText:    "Hello, I'm interested in this position.",
+		CurrentState:      "completed",
+		CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+		StartAt:           "2025-09-24T10:00:00Z",
+		EndAt:             "2025-09-24T10:00:05Z",
+		Evaluation:        evaluationJSON,
+	}
+
+	validResp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+		ChatHistory: []entities.ChatHistoryWithEvaluation{
+			{
+				ID:                dbResp.TurnID.String(),
+				TurnNo:            dbResp.TurnNo,
+				Actor:             dbResp.Actor,
+				Content:           dbResp.TranscriptText,
+				CurrentState:      dbResp.CurrentState,
+				CorrectedSentence: &dbResp.CorrectedSentence.String,
+				StartAt:           dbResp.StartAt,
+				EndAt:             dbResp.EndAt,
+				Evaluation: &entities.Evaluation{
+					OverallScore: "4.20",
+					OverallColor: utils.GetScoreColor(4.2),
+					SummaryMd:    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					Scores: []entities.CriteriaScore{
+						{
+							CriterionID:   "1",
+							CriterionName: "Communication",
+							Score:         "4.00",
+							ScoreColor:    utils.GetScoreColor(4.0),
+							CommentMd:     "Clear and articulate communication.",
+						},
+						{
+							CriterionID:   "2",
+							CriterionName: "Enthusiasm",
+							Score:         "5.00",
+							ScoreColor:    utils.GetScoreColor(5.0),
+							CommentMd:     "Shows genuine interest in the role.",
+						},
+					},
+				},
+				CurrentStateColor: constants.GetColorFromState(dbResp.CurrentState),
+			},
+		},
+		CursorTurnNext: 1,
+	}
+
+	req := &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+		SessionID: sessionID.String(),
+		TurnNo:    &defaultTurnNo,
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.GetChatHistoryBySessionIDWithEvaluationReq
+		setup  func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Success WithEmptyResults",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+					ChatHistory:    []entities.ChatHistoryWithEvaluation{},
+					CursorTurnNext: 0,
+				}, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidSessionID",
+			input: &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+				SessionID: "invalid-session-id",
+				TurnNo:    &defaultTurnNo,
+			},
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetChatHistoryBySessionIDWithEvaluationError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{}, errors.New("get chat history by session ID with evaluation error"))
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "get chat history by session ID with evaluation error")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreMissing",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation without overall_score
+				evaluationData := map[string]interface{}{
+					"summary_md": "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"score":          "4.00",
+							"comment":        "Clear and articulate communication.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreParseFloatError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation with invalid overall_score
+				evaluationData := map[string]interface{}{
+					"overall_score": "invalid",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"score":          4.0,
+							"comment":        "Clear and articulate communication.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreInvalidRange",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation with invalid overall_score range (> 5)
+				evaluationData := map[string]interface{}{
+					"overall_score": "6.00",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"score":          "4.00",
+							"comment":        "Clear and articulate communication.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreMissingScore",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation with missing score field in criteria
+				evaluationData := map[string]interface{}{
+					"overall_score": "3.00",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"comment":        "Clear and articulate communication.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreParseFloatError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation with invalid criteria score
+				evaluationData := map[string]interface{}{
+					"overall_score": "3.00",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"score":          "4.00",
+							"comment":        "Clear and articulate communication.",
+						},
+						{
+							"criterion_id":   "2",
+							"criterion_name": "Enthusiasm",
+							"score":          "invalid",
+							"comment":        "Shows genuine interest in the role.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreInvalidRange",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation with invalid criteria score range (> 5)
+				evaluationData := map[string]interface{}{
+					"overall_score": "3.00",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+					"scores": []map[string]interface{}{
+						{
+							"criterion_id":   "1",
+							"criterion_name": "Communication",
+							"score":          "7.00",
+							"comment":        "Clear and articulate communication.",
+						},
+					},
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Success WithEvaluationWithoutScores",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create evaluation without scores array
+				evaluationData := map[string]interface{}{
+					"overall_score": "4.20",
+					"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+				}
+				evaluationJSON, _ := json.Marshal(evaluationData)
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        evaluationJSON,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.ChatHistory, 1)
+				assert.NotNil(t, gotResp.ChatHistory[0].Evaluation)
+				assert.Len(t, gotResp.ChatHistory[0].Evaluation.Scores, 0)
+			},
+		},
+		{
+			name:  "Success WithNoEvaluation",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				// Create response without evaluation
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					TranscriptText:    "Hello, I'm interested in this position.",
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation:        nil,
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.ChatHistory, 1)
+				assert.Nil(t, gotResp.ChatHistory[0].Evaluation)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewTurnsRepo, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockInterviewTurnsRepo,
+				nil,
+			)
+
+			gotResp, gotErr := svc.GetChatHistoryBySessionIDWithEvaluation(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
 		})
 	}
 }

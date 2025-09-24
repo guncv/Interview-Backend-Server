@@ -72,6 +72,10 @@ const (
 	ErrMessageWebSocketInvalidSessionID             ErrorMessage = "The session ID is invalid. Please try again."
 	ErrMessageSessionInvalidSessionID               ErrorMessage = "The session ID is invalid. Please try again."
 	ErrMessageSessionNotFoundOrDeleted              ErrorMessage = "The session was not found or deleted. Please try again."
+	ErrMessageSessionUserNotMatch                   ErrorMessage = "This user does not have access to this session. Please try again."
+	ErrMessageSessionInvalidOverallScore            ErrorMessage = "The overall score is invalid. Please try again."
+	ErrMessageSessionInvalidStatus                  ErrorMessage = "The status is invalid. Please try again."
+	ErrMessageSessionNotStarted                     ErrorMessage = "The session is not started. Please try again."
 
 	// Evaluation
 	ErrMessageEvaluationRubricNotFound         ErrorMessage = "The rubric was not found. Please try again."

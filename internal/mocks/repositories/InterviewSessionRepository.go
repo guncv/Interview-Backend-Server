@@ -328,24 +328,24 @@ func (_c *MockInterviewSessionRepository_EndInterviewSession_Call) RunAndReturn(
 	return _c
 }
 
-// GetInterviewSessionInformation provides a mock function with given fields: ctx, sessionID
-func (_m *MockInterviewSessionRepository) GetInterviewSessionInformation(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationRow, error) {
+// GetInterviewSessionInformationByID provides a mock function with given fields: ctx, sessionID
+func (_m *MockInterviewSessionRepository) GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error) {
 	ret := _m.Called(ctx, sessionID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetInterviewSessionInformation")
+		panic("no return value specified for GetInterviewSessionInformationByID")
 	}
 
-	var r0 *db.GetInterviewSessionInformationRow
+	var r0 *db.GetInterviewSessionInformationByIDRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationRow, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)); ok {
 		return rf(ctx, sessionID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.GetInterviewSessionInformationRow); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) *db.GetInterviewSessionInformationByIDRow); ok {
 		r0 = rf(ctx, sessionID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.GetInterviewSessionInformationRow)
+			r0 = ret.Get(0).(*db.GetInterviewSessionInformationByIDRow)
 		}
 	}
 
@@ -358,31 +358,31 @@ func (_m *MockInterviewSessionRepository) GetInterviewSessionInformation(ctx con
 	return r0, r1
 }
 
-// MockInterviewSessionRepository_GetInterviewSessionInformation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformation'
-type MockInterviewSessionRepository_GetInterviewSessionInformation_Call struct {
+// MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionInformationByID'
+type MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call struct {
 	*mock.Call
 }
 
-// GetInterviewSessionInformation is a helper method to define mock.On call
+// GetInterviewSessionInformationByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - sessionID uuid.UUID
-func (_e *MockInterviewSessionRepository_Expecter) GetInterviewSessionInformation(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
-	return &MockInterviewSessionRepository_GetInterviewSessionInformation_Call{Call: _e.mock.On("GetInterviewSessionInformation", ctx, sessionID)}
+func (_e *MockInterviewSessionRepository_Expecter) GetInterviewSessionInformationByID(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call {
+	return &MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call{Call: _e.mock.On("GetInterviewSessionInformationByID", ctx, sessionID)}
 }
 
-func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) Return(_a0 *db.GetInterviewSessionInformationRow, _a1 error) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call) Return(_a0 *db.GetInterviewSessionInformationByIDRow, _a1 error) *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockInterviewSessionRepository_GetInterviewSessionInformation_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationRow, error)) *MockInterviewSessionRepository_GetInterviewSessionInformation_Call {
+func (_c *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)) *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call {
 	_c.Call.Return(run)
 	return _c
 }

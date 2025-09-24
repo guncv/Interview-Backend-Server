@@ -32,5 +32,6 @@ type CriterionRow struct {
 	ID            string `json:"id"`
 	Name          string `json:"name"`
 	DescriptionMd string `json:"description_md"`
-	Weight        string `json:"weight"`
+	Percentage    string `json:"percentage"`
+	Color         string `json:"color"`
 }

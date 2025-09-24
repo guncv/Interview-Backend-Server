@@ -198,6 +198,7 @@ func TestWebSocketServerLogic_SendMessageTypeSegmentStart(t *testing.T) {
 				mockRedis,
 				mockGen,
 				mockPublisher,
+				nil,
 			)
 
 			logic.SendMessageTypeSegmentStart(ctx, tC.client, tC.payload)

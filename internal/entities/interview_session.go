@@ -130,12 +130,27 @@ type GetInterviewSessionInformationReq struct {
 }
 
 type GetInterviewSessionInformationResp struct {
-	Position string `json:"position"`
+	ResumeID            uuid.UUID `json:"resume_id"`
+	ResumeFileName      string    `json:"resume_file_name"`
+	Position            string    `json:"position"`
+	Status              string    `json:"status"`
+	StatusDisplayName   string    `json:"status_display_name"`
+	StatusColor         string    `json:"status_color"`
+	StartedAt           string    `json:"started_at"`
+	EndedAt             string    `json:"ended_at"`
+	OverallScore        float64   `json:"overall_score"`
+	OverallScorePercent string    `json:"overall_score_percent"`
+	OverallScoreColor   string    `json:"overall_score_color"`
+	SummaryMd           string    `json:"summary_md"`
+	CreatedAt           string    `json:"created_at"`
+	CreatedAtFullName   string    `json:"created_at_full_name"`
 }
 
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
+	CurrentState          string `json:"current_state"`
+	CurrentStateID        string `json:"current_state_id"`
 }
 
 type EndInterviewSessionReq struct {
@@ -181,4 +196,63 @@ type InterviewSessionSummary struct {
 	OverallScore     float64 `json:"overall_score"`
 	CreatedAt        string  `json:"created_at"`
 	CreatedAtDisplay string  `json:"created_at_display"`
+}
+
+type GetChatHistoryBySessionIDWithEvaluationReq struct {
+	SessionID string `json:"session_id" binding:"required"`
+	TurnNo    *int32 `json:"turn_no" binding:"required"`
+}
+
+type GetChatHistoryBySessionIDWithEvaluationResp struct {
+	ChatHistory    []ChatHistoryWithEvaluation `json:"chat_history"`
+	CursorTurnNext int32                       `json:"cursor_turn_next"`
+}
+
+type ChatHistoryWithEvaluation struct {
+	ID                string      `json:"id"`
+	TurnNo            int64       `json:"turn_no"`
+	Actor             string      `json:"actor"`
+	Content           string      `json:"content"`
+	StartAt           string      `json:"start_at"`
+	EndAt             string      `json:"end_at"`
+	Evaluation        *Evaluation `json:"evaluation"`
+	CorrectedSentence *string     `json:"corrected_sentence"`
+	CurrentState      string      `json:"current_state"`
+	CurrentStateColor string      `json:"current_state_color"`
+}
+
+type Evaluation struct {
+	OverallScore string          `json:"overall_score"`
+	OverallColor string          `json:"overall_color"`
+	SummaryMd    string          `json:"summary_md"`
+	Scores       []CriteriaScore `json:"scores"`
+}
+
+type CriteriaScore struct {
+	CriterionID   string `json:"criterion_id"`
+	CriterionName string `json:"criterion_name"`
+	Score         string `json:"score"`
+	ScoreColor    string `json:"score_color"`
+	CommentMd     string `json:"comment_md"`
+}
+
+type InitialFirstCurrentStateSessionReq struct {
+	SessionID    string `json:"session_id" binding:"required"`
+	CurrentState string `json:"current_state" binding:"required"`
+}
+
+type InitialFirstCurrentStateSessionResp struct {
+	CurrentState   string `json:"current_state"`
+	CurrentStateID string `json:"current_state_id"`
+}
+
+type UpdateCurrentStateSessionReq struct {
+	OldCurrentStateID string `json:"old_current_state_id" binding:"required"`
+	SessionID         string `json:"session_id" binding:"required"`
+	CurrentState      string `json:"current_state" binding:"required"`
+}
+
+type UpdateCurrentStateSessionResp struct {
+	CurrentState   string `json:"current_state"`
+	CurrentStateID string `json:"current_state_id"`
 }

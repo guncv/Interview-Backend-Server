@@ -40,13 +40,16 @@ type InterviewSessionService interface {
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
-	GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error)
 	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
 	StartConversationBySessionID(ctx context.Context, sessionId string) error
 	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 	DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error
+	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
+	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
+	InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)
+	UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)
 }
 
 type interviewSessionService struct {
@@ -63,6 +66,7 @@ type interviewSessionService struct {
 	evaluationService    EvaluationService
 	evaluationScoresRepo repositories.EvaluationScoresRepository
 	interviewTurnsRepo   repositories.InterviewTurnsRepository
+	interviewStateRepo   repositories.InterviewStateRepository
 }
 
 func NewInterviewSessionService(
@@ -79,6 +83,7 @@ func NewInterviewSessionService(
 	evaluationService EvaluationService,
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
 	interviewTurnsRepo repositories.InterviewTurnsRepository,
+	interviewStateRepo repositories.InterviewStateRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -94,6 +99,7 @@ func NewInterviewSessionService(
 		evaluationService:    evaluationService,
 		evaluationScoresRepo: evaluationScoresRepo,
 		interviewTurnsRepo:   interviewTurnsRepo,
+		interviewStateRepo:   interviewStateRepo,
 	}
 }
 
@@ -610,10 +616,11 @@ func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *e
 		}
 
 		criteria[i] = repositories.CreateScoreTxReq{
-			ID:          s.generator.GenerateUUID(ctx),
-			CriterionID: criterionID,
-			Score:       criterion.CriterionScore,
-			CommentMd:   criterion.CriterionFeedback,
+			ID:            s.generator.GenerateUUID(ctx),
+			CriterionID:   criterionID,
+			CriterionName: criterion.CriterionName,
+			Score:         criterion.CriterionScore,
+			CommentMd:     criterion.CriterionFeedback,
 		}
 	}
 
@@ -734,81 +741,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 	return resp, nil
 }
 
-func (s *interviewSessionService) GetInterviewSessionInformation(ctx context.Context, req *entities.GetInterviewSessionInformationReq) (*entities.GetInterviewSessionInformationResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionInformation] Called")
-
-	authContext, err := s.authContext.GetAuthContext(ctx)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Error getting auth context", err)
-		return nil, err
-	}
-
-	sessionValidReq := &entities.IsSessionValidReq{
-		SessionToken: req.SessionToken,
-		UserID:       authContext.Payload.UserID,
-	}
-
-	sessionPayload, err := s.IsSessionValid(ctx, sessionValidReq)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Invalid session", err)
-		return nil, err
-	}
-
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionInformation, sessionPayload.SessionID)
-
-	var dbSession *db.GetInterviewSessionInformationRow
-	redisData, err := s.redisClient.Get(ctx, redisKey)
-	if err == nil {
-		var cachedResp db.GetInterviewSessionInformationRow
-		if err := json.Unmarshal([]byte(redisData), &cachedResp); err == nil {
-			dbSession = &cachedResp
-		} else {
-			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] Failed to unmarshal Redis data", err)
-		}
-	} else {
-		s.log.WarnWithID(ctx, "[Service: GetInterviewSessionInformation] Redis miss or error", err)
-	}
-
-	if dbSession == nil {
-		sessionResp, err := s.interviewSessionRepo.GetInterviewSessionInformation(ctx, uuid.MustParse(sessionPayload.SessionID))
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] DB query failed", err)
-			return nil, err
-		}
-
-		dbSession = &db.GetInterviewSessionInformationRow{
-			UserID:   sessionResp.UserID,
-			Position: sessionResp.Position,
-		}
-
-		if jsonBytes, err := json.Marshal(dbSession); err == nil {
-			go func() {
-				cacheCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-				defer cancel()
-
-				_ = s.redisClient.Set(cacheCtx, database.RedisPayload{
-					Key:   redisKey,
-					Value: string(jsonBytes),
-					TTL:   constants.RedisTTLInterviewSessionInformation,
-				})
-			}()
-		} else {
-			s.log.WarnWithID(ctx, "[Service: GetInterviewSessionInformation] Failed to marshal Redis payload", err)
-		}
-	}
-
-	if dbSession.UserID.String() != authContext.Payload.UserID {
-		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformation] User ID mismatch")
-		return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeSessionInvalidToken)
-	}
-
-	resp := &entities.GetInterviewSessionInformationResp{
-		Position: dbSession.Position,
-	}
-
-	return resp, nil
-}
-
 func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetStartedAtInterviewSession] Called")
 
@@ -824,10 +756,26 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 		return nil, err
 	}
 
+	var currentState string
+	if dbResp.CurrentState.Valid {
+		currentState = dbResp.CurrentState.String
+	} else {
+		currentState = constants.InterviewStateUnknown
+	}
+
+	var currentStateID string
+	if dbResp.CurrentStateID.Valid {
+		currentStateID = dbResp.CurrentStateID.UUID.String()
+	} else {
+		currentStateID = ""
+	}
+
 	if dbResp.StartedAt.Valid {
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
 			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+			CurrentState:          currentState,
+			CurrentStateID:        currentStateID,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -845,6 +793,8 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
 			StartedAt:             utils.FormatToUTCString(currStartedAt),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+			CurrentState:          currentState,
+			CurrentStateID:        currentStateID,
 		}, nil
 	}
 }
@@ -1008,14 +958,9 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
-				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-				CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
-			}
-
-			if row.OverallScore.Valid {
-				session.OverallScore = row.OverallScore.Float64
-			} else {
-				session.OverallScore = 0.00
+				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
+				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+				OverallScore:     utils.GetNullableFloat64(row.OverallScore, 0.00),
 			}
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
@@ -1069,15 +1014,11 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
-				CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-				CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
+				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
+				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
 			}
 
-			if row.OverallScore.Valid {
-				session.OverallScore = row.OverallScore.Float64
-			} else {
-				session.OverallScore = 0.00
-			}
+			session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
 				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
@@ -1183,15 +1124,11 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 			ResumeFileName:   row.ResumeFileName,
 			Position:         row.Position,
 			Status:           row.Status,
-			CreatedAt:        utils.FormatToUTCString(row.CreatedAt.Time),
-			CreatedAtDisplay: utils.FormatBangkokDateTimeFormat(row.CreatedAt.Time),
+			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
+			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
 		}
 
-		if row.OverallScore.Valid {
-			session.OverallScore = row.OverallScore.Float64
-		} else {
-			session.OverallScore = 0.00
-		}
+		session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
 
 		if row.StartedAt.Valid && row.EndedAt.Valid {
 			duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
@@ -1267,6 +1204,213 @@ func (s *interviewSessionService) DeleteUserInterviewSessionByID(ctx context.Con
 	return nil
 }
 
+func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionInformationByID] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Error getting auth context", err)
+		return nil, err
+	}
+
+	userID, err := uuid.Parse(authContext.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid user ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.interviewSessionRepo.GetInterviewSessionInformationByID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Error getting interview session information", err)
+		return nil, err
+	}
+
+	if dbResp.UserID != userID {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] User ID does not match", err)
+		return nil, app_error.New(constants.ErrPermissionDenied, app_error.ErrCodeSessionUserNotMatch)
+	}
+
+	overallScore := utils.GetNullableFloat64(dbResp.OverallScore, 0.00)
+
+	if !utils.ValidateScoreRange(overallScore) {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid overall score", err)
+		return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+	}
+
+	if !utils.ValidateStatus(dbResp.Status) {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid status", err)
+		return nil, app_error.New(constants.ErrInterviewSessionInvalidStatus, app_error.ErrCodeSessionInvalidStatus)
+	}
+
+	overallScorePercent, overallScoreColor := utils.FormatScoreWithColor(overallScore)
+	statusColor := utils.GetStatusColor(dbResp.Status)
+	statusDisplayName := utils.GetStatusDisplayName(dbResp.Status)
+
+	resp := entities.GetInterviewSessionInformationResp{
+		ResumeID:            dbResp.ResumeID,
+		ResumeFileName:      dbResp.ResumeFileName,
+		Position:            dbResp.Position,
+		Status:              dbResp.Status,
+		StatusDisplayName:   statusDisplayName,
+		StatusColor:         statusColor,
+		StartedAt:           utils.FormatNullableTimeToBangkokString(dbResp.StartedAt),
+		EndedAt:             utils.FormatNullableTimeToBangkokString(dbResp.EndedAt),
+		OverallScore:        overallScore,
+		OverallScorePercent: overallScorePercent,
+		OverallScoreColor:   overallScoreColor,
+		SummaryMd:           utils.GetNullableString(dbResp.SummaryMd, constants.BlankOverallSummaryMd),
+		CreatedAt:           utils.FormatNullableTimeToBangkokString(dbResp.CreatedAt),
+		CreatedAtFullName:   utils.FormatNullableTimeToBangkokStringFullTimeFormat(dbResp.CreatedAt),
+	}
+
+	return &resp, nil
+}
+
+func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	var turnNo int32 = constants.TurnNoDefault
+	if req.TurnNo != nil {
+		turnNo = *req.TurnNo
+	}
+
+	dbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+		SessionID: sessionID,
+		TurnNo:    int64(turnNo),
+		Limit:     constants.DefaultPageSize,
+	}
+
+	dbResp, err := s.interviewTurnsRepo.GetChatHistoryBySessionIDWithEvaluation(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Error getting chat history by session ID with evaluation", err)
+		return nil, err
+	}
+
+	chatHistoryResp := make([]entities.ChatHistoryWithEvaluation, len(dbResp))
+	for i, chat := range dbResp {
+		var correctedSentence *string
+		if chat.CorrectedSentence.Valid {
+			correctedSentence = &chat.CorrectedSentence.String
+		}
+
+		var evaluation *entities.Evaluation
+		if chat.Evaluation != nil {
+			var evalMap map[string]interface{}
+			if err := json.Unmarshal(chat.Evaluation.([]byte), &evalMap); err == nil {
+				s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Evaluation: ", evalMap)
+
+				var overallScoreFloat float64
+				var err error
+
+				if overallScoreStr, ok := evalMap["overall_score"].(string); ok {
+					overallScoreFloat, err = strconv.ParseFloat(overallScoreStr, 64)
+				} else if overallScoreNum, ok := evalMap["overall_score"].(float64); ok {
+					overallScoreFloat = overallScoreNum
+				} else {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid overall score format", nil)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+				if err != nil {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Failed to parse overall score", err)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+
+				if !utils.ValidateScoreRange(overallScoreFloat) {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Overall score out of valid range", nil)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+
+				overallColor := utils.GetScoreColor(overallScoreFloat)
+
+				evaluation = &entities.Evaluation{
+					OverallScore: fmt.Sprintf("%.2f", overallScoreFloat),
+					OverallColor: overallColor,
+					SummaryMd:    evalMap["summary_md"].(string),
+				}
+
+				if rawScores, ok := evalMap["scores"].([]interface{}); ok {
+					criteriaScores := make([]entities.CriteriaScore, len(rawScores))
+					for j, raw := range rawScores {
+						scoreMap, ok := raw.(map[string]interface{})
+						if !ok {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid score map format", nil)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						criteriaScoreStr, ok := scoreMap["score"].(string)
+						if !ok {
+							if fScore, ok := scoreMap["score"].(float64); ok {
+								criteriaScoreStr = fmt.Sprintf("%.2f", fScore)
+							} else {
+								s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid criteria score format", nil)
+								return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+							}
+						}
+
+						criteriaScoreFloat, err := strconv.ParseFloat(criteriaScoreStr, 64)
+						if err != nil {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Failed to parse criteria score", err)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						if !utils.ValidateScoreRange(criteriaScoreFloat) {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Criteria score out of valid range", nil)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						criteriaScores[j] = entities.CriteriaScore{
+							CriterionID:   scoreMap["criterion_id"].(string),
+							CriterionName: scoreMap["criterion_name"].(string),
+							Score:         criteriaScoreStr,
+							ScoreColor:    utils.GetScoreColor(criteriaScoreFloat),
+							CommentMd:     scoreMap["comment"].(string),
+						}
+					}
+
+					evaluation.Scores = criteriaScores
+				}
+			}
+		}
+
+		chatHistoryResp[i] = entities.ChatHistoryWithEvaluation{
+			ID:                chat.TurnID.String(),
+			TurnNo:            chat.TurnNo,
+			Actor:             chat.Actor,
+			Content:           chat.TranscriptText,
+			StartAt:           chat.StartAt,
+			EndAt:             chat.EndAt,
+			Evaluation:        evaluation,
+			CorrectedSentence: correctedSentence,
+			CurrentState:      chat.CurrentState,
+			CurrentStateColor: constants.GetColorFromState(chat.CurrentState),
+		}
+	}
+
+	resp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+		ChatHistory: chatHistoryResp,
+	}
+
+	if len(chatHistoryResp) > 0 {
+		resp.CursorTurnNext = int32(chatHistoryResp[len(chatHistoryResp)-1].TurnNo)
+	} else {
+		resp.CursorTurnNext = 0
+	}
+
+	return resp, nil
+}
+
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {
 	file, err := fileHeader.Open()
 	if err != nil {
@@ -1285,4 +1429,74 @@ func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipar
 		fileHeader.Header,
 		fileContent,
 	)
+}
+
+func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: InitialFirstCurrentStateSession] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: InitialFirstCurrentStateSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID := s.generator.GenerateUUID(ctx)
+
+	dbReq := &repositories.CreateInterviewStateWithUpdateFlagSessionTxReq{
+		ID:         interviewStateID,
+		SessionID:  sessionID,
+		PhraseType: req.CurrentState,
+		StartedAt:  time.Now(),
+	}
+
+	err = s.interviewStateRepo.CreateInterviewStateWithUpdateFlagSessionTx(ctx, dbReq)
+
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: InitialFirstCurrentStateSession] Error creating interview state", err)
+		return nil, err
+	}
+
+	resp := entities.InitialFirstCurrentStateSessionResp{
+		CurrentState:   req.CurrentState,
+		CurrentStateID: interviewStateID.String(),
+	}
+
+	return &resp, nil
+}
+
+func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID := s.generator.GenerateUUID(ctx)
+
+	currentTime := time.Now()
+	newInterviewStateID := s.generator.GenerateUUID(ctx)
+
+	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
+		ID:      interviewStateID,
+		EndedAt: currentTime,
+
+		NewID:      newInterviewStateID,
+		SessionID:  sessionID,
+		PhraseType: req.CurrentState,
+		StartedAt:  currentTime,
+	}
+
+	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)
+		return nil, err
+	}
+
+	resp := entities.UpdateCurrentStateSessionResp{
+		CurrentState:   req.CurrentState,
+		CurrentStateID: newInterviewStateID.String(),
+	}
+
+	return &resp, nil
 }

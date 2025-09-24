@@ -992,3 +992,104 @@ func TestInterviewSessionRepository_DeleteUserInterviewSessionByID(t *testing.T)
 		})
 	}
 }
+
+func TestInterviewSessionRepository_GetInterviewSessionInformationByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	validResp := &db.GetInterviewSessionInformationByIDRow{
+		UserID:         uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		ResumeID:       uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		ResumeFileName: "resume_file_name",
+		Position:       "position",
+		Status:         "status",
+		StartedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+		EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+		OverallScore:   sql.NullFloat64{Float64: 100, Valid: true},
+		SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+		CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+	}
+
+	testCases := []struct {
+		name   string
+		input  uuid.UUID
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotResp *db.GetInterviewSessionInformationByIDRow, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetInterviewSessionInformationByID(ctx, updateID).
+					Return(*validResp, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetInterviewSessionInformationByIDRow, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetInterviewSessionInformationByIDNotFound",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetInterviewSessionInformationByID(ctx, updateID).
+					Return(db.GetInterviewSessionInformationByIDRow{}, sql.ErrNoRows)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetInterviewSessionInformationByIDRow, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+				assert.Nil(t, gotResp)
+			},
+		}, {
+			name:  "Error WithGetInterviewSessionInformationByIDError",
+			input: updateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetInterviewSessionInformationByID(ctx, updateID).
+					Return(db.GetInterviewSessionInformationByIDRow{}, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp *db.GetInterviewSessionInformationByIDRow, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotResp, gotErr := svc.GetInterviewSessionInformationByID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}

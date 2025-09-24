@@ -116,10 +116,11 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.POST("", interviewSessionHandler.CreateInterviewSessionWithNewResume)
 		interviewSessionMiddleRoutes.POST("/existing", interviewSessionHandler.CreateInterviewSessionWithExistingResume)
 		interviewSessionMiddleRoutes.GET("/chat-history/:session_token", interviewSessionHandler.GetChatHistoryBySessionToken)
-		interviewSessionMiddleRoutes.GET("/information/:session_token", interviewSessionHandler.GetInterviewSessionInformation)
 		interviewSessionMiddleRoutes.GET("/cursor", interviewSessionHandler.ListInterviewSessionsByUserIDWithCursor)
 		interviewSessionMiddleRoutes.GET("/jump", interviewSessionHandler.ListInterviewSessionsByUserIDWithJumpPagination)
 		interviewSessionMiddleRoutes.DELETE("/:session_id", interviewSessionHandler.DeleteUserInterviewSessionByID)
+		interviewSessionMiddleRoutes.GET("/:session_id", interviewSessionHandler.GetInterviewSessionInformationByID)
+		interviewSessionMiddleRoutes.GET("/:session_id/chat-with-evaluation", interviewSessionHandler.GetChatHistoryBySessionIDWithEvaluation)
 	}
 }
 

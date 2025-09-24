@@ -41,16 +41,18 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveS
 	updatedAt := time.Now()
 	criteria := []CreateScoreTxReq{
 		{
-			ID:          globalID,
-			CriterionID: globalID,
-			Score:       5,
-			CommentMd:   "test",
+			ID:            globalID,
+			CriterionID:   globalID,
+			CriterionName: "test",
+			Score:         5,
+			CommentMd:     "test",
 		},
 		{
-			ID:          globalID,
-			CriterionID: globalID,
-			Score:       5,
-			CommentMd:   "test",
+			ID:            globalID,
+			CriterionID:   globalID,
+			CriterionName: "test",
+			Score:         5,
+			CommentMd:     "test",
 		},
 	}
 
@@ -128,6 +130,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveS
 							criteria[0].ID,
 							evaluationID,
 							criteria[0].CriterionID,
+							criteria[0].CriterionName,
 							int32(criteria[0].Score),
 							criteria[0].CommentMd,
 							createdAt,
@@ -283,6 +286,7 @@ func TestEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImproveS
 							criteria[0].ID,
 							evaluationID,
 							criteria[0].CriterionID,
+							criteria[0].CriterionName,
 							int32(criteria[0].Score),
 							criteria[0].CommentMd,
 							createdAt,

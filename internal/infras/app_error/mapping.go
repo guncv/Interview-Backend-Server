@@ -67,6 +67,10 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeWebSocketInvalidSessionID:             ErrHttpCodeBadRequest,
 	ErrCodeSessionInvalidSessionID:               ErrHttpCodeBadRequest,
 	ErrCodeSessionNotFoundOrDeleted:              ErrHttpCodeNotFound,
+	ErrCodeSessionUserNotMatch:                   ErrHttpCodeUnauthorized,
+	ErrCodeSessionInvalidOverallScore:            ErrHttpCodeBadRequest,
+	ErrCodeSessionInvalidStatus:                  ErrHttpCodeBadRequest,
+	ErrCodeSessionNotStarted:                     ErrHttpCodeBadRequest,
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrHttpCodeNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrHttpCodeNotFound,
@@ -150,6 +154,10 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeWebSocketInvalidSessionID:             ErrMessageWebSocketInvalidSessionID,
 	ErrCodeSessionInvalidSessionID:               ErrMessageSessionInvalidSessionID,
 	ErrCodeSessionNotFoundOrDeleted:              ErrMessageSessionNotFoundOrDeleted,
+	ErrCodeSessionUserNotMatch:                   ErrMessageSessionUserNotMatch,
+	ErrCodeSessionInvalidOverallScore:            ErrMessageSessionInvalidOverallScore,
+	ErrCodeSessionInvalidStatus:                  ErrMessageSessionInvalidStatus,
+	ErrCodeSessionNotStarted:                     ErrMessageSessionNotStarted,
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound:         ErrMessageEvaluationRubricNotFound,
 	ErrCodeEvaluationRubricCriteriaNotFound: ErrMessageEvaluationRubricCriteriaNotFound,

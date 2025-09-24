@@ -3,6 +3,7 @@ INSERT INTO evaluation_scores (
     id,
     evaluation_id,
     criterion_id,
+    criterion_name,
     score,
     comment_md,
 
@@ -10,5 +11,5 @@ INSERT INTO evaluation_scores (
     updated_at
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 );

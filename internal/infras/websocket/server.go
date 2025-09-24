@@ -37,6 +37,8 @@ type Client struct {
 	pongReceived             chan struct{}
 	connected                bool
 	cancelFunc               context.CancelFunc
+	currentState             string
+	currentStateID           string
 }
 
 type WebSocketServerInterface interface {
@@ -71,6 +73,7 @@ func NewWebSocketServer(
 	jwtMaker utils.JwtToken,
 	generator utils.Generator,
 	publisher publisher.RedisTaskPublisher,
+	evaluationService services.EvaluationService,
 ) WebSocketServerInterface {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  64 << 10,
@@ -103,6 +106,7 @@ func NewWebSocketServer(
 		redisClient,
 		generator,
 		publisher,
+		evaluationService,
 	)
 
 	server.logic = logic
@@ -144,6 +148,8 @@ func (s *webSocketServer) HandleConnection(
 		pongReceived:             make(chan struct{}, 1),
 		connected:                true,
 		isStartedConversation:    false,
+		currentState:             "",
+		currentStateID:           "",
 	}
 
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
@@ -177,6 +183,9 @@ func (s *webSocketServer) HandleConnection(
 		s.Disconnect(ctx, client)
 		return nil
 	}
+
+	client.currentState = resp.CurrentState
+	client.currentStateID = resp.CurrentStateID
 
 	if err := s.initClient(ctx, client); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
@@ -323,37 +332,37 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	}
 }
 
-func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: pingLoop] Starting ping loop")
+// func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
+// 	s.log.InfoWithID(ctx, "[WebSocketServer: pingLoop] Starting ping loop")
 
-	t := time.NewTicker(constants.WebSocketPingInterval)
-	defer t.Stop()
+// 	t := time.NewTicker(constants.WebSocketPingInterval)
+// 	defer t.Stop()
 
-	for range t.C {
-		client.mu.Lock()
-		timeSinceLastPong := time.Since(client.lastPongTime)
-		client.mu.Unlock()
+// 	for range t.C {
+// 		client.mu.Lock()
+// 		timeSinceLastPong := time.Since(client.lastPongTime)
+// 		client.mu.Unlock()
 
-		if timeSinceLastPong > constants.WebSocketPongTimeout {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
-				"session_id":           client.SessionID,
-				"time_since_last_pong": timeSinceLastPong,
-				"timeout":              constants.WebSocketPongTimeout,
-			})
-			s.Disconnect(ctx, client)
-			return
-		}
+// 		if timeSinceLastPong > constants.WebSocketPongTimeout {
+// 			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Pong timeout - no pong received", map[string]interface{}{
+// 				"session_id":           client.SessionID,
+// 				"time_since_last_pong": timeSinceLastPong,
+// 				"timeout":              constants.WebSocketPongTimeout,
+// 			})
+// 			s.Disconnect(ctx, client)
+// 			return
+// 		}
 
-		client.mu.Lock()
-		err := client.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
-		client.mu.Unlock()
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Error writing ping message", err)
-			s.Disconnect(ctx, client)
-			return
-		}
-	}
-}
+// 		client.mu.Lock()
+// 		err := client.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(constants.WebSocketPingDuration))
+// 		client.mu.Unlock()
+// 		if err != nil {
+// 			s.log.ErrorWithID(ctx, "[WebSocketServer: pingLoop] Error writing ping message", err)
+// 			s.Disconnect(ctx, client)
+// 			return
+// 		}
+// 	}
+// }
 
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
