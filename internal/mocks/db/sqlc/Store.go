@@ -1158,6 +1158,63 @@ func (_c *MockStore_ExecTx_Call) RunAndReturn(run func(context.Context, func(*db
 	return _c
 }
 
+// FlagIsScoreEvaluated provides a mock function with given fields: ctx, id
+func (_m *MockStore) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FlagIsScoreEvaluated")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int64, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) int64); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_FlagIsScoreEvaluated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlagIsScoreEvaluated'
+type MockStore_FlagIsScoreEvaluated_Call struct {
+	*mock.Call
+}
+
+// FlagIsScoreEvaluated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockStore_Expecter) FlagIsScoreEvaluated(ctx interface{}, id interface{}) *MockStore_FlagIsScoreEvaluated_Call {
+	return &MockStore_FlagIsScoreEvaluated_Call{Call: _e.mock.On("FlagIsScoreEvaluated", ctx, id)}
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) Return(_a0 int64, _a1 error) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) RunAndReturn(run func(context.Context, uuid.UUID) (int64, error)) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAllEvaluationsBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockStore) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
 	ret := _m.Called(ctx, sessionID)

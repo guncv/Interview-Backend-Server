@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -20,23 +21,33 @@ import (
 type EvaluationService interface {
 	GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error)
 	ListAllRubricsAndCriteria(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error)
+	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 }
 
 type evaluationService struct {
 	log                   *log.Logger
 	redisClient           database.RedisClient
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository
+	evaluationScoresRepo  repositories.EvaluationScoresRepository
+	interviewTurnsRepo    repositories.InterviewTurnsRepository
+	generator             utils.Generator
 }
 
 func NewEvaluationService(
 	log *log.Logger,
 	redisClient database.RedisClient,
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository,
+	evaluationScoresRepo repositories.EvaluationScoresRepository,
+	interviewTurnsRepo repositories.InterviewTurnsRepository,
+	generator utils.Generator,
 ) EvaluationService {
 	return &evaluationService{
 		log:                   log,
 		evaluationRubricsRepo: evaluationRubricsRepo,
 		redisClient:           redisClient,
+		evaluationScoresRepo:  evaluationScoresRepo,
+		interviewTurnsRepo:    interviewTurnsRepo,
+		generator:             generator,
 	}
 }
 
@@ -216,4 +227,122 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 	}()
 
 	return &resp, nil
+}
+
+func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
+	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
+
+	rubric, err := s.GetRubricWithCriteriaByName(ctx, req.CurrentState)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting rubric with criteria by name", err)
+		return err
+	}
+
+	interviewFeedbackAndScoreReq := &repositories.InterviewFeedbackAndScoreReq{
+		UserMessage:         req.UserMessage,
+		InterviewerMessage:  req.InterviewerMessage,
+		RubricName:          rubric.RubricName,
+		RubricDescriptionMd: rubric.RubricDescriptionMd,
+		Criteria:            rubric.Criteria,
+	}
+
+	result, err := s.evaluationScoresRepo.InterviewFeedbackAndScore(ctx, interviewFeedbackAndScoreReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error interviewing feedback and score", err)
+		return err
+	}
+
+	evaluationID := s.generator.GenerateUUID(ctx)
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userTurnID, err := uuid.Parse(req.UserTurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user turn ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	rubricID, err := uuid.Parse(rubric.RubricID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid rubric ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	criteria := make([]repositories.CreateScoreTxReq, len(result.CriteriaScores))
+	for i, criterion := range result.CriteriaScores {
+		criterionID, err := uuid.Parse(criterion.CriterionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid criterion ID", err)
+			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+		}
+
+		criteria[i] = repositories.CreateScoreTxReq{
+			ID:            s.generator.GenerateUUID(ctx),
+			CriterionID:   criterionID,
+			CriterionName: criterion.CriterionName,
+			Score:         criterion.CriterionScore,
+			CommentMd:     criterion.CriterionFeedback,
+		}
+	}
+
+	createEvaluationAndScoreTxReq := &repositories.CreateEvaluationAndScoreTxReq{
+		EvaluationID: evaluationID,
+		SessionID:    sessionID,
+		TurnID:       userTurnID,
+		RubricID:     rubricID,
+		UserID:       userID,
+		CurrentState: req.CurrentState,
+		OverallScore: fmt.Sprintf("%f", result.OverallScore),
+		SummaryMd:    result.OverallFeedback,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+		Criteria:     criteria,
+
+		ImproveSentenceID: s.generator.GenerateUUID(ctx),
+		ImproveSentence:   result.ImproveSentence,
+		LLmModel:          result.LLmModel,
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
+		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
+		if err == nil {
+			return nil
+		}
+
+		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
+		lastErr = err
+
+		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
+	}
+
+	if lastErr != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error creating evaluation and score", lastErr)
+		return lastErr
+	}
+
+	if err := s.interviewTurnsRepo.FlagIsScoreEvaluated(ctx, userTurnID); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error flagging is score evaluated", err)
+		return err
+	}
+
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: true,
+		TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+	}
+	_ = s.redisClient.Set(ctx, redisPayload)
+
+	return nil
 }

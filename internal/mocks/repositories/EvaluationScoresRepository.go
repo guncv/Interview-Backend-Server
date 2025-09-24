@@ -191,6 +191,65 @@ func (_c *MockEvaluationScoresRepository_GetEvaluationOverallSummary_Call) RunAn
 	return _c
 }
 
+// InterviewFeedbackAndScore provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationScoresRepository) InterviewFeedbackAndScore(ctx context.Context, req *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InterviewFeedbackAndScore")
+	}
+
+	var r0 *repositories.InterviewFeedbackAndScoreResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) *repositories.InterviewFeedbackAndScoreResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*repositories.InterviewFeedbackAndScoreResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InterviewFeedbackAndScore'
+type MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call struct {
+	*mock.Call
+}
+
+// InterviewFeedbackAndScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *repositories.InterviewFeedbackAndScoreReq
+func (_e *MockEvaluationScoresRepository_Expecter) InterviewFeedbackAndScore(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	return &MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call{Call: _e.mock.On("InterviewFeedbackAndScore", ctx, req)}
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) Run(run func(ctx context.Context, req *repositories.InterviewFeedbackAndScoreReq)) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*repositories.InterviewFeedbackAndScoreReq))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) Return(_a0 *repositories.InterviewFeedbackAndScoreResp, _a1 error) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) RunAndReturn(run func(context.Context, *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error)) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockEvaluationScoresRepository creates a new instance of MockEvaluationScoresRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockEvaluationScoresRepository(t interface {

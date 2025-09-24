@@ -53,6 +53,20 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 	return err
 }
 
+const flagIsScoreEvaluated = `-- name: FlagIsScoreEvaluated :execrows
+UPDATE interview_turns
+SET is_score_evaluated = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, flagIsScoreEvaluated, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getChatHistoryBySessionID = `-- name: GetChatHistoryBySessionID :many
 SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
 FROM interview_turns

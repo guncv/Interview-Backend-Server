@@ -89,6 +89,12 @@ type GetInterviewerLastMessageResp struct {
 	CurrentState string `json:"current_state"`
 }
 
+type CalculateEvaluationInOldStateReq struct {
+	SessionID        string `json:"session_id" binding:"required"`
+	CurrentState     string `json:"current_state" binding:"required"`
+	InterviewStateID string `json:"interview_state_id" binding:"required"`
+}
+
 type IsSessionValidResp struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`

@@ -2,13 +2,14 @@ package constants
 
 // Queue Constants
 var (
-	TaskSendResetPasswordEmail = "task:send_reset_password_email"
-	TaskSendVerifyEmail        = "task:send_verify_email"
-	TaskDeleteFile             = "task:delete_file"
-	TaskSetRedis               = "task:set_redis"
-	TaskDeleteRedis            = "task:delete_redis"
-	TaskDeleteJobRequirement   = "task:delete_job_requirement"
-	TaskCalculateTurnScore     = "task:calculate_turn_score"
+	TaskSendResetPasswordEmail        = "task:send_reset_password_email"
+	TaskSendVerifyEmail               = "task:send_verify_email"
+	TaskDeleteFile                    = "task:delete_file"
+	TaskSetRedis                      = "task:set_redis"
+	TaskDeleteRedis                   = "task:delete_redis"
+	TaskDeleteJobRequirement          = "task:delete_job_requirement"
+	TaskCalculateTurnScore            = "task:calculate_turn_score"
+	TaskCalculateEvaluationInOldState = "task:calculate_evaluation_in_old_state"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"

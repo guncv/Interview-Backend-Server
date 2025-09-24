@@ -77,3 +77,8 @@ GROUP BY
     e.id
 ORDER BY it.turn_no ASC
 LIMIT $3;
+
+-- name: FlagIsScoreEvaluated :execrows
+UPDATE interview_turns
+SET is_score_evaluated = TRUE
+WHERE id = $1;

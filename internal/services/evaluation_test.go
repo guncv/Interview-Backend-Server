@@ -218,6 +218,9 @@ func TestEvaluationService_GetRubricWithCriteriaByName(t *testing.T) {
 				lgr,
 				mockRedisClient,
 				mockEvaluationRubricsRepo,
+				nil,
+				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetRubricWithCriteriaByName(ctx, tC.input)
@@ -557,6 +560,9 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 				lgr,
 				mockRedisClient,
 				mockEvaluationRubricsRepo,
+				nil,
+				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListAllRubricsAndCriteria(ctx)

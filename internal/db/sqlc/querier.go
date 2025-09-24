@@ -32,6 +32,7 @@ type Querier interface {
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
 	DeleteUserInterviewSessionByID(ctx context.Context, arg DeleteUserInterviewSessionByIDParams) (int64, error)
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
+	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error)
 	GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetAllEvaluationsBySessionIDRow, error)
 	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)

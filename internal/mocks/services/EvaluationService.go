@@ -22,6 +22,53 @@ func (_m *MockEvaluationService) EXPECT() *MockEvaluationService_Expecter {
 	return &MockEvaluationService_Expecter{mock: &_m.Mock}
 }
 
+// CalculateTurnScore provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CalculateTurnScore")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.CalculateTurnScoreReq) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockEvaluationService_CalculateTurnScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CalculateTurnScore'
+type MockEvaluationService_CalculateTurnScore_Call struct {
+	*mock.Call
+}
+
+// CalculateTurnScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.CalculateTurnScoreReq
+func (_e *MockEvaluationService_Expecter) CalculateTurnScore(ctx interface{}, req interface{}) *MockEvaluationService_CalculateTurnScore_Call {
+	return &MockEvaluationService_CalculateTurnScore_Call{Call: _e.mock.On("CalculateTurnScore", ctx, req)}
+}
+
+func (_c *MockEvaluationService_CalculateTurnScore_Call) Run(run func(ctx context.Context, req *entities.CalculateTurnScoreReq)) *MockEvaluationService_CalculateTurnScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.CalculateTurnScoreReq))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationService_CalculateTurnScore_Call) Return(_a0 error) *MockEvaluationService_CalculateTurnScore_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockEvaluationService_CalculateTurnScore_Call) RunAndReturn(run func(context.Context, *entities.CalculateTurnScoreReq) error) *MockEvaluationService_CalculateTurnScore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRubricWithCriteriaByName provides a mock function with given fields: ctx, rubricName
 func (_m *MockEvaluationService) GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error) {
 	ret := _m.Called(ctx, rubricName)

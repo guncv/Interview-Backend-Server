@@ -443,7 +443,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 	if client.currentState != req.CurrentState {
 		if client.currentStateID == "" && client.currentState == "" {
 
-			resp, err := s.interviewSessionService.InitialFirstCurrentStateSession(ctx, &entities.InitialFirstCurrentStateSessionReq{
+			resp, err := s.interviewSessionService.InitialFirstCurrentStateSession(context.Background(), &entities.InitialFirstCurrentStateSessionReq{
 				SessionID:    req.SessionID,
 				CurrentState: req.CurrentState,
 			})
@@ -457,7 +457,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 			client.currentState = resp.CurrentState
 			client.currentStateID = resp.CurrentStateID
 		} else {
-			resp, err := s.interviewSessionService.UpdateCurrentStateSession(ctx, &entities.UpdateCurrentStateSessionReq{
+			resp, err := s.interviewSessionService.UpdateCurrentStateSession(context.Background(), &entities.UpdateCurrentStateSessionReq{
 				SessionID:    req.SessionID,
 				CurrentState: req.CurrentState,
 			})
@@ -467,9 +467,19 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 				return
 			}
 
+			publishReq := &entities.CalculateEvaluationInOldStateReq{
+				SessionID:        req.SessionID,
+				CurrentState:     client.currentState,
+				InterviewStateID: client.currentStateID,
+			}
+			if err := s.publisher.PublishTaskCalculateEvaluationInOldState(context.Background(), publishReq); err != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error publishing task calculate evaluation in old state", err)
+				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+				return
+			}
+
 			client.currentState = resp.CurrentState
 			client.currentStateID = resp.CurrentStateID
-
 		}
 	}
 
