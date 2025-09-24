@@ -75,13 +75,14 @@ func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreAndImprove
 
 		for _, criterion := range req.Criteria {
 			scoreReq := db.CreateEvaluationScoreParams{
-				ID:           criterion.ID,
-				EvaluationID: req.EvaluationID,
-				CriterionID:  criterion.CriterionID,
-				Score:        int32(criterion.Score),
-				CommentMd:    criterion.CommentMd,
-				CreatedAt:    req.CreatedAt,
-				UpdatedAt:    sql.NullTime{Time: req.UpdatedAt, Valid: true},
+				ID:            criterion.ID,
+				EvaluationID:  req.EvaluationID,
+				CriterionID:   criterion.CriterionID,
+				CriterionName: criterion.CriterionName,
+				Score:         int32(criterion.Score),
+				CommentMd:     criterion.CommentMd,
+				CreatedAt:     req.CreatedAt,
+				UpdatedAt:     sql.NullTime{Time: req.UpdatedAt, Valid: true},
 			}
 
 			if err := q.CreateEvaluationScore(ctx, scoreReq); err != nil {

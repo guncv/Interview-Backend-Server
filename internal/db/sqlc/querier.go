@@ -34,6 +34,7 @@ type Querier interface {
 	GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetAllEvaluationsBySessionIDRow, error)
 	GetAuthSessionByID(ctx context.Context, id uuid.UUID) (AuthSessions, error)
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
+	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, arg GetChatHistoryBySessionIDWithEvaluationParams) ([]GetChatHistoryBySessionIDWithEvaluationRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationByIDRow, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)

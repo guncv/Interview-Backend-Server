@@ -47,6 +47,7 @@ type InterviewSessionService interface {
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 	DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error
 	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
+	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
 }
 
 type interviewSessionService struct {
@@ -610,10 +611,11 @@ func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *e
 		}
 
 		criteria[i] = repositories.CreateScoreTxReq{
-			ID:          s.generator.GenerateUUID(ctx),
-			CriterionID: criterionID,
-			Score:       criterion.CriterionScore,
-			CommentMd:   criterion.CriterionFeedback,
+			ID:            s.generator.GenerateUUID(ctx),
+			CriterionID:   criterionID,
+			CriterionName: criterion.CriterionName,
+			Score:         criterion.CriterionScore,
+			CommentMd:     criterion.CriterionFeedback,
 		}
 	}
 
@@ -1245,6 +1247,159 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	var turnNo int32 = constants.TurnNoDefault
+	if req.TurnNo != nil {
+		turnNo = *req.TurnNo
+	}
+
+	dbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+		SessionID: sessionID,
+		TurnNo:    int64(turnNo),
+		Limit:     constants.DefaultPageSize,
+	}
+
+	sessionResp, err := s.interviewSessionRepo.GetStartedAndIsStartedConversationSession(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Error getting started and is started conversation session", err)
+		return nil, err
+	}
+
+	if !sessionResp.StartedAt.Valid {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Session is not started conversation", nil)
+		return nil, app_error.New(constants.ErrInterviewSessionNotStarted, app_error.ErrCodeSessionNotStarted)
+	}
+
+	dbResp, err := s.interviewTurnsRepo.GetChatHistoryBySessionIDWithEvaluation(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Error getting chat history by session ID with evaluation", err)
+		return nil, err
+	}
+
+	chatHistoryResp := make([]entities.ChatHistoryWithEvaluation, len(dbResp))
+	for i, chat := range dbResp {
+		var content string
+		if chat.Content.Valid {
+			content = chat.Content.String
+		}
+
+		var correctedSentence *string
+		if chat.CorrectedSentence.Valid {
+			correctedSentence = &chat.CorrectedSentence.String
+		}
+
+		var evaluation *entities.Evaluation
+		if chat.Evaluation != nil {
+			if evalMap, ok := chat.Evaluation.(map[string]interface{}); ok {
+
+				overallScoreStr, ok := evalMap["overall_score"].(string)
+				if !ok {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid overall score format", nil)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+
+				overallScoreFloat, err := strconv.ParseFloat(overallScoreStr, 64)
+				if err != nil {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Failed to parse overall score", err)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+
+				if !utils.ValidateScoreRange(overallScoreFloat) {
+					s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Overall score out of valid range", nil)
+					return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+				}
+
+				overallColor := utils.GetScoreColor(overallScoreFloat)
+
+				evaluation = &entities.Evaluation{
+					OverallScore: overallScoreStr,
+					OverallColor: overallColor,
+					SummaryMd:    evalMap["summary_md"].(string),
+				}
+
+				var criteriaScores []entities.CriteriaScore
+				if scores, ok := evalMap["criteria_scores"].([]map[string]interface{}); ok {
+					criteriaScores = make([]entities.CriteriaScore, len(scores))
+					for j, scoreMap := range scores {
+						criteriaScoreStr, ok := scoreMap["score"].(string)
+						if !ok {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Invalid criteria score format", nil)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						criteriaScoreFloat, err := strconv.ParseFloat(criteriaScoreStr, 64)
+						if err != nil {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Failed to parse overall score", err)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						if !utils.ValidateScoreRange(criteriaScoreFloat) {
+							s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionInformationByID] Criteria score out of valid range", nil)
+							return nil, app_error.New(constants.ErrInterviewSessionInvalidOverallScore, app_error.ErrCodeSessionInvalidOverallScore)
+						}
+
+						criteriaScoreColor := utils.GetScoreColor(criteriaScoreFloat)
+
+						criteriaScores[j] = entities.CriteriaScore{
+							CriterionID:   scoreMap["criterion_id"].(string),
+							CriterionName: scoreMap["criterion_name"].(string),
+							Score:         criteriaScoreStr,
+							ScoreColor:    criteriaScoreColor,
+							CommentMd:     scoreMap["comment_md"].(string),
+						}
+					}
+					evaluation.Scores = criteriaScores
+				}
+			}
+		}
+
+		startTime, err := utils.ParseAndFormatDurationSince(chat.StartAt, sessionResp.StartedAt.Time)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Error parsing and formatting duration since", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidTime)
+		}
+
+		endTime, err := utils.ParseAndFormatDurationSince(chat.EndAt, sessionResp.StartedAt.Time)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Error parsing and formatting duration since", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidTime)
+		}
+
+		chatHistoryResp[i] = entities.ChatHistoryWithEvaluation{
+			ID:                chat.TurnID,
+			TurnNo:            chat.TurnNo,
+			Actor:             chat.Actor,
+			Content:           content,
+			StartAt:           startTime,
+			EndAt:             endTime,
+			Evaluation:        evaluation,
+			CorrectedSentence: correctedSentence,
+			CurrentState:      chat.CurrentState,
+			CurrentStateColor: constants.GetColorFromState(chat.CurrentState),
+		}
+	}
+
+	resp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+		ChatHistory: chatHistoryResp,
+	}
+
+	if len(chatHistoryResp) > 0 {
+		resp.CursorTurnNext = int32(chatHistoryResp[len(chatHistoryResp)-1].TurnNo)
+	} else {
+		resp.CursorTurnNext = 0
+	}
+
+	return resp, nil
 }
 
 func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"strconv"
 	"testing"
 	"time"
 
@@ -6204,6 +6205,746 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 			)
 
 			gotResp, gotErr := svc.GetInterviewSessionInformationByID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetChatHistoryBySessionIDWithEvaluation(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	defaultTurnNo := int32(constants.TurnNoDefault)
+	startSessionTime := time.Date(2025, 9, 24, 10, 0, 0, 0, time.UTC)
+
+	sessionResp := &db.GetStartedAndIsStartedConversationSessionRow{
+		StartedAt:             sql.NullTime{Time: startSessionTime, Valid: true},
+		IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+		TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+		TurnNo:            1,
+		Actor:             "user",
+		Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+		CurrentState:      "completed",
+		CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+		StartAt:           "2025-09-24T10:00:00Z",
+		EndAt:             "2025-09-24T10:00:05Z",
+		Evaluation: map[string]interface{}{
+			"overall_score": "4.2",
+			"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+			"criteria_scores": []map[string]interface{}{
+				{
+					"criterion_id":   "1",
+					"criterion_name": "Communication",
+					"score":          "4",
+					"comment_md":     "Clear and articulate communication.",
+				},
+				{
+					"criterion_id":   "2",
+					"criterion_name": "Enthusiasm",
+					"score":          "5",
+					"comment_md":     "Shows genuine interest in the role.",
+				},
+			},
+		},
+	}
+
+	validResp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+		ChatHistory: []entities.ChatHistoryWithEvaluation{
+			{
+				ID:                dbResp.TurnID,
+				TurnNo:            dbResp.TurnNo,
+				Actor:             dbResp.Actor,
+				Content:           dbResp.Content.String,
+				CurrentState:      dbResp.CurrentState,
+				CorrectedSentence: &dbResp.CorrectedSentence.String,
+				StartAt:           "00:00",
+				EndAt:             "00:05",
+				Evaluation: &entities.Evaluation{
+					OverallScore: dbResp.Evaluation.(map[string]interface{})["overall_score"].(string),
+					OverallColor: utilsPkg.GetScoreColor(4.2),
+					SummaryMd:    dbResp.Evaluation.(map[string]interface{})["summary_md"].(string),
+					Scores: func() []entities.CriteriaScore {
+						rawScores := dbResp.Evaluation.(map[string]interface{})["criteria_scores"].([]map[string]interface{})
+						var scores []entities.CriteriaScore
+						for _, rawScore := range rawScores {
+							scores = append(scores, entities.CriteriaScore{
+								CriterionID:   rawScore["criterion_id"].(string),
+								CriterionName: rawScore["criterion_name"].(string),
+								Score:         rawScore["score"].(string),
+								ScoreColor: func() string {
+									scoreStr := rawScore["score"].(string)
+									if score, err := strconv.ParseFloat(scoreStr, 64); err == nil {
+										return utilsPkg.GetScoreColor(score)
+									}
+									return utilsPkg.GetScoreColor(0.0)
+								}(),
+								CommentMd: rawScore["comment_md"].(string),
+							})
+						}
+						return scores
+					}(),
+				},
+				CurrentStateColor: constants.GetColorFromState(dbResp.CurrentState),
+			},
+		},
+		CursorTurnNext: 1,
+	}
+
+	req := &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+		SessionID: sessionID.String(),
+		TurnNo:    &defaultTurnNo,
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.GetChatHistoryBySessionIDWithEvaluationReq
+		setup  func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Success WithEmptyTurnNo",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, &entities.GetChatHistoryBySessionIDWithEvaluationResp{
+					ChatHistory:    []entities.ChatHistoryWithEvaluation{},
+					CursorTurnNext: 0,
+				}, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidSessionID",
+			input: &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+				SessionID: "invalid-session-id",
+				TurnNo:    &defaultTurnNo,
+			},
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name: "Error WithGetStartedAndIsStartedConversationSessionError",
+			input: &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+				SessionID: sessionID.String(),
+			},
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetStartAtAndIsStartedConversationSessionError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(nil, errors.New("get started at interview session error"))
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "get started at interview session error")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetEndAtAndIsStartedConversationSessionError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(&db.GetStartedAndIsStartedConversationSessionRow{
+						StartedAt:             sql.NullTime{Time: time.Time{}, Valid: false},
+						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+					}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The session is not started. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0422]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetChatHistoryBySessionIDWithEvaluationError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{}, errors.New("get chat history by session ID with evaluation error"))
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "get chat history by session ID with evaluation error")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreMapInvalid",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"summary_md": "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          "4",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "5",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreParseFloatError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"overall_score": "invalid",
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          int64(4),
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          int64(5),
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithOverAllScoreInvalidRange",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"overall_score": "6",
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "6",
+								"criterion_name": "Communication",
+								"score":          "4",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "5",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreParseMapError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"overall_score": "3",
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreParseFloatError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"overall_score": "3",
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          "4",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "invalid",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithCriteriaScoreInvalidRange",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"overall_score": "3",
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          "7",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "6",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The overall score is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0420]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithParseStartedAtDurationSinceError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "invalid",
+					EndAt:             "2025-09-24T10:00:05Z",
+					Evaluation: map[string]interface{}{
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"overall_score": "5",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          "5",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "5",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The time format is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0108]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithParseEndAtDurationSinceError",
+			input: req,
+			setup: func() (*mockRepositories.MockInterviewTurnsRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockInterviewTurnsRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().GetStartedAndIsStartedConversationSession(ctx, sessionID).
+					Return(sessionResp, nil)
+
+				expectedDbReq := &db.GetChatHistoryBySessionIDWithEvaluationParams{
+					SessionID: sessionID,
+					TurnNo:    int64(defaultTurnNo),
+					Limit:     constants.DefaultPageSize,
+				}
+
+				dbResp := db.GetChatHistoryBySessionIDWithEvaluationRow{
+					TurnID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+					TurnNo:            1,
+					Actor:             "user",
+					Content:           sql.NullString{String: "Hello, I'm interested in this position.", Valid: true},
+					CurrentState:      "completed",
+					CorrectedSentence: sql.NullString{String: "Hello, I am interested in this position.", Valid: true},
+					StartAt:           "2025-09-24T10:00:00Z",
+					EndAt:             "invalid",
+					Evaluation: map[string]interface{}{
+						"summary_md":    "Good communication skills demonstrated. Clear articulation of interest in the position.",
+						"overall_score": "5",
+						"criteria_scores": []map[string]interface{}{
+							{
+								"criterion_id":   "1",
+								"criterion_name": "Communication",
+								"score":          "5",
+								"comment_md":     "Clear and articulate communication.",
+							},
+							{
+								"criterion_id":   "2",
+								"criterion_name": "Enthusiasm",
+								"score":          "5",
+								"comment_md":     "Shows genuine interest in the role.",
+							},
+						},
+					},
+				}
+
+				mockInterviewTurnsRepo.EXPECT().GetChatHistoryBySessionIDWithEvaluation(ctx, expectedDbReq).
+					Return([]db.GetChatHistoryBySessionIDWithEvaluationRow{dbResp}, nil)
+
+				return mockInterviewTurnsRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetChatHistoryBySessionIDWithEvaluationResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The time format is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0108]")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewTurnsRepo, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockInterviewTurnsRepo,
+			)
+
+			gotResp, gotErr := svc.GetChatHistoryBySessionIDWithEvaluation(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

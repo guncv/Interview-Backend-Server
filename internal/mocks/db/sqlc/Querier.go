@@ -1239,6 +1239,65 @@ func (_c *MockQuerier_GetChatHistoryBySessionID_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// GetChatHistoryBySessionIDWithEvaluation provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, arg db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChatHistoryBySessionIDWithEvaluation")
+	}
+
+	var r0 []db.GetChatHistoryBySessionIDWithEvaluationRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDWithEvaluationParams) []db.GetChatHistoryBySessionIDWithEvaluationRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetChatHistoryBySessionIDWithEvaluationRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetChatHistoryBySessionIDWithEvaluationParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChatHistoryBySessionIDWithEvaluation'
+type MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call struct {
+	*mock.Call
+}
+
+// GetChatHistoryBySessionIDWithEvaluation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.GetChatHistoryBySessionIDWithEvaluationParams
+func (_e *MockQuerier_Expecter) GetChatHistoryBySessionIDWithEvaluation(ctx interface{}, arg interface{}) *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call {
+	return &MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call{Call: _e.mock.On("GetChatHistoryBySessionIDWithEvaluation", ctx, arg)}
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call) Run(run func(ctx context.Context, arg db.GetChatHistoryBySessionIDWithEvaluationParams)) *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.GetChatHistoryBySessionIDWithEvaluationParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call) Return(_a0 []db.GetChatHistoryBySessionIDWithEvaluationRow, _a1 error) *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call) RunAndReturn(run func(context.Context, db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)) *MockQuerier_GetChatHistoryBySessionIDWithEvaluation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetDefaultResumeByUserID provides a mock function with given fields: ctx, userID
 func (_m *MockQuerier) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (db.Resumes, error) {
 	ret := _m.Called(ctx, userID)

@@ -50,15 +50,16 @@ type EvaluationRubrics struct {
 }
 
 type EvaluationScores struct {
-	ID           uuid.UUID    `json:"id"`
-	EvaluationID uuid.UUID    `json:"evaluation_id"`
-	CriterionID  uuid.UUID    `json:"criterion_id"`
-	Score        int32        `json:"score"`
-	CommentMd    string       `json:"comment_md"`
-	CreatedAt    time.Time    `json:"created_at"`
-	UpdatedAt    sql.NullTime `json:"updated_at"`
-	DeletedAt    sql.NullTime `json:"deleted_at"`
-	SoftDelete   sql.NullBool `json:"soft_delete"`
+	ID            uuid.UUID    `json:"id"`
+	EvaluationID  uuid.UUID    `json:"evaluation_id"`
+	CriterionID   uuid.UUID    `json:"criterion_id"`
+	Score         int32        `json:"score"`
+	CommentMd     string       `json:"comment_md"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     sql.NullTime `json:"updated_at"`
+	DeletedAt     sql.NullTime `json:"deleted_at"`
+	SoftDelete    sql.NullBool `json:"soft_delete"`
+	CriterionName string       `json:"criterion_name"`
 }
 
 type Evaluations struct {

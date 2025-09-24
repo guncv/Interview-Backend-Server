@@ -195,3 +195,41 @@ type InterviewSessionSummary struct {
 	CreatedAt        string  `json:"created_at"`
 	CreatedAtDisplay string  `json:"created_at_display"`
 }
+
+type GetChatHistoryBySessionIDWithEvaluationReq struct {
+	SessionID string `json:"session_id" binding:"required"`
+	TurnNo    *int32 `json:"turn_no" binding:"required"`
+}
+
+type GetChatHistoryBySessionIDWithEvaluationResp struct {
+	ChatHistory    []ChatHistoryWithEvaluation `json:"chat_history"`
+	CursorTurnNext int32                       `json:"cursor_turn_next"`
+}
+
+type ChatHistoryWithEvaluation struct {
+	ID                uuid.UUID   `json:"id"`
+	TurnNo            int64       `json:"turn_no"`
+	Actor             string      `json:"actor"`
+	Content           string      `json:"content"`
+	StartAt           string      `json:"start_at"`
+	EndAt             string      `json:"end_at"`
+	Evaluation        *Evaluation `json:"evaluation"`
+	CorrectedSentence *string     `json:"corrected_sentence"`
+	CurrentState      string      `json:"current_state"`
+	CurrentStateColor string      `json:"current_state_color"`
+}
+
+type Evaluation struct {
+	OverallScore string          `json:"overall_score"`
+	OverallColor string          `json:"overall_color"`
+	SummaryMd    string          `json:"summary_md"`
+	Scores       []CriteriaScore `json:"scores"`
+}
+
+type CriteriaScore struct {
+	CriterionID   string `json:"criterion_id"`
+	CriterionName string `json:"criterion_name"`
+	Score         string `json:"score"`
+	ScoreColor    string `json:"score_color"`
+	CommentMd     string `json:"comment_md"`
+}

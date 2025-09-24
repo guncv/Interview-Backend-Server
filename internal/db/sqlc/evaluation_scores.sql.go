@@ -18,6 +18,7 @@ INSERT INTO evaluation_scores (
     id,
     evaluation_id,
     criterion_id,
+    criterion_name,
     score,
     comment_md,
 
@@ -25,18 +26,19 @@ INSERT INTO evaluation_scores (
     updated_at
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
 type CreateEvaluationScoreParams struct {
-	ID           uuid.UUID    `json:"id"`
-	EvaluationID uuid.UUID    `json:"evaluation_id"`
-	CriterionID  uuid.UUID    `json:"criterion_id"`
-	Score        int32        `json:"score"`
-	CommentMd    string       `json:"comment_md"`
-	CreatedAt    time.Time    `json:"created_at"`
-	UpdatedAt    sql.NullTime `json:"updated_at"`
+	ID            uuid.UUID    `json:"id"`
+	EvaluationID  uuid.UUID    `json:"evaluation_id"`
+	CriterionID   uuid.UUID    `json:"criterion_id"`
+	CriterionName string       `json:"criterion_name"`
+	Score         int32        `json:"score"`
+	CommentMd     string       `json:"comment_md"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     sql.NullTime `json:"updated_at"`
 }
 
 func (q *Queries) CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error {
@@ -44,6 +46,7 @@ func (q *Queries) CreateEvaluationScore(ctx context.Context, arg CreateEvaluatio
 		arg.ID,
 		arg.EvaluationID,
 		arg.CriterionID,
+		arg.CriterionName,
 		arg.Score,
 		arg.CommentMd,
 		arg.CreatedAt,

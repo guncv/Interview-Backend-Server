@@ -120,6 +120,7 @@ func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handle
 		interviewSessionMiddleRoutes.GET("/jump", interviewSessionHandler.ListInterviewSessionsByUserIDWithJumpPagination)
 		interviewSessionMiddleRoutes.DELETE("/:session_id", interviewSessionHandler.DeleteUserInterviewSessionByID)
 		interviewSessionMiddleRoutes.GET("/:session_id", interviewSessionHandler.GetInterviewSessionInformationByID)
+		interviewSessionMiddleRoutes.GET("/:session_id/chat-with-evaluation", interviewSessionHandler.GetChatHistoryBySessionIDWithEvaluation)
 	}
 }
 

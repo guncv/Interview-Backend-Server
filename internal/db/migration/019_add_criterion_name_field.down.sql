@@ -1,0 +1,1 @@
+ALTER TABLE evaluation_scores DROP COLUMN criterion_name;

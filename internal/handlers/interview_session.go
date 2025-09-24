@@ -507,3 +507,49 @@ func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Cont
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *InterviewSessionHandler) GetChatHistoryBySessionIDWithEvaluation(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Called")
+
+	sessionID := c.Param("session_id")
+	if sessionID == "" {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Session ID is required")
+		utils.RespondWithError(c, app_error.New(errors.New("session ID is required"), app_error.ErrCodeSessionInvalidSessionID))
+		return
+	}
+
+	if err := h.validator.GetValidate().Var(sessionID, "required,uuid"); err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Invalid session ID", err)
+		utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeSessionInvalidSessionID))
+		return
+	}
+
+	req := &entities.GetChatHistoryBySessionIDWithEvaluationReq{
+		SessionID: sessionID,
+	}
+
+	var turnNo *int32
+	if turnNoParam := c.Query("turn_no"); turnNoParam != "" {
+		turnNoInt, err := strconv.Atoi(turnNoParam)
+		if err != nil {
+			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Invalid turn no", err)
+			utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeGeneralInvalidNumber))
+			return
+		}
+
+		turnNoValue := int32(turnNoInt)
+		turnNo = &turnNoValue
+	}
+
+	req.TurnNo = turnNo
+
+	resp, err := h.interviewSessionService.GetChatHistoryBySessionIDWithEvaluation(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Error getting chat history by session ID with evaluation", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

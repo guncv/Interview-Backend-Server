@@ -15,6 +15,7 @@ type InterviewTurnsRepository interface {
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error)
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)
+	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)
 }
 
 type interviewTurnsRepository struct {
@@ -82,4 +83,15 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context
 	}
 
 	return chatHistory, nil
+}
+
+func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Called")
+
+	resp, err := r.db.GetChatHistoryBySessionIDWithEvaluation(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Error getting chat history by session ID with evaluation", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+	return resp, nil
 }

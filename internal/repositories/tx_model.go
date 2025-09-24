@@ -146,10 +146,11 @@ type CreateEvaluationAndScoreTxReq struct {
 }
 
 type CreateScoreTxReq struct {
-	ID          uuid.UUID
-	CriterionID uuid.UUID
-	Score       int
-	CommentMd   string
+	ID            uuid.UUID
+	CriterionID   uuid.UUID
+	CriterionName string
+	Score         int
+	CommentMd     string
 }
 
 type CreateEvaluationOverallSummaryTxReq struct {

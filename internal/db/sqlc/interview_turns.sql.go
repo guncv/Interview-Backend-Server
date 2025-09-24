@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -86,6 +87,102 @@ func (q *Queries) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.
 			&i.StartAt,
 			&i.EndAt,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getChatHistoryBySessionIDWithEvaluation = `-- name: GetChatHistoryBySessionIDWithEvaluation :many
+SELECT
+    it.id AS turn_id,
+    it.turn_no,
+    it.actor,
+    it.content,
+    it.current_state,
+    uti.corrected_sentence,
+    it.start_at,
+    it.end_at,
+
+    CASE 
+        WHEN e.id IS NOT NULL THEN jsonb_build_object(
+            'overall_score', e.overall_score,
+            'summary_md', e.summary_md,
+            'scores', COALESCE(
+                jsonb_agg(
+                    jsonb_build_object(
+                        'criterion_id', es.criterion_id,
+                        'criterion_name', es.criterion_name,
+                        'score', es.score,
+                        'comment', es.comment_md
+                    )
+                ) FILTER (WHERE es.id IS NOT NULL), '[]'
+            )
+        )
+        ELSE NULL
+    END AS evaluation
+
+FROM interview_turns it
+LEFT JOIN evaluations e ON e.turn_id = it.id
+LEFT JOIN evaluation_scores es ON es.evaluation_id = e.id
+LEFT JOIN user_turn_improvements uti ON uti.interview_turn_id = it.id
+WHERE it.session_id = $1 AND it.turn_no > $2
+GROUP BY 
+    it.id,
+    it.actor,
+    it.content,
+    it.current_state,
+    uti.corrected_sentence,
+    e.id
+ORDER BY it.turn_no ASC
+LIMIT $3
+`
+
+type GetChatHistoryBySessionIDWithEvaluationParams struct {
+	SessionID uuid.UUID `json:"session_id"`
+	TurnNo    int64     `json:"turn_no"`
+	Limit     int32     `json:"limit"`
+}
+
+type GetChatHistoryBySessionIDWithEvaluationRow struct {
+	TurnID            uuid.UUID      `json:"turn_id"`
+	TurnNo            int64          `json:"turn_no"`
+	Actor             string         `json:"actor"`
+	Content           sql.NullString `json:"content"`
+	CurrentState      string         `json:"current_state"`
+	CorrectedSentence sql.NullString `json:"corrected_sentence"`
+	StartAt           string         `json:"start_at"`
+	EndAt             string         `json:"end_at"`
+	Evaluation        interface{}    `json:"evaluation"`
+}
+
+func (q *Queries) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, arg GetChatHistoryBySessionIDWithEvaluationParams) ([]GetChatHistoryBySessionIDWithEvaluationRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatHistoryBySessionIDWithEvaluation, arg.SessionID, arg.TurnNo, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatHistoryBySessionIDWithEvaluationRow{}
+	for rows.Next() {
+		var i GetChatHistoryBySessionIDWithEvaluationRow
+		if err := rows.Scan(
+			&i.TurnID,
+			&i.TurnNo,
+			&i.Actor,
+			&i.Content,
+			&i.CurrentState,
+			&i.CorrectedSentence,
+			&i.StartAt,
+			&i.EndAt,
+			&i.Evaluation,
 		); err != nil {
 			return nil, err
 		}
