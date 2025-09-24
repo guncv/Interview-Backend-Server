@@ -160,3 +160,20 @@ type CreateEvaluationOverallSummaryTxReq struct {
 type CreateEvaluationOverallSummaryTxResp struct {
 	OverallSummaryMd string `json:"overall_summary_md"`
 }
+
+type CreateInterviewStateWithUpdateFlagSessionTxReq struct {
+	ID         uuid.UUID
+	SessionID  uuid.UUID
+	PhraseType string
+	StartedAt  time.Time
+}
+
+type EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq struct {
+	ID      uuid.UUID
+	EndedAt time.Time
+
+	NewID      uuid.UUID
+	SessionID  uuid.UUID
+	PhraseType string
+	StartedAt  time.Time
+}

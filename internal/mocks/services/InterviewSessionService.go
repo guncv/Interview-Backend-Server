@@ -729,6 +729,65 @@ func (_c *MockInterviewSessionService_GetSessionStartedAtAndEndedAt_Call) RunAnd
 	return _c
 }
 
+// InitialFirstCurrentStateSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InitialFirstCurrentStateSession")
+	}
+
+	var r0 *entities.InitialFirstCurrentStateSessionResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.InitialFirstCurrentStateSessionReq) *entities.InitialFirstCurrentStateSessionResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.InitialFirstCurrentStateSessionResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.InitialFirstCurrentStateSessionReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_InitialFirstCurrentStateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InitialFirstCurrentStateSession'
+type MockInterviewSessionService_InitialFirstCurrentStateSession_Call struct {
+	*mock.Call
+}
+
+// InitialFirstCurrentStateSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.InitialFirstCurrentStateSessionReq
+func (_e *MockInterviewSessionService_Expecter) InitialFirstCurrentStateSession(ctx interface{}, req interface{}) *MockInterviewSessionService_InitialFirstCurrentStateSession_Call {
+	return &MockInterviewSessionService_InitialFirstCurrentStateSession_Call{Call: _e.mock.On("InitialFirstCurrentStateSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_InitialFirstCurrentStateSession_Call) Run(run func(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq)) *MockInterviewSessionService_InitialFirstCurrentStateSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.InitialFirstCurrentStateSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_InitialFirstCurrentStateSession_Call) Return(_a0 *entities.InitialFirstCurrentStateSessionResp, _a1 error) *MockInterviewSessionService_InitialFirstCurrentStateSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_InitialFirstCurrentStateSession_Call) RunAndReturn(run func(context.Context, *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)) *MockInterviewSessionService_InitialFirstCurrentStateSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IsSessionValid provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
 	ret := _m.Called(ctx, req)
@@ -1043,6 +1102,65 @@ func (_c *MockInterviewSessionService_StartConversationBySessionID_Call) Return(
 }
 
 func (_c *MockInterviewSessionService_StartConversationBySessionID_Call) RunAndReturn(run func(context.Context, string) error) *MockInterviewSessionService_StartConversationBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateCurrentStateSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateCurrentStateSession")
+	}
+
+	var r0 *entities.UpdateCurrentStateSessionResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionReq) *entities.UpdateCurrentStateSessionResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.UpdateCurrentStateSessionResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.UpdateCurrentStateSessionReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_UpdateCurrentStateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateCurrentStateSession'
+type MockInterviewSessionService_UpdateCurrentStateSession_Call struct {
+	*mock.Call
+}
+
+// UpdateCurrentStateSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.UpdateCurrentStateSessionReq
+func (_e *MockInterviewSessionService_Expecter) UpdateCurrentStateSession(ctx interface{}, req interface{}) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+	return &MockInterviewSessionService_UpdateCurrentStateSession_Call{Call: _e.mock.On("UpdateCurrentStateSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) Run(run func(ctx context.Context, req *entities.UpdateCurrentStateSessionReq)) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.UpdateCurrentStateSessionReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) Return(_a0 *entities.UpdateCurrentStateSessionResp, _a1 error) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) RunAndReturn(run func(context.Context, *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -28,6 +28,7 @@ type WebSocketServerLogic struct {
 	redisClient             database.RedisClient
 	generator               utils.Generator
 	publisher               publisher.RedisTaskPublisher
+	evaluationService       services.EvaluationService
 }
 
 func NewWebSocketServerLogic(
@@ -39,6 +40,7 @@ func NewWebSocketServerLogic(
 	redisClient database.RedisClient,
 	generator utils.Generator,
 	publisher publisher.RedisTaskPublisher,
+	evaluationService services.EvaluationService,
 ) *WebSocketServerLogic {
 
 	return &WebSocketServerLogic{
@@ -50,6 +52,7 @@ func NewWebSocketServerLogic(
 		redisClient:             redisClient,
 		generator:               generator,
 		publisher:               publisher,
+		evaluationService:       evaluationService,
 	}
 }
 
@@ -435,6 +438,39 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 			"type":       constants.WebSocketMessageTypeConversationStarted,
 			"session_id": req.SessionID,
 		})
+	}
+
+	if client.currentState != req.CurrentState {
+		if client.currentStateID == "" && client.currentState == "" {
+
+			resp, err := s.interviewSessionService.InitialFirstCurrentStateSession(ctx, &entities.InitialFirstCurrentStateSessionReq{
+				SessionID:    req.SessionID,
+				CurrentState: req.CurrentState,
+			})
+
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error first current state session", err)
+				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+				return
+			}
+
+			client.currentState = resp.CurrentState
+			client.currentStateID = resp.CurrentStateID
+		} else {
+			resp, err := s.interviewSessionService.UpdateCurrentStateSession(ctx, &entities.UpdateCurrentStateSessionReq{
+				SessionID:    req.SessionID,
+				CurrentState: req.CurrentState,
+			})
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error update current state session", err)
+				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+				return
+			}
+
+			client.currentState = resp.CurrentState
+			client.currentStateID = resp.CurrentStateID
+
+		}
 	}
 
 	s.writeJSON(ctx, client, map[string]interface{}{

@@ -22,6 +22,7 @@ type Querier interface {
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
 	CreateEvaluationScore(ctx context.Context, arg CreateEvaluationScoreParams) error
 	CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error
+	CreateInterviewState(ctx context.Context, arg CreateInterviewStateParams) error
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
@@ -58,7 +59,10 @@ type Querier interface {
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
 	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
+	UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Context, arg UpdateCurrentStateAndIDInterviewSessionByIDParams) (int64, error)
+	UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error)
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
+	UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg UpdateIsEvaluatedInterviewStateByIDParams) (int64, error)
 	UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error)
 	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error)

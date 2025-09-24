@@ -149,6 +149,8 @@ type GetInterviewSessionInformationResp struct {
 type CheckExistsAndInitStartedAtInterviewSessionResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
+	CurrentState          string `json:"current_state"`
+	CurrentStateID        string `json:"current_state_id"`
 }
 
 type EndInterviewSessionReq struct {
@@ -232,4 +234,25 @@ type CriteriaScore struct {
 	Score         string `json:"score"`
 	ScoreColor    string `json:"score_color"`
 	CommentMd     string `json:"comment_md"`
+}
+
+type InitialFirstCurrentStateSessionReq struct {
+	SessionID    string `json:"session_id" binding:"required"`
+	CurrentState string `json:"current_state" binding:"required"`
+}
+
+type InitialFirstCurrentStateSessionResp struct {
+	CurrentState   string `json:"current_state"`
+	CurrentStateID string `json:"current_state_id"`
+}
+
+type UpdateCurrentStateSessionReq struct {
+	OldCurrentStateID string `json:"old_current_state_id" binding:"required"`
+	SessionID         string `json:"session_id" binding:"required"`
+	CurrentState      string `json:"current_state" binding:"required"`
+}
+
+type UpdateCurrentStateSessionResp struct {
+	CurrentState   string `json:"current_state"`
+	CurrentStateID string `json:"current_state_id"`
 }

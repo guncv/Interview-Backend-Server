@@ -1093,6 +1093,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithNewResume(ctx, tC.input)
@@ -1893,6 +1894,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.CreateInterviewSessionWithExistingResume(ctx, tC.input)
@@ -2095,6 +2097,7 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockS3Storage,
 				mockPublisher,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -2318,6 +2321,7 @@ func TestInterviewSessionService_IsSessionValid(t *testing.T) {
 				nil,
 				nil,
 				mockRedisClient,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -2757,6 +2761,7 @@ func TestInterviewSessionService_CreateUserSessionTurnBySessionID(t *testing.T) 
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotErr := svc.CreateUserSessionTurnBySessionID(ctx, tC.input)
@@ -3050,6 +3055,7 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotErr := svc.CreateInterviewerSessionTurnBySessionID(ctx, tC.input)
@@ -3630,6 +3636,7 @@ func TestInterviewSessionService_CalculateTurnScore(t *testing.T) {
 				mockEvaluationService,
 				mockEvaluationScoresRepo,
 				nil,
+				nil,
 			)
 
 			gotErr := svc.CalculateTurnScore(ctx, tC.input)
@@ -3801,6 +3808,7 @@ func TestInterviewSessionService_GetInterviewerLastMessage(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetInterviewerLastMessage(ctx, tC.input)
@@ -4056,6 +4064,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionToken(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetChatHistoryBySessionToken(ctx, tC.input)
@@ -4206,6 +4215,7 @@ func TestInterviewSessionService_CheckExistsAndInitStartedAtInterviewSession(t *
 				nil,
 				nil,
 				mockInterviewSessionRepo,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -4461,6 +4471,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				nil,
 				nil,
 				mockEvaluationScoresRepo,
+				nil,
 				nil,
 			)
 
@@ -5229,6 +5240,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithCursor(ctx, tC.input)
@@ -5745,6 +5757,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListInterviewSessionsByUserIDWithJumpPagination(ctx, tC.input)
@@ -5882,6 +5895,7 @@ func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 				nil,
 				nil,
 				mockInterviewSessionRepo,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -6193,6 +6207,7 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 				nil,
 				nil,
 				mockInterviewSessionRepo,
+				nil,
 				nil,
 				nil,
 				nil,
@@ -6805,6 +6820,7 @@ func TestInterviewSessionService_GetChatHistoryBySessionIDWithEvaluation(t *test
 				nil,
 				nil,
 				mockInterviewTurnsRepo,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetChatHistoryBySessionIDWithEvaluation(ctx, tC.input)

@@ -48,6 +48,8 @@ type InterviewSessionService interface {
 	DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error
 	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
+	InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)
+	UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)
 }
 
 type interviewSessionService struct {
@@ -64,6 +66,7 @@ type interviewSessionService struct {
 	evaluationService    EvaluationService
 	evaluationScoresRepo repositories.EvaluationScoresRepository
 	interviewTurnsRepo   repositories.InterviewTurnsRepository
+	interviewStateRepo   repositories.InterviewStateRepository
 }
 
 func NewInterviewSessionService(
@@ -80,6 +83,7 @@ func NewInterviewSessionService(
 	evaluationService EvaluationService,
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
 	interviewTurnsRepo repositories.InterviewTurnsRepository,
+	interviewStateRepo repositories.InterviewStateRepository,
 ) InterviewSessionService {
 	return &interviewSessionService{
 		log:                  log,
@@ -95,6 +99,7 @@ func NewInterviewSessionService(
 		evaluationService:    evaluationService,
 		evaluationScoresRepo: evaluationScoresRepo,
 		interviewTurnsRepo:   interviewTurnsRepo,
+		interviewStateRepo:   interviewStateRepo,
 	}
 }
 
@@ -751,10 +756,26 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 		return nil, err
 	}
 
+	var currentState string
+	if dbResp.CurrentState.Valid {
+		currentState = dbResp.CurrentState.String
+	} else {
+		currentState = constants.InterviewStateUnknown
+	}
+
+	var currentStateID string
+	if dbResp.CurrentStateID.Valid {
+		currentStateID = dbResp.CurrentStateID.UUID.String()
+	} else {
+		currentStateID = ""
+	}
+
 	if dbResp.StartedAt.Valid {
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
 			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+			CurrentState:          currentState,
+			CurrentStateID:        currentStateID,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -772,6 +793,8 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
 			StartedAt:             utils.FormatToUTCString(currStartedAt),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
+			CurrentState:          currentState,
+			CurrentStateID:        currentStateID,
 		}, nil
 	}
 }
@@ -1406,4 +1429,74 @@ func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipar
 		fileHeader.Header,
 		fileContent,
 	)
+}
+
+func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: InitialFirstCurrentStateSession] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: InitialFirstCurrentStateSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID := s.generator.GenerateUUID(ctx)
+
+	dbReq := &repositories.CreateInterviewStateWithUpdateFlagSessionTxReq{
+		ID:         interviewStateID,
+		SessionID:  sessionID,
+		PhraseType: req.CurrentState,
+		StartedAt:  time.Now(),
+	}
+
+	err = s.interviewStateRepo.CreateInterviewStateWithUpdateFlagSessionTx(ctx, dbReq)
+
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: InitialFirstCurrentStateSession] Error creating interview state", err)
+		return nil, err
+	}
+
+	resp := entities.InitialFirstCurrentStateSessionResp{
+		CurrentState:   req.CurrentState,
+		CurrentStateID: interviewStateID.String(),
+	}
+
+	return &resp, nil
+}
+
+func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID := s.generator.GenerateUUID(ctx)
+
+	currentTime := time.Now()
+	newInterviewStateID := s.generator.GenerateUUID(ctx)
+
+	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
+		ID:      interviewStateID,
+		EndedAt: currentTime,
+
+		NewID:      newInterviewStateID,
+		SessionID:  sessionID,
+		PhraseType: req.CurrentState,
+		StartedAt:  currentTime,
+	}
+
+	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)
+		return nil, err
+	}
+
+	resp := entities.UpdateCurrentStateSessionResp{
+		CurrentState:   req.CurrentState,
+		CurrentStateID: newInterviewStateID.String(),
+	}
+
+	return &resp, nil
 }

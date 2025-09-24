@@ -95,6 +95,18 @@ type InterviewSessions struct {
 	SoftDelete            sql.NullBool    `json:"soft_delete"`
 	IsStartedConversation sql.NullBool    `json:"is_started_conversation"`
 	ResumeFileName        string          `json:"resume_file_name"`
+	CurrentState          sql.NullString  `json:"current_state"`
+	CurrentStateID        uuid.NullUUID   `json:"current_state_id"`
+}
+
+type InterviewStates struct {
+	ID          uuid.UUID    `json:"id"`
+	SessionID   uuid.UUID    `json:"session_id"`
+	PhraseType  string       `json:"phrase_type"`
+	IsEvaluated sql.NullBool `json:"is_evaluated"`
+	StartedAt   time.Time    `json:"started_at"`
+	EndedAt     sql.NullTime `json:"ended_at"`
+	SoftDelete  sql.NullBool `json:"soft_delete"`
 }
 
 type InterviewTurns struct {
@@ -145,6 +157,30 @@ type IssueReports struct {
 	UpdatedAt      time.Time     `json:"updated_at"`
 	DeletedAt      sql.NullTime  `json:"deleted_at"`
 	SoftDelete     sql.NullBool  `json:"soft_delete"`
+}
+
+type PhraseEvaluations struct {
+	ID           uuid.UUID      `json:"id"`
+	SessionID    uuid.UUID      `json:"session_id"`
+	StateID      uuid.UUID      `json:"state_id"`
+	StateName    string         `json:"state_name"`
+	OverallScore float64        `json:"overall_score"`
+	SummaryMd    sql.NullString `json:"summary_md"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	SoftDelete   sql.NullBool   `json:"soft_delete"`
+}
+
+type PhraseRubricScores struct {
+	ID                 uuid.UUID      `json:"id"`
+	PhraseEvaluationID uuid.UUID      `json:"phrase_evaluation_id"`
+	CriterionID        uuid.UUID      `json:"criterion_id"`
+	CriterionName      string         `json:"criterion_name"`
+	Score              float64        `json:"score"`
+	CommentMd          sql.NullString `json:"comment_md"`
+	CreatedAt          sql.NullTime   `json:"created_at"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+	SoftDelete         sql.NullBool   `json:"soft_delete"`
 }
 
 type ResetTokens struct {

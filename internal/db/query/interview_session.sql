@@ -33,7 +33,6 @@ SELECT EXISTS (
     FROM interview_sessions
     WHERE id = $1
 );
-
 -- name: UpdateStartedAtInterviewSession :execrows
 UPDATE interview_sessions
 SET started_at = $2
@@ -45,7 +44,7 @@ SET is_started_conversation = $2
 WHERE id = $1;
 
 -- name: GetStartedAndIsStartedConversationSession :one
-SELECT started_at, is_started_conversation
+SELECT current_state_id, current_state, started_at, is_started_conversation
 FROM interview_sessions
 WHERE id = $1;
 
@@ -166,3 +165,9 @@ SELECT
     created_at
 FROM interview_sessions
 WHERE id = $1 AND soft_delete = false;
+
+-- name: UpdateCurrentStateAndIDInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET current_state = $2,
+    current_state_id = $3
+WHERE id = $1;
