@@ -109,6 +109,19 @@ func resumeRoutes(eg *gin.RouterGroup, resumeHandler *handlers.ResumeHandler, au
 	}
 }
 
+// interviewSessionRoutes registers routes under the `/sessions` subgroup on the given router group.
+// The subgroup is protected with the provided auth middleware. Registered endpoints:
+//
+// POST    /sessions               -> CreateInterviewSessionWithNewResume
+// POST    /sessions/existing      -> CreateInterviewSessionWithExistingResume
+// GET     /sessions/chat-history/:session_token
+//                             -> GetChatHistoryBySessionToken
+// GET     /sessions/cursor        -> ListInterviewSessionsByUserIDWithCursor
+// GET     /sessions/jump          -> ListInterviewSessionsByUserIDWithJumpPagination
+// DELETE  /sessions/:session_id   -> DeleteUserInterviewSessionByID
+// GET     /sessions/:session_id   -> GetInterviewSessionInformationByID
+//
+// Parameters are named to reflect their purpose: eg is the parent router group, interviewSessionHandler supplies handler methods, and authMiddleware provides the authentication middleware applied to the subgroup.
 func interviewSessionRoutes(eg *gin.RouterGroup, interviewSessionHandler *handlers.InterviewSessionHandler, authMiddleware middleware.AuthMiddleware) {
 	interviewSessionMiddleRoutes := eg.Group("/sessions").Use(authMiddleware.AuthMiddleware())
 
