@@ -102,7 +102,6 @@ type InterviewTurns struct {
 	SessionID      uuid.UUID      `json:"session_id"`
 	TurnNo         int64          `json:"turn_no"`
 	Actor          string         `json:"actor"`
-	Content        sql.NullString `json:"content"`
 	TranscriptText string         `json:"transcript_text"`
 	SttConfidence  sql.NullString `json:"stt_confidence"`
 	WasInterrupted sql.NullBool   `json:"was_interrupted"`

@@ -207,7 +207,7 @@ type GetChatHistoryBySessionIDWithEvaluationResp struct {
 }
 
 type ChatHistoryWithEvaluation struct {
-	ID                uuid.UUID   `json:"id"`
+	ID                string      `json:"id"`
 	TurnNo            int64       `json:"turn_no"`
 	Actor             string      `json:"actor"`
 	Content           string      `json:"content"`

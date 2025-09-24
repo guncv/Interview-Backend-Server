@@ -508,6 +508,20 @@ func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Cont
 	c.JSON(http.StatusOK, resp)
 }
 
+// GetChatHistoryBySessionIDWithEvaluation godoc
+// @Summary Get chat history by session ID with evaluation
+// @Description Get chat history by session ID with evaluation
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Param session_id path string true "Session ID"
+// @Param turn_no query int false "Turn no"
+// @Security BearerAuth
+// @Success 200 {object} entities.GetChatHistoryBySessionIDWithEvaluationResp "Chat history by session ID with evaluation"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /sessions/{session_id}/chat-with-evaluation [get]
 func (h *InterviewSessionHandler) GetChatHistoryBySessionIDWithEvaluation(c *gin.Context) {
 	ctx := c.Request.Context()
 	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Called")
@@ -535,6 +549,12 @@ func (h *InterviewSessionHandler) GetChatHistoryBySessionIDWithEvaluation(c *gin
 		if err != nil {
 			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Invalid turn no", err)
 			utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeGeneralInvalidNumber))
+			return
+		}
+
+		if turnNoInt < 0 {
+			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Turn no cannot be negative")
+			utils.RespondWithError(c, app_error.New(constants.ErrInterviewSessionTurnNoNegative, app_error.ErrCodeGeneralInvalidNumber))
 			return
 		}
 

@@ -93,5 +93,7 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithEvaluation(ctx c
 		r.log.ErrorWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Error getting chat history by session ID with evaluation", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
+
+	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Response: ", resp)
 	return resp, nil
 }

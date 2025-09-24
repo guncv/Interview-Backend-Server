@@ -106,7 +106,7 @@ SELECT
     it.id AS turn_id,
     it.turn_no,
     it.actor,
-    it.content,
+    it.transcript_text,
     it.current_state,
     uti.corrected_sentence,
     it.start_at,
@@ -137,9 +137,12 @@ LEFT JOIN user_turn_improvements uti ON uti.interview_turn_id = it.id
 WHERE it.session_id = $1 AND it.turn_no > $2
 GROUP BY 
     it.id,
+    it.turn_no,
     it.actor,
-    it.content,
+    it.transcript_text,
     it.current_state,
+    it.start_at,
+    it.end_at,
     uti.corrected_sentence,
     e.id
 ORDER BY it.turn_no ASC
@@ -156,7 +159,7 @@ type GetChatHistoryBySessionIDWithEvaluationRow struct {
 	TurnID            uuid.UUID      `json:"turn_id"`
 	TurnNo            int64          `json:"turn_no"`
 	Actor             string         `json:"actor"`
-	Content           sql.NullString `json:"content"`
+	TranscriptText    string         `json:"transcript_text"`
 	CurrentState      string         `json:"current_state"`
 	CorrectedSentence sql.NullString `json:"corrected_sentence"`
 	StartAt           string         `json:"start_at"`
@@ -177,7 +180,7 @@ func (q *Queries) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, a
 			&i.TurnID,
 			&i.TurnNo,
 			&i.Actor,
-			&i.Content,
+			&i.TranscriptText,
 			&i.CurrentState,
 			&i.CorrectedSentence,
 			&i.StartAt,

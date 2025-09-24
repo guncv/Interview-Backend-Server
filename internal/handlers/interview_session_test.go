@@ -161,7 +161,6 @@ func TestInterviewSessionHandler_CreateInterviewSessionWithNewResume(t *testing.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a multipart form for the request
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
 
@@ -2091,7 +2090,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionIDWithEvaluation(t *test
 	validResp := &entities.GetChatHistoryBySessionIDWithEvaluationResp{
 		ChatHistory: []entities.ChatHistoryWithEvaluation{
 			{
-				ID:                uuid.New(),
+				ID:                uuid.New().String(),
 				TurnNo:            1,
 				Actor:             "user",
 				Content:           "Hello, how are you?",
@@ -2206,7 +2205,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionIDWithEvaluation(t *test
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:        "Success - WithNegativeTurnNo",
+			name:        "Error - WithNegativeTurnNo",
 			sessionID:   sessionID,
 			queryParams: map[string]string{"turn_no": "-1"},
 			setup: func() (*utils.MockValidator, *services.MockInterviewSessionService) {
@@ -2219,22 +2218,13 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionIDWithEvaluation(t *test
 					GetValidate().
 					Return(realValidator)
 
-				mockInterviewSessionService.EXPECT().
-					GetChatHistoryBySessionIDWithEvaluation(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionIDWithEvaluationReq) bool {
-						return req.SessionID == sessionID && req.TurnNo != nil && *req.TurnNo == -1
-					})).
-					Return(validResp, nil)
-
 				return mockValidator, mockInterviewSessionService
 			},
 			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-
-				expectedBody, err := json.Marshal(validResp)
-				assert.NoError(t, err)
-				assert.JSONEq(t, string(expectedBody), w.Body.String())
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid. Please try again.")
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:        "Success - WithLargeTurnNo",
