@@ -13,6 +13,12 @@ import (
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
+type HTTPClient interface {
+	MakeJSONRequest(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}) (*HTTPClientResponse, error)
+	MakeMultipartRequest(ctx context.Context, config HTTPClientConfig, body io.Reader, contentType string, responseBody interface{}) (*HTTPClientResponse, error)
+	MakeJSONRequestWithCustomStatusCheck(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}, expectedStatusCodes []int) (*HTTPClientResponse, error)
+}
+
 type HTTPClientConfig struct {
 	BaseURL   string
 	Timeout   time.Duration
@@ -27,17 +33,17 @@ type HTTPClientResponse struct {
 	Headers    http.Header
 }
 
-type HTTPClient struct {
+type httpClient struct {
 	log *log.Logger
 }
 
-func NewHTTPClient(logger *log.Logger) *HTTPClient {
-	return &HTTPClient{
+func NewHTTPClient(logger *log.Logger) HTTPClient {
+	return &httpClient{
 		log: logger,
 	}
 }
 
-func (c *HTTPClient) MakeJSONRequest(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}) (*HTTPClientResponse, error) {
+func (c *httpClient) MakeJSONRequest(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}) (*HTTPClientResponse, error) {
 	c.log.InfoWithID(ctx, fmt.Sprintf("[HTTPClient: %s] Making JSON request to %s", config.LogPrefix, config.BaseURL))
 
 	var jsonBody []byte
@@ -77,7 +83,7 @@ func (c *HTTPClient) MakeJSONRequest(ctx context.Context, config HTTPClientConfi
 	return response, nil
 }
 
-func (c *HTTPClient) MakeMultipartRequest(ctx context.Context, config HTTPClientConfig, body io.Reader, contentType string, responseBody interface{}) (*HTTPClientResponse, error) {
+func (c *httpClient) MakeMultipartRequest(ctx context.Context, config HTTPClientConfig, body io.Reader, contentType string, responseBody interface{}) (*HTTPClientResponse, error) {
 	c.log.InfoWithID(ctx, fmt.Sprintf("[HTTPClient: %s] Making multipart request to %s", config.LogPrefix, config.BaseURL))
 
 	httpReq, err := http.NewRequestWithContext(ctx, config.Method, config.BaseURL, body)
@@ -109,7 +115,7 @@ func (c *HTTPClient) MakeMultipartRequest(ctx context.Context, config HTTPClient
 	return response, nil
 }
 
-func (c *HTTPClient) makeRequest(ctx context.Context, config HTTPClientConfig, httpReq *http.Request) (*HTTPClientResponse, error) {
+func (c *httpClient) makeRequest(ctx context.Context, config HTTPClientConfig, httpReq *http.Request) (*HTTPClientResponse, error) {
 	timeout := config.Timeout
 	if timeout == 0 {
 		timeout = constants.TimeoutHTTP
@@ -146,7 +152,7 @@ func (c *HTTPClient) makeRequest(ctx context.Context, config HTTPClientConfig, h
 	}, nil
 }
 
-func (c *HTTPClient) MakeJSONRequestWithCustomStatusCheck(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}, expectedStatusCodes []int) (*HTTPClientResponse, error) {
+func (c *httpClient) MakeJSONRequestWithCustomStatusCheck(ctx context.Context, config HTTPClientConfig, requestBody interface{}, responseBody interface{}, expectedStatusCodes []int) (*HTTPClientResponse, error) {
 	c.log.InfoWithID(ctx, fmt.Sprintf("[HTTPClient: %s] Making JSON request to %s", config.LogPrefix, config.BaseURL))
 
 	var jsonBody []byte

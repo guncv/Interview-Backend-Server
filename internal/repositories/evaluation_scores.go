@@ -30,15 +30,20 @@ type evaluationScoresRepository struct {
 	log        *log.Logger
 	db         db.Store
 	cfg        *config.Config
-	httpClient *http.HTTPClient
+	httpClient http.HTTPClient
 }
 
-func NewEvaluationScoresRepository(l *log.Logger, db db.Store, cfg *config.Config) EvaluationScoresRepository {
+func NewEvaluationScoresRepository(
+	l *log.Logger,
+	db db.Store,
+	cfg *config.Config,
+	httpClient http.HTTPClient,
+) EvaluationScoresRepository {
 	return &evaluationScoresRepository{
 		log:        l,
 		db:         db,
 		cfg:        cfg,
-		httpClient: http.NewHTTPClient(l),
+		httpClient: httpClient,
 	}
 }
 
