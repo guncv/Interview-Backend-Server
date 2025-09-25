@@ -177,3 +177,25 @@ type EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq st
 	PhraseType string
 	StartedAt  time.Time
 }
+
+type PreProcessedCriteriaReq struct {
+	Criteria []PreProcessedCriteria `json:"criteria"`
+}
+
+type PreProcessedCriteria struct {
+	CriteriaID       string   `json:"criteria_id"`
+	CriteriaName     string   `json:"criteria_name"`
+	CriteriaAvgScore float64  `json:"criteria_avg_score"`
+	CriteriaComment  []string `json:"criteria_comment"`
+}
+
+type PostProcessedCriteriaResp struct {
+	Criteria []PostProcessedCriteria `json:"criteria"`
+}
+
+type PostProcessedCriteria struct {
+	CriteriaID       string  `json:"criteria_id"`
+	CriteriaName     string  `json:"criteria_name"`
+	CriteriaAvgScore float64 `json:"criteria_avg_score"`
+	CriteriaComment  string  `json:"criteria_comment"`
+}

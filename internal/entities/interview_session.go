@@ -95,6 +95,22 @@ type CalculateEvaluationInOldStateReq struct {
 	InterviewStateID string `json:"interview_state_id" binding:"required"`
 }
 
+type GetEvaluationSummaryJsonBySessionAndStateResp struct {
+	Criteria           []EvaluationCriteria `json:"criteria"`
+	EvaluationAvgScore float64              `json:"evaluation_avg_score"`
+}
+
+type EvaluationCriteria struct {
+	CriteriaID    string             `json:"criteria_id"`
+	CriteriaName  string             `json:"criteria_name"`
+	CriteriaScore []CriteriaScoreOld `json:"criteria_score"`
+}
+
+type CriteriaScoreOld struct {
+	Score   int    `json:"score"`
+	Comment string `json:"comment"`
+}
+
 type IsSessionValidResp struct {
 	UserID    string `json:"user_id"`
 	SessionID string `json:"session_id"`

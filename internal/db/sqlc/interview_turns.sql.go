@@ -55,7 +55,7 @@ func (q *Queries) CreateInterviewTurn(ctx context.Context, arg CreateInterviewTu
 
 const flagIsScoreEvaluated = `-- name: FlagIsScoreEvaluated :execrows
 UPDATE interview_turns
-SET is_score_evaluated = TRUE
+SET is_score_evaluated = true
 WHERE id = $1
 `
 
@@ -246,4 +246,24 @@ func (q *Queries) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UU
 	var max_turn_no interface{}
 	err := row.Scan(&max_turn_no)
 	return max_turn_no, err
+}
+
+const isLastUserStateTurnScored = `-- name: IsLastUserStateTurnScored :one
+SELECT is_score_evaluated
+FROM interview_turns
+WHERE session_id = $1 AND current_state = $2
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type IsLastUserStateTurnScoredParams struct {
+	SessionID    uuid.UUID `json:"session_id"`
+	CurrentState string    `json:"current_state"`
+}
+
+func (q *Queries) IsLastUserStateTurnScored(ctx context.Context, arg IsLastUserStateTurnScoredParams) (sql.NullBool, error) {
+	row := q.db.QueryRowContext(ctx, isLastUserStateTurnScored, arg.SessionID, arg.CurrentState)
+	var is_score_evaluated sql.NullBool
+	err := row.Scan(&is_score_evaluated)
+	return is_score_evaluated, err
 }

@@ -457,9 +457,14 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 			client.currentState = resp.CurrentState
 			client.currentStateID = resp.CurrentStateID
 		} else {
+			s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Updating current state session", map[string]any{
+				"old_current_state_id": client.currentStateID,
+				"current_state":        req.CurrentState,
+			})
 			resp, err := s.interviewSessionService.UpdateCurrentStateSession(context.Background(), &entities.UpdateCurrentStateSessionReq{
-				SessionID:    req.SessionID,
-				CurrentState: req.CurrentState,
+				SessionID:         req.SessionID,
+				CurrentState:      req.CurrentState,
+				OldCurrentStateID: client.currentStateID,
 			})
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error update current state session", err)

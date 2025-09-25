@@ -188,6 +188,11 @@ func (c *redisTaskConsumer) ConsumeTaskCalculateEvaluationInOldState(ctx context
 		return app_error.New(fmt.Errorf("invalid calculate evaluation in old state payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
+	if err := c.evaluationService.CalculateEvaluationInOldState(ctx, &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Failed to calculate evaluation in old state", err)
+		return app_error.New(fmt.Errorf("failed to calculate evaluation in old state: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Successfully calculated evaluation in old state", nil)
 	return nil
 }

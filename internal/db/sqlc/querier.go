@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -17,6 +19,7 @@ type Querier interface {
 	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
 	CountInterviewSessionsByUserID(ctx context.Context, arg CountInterviewSessionsByUserIDParams) (int64, error)
 	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
+	CreateAllPhraseRubricScores(ctx context.Context, arg CreateAllPhraseRubricScoresParams) error
 	CreateAuthSession(ctx context.Context, arg CreateAuthSessionParams) error
 	CreateEvaluation(ctx context.Context, arg CreateEvaluationParams) error
 	CreateEvaluationCriterion(ctx context.Context, arg CreateEvaluationCriterionParams) error
@@ -24,6 +27,7 @@ type Querier interface {
 	CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error
 	CreateInterviewState(ctx context.Context, arg CreateInterviewStateParams) error
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
+	CreatePhraseEvaluation(ctx context.Context, arg CreatePhraseEvaluationParams) error
 	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) (int64, error)
@@ -38,6 +42,7 @@ type Querier interface {
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, arg GetChatHistoryBySessionIDWithEvaluationParams) ([]GetChatHistoryBySessionIDWithEvaluationRow, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
+	GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, arg GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)
 	GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationByIDRow, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)
 	GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (GetIssueCategoryIfExistsRow, error)
@@ -47,6 +52,7 @@ type Querier interface {
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
+	IsLastUserStateTurnScored(ctx context.Context, arg IsLastUserStateTurnScoredParams) (sql.NullBool, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 	ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]ListAllRubricsAndCriteriaRow, error)
 	ListInterviewSessionsByUserIDFirstPage(ctx context.Context, arg ListInterviewSessionsByUserIDFirstPageParams) ([]ListInterviewSessionsByUserIDFirstPageRow, error)

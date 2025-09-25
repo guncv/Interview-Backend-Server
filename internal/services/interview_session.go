@@ -668,7 +668,7 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 	if dbResp.CurrentState.Valid {
 		currentState = dbResp.CurrentState.String
 	} else {
-		currentState = constants.InterviewStateUnknown
+		currentState = ""
 	}
 
 	var currentStateID string
@@ -1381,13 +1381,17 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	interviewStateID := s.generator.GenerateUUID(ctx)
+	oldInterviewStateID, err := uuid.Parse(req.OldCurrentStateID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid old interview state ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
 
 	currentTime := time.Now()
 	newInterviewStateID := s.generator.GenerateUUID(ctx)
 
 	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
-		ID:      interviewStateID,
+		ID:      oldInterviewStateID,
 		EndedAt: currentTime,
 
 		NewID:      newInterviewStateID,
@@ -1395,6 +1399,8 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		PhraseType: req.CurrentState,
 		StartedAt:  currentTime,
 	}
+
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Ending old interview state and creating new interview state Req", dbReq)
 
 	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)

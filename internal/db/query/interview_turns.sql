@@ -80,5 +80,12 @@ LIMIT $3;
 
 -- name: FlagIsScoreEvaluated :execrows
 UPDATE interview_turns
-SET is_score_evaluated = TRUE
+SET is_score_evaluated = true
 WHERE id = $1;
+
+-- name: IsLastUserStateTurnScored :one
+SELECT is_score_evaluated
+FROM interview_turns
+WHERE session_id = $1 AND current_state = $2
+ORDER BY created_at DESC
+LIMIT 1;

@@ -33,7 +33,7 @@ WHERE id = $1;
 
 -- name: VerifyEmail :execrows
 UPDATE users
-SET is_email_verified = TRUE,
+SET is_email_verified = true,
     updated_at = now()
 WHERE id = $1;
 

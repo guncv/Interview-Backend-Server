@@ -46,9 +46,9 @@ func (r *interviewStateRepository) CreateInterviewStateWithUpdateFlagSessionTx(c
 		}
 
 		updateInterviewStateReq := db.UpdateCurrentStateAndIDInterviewSessionByIDParams{
-			ID:             req.ID,
+			ID:             req.SessionID,
 			CurrentState:   sql.NullString{String: req.PhraseType, Valid: true},
-			CurrentStateID: uuid.NullUUID{UUID: req.SessionID, Valid: true},
+			CurrentStateID: uuid.NullUUID{UUID: req.ID, Valid: true},
 		}
 
 		rowsAffected, err := q.UpdateCurrentStateAndIDInterviewSessionByID(ctx, updateInterviewStateReq)
@@ -107,7 +107,7 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 		}
 
 		updateCurrentStateSessionReq := db.UpdateCurrentStateAndIDInterviewSessionByIDParams{
-			ID:             req.NewID,
+			ID:             req.SessionID,
 			CurrentState:   sql.NullString{String: req.PhraseType, Valid: true},
 			CurrentStateID: uuid.NullUUID{UUID: req.NewID, Valid: true},
 		}

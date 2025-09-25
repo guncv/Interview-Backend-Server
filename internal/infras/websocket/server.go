@@ -155,6 +155,7 @@ func (s *webSocketServer) HandleConnection(
 	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
 		"session_id": client.SessionID,
 	})
+
 	// _ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	// client.conn.SetPongHandler(func(string) error {
 	// 	client.mu.Lock()

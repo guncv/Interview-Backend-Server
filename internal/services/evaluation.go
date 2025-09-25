@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ type EvaluationService interface {
 	GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error)
 	ListAllRubricsAndCriteria(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
+	CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error
 }
 
 type evaluationService struct {
@@ -343,6 +345,106 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		TTL:   constants.RedisTTLInterviewIsScoreSessionState,
 	}
 	_ = s.redisClient.Set(ctx, redisPayload)
+
+	return nil
+}
+
+func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error {
+	s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	const maxRetries = 5
+	const retryDelay = time.Second * 1
+
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
+
+	for i := 0; i < maxRetries; i++ {
+		var isScored bool
+
+		redisValue, err := s.redisClient.Get(ctx, redisKey)
+		if err == nil {
+			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Already marked as scored in Redis")
+
+			isScored, err = strconv.ParseBool(redisValue)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error parsing Redis value", err)
+				return err
+			}
+		} else {
+			s.log.WarnWithID(ctx, "[Service: CalculateEvaluationInOldState] Redis miss, checking database")
+
+			dbReq := &db.IsLastUserStateTurnScoredParams{
+				SessionID:    sessionID,
+				CurrentState: req.CurrentState,
+			}
+
+			isScored, err = s.evaluationScoresRepo.IsLastUserStateTurnScored(ctx, dbReq)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error checking is_scored", err)
+				return err
+			}
+		}
+
+		if isScored {
+			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Last user turn is scored. Proceeding with evaluation.")
+			break
+		}
+
+		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateEvaluationInOldState] Turn not scored yet. Retrying... (%d/%d)", i+1, maxRetries))
+		time.Sleep(retryDelay * time.Duration(i+1))
+	}
+
+	dbReq := &db.GetEvaluationSummaryJsonBySessionAndStateParams{
+		SessionID:    sessionID,
+		CurrentState: req.CurrentState,
+	}
+
+	resp, err := s.evaluationScoresRepo.GetEvaluationSummaryJsonBySessionAndState(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error getting evaluation summary json by session and state", err)
+		return err
+	}
+
+	var respOld entities.GetEvaluationSummaryJsonBySessionAndStateResp
+	if err := json.Unmarshal(resp, &respOld); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error unmarshalling evaluation summary json", err)
+		return err
+	}
+
+	var preProcessedCriteria repositories.PreProcessedCriteriaReq
+	for _, criteria := range respOld.Criteria {
+		var comments []string
+		var totalScore float64
+		var scoreCount int
+
+		for _, score := range criteria.CriteriaScore {
+			if score.Comment != "" {
+				comments = append(comments, score.Comment)
+			}
+			totalScore += float64(score.Score)
+			scoreCount++
+		}
+
+		preProcessedCriteria.Criteria = append(preProcessedCriteria.Criteria, repositories.PreProcessedCriteria{
+			CriteriaID:       criteria.CriteriaID,
+			CriteriaName:     criteria.CriteriaName,
+			CriteriaAvgScore: totalScore / float64(scoreCount),
+			CriteriaComment:  comments,
+		})
+	}
+
+	// postProcessedCriteriaResp, err := s.evaluationScoresRepo.CalculateEachCriteriaCommentBySessionAndState(ctx, &preProcessedCriteria)
+	// if err != nil {
+	// 	s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error calculating each criteria comment by session and state", err)
+	// 	return err
+	// }
+
+	s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Evaluation summary json", string(resp))
 
 	return nil
 }
