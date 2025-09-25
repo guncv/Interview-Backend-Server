@@ -1846,6 +1846,65 @@ func (_c *MockQuerier_GetMaxTurnNoBySessionID_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// GetPhraseEvaluationsWithCriteriaBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockQuerier) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPhraseEvaluationsWithCriteriaBySessionID")
+	}
+
+	var r0 []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPhraseEvaluationsWithCriteriaBySessionID'
+type MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetPhraseEvaluationsWithCriteriaBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockQuerier_Expecter) GetPhraseEvaluationsWithCriteriaBySessionID(ctx interface{}, sessionID interface{}) *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	return &MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call{Call: _e.mock.On("GetPhraseEvaluationsWithCriteriaBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Return(_a0 []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, _a1 error) *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)) *MockQuerier_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetResetToken provides a mock function with given fields: ctx, tokenHash
 func (_m *MockQuerier) GetResetToken(ctx context.Context, tokenHash string) (db.ResetTokens, error) {
 	ret := _m.Called(ctx, tokenHash)

@@ -24,6 +24,7 @@ type EvaluationService interface {
 	ListAllRubricsAndCriteria(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error
+	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
 }
 
 type evaluationService struct {
@@ -304,7 +305,7 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		RubricID:     rubricID,
 		UserID:       userID,
 		CurrentState: req.CurrentState,
-		OverallScore: fmt.Sprintf("%f", result.OverallScore),
+		OverallScore: utils.FormatFloatToTwoDecimals(result.OverallScore),
 		SummaryMd:    result.OverallFeedback,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -355,6 +356,12 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID, err := uuid.Parse(req.InterviewStateID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid interview state ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -438,13 +445,82 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 		})
 	}
 
-	// postProcessedCriteriaResp, err := s.evaluationScoresRepo.CalculateEachCriteriaCommentBySessionAndState(ctx, &preProcessedCriteria)
-	// if err != nil {
-	// 	s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error calculating each criteria comment by session and state", err)
-	// 	return err
-	// }
+	postProcessedCriteriaResp, err := s.evaluationScoresRepo.CalculateEachCriteriaCommentBySessionAndState(ctx, &preProcessedCriteria)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error calculating each criteria comment by session and state", err)
+		return err
+	}
 
-	s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Evaluation summary json", string(resp))
+	evaluationID := s.generator.GenerateUUID(ctx)
+
+	var criteriaReqTx repositories.CreateCriteriaReqTx
+	for _, criteria := range postProcessedCriteriaResp.Criteria {
+
+		newId := s.generator.GenerateUUID(ctx)
+		criteriaID, err := uuid.Parse(criteria.CriteriaID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid criteria ID", err)
+			return err
+		}
+
+		criteriaReqTx.ID = append(criteriaReqTx.ID, newId)
+		criteriaReqTx.EvaluationID = append(criteriaReqTx.EvaluationID, evaluationID)
+		criteriaReqTx.CriteriaID = append(criteriaReqTx.CriteriaID, criteriaID)
+		criteriaReqTx.CriteriaName = append(criteriaReqTx.CriteriaName, criteria.CriteriaName)
+		criteriaReqTx.CriteriaAvgScore = append(criteriaReqTx.CriteriaAvgScore, utils.RoundFloatToTwoDecimals(criteria.CriteriaAvgScore))
+		criteriaReqTx.CriteriaComment = append(criteriaReqTx.CriteriaComment, criteria.CriteriaComment)
+	}
+
+	dbReqTx := &repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx{
+		EvaluationID: evaluationID,
+		SessionID:    sessionID,
+		StateID:      interviewStateID,
+		StateName:    req.CurrentState,
+		OverallScore: utils.RoundFloatToTwoDecimals(respOld.EvaluationAvgScore),
+		Criteria:     criteriaReqTx,
+	}
+
+	if err := s.evaluationScoresRepo.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx, dbReqTx); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error creating phrase evaluation and criteria score", err)
+		return err
+	}
 
 	return nil
+}
+
+func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionIdReq string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
+
+	sessionID, err := uuid.Parse(sessionIdReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.evaluationScoresRepo.GetPhraseEvaluationsWithCriteriaBySessionID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error getting phrase evaluations with criteria by session ID", err)
+		return nil, err
+	}
+
+	var respEntities = make([]entities.PhraseEvaluations, 0, len(dbResp))
+	for _, row := range dbResp {
+		var respEntity entities.PhraseEvaluations
+		respEntity.StateID = row.StateID.String()
+		respEntity.StateName = row.StateName
+		respEntity.OverallScore = utils.RoundFloatToTwoDecimals(row.OverallScore)
+
+		if err := json.Unmarshal(row.Criteria.([]byte), &respEntity.Criteria); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error unmarshalling phrase evaluations with criteria", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+
+		respEntities = append(respEntities, respEntity)
+	}
+
+	resp := &entities.GetPhraseEvaluationsWithCriteriaResp{
+		PhraseEvaluations: respEntities,
+	}
+
+	return resp, nil
 }

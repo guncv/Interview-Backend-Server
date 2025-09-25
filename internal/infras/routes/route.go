@@ -162,5 +162,6 @@ func evaluationRoutes(eg *gin.RouterGroup, evaluationHandler *handlers.Evaluatio
 
 	{
 		evaluationMiddleRoutes.GET("/rubrics", evaluationHandler.ListAllRubricsAndCriteria)
+		evaluationMiddleRoutes.GET("/phrase-evaluations/:session_id", evaluationHandler.GetPhraseEvaluationsWithCriteriaBySessionID)
 	}
 }

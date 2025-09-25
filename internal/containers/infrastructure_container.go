@@ -8,6 +8,7 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/http"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/server"
@@ -118,6 +119,10 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(ws.NewWebSocketServer); err != nil {
+		c.Error = err
+	}
+
+	if err := c.Container.Provide(http.NewHTTPClient); err != nil {
 		c.Error = err
 	}
 }

@@ -134,6 +134,53 @@ func (_c *MockEvaluationScoresRepository_CreateEvaluationWithCriteriaScoreAndImp
 	return _c
 }
 
+// CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationScoresRepository) CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx context.Context, req *repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState'
+type MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call struct {
+	*mock.Call
+}
+
+// CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx
+func (_e *MockEvaluationScoresRepository_Expecter) CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call {
+	return &MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call{Call: _e.mock.On("CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState", ctx, req)}
+}
+
+func (_c *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call) Run(run func(ctx context.Context, req *repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx)) *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call) Return(_a0 error) *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call) RunAndReturn(run func(context.Context, *repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx) error) *MockEvaluationScoresRepository_CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAllEvaluationsBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockEvaluationScoresRepository) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
 	ret := _m.Called(ctx, sessionID)
@@ -307,6 +354,65 @@ func (_c *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndSta
 }
 
 func (_c *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call) RunAndReturn(run func(context.Context, *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)) *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetPhraseEvaluationsWithCriteriaBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockEvaluationScoresRepository) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPhraseEvaluationsWithCriteriaBySessionID")
+	}
+
+	var r0 []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPhraseEvaluationsWithCriteriaBySessionID'
+type MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetPhraseEvaluationsWithCriteriaBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockEvaluationScoresRepository_Expecter) GetPhraseEvaluationsWithCriteriaBySessionID(ctx interface{}, sessionID interface{}) *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	return &MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call{Call: _e.mock.On("GetPhraseEvaluationsWithCriteriaBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Return(_a0 []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, _a1 error) *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)) *MockEvaluationScoresRepository_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

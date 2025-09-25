@@ -102,6 +102,26 @@ func NewInterviewSessionService(
 	}
 }
 
+func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	fileContent, err := io.ReadAll(file)
+	if err != nil {
+		return nil
+	}
+
+	return aws.NewCustomFileHeader(
+		fileHeader.Filename,
+		fileHeader.Size,
+		fileHeader.Header,
+		fileContent,
+	)
+}
+
 func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	ctx context.Context,
 	req *entities.CreateInterviewSessionWithNewResumeRequest,
@@ -1319,26 +1339,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx co
 	return resp, nil
 }
 
-func (s *interviewSessionService) convertToCustomFileHeader(fileHeader *multipart.FileHeader) *aws.CustomFileHeader {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil
-	}
-	defer file.Close()
-
-	fileContent, err := io.ReadAll(file)
-	if err != nil {
-		return nil
-	}
-
-	return aws.NewCustomFileHeader(
-		fileHeader.Filename,
-		fileHeader.Size,
-		fileHeader.Header,
-		fileContent,
-	)
-}
-
 func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error) {
 	s.log.InfoWithID(ctx, "[Service: InitialFirstCurrentStateSession] Called")
 
@@ -1357,9 +1357,7 @@ func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Co
 		StartedAt:  time.Now(),
 	}
 
-	err = s.interviewStateRepo.CreateInterviewStateWithUpdateFlagSessionTx(ctx, dbReq)
-
-	if err != nil {
+	if err = s.interviewStateRepo.CreateInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: InitialFirstCurrentStateSession] Error creating interview state", err)
 		return nil, err
 	}

@@ -35,3 +35,21 @@ type CriterionRow struct {
 	Percentage    string `json:"percentage"`
 	Color         string `json:"color"`
 }
+
+type GetPhraseEvaluationsWithCriteriaResp struct {
+	PhraseEvaluations []PhraseEvaluations `json:"phrase_evaluations"`
+}
+
+type PhraseEvaluations struct {
+	StateID      string                     `json:"state_id"`
+	StateName    string                     `json:"state_name"`
+	OverallScore float64                    `json:"overall_score"`
+	Criteria     []PhraseEvaluationCriteria `json:"criteria"`
+}
+
+type PhraseEvaluationCriteria struct {
+	CriteriaID      string  `json:"criteria_id"`
+	CriteriaName    string  `json:"criteria_name"`
+	CriteriaScore   float64 `json:"criteria_score"`
+	CriteriaComment string  `json:"criteria_comment"`
+}

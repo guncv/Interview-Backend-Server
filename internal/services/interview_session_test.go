@@ -2819,6 +2819,15 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					})).
 					Return(nil)
 
+				redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, correctSessionID, currentState)
+				mockRedisClient.EXPECT().
+					Set(ctx, database.RedisPayload{
+						Key:   redisKey,
+						Value: false,
+						TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+					}).
+					Return(nil)
+
 				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
@@ -2910,6 +2919,15 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 					}).
 					Return(nil)
 
+				redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, correctSessionID, currentState)
+				mockRedisClient.EXPECT().
+					Set(ctx, database.RedisPayload{
+						Key:   redisKey,
+						Value: false,
+						TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+					}).
+					Return(nil)
+
 				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
@@ -2946,6 +2964,15 @@ func TestInterviewSessionService_CreateInterviewerSessionTurnBySessionID(t *test
 							req.StartAt == correctStartedAt &&
 							req.EndAt == correctEndedAt
 					})).
+					Return(nil)
+
+				redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, correctSessionID, currentState)
+				mockRedisClient.EXPECT().
+					Set(ctx, database.RedisPayload{
+						Key:   redisKey,
+						Value: false,
+						TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+					}).
 					Return(nil)
 
 				return mockGenerator, mockRedisClient, mockInterviewSessionRepo, mockInterviewTurnsRepo
@@ -6243,6 +6270,263 @@ func TestInterviewSessionService_GetChatHistoryBySessionIDWithEvaluation(t *test
 			)
 
 			gotResp, gotErr := svc.GetChatHistoryBySessionIDWithEvaluation(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_InitialFirstCurrentStateSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	validResp := &entities.InitialFirstCurrentStateSessionResp{
+		CurrentState:   "completed",
+		CurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000").String(),
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.InitialFirstCurrentStateSessionReq
+		setup  func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository)
+		verify func(t *testing.T, gotResp *entities.InitialFirstCurrentStateSessionResp, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.InitialFirstCurrentStateSessionReq{
+				SessionID:    sessionID.String(),
+				CurrentState: "completed",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				mockInterviewStateRepo.EXPECT().CreateInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.CreateInterviewStateWithUpdateFlagSessionTxReq) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.PhraseType == "completed" &&
+						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+				})).
+					Return(nil)
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.InitialFirstCurrentStateSessionResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidSessionID",
+			input: &entities.InitialFirstCurrentStateSessionReq{
+				SessionID:    "invalid-session-id",
+				CurrentState: "completed",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.InitialFirstCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error WithCreateInterviewStateWithUpdateFlagSessionTxError",
+			input: &entities.InitialFirstCurrentStateSessionReq{
+				SessionID:    sessionID.String(),
+				CurrentState: "completed",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				mockInterviewStateRepo.EXPECT().CreateInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.CreateInterviewStateWithUpdateFlagSessionTxReq) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.PhraseType == "completed" &&
+						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+				})).
+					Return(errors.New("create interview state with update flag session tx error"))
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.InitialFirstCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "create interview state with update flag session tx error")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockGenerator, mockInterviewStateRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				mockGenerator,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockInterviewStateRepo,
+			)
+
+			gotResp, gotErr := svc.InitialFirstCurrentStateSession(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	validReq := &entities.UpdateCurrentStateSessionReq{
+		CurrentState:      "completed",
+		SessionID:         sessionID.String(),
+		OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.UpdateCurrentStateSessionReq
+		setup  func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository)
+		verify func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.PhraseType == "completed" &&
+						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
+						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
+						req.SessionID == sessionID &&
+						req.PhraseType == "completed"
+				})).Return(nil)
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, validReq.CurrentState, gotResp.CurrentState)
+				assert.Equal(t, "550e8400-e29b-41d4-a716-446655440000", gotResp.CurrentStateID)
+			},
+		},
+		{
+			name: "Error WithInvalidOldCurrentStateID",
+			input: &entities.UpdateCurrentStateSessionReq{
+				OldCurrentStateID: "invalid-old-current-state-id",
+				SessionID:         sessionID.String(),
+				CurrentState:      "completed",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidSessionID",
+			input: &entities.UpdateCurrentStateSessionReq{
+				OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
+				SessionID:         "invalid-session-id",
+				CurrentState:      "completed",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error WithEndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.PhraseType == "completed" &&
+						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
+						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
+						req.SessionID == sessionID &&
+						req.PhraseType == "completed"
+				})).Return(errors.New("end old interview state and create new interview state with update flag session tx error"))
+
+				return mockGenerator, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "end old interview state and create new interview state with update flag session tx error")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockGenerator, mockInterviewStateRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				mockGenerator,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockInterviewStateRepo,
+			)
+
+			gotResp, gotErr := svc.UpdateCurrentStateSession(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

@@ -10,8 +10,7 @@ INSERT INTO interview_states (
 
 -- name: UpdateEndedAtInterviewStateByID :execrows
 UPDATE interview_states
-SET phrase_type = $2,
-    ended_at = $3
+SET ended_at = $2
 WHERE id = $1;
 
 -- name: UpdateIsEvaluatedInterviewStateByID :execrows

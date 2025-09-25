@@ -442,7 +442,10 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 
 	if client.currentState != req.CurrentState {
 		if client.currentStateID == "" && client.currentState == "" {
-
+			s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Initial first current state session", map[string]any{
+				"session_id":    req.SessionID,
+				"current_state": req.CurrentState,
+			})
 			resp, err := s.interviewSessionService.InitialFirstCurrentStateSession(context.Background(), &entities.InitialFirstCurrentStateSessionReq{
 				SessionID:    req.SessionID,
 				CurrentState: req.CurrentState,

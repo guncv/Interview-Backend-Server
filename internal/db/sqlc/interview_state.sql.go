@@ -43,19 +43,17 @@ func (q *Queries) CreateInterviewState(ctx context.Context, arg CreateInterviewS
 
 const updateEndedAtInterviewStateByID = `-- name: UpdateEndedAtInterviewStateByID :execrows
 UPDATE interview_states
-SET phrase_type = $2,
-    ended_at = $3
+SET ended_at = $2
 WHERE id = $1
 `
 
 type UpdateEndedAtInterviewStateByIDParams struct {
-	ID         uuid.UUID    `json:"id"`
-	PhraseType string       `json:"phrase_type"`
-	EndedAt    sql.NullTime `json:"ended_at"`
+	ID      uuid.UUID    `json:"id"`
+	EndedAt sql.NullTime `json:"ended_at"`
 }
 
 func (q *Queries) UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEndedAtInterviewStateByID, arg.ID, arg.PhraseType, arg.EndedAt)
+	result, err := q.db.ExecContext(ctx, updateEndedAtInterviewStateByID, arg.ID, arg.EndedAt)
 	if err != nil {
 		return 0, err
 	}

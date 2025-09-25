@@ -56,3 +56,9 @@ packages:
       filename: "{{.InterfaceName}}.go"
       outpkg: sqlc
       recursive: true
+  gitlab.com/interview-simulation/interview-backend-server/internal/infras/http:
+    config:
+      dir: ./internal/mocks/http
+      filename: "{{.InterfaceName}}.go"
+      outpkg: http
+      recursive: true
