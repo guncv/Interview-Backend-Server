@@ -69,6 +69,53 @@ func (_c *MockRedisTaskConsumer_CleanupQueue_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// ConsumeTaskCalculateEvaluationInOldState provides a mock function with given fields: ctx, task
+func (_m *MockRedisTaskConsumer) ConsumeTaskCalculateEvaluationInOldState(ctx context.Context, task *asynq.Task) error {
+	ret := _m.Called(ctx, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConsumeTaskCalculateEvaluationInOldState")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
+		r0 = rf(ctx, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskCalculateEvaluationInOldState'
+type MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call struct {
+	*mock.Call
+}
+
+// ConsumeTaskCalculateEvaluationInOldState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - task *asynq.Task
+func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskCalculateEvaluationInOldState(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call {
+	return &MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call{Call: _e.mock.On("ConsumeTaskCalculateEvaluationInOldState", ctx, task)}
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*asynq.Task))
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskCalculateEvaluationInOldState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ConsumeTaskCalculateTurnScore provides a mock function with given fields: ctx, task
 func (_m *MockRedisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error {
 	ret := _m.Called(ctx, task)

@@ -13,7 +13,7 @@ import (
 )
 
 const checkIsDefaultResumeExistsByUserID = `-- name: CheckIsDefaultResumeExistsByUserID :one
-SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = TRUE)
+SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = true)
 `
 
 func (q *Queries) CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error) {
@@ -61,7 +61,7 @@ func (q *Queries) CreateResume(ctx context.Context, arg CreateResumeParams) erro
 }
 
 const getDefaultResumeByUserID = `-- name: GetDefaultResumeByUserID :one
-SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 AND is_default = TRUE
+SELECT id, user_id, file_name, storage_key, mime_type, byte_size, is_default, created_at, updated_at, deleted_at FROM resumes WHERE user_id = $1 AND is_default = true
 `
 
 func (q *Queries) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error) {
@@ -223,7 +223,7 @@ func (q *Queries) ListResumeByUserIDPaginated(ctx context.Context, arg ListResum
 }
 
 const setDefaultResume = `-- name: SetDefaultResume :exec
-UPDATE resumes SET is_default = TRUE WHERE id = $1
+UPDATE resumes SET is_default = true WHERE id = $1
 `
 
 func (q *Queries) SetDefaultResume(ctx context.Context, id uuid.UUID) error {

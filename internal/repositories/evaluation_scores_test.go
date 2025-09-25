@@ -17,6 +17,7 @@ import (
 	config "gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	mockSqlc "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/db/sqlc"
 )
@@ -444,6 +445,155 @@ func TestEvaluationScoresRepository_GetEvaluationOverallSummary(t *testing.T) {
 
 			repo := NewEvaluationScoresRepository(lgr, mockStore, testConfig)
 			gotResp, gotErr := repo.GetEvaluationOverallSummary(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestEvaluationScoresRepository_InterviewFeedbackAndScore(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+
+	userMessage := "test"
+	interviewerMessage := "test"
+	rubricName := "test"
+	rubricDescriptionMd := "test"
+	criteria := []entities.CritetiaRow{
+		{
+			CriterionID:            "test",
+			CriterionCode:          "test",
+			CriterionName:          "test",
+			CriterionDescriptionMd: "test",
+			CriterionWeight:        "test",
+			CriterionMaxScore:      "test",
+		},
+	}
+	validReq := &InterviewFeedbackAndScoreReq{
+		UserMessage:         userMessage,
+		InterviewerMessage:  interviewerMessage,
+		RubricName:          rubricName,
+		RubricDescriptionMd: rubricDescriptionMd,
+		Criteria:            criteria,
+	}
+
+	testCases := []struct {
+		name           string
+		input          *InterviewFeedbackAndScoreReq
+		serverResponse func(w http.ResponseWriter, r *http.Request)
+		verify         func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validReq,
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, "/api/v1/feedback-and-score", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "application/json")
+
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+
+				var receivedReq InterviewFeedbackAndScoreReq
+				err = json.Unmarshal(body, &receivedReq)
+				assert.NoError(t, err)
+
+				assert.Equal(t, userMessage, receivedReq.UserMessage)
+				assert.Equal(t, interviewerMessage, receivedReq.InterviewerMessage)
+				assert.Equal(t, rubricName, receivedReq.RubricName)
+				assert.Equal(t, rubricDescriptionMd, receivedReq.RubricDescriptionMd)
+				assert.Equal(t, criteria, receivedReq.Criteria)
+
+				mockResponse := InterviewFeedbackAndScoreResp{
+					OverallScore:    5.00,
+					OverallFeedback: "Good performance overall",
+					CriteriaScores: []CriteriaScore{
+						{
+							CriterionID:       "test",
+							CriterionScore:    5,
+							CriterionFeedback: "Good work",
+						},
+					},
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(mockResponse)
+			},
+			verify: func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, 5.00, gotResp.OverallScore)
+				assert.Equal(t, "Good performance overall", gotResp.OverallFeedback)
+				assert.Len(t, gotResp.CriteriaScores, 1)
+				assert.Equal(t, "test", gotResp.CriteriaScores[0].CriterionID)
+				assert.Equal(t, 5, gotResp.CriteriaScores[0].CriterionScore)
+				assert.Equal(t, "Good work", gotResp.CriteriaScores[0].CriterionFeedback)
+			},
+		},
+		{
+			name:  "Error - WithPostFeedbackAndScoreFailed",
+			input: validReq,
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, "/api/v1/feedback-and-score", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "application/json")
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			verify: func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name:  "Error - WithUnmarshalFailed",
+			input: validReq,
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, "/api/v1/feedback-and-score", r.URL.Path)
+				assert.Contains(t, r.Header.Get("Content-Type"), "application/json")
+
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+
+				var receivedReq InterviewFeedbackAndScoreReq
+				err = json.Unmarshal(body, &receivedReq)
+				assert.NoError(t, err)
+
+				assert.Equal(t, userMessage, receivedReq.UserMessage)
+				assert.Equal(t, interviewerMessage, receivedReq.InterviewerMessage)
+				assert.Equal(t, rubricName, receivedReq.RubricName)
+				assert.Equal(t, rubricDescriptionMd, receivedReq.RubricDescriptionMd)
+				assert.Equal(t, criteria, receivedReq.Criteria)
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode("Invalid JSON")
+			},
+			verify: func(t *testing.T, gotResp *InterviewFeedbackAndScoreResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(tC.serverResponse))
+			defer server.Close()
+
+			testConfig := &config.Config{
+				InterviewSessionConfig: config.InterviewSessionConfig{
+					InterviewAgentURL: server.URL,
+				},
+			}
+
+			mockStore := new(mockSqlc.MockStore)
+
+			repo := NewEvaluationScoresRepository(lgr, mockStore, testConfig)
+			gotResp, gotErr := repo.InterviewFeedbackAndScore(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

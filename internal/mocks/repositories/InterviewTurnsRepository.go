@@ -71,6 +71,53 @@ func (_c *MockInterviewTurnsRepository_CreateSessionTurnBySessionID_Call) RunAnd
 	return _c
 }
 
+// FlagIsScoreEvaluated provides a mock function with given fields: ctx, id
+func (_m *MockInterviewTurnsRepository) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FlagIsScoreEvaluated")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlagIsScoreEvaluated'
+type MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call struct {
+	*mock.Call
+}
+
+// FlagIsScoreEvaluated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockInterviewTurnsRepository_Expecter) FlagIsScoreEvaluated(ctx interface{}, id interface{}) *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call {
+	return &MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call{Call: _e.mock.On("FlagIsScoreEvaluated", ctx, id)}
+}
+
+func (_c *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call) Return(_a0 error) *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call) RunAndReturn(run func(context.Context, uuid.UUID) error) *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetChatHistoryBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
 	ret := _m.Called(ctx, sessionID)

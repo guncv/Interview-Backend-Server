@@ -110,17 +110,18 @@ type InterviewStates struct {
 }
 
 type InterviewTurns struct {
-	ID             uuid.UUID      `json:"id"`
-	SessionID      uuid.UUID      `json:"session_id"`
-	TurnNo         int64          `json:"turn_no"`
-	Actor          string         `json:"actor"`
-	TranscriptText string         `json:"transcript_text"`
-	SttConfidence  sql.NullString `json:"stt_confidence"`
-	WasInterrupted sql.NullBool   `json:"was_interrupted"`
-	StartAt        string         `json:"start_at"`
-	EndAt          string         `json:"end_at"`
-	CreatedAt      time.Time      `json:"created_at"`
-	CurrentState   string         `json:"current_state"`
+	ID               uuid.UUID      `json:"id"`
+	SessionID        uuid.UUID      `json:"session_id"`
+	TurnNo           int64          `json:"turn_no"`
+	Actor            string         `json:"actor"`
+	TranscriptText   string         `json:"transcript_text"`
+	SttConfidence    sql.NullString `json:"stt_confidence"`
+	WasInterrupted   sql.NullBool   `json:"was_interrupted"`
+	StartAt          string         `json:"start_at"`
+	EndAt            string         `json:"end_at"`
+	CreatedAt        time.Time      `json:"created_at"`
+	CurrentState     string         `json:"current_state"`
+	IsScoreEvaluated sql.NullBool   `json:"is_score_evaluated"`
 }
 
 type IssueCategories struct {

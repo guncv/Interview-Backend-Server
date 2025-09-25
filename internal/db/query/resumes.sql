@@ -31,16 +31,16 @@ ORDER BY updated_at DESC
 LIMIT 10;
 
 -- name: CheckIsDefaultResumeExistsByUserID :one
-SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = TRUE);
+SELECT EXISTS (SELECT 1 FROM resumes WHERE user_id = $1 AND is_default = true);
 
 -- name: GetResumeByID :one
 SELECT * FROM resumes WHERE id = $1;
 
 -- name: GetDefaultResumeByUserID :one
-SELECT * FROM resumes WHERE user_id = $1 AND is_default = TRUE;
+SELECT * FROM resumes WHERE user_id = $1 AND is_default = true;
 
 -- name: UnsetDefaultResume :exec
 UPDATE resumes SET is_default = FALSE WHERE id = $1;
 
 -- name: SetDefaultResume :exec
-UPDATE resumes SET is_default = TRUE WHERE id = $1;
+UPDATE resumes SET is_default = true WHERE id = $1;

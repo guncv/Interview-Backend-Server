@@ -4,9 +4,11 @@ package repositories
 
 import (
 	context "context"
+	json "encoding/json"
+
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 
 	mock "github.com/stretchr/testify/mock"
-	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 
 	repositories "gitlab.com/interview-simulation/interview-backend-server/internal/repositories"
 
@@ -24,6 +26,65 @@ type MockEvaluationScoresRepository_Expecter struct {
 
 func (_m *MockEvaluationScoresRepository) EXPECT() *MockEvaluationScoresRepository_Expecter {
 	return &MockEvaluationScoresRepository_Expecter{mock: &_m.Mock}
+}
+
+// CalculateEachCriteriaCommentBySessionAndState provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationScoresRepository) CalculateEachCriteriaCommentBySessionAndState(ctx context.Context, req *repositories.PreProcessedCriteriaReq) (*repositories.PostProcessedCriteriaResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CalculateEachCriteriaCommentBySessionAndState")
+	}
+
+	var r0 *repositories.PostProcessedCriteriaResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.PreProcessedCriteriaReq) (*repositories.PostProcessedCriteriaResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.PreProcessedCriteriaReq) *repositories.PostProcessedCriteriaResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*repositories.PostProcessedCriteriaResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *repositories.PreProcessedCriteriaReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CalculateEachCriteriaCommentBySessionAndState'
+type MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call struct {
+	*mock.Call
+}
+
+// CalculateEachCriteriaCommentBySessionAndState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *repositories.PreProcessedCriteriaReq
+func (_e *MockEvaluationScoresRepository_Expecter) CalculateEachCriteriaCommentBySessionAndState(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call {
+	return &MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call{Call: _e.mock.On("CalculateEachCriteriaCommentBySessionAndState", ctx, req)}
+}
+
+func (_c *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call) Run(run func(ctx context.Context, req *repositories.PreProcessedCriteriaReq)) *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*repositories.PreProcessedCriteriaReq))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call) Return(_a0 *repositories.PostProcessedCriteriaResp, _a1 error) *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call) RunAndReturn(run func(context.Context, *repositories.PreProcessedCriteriaReq) (*repositories.PostProcessedCriteriaResp, error)) *MockEvaluationScoresRepository_CalculateEachCriteriaCommentBySessionAndState_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // CreateEvaluationWithCriteriaScoreAndImproveSentenceTx provides a mock function with given fields: ctx, req
@@ -187,6 +248,181 @@ func (_c *MockEvaluationScoresRepository_GetEvaluationOverallSummary_Call) Retur
 }
 
 func (_c *MockEvaluationScoresRepository_GetEvaluationOverallSummary_Call) RunAndReturn(run func(context.Context, *repositories.CreateEvaluationOverallSummaryTxReq) (*repositories.CreateEvaluationOverallSummaryTxResp, error)) *MockEvaluationScoresRepository_GetEvaluationOverallSummary_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetEvaluationSummaryJsonBySessionAndState provides a mock function with given fields: ctx, dbReq
+func (_m *MockEvaluationScoresRepository) GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, dbReq *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error) {
+	ret := _m.Called(ctx, dbReq)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetEvaluationSummaryJsonBySessionAndState")
+	}
+
+	var r0 json.RawMessage
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)); ok {
+		return rf(ctx, dbReq)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetEvaluationSummaryJsonBySessionAndStateParams) json.RawMessage); ok {
+		r0 = rf(ctx, dbReq)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(json.RawMessage)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.GetEvaluationSummaryJsonBySessionAndStateParams) error); ok {
+		r1 = rf(ctx, dbReq)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetEvaluationSummaryJsonBySessionAndState'
+type MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call struct {
+	*mock.Call
+}
+
+// GetEvaluationSummaryJsonBySessionAndState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dbReq *db.GetEvaluationSummaryJsonBySessionAndStateParams
+func (_e *MockEvaluationScoresRepository_Expecter) GetEvaluationSummaryJsonBySessionAndState(ctx interface{}, dbReq interface{}) *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call {
+	return &MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call{Call: _e.mock.On("GetEvaluationSummaryJsonBySessionAndState", ctx, dbReq)}
+}
+
+func (_c *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call) Run(run func(ctx context.Context, dbReq *db.GetEvaluationSummaryJsonBySessionAndStateParams)) *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.GetEvaluationSummaryJsonBySessionAndStateParams))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call) Return(_a0 json.RawMessage, _a1 error) *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call) RunAndReturn(run func(context.Context, *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)) *MockEvaluationScoresRepository_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// InterviewFeedbackAndScore provides a mock function with given fields: ctx, req
+func (_m *MockEvaluationScoresRepository) InterviewFeedbackAndScore(ctx context.Context, req *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InterviewFeedbackAndScore")
+	}
+
+	var r0 *repositories.InterviewFeedbackAndScoreResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) *repositories.InterviewFeedbackAndScoreResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*repositories.InterviewFeedbackAndScoreResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *repositories.InterviewFeedbackAndScoreReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InterviewFeedbackAndScore'
+type MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call struct {
+	*mock.Call
+}
+
+// InterviewFeedbackAndScore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *repositories.InterviewFeedbackAndScoreReq
+func (_e *MockEvaluationScoresRepository_Expecter) InterviewFeedbackAndScore(ctx interface{}, req interface{}) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	return &MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call{Call: _e.mock.On("InterviewFeedbackAndScore", ctx, req)}
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) Run(run func(ctx context.Context, req *repositories.InterviewFeedbackAndScoreReq)) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*repositories.InterviewFeedbackAndScoreReq))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) Return(_a0 *repositories.InterviewFeedbackAndScoreResp, _a1 error) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call) RunAndReturn(run func(context.Context, *repositories.InterviewFeedbackAndScoreReq) (*repositories.InterviewFeedbackAndScoreResp, error)) *MockEvaluationScoresRepository_InterviewFeedbackAndScore_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsLastUserStateTurnScored provides a mock function with given fields: ctx, dbReq
+func (_m *MockEvaluationScoresRepository) IsLastUserStateTurnScored(ctx context.Context, dbReq *db.IsLastUserStateTurnScoredParams) (bool, error) {
+	ret := _m.Called(ctx, dbReq)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsLastUserStateTurnScored")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.IsLastUserStateTurnScoredParams) (bool, error)); ok {
+		return rf(ctx, dbReq)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.IsLastUserStateTurnScoredParams) bool); ok {
+		r0 = rf(ctx, dbReq)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.IsLastUserStateTurnScoredParams) error); ok {
+		r1 = rf(ctx, dbReq)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsLastUserStateTurnScored'
+type MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call struct {
+	*mock.Call
+}
+
+// IsLastUserStateTurnScored is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dbReq *db.IsLastUserStateTurnScoredParams
+func (_e *MockEvaluationScoresRepository_Expecter) IsLastUserStateTurnScored(ctx interface{}, dbReq interface{}) *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call {
+	return &MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call{Call: _e.mock.On("IsLastUserStateTurnScored", ctx, dbReq)}
+}
+
+func (_c *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call) Run(run func(ctx context.Context, dbReq *db.IsLastUserStateTurnScoredParams)) *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.IsLastUserStateTurnScoredParams))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call) Return(_a0 bool, _a1 error) *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call) RunAndReturn(run func(context.Context, *db.IsLastUserStateTurnScoredParams) (bool, error)) *MockEvaluationScoresRepository_IsLastUserStateTurnScored_Call {
 	_c.Call.Return(run)
 	return _c
 }

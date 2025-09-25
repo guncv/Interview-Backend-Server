@@ -78,6 +78,7 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	// Interview Turns
 	ErrCodeInterviewTurnLastMessageNotFound: ErrHttpCodeNotFound,
 	ErrCodeInterviewTurnsMaxTurnNoNotFound:  ErrHttpCodeNotFound,
+	ErrCodeInterviewTurnsNotFound:           ErrHttpCodeNotFound,
 	// Issue Reports
 	ErrCodeIssueReportNotFound:     ErrHttpCodeNotFound,
 	ErrCodeIssueReportNotOpen:      ErrHttpCodeBadRequest,
@@ -165,6 +166,8 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	// Interview Turns
 	ErrCodeInterviewTurnLastMessageNotFound: ErrMessageInterviewTurnLastMessageNotFound,
 	ErrCodeInterviewTurnsMaxTurnNoNotFound:  ErrMessageInterviewTurnsMaxTurnNoNotFound,
+	ErrCodeInterviewTurnsNotFound:           ErrMessageInterviewTurnsNotFound,
+
 	// Issue Reports
 	ErrCodeIssueReportNotFound:     ErrMessageIssueReportNotFound,
 	ErrCodeIssueReportNotOpen:      ErrMessageIssueReportNotOpen,

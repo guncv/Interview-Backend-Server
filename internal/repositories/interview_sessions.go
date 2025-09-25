@@ -1,18 +1,12 @@
 package repositories
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -24,7 +18,6 @@ type InterviewSessionRepository interface {
 	EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
-	InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
 	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
 	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
@@ -153,56 +146,6 @@ func (r *interviewSessionRepository) CreateInterviewSession(ctx context.Context,
 	}
 
 	return nil
-}
-
-func (r *interviewSessionRepository) InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error) {
-	r.log.InfoWithID(ctx, "[Repository: InterviewFeedbackAndScore] Called")
-
-	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathFeedbackAndScoreAgent
-
-	jsonBody, err := json.Marshal(req)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] Failed to marshal request body", err)
-		return nil, err
-	}
-
-	httpReq, err := http.NewRequest("POST", endpoint, bytes.NewReader(jsonBody))
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] Failed to create HTTP request", err)
-		return nil, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: constants.TimeoutHTTP}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] HTTP request failed", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] Failed to read response body", err)
-		return nil, err
-	}
-
-	r.log.InfoWithID(ctx, fmt.Sprintf("[Repository: InterviewFeedbackAndScore] Response: %s | Body: %s", resp.Status, string(bodyBytes)))
-
-	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("interview agent returned status: %s | body: %s", resp.Status, string(bodyBytes))
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] HTTP error response", err)
-		return nil, err
-	}
-
-	var result InterviewFeedbackAndScoreResp
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: InterviewFeedbackAndScore] Failed to unmarshal response body", err)
-		return nil, err
-	}
-
-	return &result, nil
 }
 
 func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error {

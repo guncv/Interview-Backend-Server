@@ -4,9 +4,13 @@ package sqlc
 
 import (
 	context "context"
+	json "encoding/json"
+
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 
 	mock "github.com/stretchr/testify/mock"
-	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
+
+	sql "database/sql"
 
 	uuid "github.com/google/uuid"
 )
@@ -356,6 +360,53 @@ func (_c *MockStore_CreateAdminIssueCategory_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// CreateAllPhraseRubricScores provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreateAllPhraseRubricScores(ctx context.Context, arg db.CreateAllPhraseRubricScoresParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAllPhraseRubricScores")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateAllPhraseRubricScoresParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_CreateAllPhraseRubricScores_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAllPhraseRubricScores'
+type MockStore_CreateAllPhraseRubricScores_Call struct {
+	*mock.Call
+}
+
+// CreateAllPhraseRubricScores is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateAllPhraseRubricScoresParams
+func (_e *MockStore_Expecter) CreateAllPhraseRubricScores(ctx interface{}, arg interface{}) *MockStore_CreateAllPhraseRubricScores_Call {
+	return &MockStore_CreateAllPhraseRubricScores_Call{Call: _e.mock.On("CreateAllPhraseRubricScores", ctx, arg)}
+}
+
+func (_c *MockStore_CreateAllPhraseRubricScores_Call) Run(run func(ctx context.Context, arg db.CreateAllPhraseRubricScoresParams)) *MockStore_CreateAllPhraseRubricScores_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateAllPhraseRubricScoresParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreateAllPhraseRubricScores_Call) Return(_a0 error) *MockStore_CreateAllPhraseRubricScores_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_CreateAllPhraseRubricScores_Call) RunAndReturn(run func(context.Context, db.CreateAllPhraseRubricScoresParams) error) *MockStore_CreateAllPhraseRubricScores_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateAuthSession provides a mock function with given fields: ctx, arg
 func (_m *MockStore) CreateAuthSession(ctx context.Context, arg db.CreateAuthSessionParams) error {
 	ret := _m.Called(ctx, arg)
@@ -681,6 +732,53 @@ func (_c *MockStore_CreateInterviewTurn_Call) Return(_a0 error) *MockStore_Creat
 }
 
 func (_c *MockStore_CreateInterviewTurn_Call) RunAndReturn(run func(context.Context, db.CreateInterviewTurnParams) error) *MockStore_CreateInterviewTurn_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreatePhraseEvaluation provides a mock function with given fields: ctx, arg
+func (_m *MockStore) CreatePhraseEvaluation(ctx context.Context, arg db.CreatePhraseEvaluationParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePhraseEvaluation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreatePhraseEvaluationParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStore_CreatePhraseEvaluation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePhraseEvaluation'
+type MockStore_CreatePhraseEvaluation_Call struct {
+	*mock.Call
+}
+
+// CreatePhraseEvaluation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreatePhraseEvaluationParams
+func (_e *MockStore_Expecter) CreatePhraseEvaluation(ctx interface{}, arg interface{}) *MockStore_CreatePhraseEvaluation_Call {
+	return &MockStore_CreatePhraseEvaluation_Call{Call: _e.mock.On("CreatePhraseEvaluation", ctx, arg)}
+}
+
+func (_c *MockStore_CreatePhraseEvaluation_Call) Run(run func(ctx context.Context, arg db.CreatePhraseEvaluationParams)) *MockStore_CreatePhraseEvaluation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreatePhraseEvaluationParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_CreatePhraseEvaluation_Call) Return(_a0 error) *MockStore_CreatePhraseEvaluation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStore_CreatePhraseEvaluation_Call) RunAndReturn(run func(context.Context, db.CreatePhraseEvaluationParams) error) *MockStore_CreatePhraseEvaluation_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1158,6 +1256,63 @@ func (_c *MockStore_ExecTx_Call) RunAndReturn(run func(context.Context, func(*db
 	return _c
 }
 
+// FlagIsScoreEvaluated provides a mock function with given fields: ctx, id
+func (_m *MockStore) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FlagIsScoreEvaluated")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (int64, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) int64); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_FlagIsScoreEvaluated_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlagIsScoreEvaluated'
+type MockStore_FlagIsScoreEvaluated_Call struct {
+	*mock.Call
+}
+
+// FlagIsScoreEvaluated is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+func (_e *MockStore_Expecter) FlagIsScoreEvaluated(ctx interface{}, id interface{}) *MockStore_FlagIsScoreEvaluated_Call {
+	return &MockStore_FlagIsScoreEvaluated_Call{Call: _e.mock.On("FlagIsScoreEvaluated", ctx, id)}
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) Return(_a0 int64, _a1 error) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_FlagIsScoreEvaluated_Call) RunAndReturn(run func(context.Context, uuid.UUID) (int64, error)) *MockStore_FlagIsScoreEvaluated_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAllEvaluationsBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockStore) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
 	ret := _m.Called(ctx, sessionID)
@@ -1445,6 +1600,65 @@ func (_c *MockStore_GetDefaultResumeByUserID_Call) Return(_a0 db.Resumes, _a1 er
 }
 
 func (_c *MockStore_GetDefaultResumeByUserID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.Resumes, error)) *MockStore_GetDefaultResumeByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetEvaluationSummaryJsonBySessionAndState provides a mock function with given fields: ctx, arg
+func (_m *MockStore) GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, arg db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetEvaluationSummaryJsonBySessionAndState")
+	}
+
+	var r0 json.RawMessage
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetEvaluationSummaryJsonBySessionAndStateParams) json.RawMessage); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(json.RawMessage)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetEvaluationSummaryJsonBySessionAndStateParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_GetEvaluationSummaryJsonBySessionAndState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetEvaluationSummaryJsonBySessionAndState'
+type MockStore_GetEvaluationSummaryJsonBySessionAndState_Call struct {
+	*mock.Call
+}
+
+// GetEvaluationSummaryJsonBySessionAndState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.GetEvaluationSummaryJsonBySessionAndStateParams
+func (_e *MockStore_Expecter) GetEvaluationSummaryJsonBySessionAndState(ctx interface{}, arg interface{}) *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call {
+	return &MockStore_GetEvaluationSummaryJsonBySessionAndState_Call{Call: _e.mock.On("GetEvaluationSummaryJsonBySessionAndState", ctx, arg)}
+}
+
+func (_c *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call) Run(run func(ctx context.Context, arg db.GetEvaluationSummaryJsonBySessionAndStateParams)) *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.GetEvaluationSummaryJsonBySessionAndStateParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call) Return(_a0 json.RawMessage, _a1 error) *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call) RunAndReturn(run func(context.Context, db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)) *MockStore_GetEvaluationSummaryJsonBySessionAndState_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1962,6 +2176,63 @@ func (_c *MockStore_GetUserIssueReportUserIDAndStatusByID_Call) Return(_a0 db.Ge
 }
 
 func (_c *MockStore_GetUserIssueReportUserIDAndStatusByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetUserIssueReportUserIDAndStatusByIDRow, error)) *MockStore_GetUserIssueReportUserIDAndStatusByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// IsLastUserStateTurnScored provides a mock function with given fields: ctx, arg
+func (_m *MockStore) IsLastUserStateTurnScored(ctx context.Context, arg db.IsLastUserStateTurnScoredParams) (sql.NullBool, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsLastUserStateTurnScored")
+	}
+
+	var r0 sql.NullBool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.IsLastUserStateTurnScoredParams) (sql.NullBool, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.IsLastUserStateTurnScoredParams) sql.NullBool); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(sql.NullBool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.IsLastUserStateTurnScoredParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_IsLastUserStateTurnScored_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsLastUserStateTurnScored'
+type MockStore_IsLastUserStateTurnScored_Call struct {
+	*mock.Call
+}
+
+// IsLastUserStateTurnScored is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.IsLastUserStateTurnScoredParams
+func (_e *MockStore_Expecter) IsLastUserStateTurnScored(ctx interface{}, arg interface{}) *MockStore_IsLastUserStateTurnScored_Call {
+	return &MockStore_IsLastUserStateTurnScored_Call{Call: _e.mock.On("IsLastUserStateTurnScored", ctx, arg)}
+}
+
+func (_c *MockStore_IsLastUserStateTurnScored_Call) Run(run func(ctx context.Context, arg db.IsLastUserStateTurnScoredParams)) *MockStore_IsLastUserStateTurnScored_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.IsLastUserStateTurnScoredParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_IsLastUserStateTurnScored_Call) Return(_a0 sql.NullBool, _a1 error) *MockStore_IsLastUserStateTurnScored_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_IsLastUserStateTurnScored_Call) RunAndReturn(run func(context.Context, db.IsLastUserStateTurnScoredParams) (sql.NullBool, error)) *MockStore_IsLastUserStateTurnScored_Call {
 	_c.Call.Return(run)
 	return _c
 }

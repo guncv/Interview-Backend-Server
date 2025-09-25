@@ -20,6 +20,7 @@ type RedisTaskPublisher interface {
 	PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error
 	PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error
 	PublishTaskCalculateTurnScore(ctx context.Context, payload *entities.CalculateTurnScoreReq, opts ...asynq.Option) error
+	PublishTaskCalculateEvaluationInOldState(ctx context.Context, payload *entities.CalculateEvaluationInOldStateReq, opts ...asynq.Option) error
 	DefineTaskOptions(taskName string) []asynq.Option
 }
 
@@ -122,9 +123,34 @@ func (p *redisTaskPublisher) PublishTaskCalculateTurnScore(ctx context.Context, 
 	return nil
 }
 
+func (p *redisTaskPublisher) PublishTaskCalculateEvaluationInOldState(ctx context.Context, payload *entities.CalculateEvaluationInOldStateReq, opts ...asynq.Option) error {
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskCalculateEvaluationInOldState] Called")
+	jsonPayload, err := json.Marshal(payload)
+
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskCalculateEvaluationInOldState] Error marshalling task payload", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	task := asynq.NewTask(constants.TaskCalculateEvaluationInOldState, jsonPayload, opts...)
+	info, err := p.client.EnqueueContext(ctx, task)
+	if err != nil {
+		p.log.ErrorWithID(ctx, "[Queue: PublishTaskCalculateEvaluationInOldState] Error enqueuing task", err)
+		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	p.log.InfoWithID(ctx, "[Queue: PublishTaskCalculateEvaluationInOldState] Enqueued task", info)
+	return nil
+}
+
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
 	case constants.TaskSendResetPasswordEmail:
+		return []asynq.Option{
+			asynq.MaxRetry(constants.MaxRetry),
+			asynq.Queue(constants.QueueCritical),
+		}
+	case constants.TaskCalculateTurnScore:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueCritical),
@@ -149,7 +175,7 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueDefault),
 		}
-	case constants.TaskCalculateTurnScore:
+	case constants.TaskCalculateEvaluationInOldState:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
 			asynq.Queue(constants.QueueDefault),

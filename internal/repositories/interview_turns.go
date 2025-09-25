@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -16,6 +17,7 @@ type InterviewTurnsRepository interface {
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)
+	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error
 }
 
 type interviewTurnsRepository struct {
@@ -96,4 +98,22 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithEvaluation(ctx c
 
 	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Response: ", resp)
 	return resp, nil
+}
+
+func (r *interviewTurnsRepository) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error {
+	r.log.InfoWithID(ctx, "[Repository: FlagIsScoreEvaluated] Called")
+
+	rowAffected, err := r.db.FlagIsScoreEvaluated(ctx, id)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: FlagIsScoreEvaluated] Error flagging is score evaluated", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("evaluation not found")
+		r.log.ErrorWithID(ctx, "[Repository: FlagIsScoreEvaluated] Evaluation not found", err)
+		return app_error.New(err, app_error.ErrCodeInterviewTurnsNotFound)
+	}
+
+	return nil
 }

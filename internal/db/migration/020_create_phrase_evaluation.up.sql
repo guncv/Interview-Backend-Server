@@ -35,3 +35,4 @@ CREATE TABLE phrase_rubric_scores (
 
 ALTER TABLE interview_sessions ADD COLUMN current_state VARCHAR(50);
 ALTER TABLE interview_sessions ADD COLUMN current_state_id UUID REFERENCES interview_states(id);
+ALTER TABLE interview_turns ADD COLUMN is_score_evaluated BOOLEAN DEFAULT FALSE;

@@ -38,7 +38,6 @@ type InterviewSessionService interface {
 	SetSessionEndTime(ctx context.Context, req *entities.SetSessionEndTimeReq) error
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
-	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
 	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
 	StartConversationBySessionID(ctx context.Context, sessionId string) error
@@ -361,6 +360,15 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 		return err
 	}
 
+	redisKey = fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: false,
+		TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+	}
+
+	_ = s.redisClient.Set(ctx, redisPayload)
+
 	return nil
 }
 
@@ -558,106 +566,6 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 	return resp, nil
 }
 
-func (s *interviewSessionService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
-	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
-
-	rubric, err := s.evaluationService.GetRubricWithCriteriaByName(ctx, req.CurrentState)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting rubric with criteria by name", err)
-		return err
-	}
-
-	interviewFeedbackAndScoreReq := &repositories.InterviewFeedbackAndScoreReq{
-		UserMessage:         req.UserMessage,
-		InterviewerMessage:  req.InterviewerMessage,
-		RubricName:          rubric.RubricName,
-		RubricDescriptionMd: rubric.RubricDescriptionMd,
-		Criteria:            rubric.Criteria,
-	}
-
-	result, err := s.interviewSessionRepo.InterviewFeedbackAndScore(ctx, interviewFeedbackAndScoreReq)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error interviewing feedback and score", err)
-		return err
-	}
-
-	evaluationID := s.generator.GenerateUUID(ctx)
-
-	sessionID, err := uuid.Parse(req.SessionID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid session ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	userTurnID, err := uuid.Parse(req.UserTurnID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user turn ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	rubricID, err := uuid.Parse(rubric.RubricID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid rubric ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	userID, err := uuid.Parse(req.UserID)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid user ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	criteria := make([]repositories.CreateScoreTxReq, len(result.CriteriaScores))
-	for i, criterion := range result.CriteriaScores {
-		criterionID, err := uuid.Parse(criterion.CriterionID)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Invalid criterion ID", err)
-			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-		}
-
-		criteria[i] = repositories.CreateScoreTxReq{
-			ID:            s.generator.GenerateUUID(ctx),
-			CriterionID:   criterionID,
-			CriterionName: criterion.CriterionName,
-			Score:         criterion.CriterionScore,
-			CommentMd:     criterion.CriterionFeedback,
-		}
-	}
-
-	createEvaluationAndScoreTxReq := &repositories.CreateEvaluationAndScoreTxReq{
-		EvaluationID: evaluationID,
-		SessionID:    sessionID,
-		TurnID:       userTurnID,
-		RubricID:     rubricID,
-		UserID:       userID,
-		CurrentState: req.CurrentState,
-		OverallScore: fmt.Sprintf("%f", result.OverallScore),
-		SummaryMd:    result.OverallFeedback,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		Criteria:     criteria,
-
-		ImproveSentenceID: s.generator.GenerateUUID(ctx),
-		ImproveSentence:   result.ImproveSentence,
-		LLmModel:          result.LLmModel,
-	}
-
-	var lastErr error
-	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
-		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
-		if err == nil {
-			return nil
-		}
-
-		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
-		lastErr = err
-
-		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
-	}
-
-	return lastErr
-}
-
 func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetInterviewerLastMessage] Called")
 
@@ -760,7 +668,7 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 	if dbResp.CurrentState.Valid {
 		currentState = dbResp.CurrentState.String
 	} else {
-		currentState = constants.InterviewStateUnknown
+		currentState = ""
 	}
 
 	var currentStateID string
@@ -1473,13 +1381,17 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	interviewStateID := s.generator.GenerateUUID(ctx)
+	oldInterviewStateID, err := uuid.Parse(req.OldCurrentStateID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid old interview state ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
 
 	currentTime := time.Now()
 	newInterviewStateID := s.generator.GenerateUUID(ctx)
 
 	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
-		ID:      interviewStateID,
+		ID:      oldInterviewStateID,
 		EndedAt: currentTime,
 
 		NewID:      newInterviewStateID,
@@ -1487,6 +1399,8 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		PhraseType: req.CurrentState,
 		StartedAt:  currentTime,
 	}
+
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Ending old interview state and creating new interview state Req", dbReq)
 
 	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)

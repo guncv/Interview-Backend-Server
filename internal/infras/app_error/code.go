@@ -84,6 +84,7 @@ const (
 	// Interview Turns
 	ErrCodeInterviewTurnLastMessageNotFound ErrorCode = "INS0600"
 	ErrCodeInterviewTurnsMaxTurnNoNotFound  ErrorCode = "INS0601"
+	ErrCodeInterviewTurnsNotFound           ErrorCode = "INS0602"
 
 	// Issue Reports
 	ErrCodeIssueReportNotFound     ErrorCode = "INS0700"
