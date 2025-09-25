@@ -24,6 +24,7 @@ type EvaluationService interface {
 	ListAllRubricsAndCriteria(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error)
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error
+	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
 }
 
 type evaluationService struct {
@@ -485,4 +486,41 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	}
 
 	return nil
+}
+
+func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionIdReq string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
+
+	sessionID, err := uuid.Parse(sessionIdReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.evaluationScoresRepo.GetPhraseEvaluationsWithCriteriaBySessionID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error getting phrase evaluations with criteria by session ID", err)
+		return nil, err
+	}
+
+	var respEntities = make([]entities.PhraseEvaluations, 0, len(dbResp))
+	for _, row := range dbResp {
+		var respEntity entities.PhraseEvaluations
+		respEntity.StateID = row.StateID.String()
+		respEntity.StateName = row.StateName
+		respEntity.OverallScore = utils.RoundFloatToTwoDecimals(row.OverallScore)
+
+		if err := json.Unmarshal(row.Criteria.([]byte), &respEntity.Criteria); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error unmarshalling phrase evaluations with criteria", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+
+		respEntities = append(respEntities, respEntity)
+	}
+
+	resp := &entities.GetPhraseEvaluationsWithCriteriaResp{
+		PhraseEvaluations: respEntities,
+	}
+
+	return resp, nil
 }

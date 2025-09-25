@@ -1339,3 +1339,171 @@ func TestEvaluationService_CalculateEvaluationInOldState(t *testing.T) {
 		})
 	}
 }
+
+func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	validSessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	validStateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	validCriteriaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	validCriteria := []entities.PhraseEvaluationCriteria{
+		{
+			CriteriaID:      validCriteriaID.String(),
+			CriteriaName:    "test",
+			CriteriaScore:   8.5,
+			CriteriaComment: "test",
+		},
+		{
+			CriteriaID:      validCriteriaID.String(),
+			CriteriaName:    "test",
+			CriteriaScore:   8.5,
+			CriteriaComment: "test",
+		},
+	}
+
+	dbResp := []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow{
+		{
+			StateID:      validStateID,
+			StateName:    "test",
+			OverallScore: 8.5,
+			Criteria: func() []byte {
+				data, _ := json.Marshal(validCriteria)
+				return data
+			}(),
+		},
+	}
+
+	invalidDbResp := []db.GetPhraseEvaluationsWithCriteriaBySessionIDRow{
+		{
+			StateID:      validStateID,
+			StateName:    "test",
+			OverallScore: 8.5,
+			Criteria:     []byte("invalid json"),
+		},
+	}
+
+	validResp := &entities.GetPhraseEvaluationsWithCriteriaResp{
+		PhraseEvaluations: []entities.PhraseEvaluations{
+			{
+				StateID:      validStateID.String(),
+				StateName:    "test",
+				OverallScore: 8.5,
+				Criteria: []entities.PhraseEvaluationCriteria{
+					{
+						CriteriaID:      validCriteriaID.String(),
+						CriteriaName:    "test",
+						CriteriaScore:   8.5,
+						CriteriaComment: "test",
+					},
+					{
+						CriteriaID:      validCriteriaID.String(),
+						CriteriaName:    "test",
+						CriteriaScore:   8.5,
+						CriteriaComment: "test",
+					},
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  string
+		setup  func() *mockRepositories.MockEvaluationScoresRepository
+		verify func(t *testing.T, gotResp *entities.GetPhraseEvaluationsWithCriteriaResp, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validSessionID.String(),
+			setup: func() *mockRepositories.MockEvaluationScoresRepository {
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+
+				mockEvaluationScoresRepo.EXPECT().
+					GetPhraseEvaluationsWithCriteriaBySessionID(ctx, validSessionID).
+					Return(dbResp, nil)
+
+				return mockEvaluationScoresRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetPhraseEvaluationsWithCriteriaResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, validResp, gotResp)
+			},
+		},
+		{
+			name:  "Error WithInvalidSessionID",
+			input: "invalid-uuid",
+			setup: func() *mockRepositories.MockEvaluationScoresRepository {
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+
+				return mockEvaluationScoresRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetPhraseEvaluationsWithCriteriaResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Equal(t, app_error.ErrCodeGeneralInvalidUUID, gotErr.(*app_error.AppError).Code)
+			},
+		},
+		{
+			name:  "Error WithGetPhraseEvaluationsWithCriteriaBySessionID Failed",
+			input: validSessionID.String(),
+			setup: func() *mockRepositories.MockEvaluationScoresRepository {
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+
+				mockEvaluationScoresRepo.EXPECT().
+					GetPhraseEvaluationsWithCriteriaBySessionID(ctx, validSessionID).
+					Return(nil, errors.New("get phrase evaluations with criteria by session id error"))
+
+				return mockEvaluationScoresRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetPhraseEvaluationsWithCriteriaResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Equal(t, "get phrase evaluations with criteria by session id error", gotErr.Error())
+			},
+		},
+		{
+			name:  "Error WithUnmarshalCriteriaFailed",
+			input: validSessionID.String(),
+			setup: func() *mockRepositories.MockEvaluationScoresRepository {
+				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
+
+				mockEvaluationScoresRepo.EXPECT().
+					GetPhraseEvaluationsWithCriteriaBySessionID(ctx, validSessionID).
+					Return(invalidDbResp, nil)
+
+				return mockEvaluationScoresRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetPhraseEvaluationsWithCriteriaResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, gotResp)
+				assert.Equal(t, app_error.ErrCodeGeneralUnmarshalFailed, gotErr.(*app_error.AppError).Code)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockEvaluationScoresRepo := tC.setup()
+
+			defer func() {
+				if mockEvaluationScoresRepo != nil {
+					mockEvaluationScoresRepo.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewEvaluationService(
+				lgr,
+				nil,
+				nil,
+				mockEvaluationScoresRepo,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.GetPhraseEvaluationsWithCriteriaBySessionID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}

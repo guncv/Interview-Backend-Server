@@ -116,6 +116,65 @@ func (_c *MockEvaluationService_CalculateTurnScore_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// GetPhraseEvaluationsWithCriteriaBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockEvaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPhraseEvaluationsWithCriteriaBySessionID")
+	}
+
+	var r0 *entities.GetPhraseEvaluationsWithCriteriaResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *entities.GetPhraseEvaluationsWithCriteriaResp); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GetPhraseEvaluationsWithCriteriaResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPhraseEvaluationsWithCriteriaBySessionID'
+type MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetPhraseEvaluationsWithCriteriaBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+func (_e *MockEvaluationService_Expecter) GetPhraseEvaluationsWithCriteriaBySessionID(ctx interface{}, sessionID interface{}) *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	return &MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call{Call: _e.mock.On("GetPhraseEvaluationsWithCriteriaBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Run(run func(ctx context.Context, sessionID string)) *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call) Return(_a0 *entities.GetPhraseEvaluationsWithCriteriaResp, _a1 error) *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call) RunAndReturn(run func(context.Context, string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)) *MockEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRubricWithCriteriaByName provides a mock function with given fields: ctx, rubricName
 func (_m *MockEvaluationService) GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error) {
 	ret := _m.Called(ctx, rubricName)

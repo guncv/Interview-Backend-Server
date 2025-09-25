@@ -24,6 +24,7 @@ type EvaluationScoresRepository interface {
 	GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, dbReq *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)
 	CalculateEachCriteriaCommentBySessionAndState(ctx context.Context, req *PreProcessedCriteriaReq) (*PostProcessedCriteriaResp, error)
 	CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx context.Context, req *CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx) error
+	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)
 }
 
 type evaluationScoresRepository struct {
@@ -269,4 +270,18 @@ func (r *evaluationScoresRepository) CreatePhraseEvaluationAndCriteriaScoreWithI
 	}
 
 	return nil
+}
+
+func (r *evaluationScoresRepository) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
+
+	resp, err := r.db.GetPhraseEvaluationsWithCriteriaBySessionID(ctx, sessionID)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Error getting phrase evaluations with criteria by session ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	r.log.InfoWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Response: ", resp)
+
+	return resp, nil
 }

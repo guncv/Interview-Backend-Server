@@ -46,3 +46,72 @@ func (q *Queries) CreatePhraseEvaluation(ctx context.Context, arg CreatePhraseEv
 	)
 	return err
 }
+
+const getPhraseEvaluationsWithCriteriaBySessionID = `-- name: GetPhraseEvaluationsWithCriteriaBySessionID :many
+WITH latest_evaluations AS (
+    SELECT 
+        pe.id,
+        pe.state_id,
+        pe.state_name,
+        pe.overall_score,
+        pe.created_at,
+        ROW_NUMBER() OVER (PARTITION BY pe.state_name ORDER BY pe.created_at DESC) as rn
+    FROM phrase_evaluations pe
+    WHERE pe.session_id = $1 AND pe.soft_delete = false
+)
+SELECT 
+    le.state_id,
+    le.state_name,
+    le.overall_score,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'criteria_id', prs.criterion_id,
+                'criteria_name', prs.criterion_name,
+                'criteria_score', prs.score,
+                'criteria_comment', COALESCE(prs.comment_md, '')
+            )
+        ) FILTER (WHERE prs.criterion_id IS NOT NULL),
+        '[]'::json
+    ) as criteria
+FROM latest_evaluations le
+LEFT JOIN phrase_rubric_scores prs ON le.id = prs.phrase_evaluation_id AND prs.soft_delete = false
+WHERE le.rn = 1
+GROUP BY le.id, le.state_id, le.state_name, le.overall_score
+ORDER BY le.created_at ASC
+`
+
+type GetPhraseEvaluationsWithCriteriaBySessionIDRow struct {
+	StateID      uuid.UUID   `json:"state_id"`
+	StateName    string      `json:"state_name"`
+	OverallScore float64     `json:"overall_score"`
+	Criteria     interface{} `json:"criteria"`
+}
+
+func (q *Queries) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetPhraseEvaluationsWithCriteriaBySessionIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPhraseEvaluationsWithCriteriaBySessionID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPhraseEvaluationsWithCriteriaBySessionIDRow{}
+	for rows.Next() {
+		var i GetPhraseEvaluationsWithCriteriaBySessionIDRow
+		if err := rows.Scan(
+			&i.StateID,
+			&i.StateName,
+			&i.OverallScore,
+			&i.Criteria,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -391,6 +391,61 @@
                 }
             }
         },
+        "/evaluation/phrase-evaluations/{session_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get phrase evaluations with criteria by session ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "Get phrase evaluations with criteria by session ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetPhraseEvaluationsWithCriteriaResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
         "/evaluation/rubrics": {
             "get": {
                 "security": [
@@ -1800,6 +1855,17 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetPhraseEvaluationsWithCriteriaResp": {
+            "type": "object",
+            "properties": {
+                "phrase_evaluations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluations"
+                    }
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GetResumeByIDResponse": {
             "type": "object",
             "properties": {
@@ -1933,6 +1999,43 @@
                 },
                 "resume_content": {
                     "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResumeContent"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluationCriteria": {
+            "type": "object",
+            "properties": {
+                "criteria_comment": {
+                    "type": "string"
+                },
+                "criteria_id": {
+                    "type": "string"
+                },
+                "criteria_name": {
+                    "type": "string"
+                },
+                "criteria_score": {
+                    "type": "number"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluations": {
+            "type": "object",
+            "properties": {
+                "criteria": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluationCriteria"
+                    }
+                },
+                "overall_score": {
+                    "type": "number"
+                },
+                "state_id": {
+                    "type": "string"
+                },
+                "state_name": {
+                    "type": "string"
                 }
             }
         },
@@ -2228,11 +2331,14 @@
                 "INS0501",
                 "INS0600",
                 "INS0601",
+                "INS0602",
                 "INS0700",
                 "INS0701",
                 "INS0702",
                 "INS0703",
-                "INS0800"
+                "INS0800",
+                "INS0900",
+                "INS1000"
             ],
             "x-enum-varnames": [
                 "ErrCodeGeneralServerUnavailable",
@@ -2303,11 +2409,14 @@
                 "ErrCodeEvaluationRubricCriteriaNotFound",
                 "ErrCodeInterviewTurnLastMessageNotFound",
                 "ErrCodeInterviewTurnsMaxTurnNoNotFound",
+                "ErrCodeInterviewTurnsNotFound",
                 "ErrCodeIssueReportNotFound",
                 "ErrCodeIssueReportNotOpen",
                 "ErrCodeIssueReportUnauthorized",
                 "ErrCodeIssueReportIDRequired",
-                "ErrCodeIssueCategoryNotFound"
+                "ErrCodeIssueCategoryNotFound",
+                "ErrCodeInterviewStateNotFound",
+                "ErrCodeEvaluationSummaryNotFound"
             ]
         }
     },

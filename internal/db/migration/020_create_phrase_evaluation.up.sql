@@ -36,3 +36,4 @@ CREATE TABLE phrase_rubric_scores (
 ALTER TABLE interview_sessions ADD COLUMN current_state VARCHAR(50);
 ALTER TABLE interview_sessions ADD COLUMN current_state_id UUID REFERENCES interview_states(id);
 ALTER TABLE interview_turns ADD COLUMN is_score_evaluated BOOLEAN DEFAULT FALSE;
+CREATE INDEX idx_phrase_evaluations_created_at ON phrase_evaluations (created_at ASC);
