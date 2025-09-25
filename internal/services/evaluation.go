@@ -509,10 +509,17 @@ func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx cont
 		respEntity.StateID = row.StateID.String()
 		respEntity.StateName = row.StateName
 		respEntity.OverallScore = utils.RoundFloatToTwoDecimals(row.OverallScore)
+		respEntity.OverallColor = utils.GetScoreColor(row.OverallScore)
+		respEntity.MaxScore = 5
 
 		if err := json.Unmarshal(row.Criteria.([]byte), &respEntity.Criteria); err != nil {
 			s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error unmarshalling phrase evaluations with criteria", err)
 			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+
+		for i := range respEntity.Criteria {
+			respEntity.Criteria[i].MaxScore = 5
+			respEntity.Criteria[i].CriteriaColor = utils.GetScoreColor(respEntity.Criteria[i].CriteriaScore)
 		}
 
 		respEntities = append(respEntities, respEntity)

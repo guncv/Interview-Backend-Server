@@ -1350,14 +1350,16 @@ func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testin
 		{
 			CriteriaID:      validCriteriaID.String(),
 			CriteriaName:    "test",
-			CriteriaScore:   8.5,
+			CriteriaScore:   5,
 			CriteriaComment: "test",
+			CriteriaColor:   "#28A745",
 		},
 		{
 			CriteriaID:      validCriteriaID.String(),
 			CriteriaName:    "test",
-			CriteriaScore:   8.5,
+			CriteriaScore:   5,
 			CriteriaComment: "test",
+			CriteriaColor:   "#28A745",
 		},
 	}
 
@@ -1365,7 +1367,7 @@ func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testin
 		{
 			StateID:      validStateID,
 			StateName:    "test",
-			OverallScore: 8.5,
+			OverallScore: 1,
 			Criteria: func() []byte {
 				data, _ := json.Marshal(validCriteria)
 				return data
@@ -1377,7 +1379,7 @@ func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testin
 		{
 			StateID:      validStateID,
 			StateName:    "test",
-			OverallScore: 8.5,
+			OverallScore: 1,
 			Criteria:     []byte("invalid json"),
 		},
 	}
@@ -1387,18 +1389,24 @@ func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testin
 			{
 				StateID:      validStateID.String(),
 				StateName:    "test",
-				OverallScore: 8.5,
+				OverallScore: 1,
+				MaxScore:     5,
+				OverallColor: "#FD7E14",
 				Criteria: []entities.PhraseEvaluationCriteria{
 					{
 						CriteriaID:      validCriteriaID.String(),
 						CriteriaName:    "test",
-						CriteriaScore:   8.5,
+						CriteriaScore:   5,
+						CriteriaColor:   "#28A745",
+						MaxScore:        5,
 						CriteriaComment: "test",
 					},
 					{
 						CriteriaID:      validCriteriaID.String(),
 						CriteriaName:    "test",
-						CriteriaScore:   8.5,
+						CriteriaScore:   5,
+						CriteriaColor:   "#28A745",
+						MaxScore:        5,
 						CriteriaComment: "test",
 					},
 				},
