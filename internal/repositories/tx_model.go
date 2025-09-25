@@ -199,3 +199,21 @@ type PostProcessedCriteria struct {
 	CriteriaAvgScore float64 `json:"criteria_avg_score"`
 	CriteriaComment  string  `json:"criteria_comment"`
 }
+
+type CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx struct {
+	EvaluationID uuid.UUID
+	SessionID    uuid.UUID
+	StateID      uuid.UUID
+	StateName    string
+	OverallScore float64
+	Criteria     CreateCriteriaReqTx
+}
+
+type CreateCriteriaReqTx struct {
+	ID               []uuid.UUID
+	EvaluationID     []uuid.UUID
+	CriteriaID       []uuid.UUID
+	CriteriaName     []string
+	CriteriaAvgScore []float64
+	CriteriaComment  []string
+}

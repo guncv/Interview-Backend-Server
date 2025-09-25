@@ -304,7 +304,7 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		RubricID:     rubricID,
 		UserID:       userID,
 		CurrentState: req.CurrentState,
-		OverallScore: fmt.Sprintf("%f", result.OverallScore),
+		OverallScore: utils.FormatFloatToTwoDecimals(result.OverallScore),
 		SummaryMd:    result.OverallFeedback,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -355,6 +355,12 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	interviewStateID, err := uuid.Parse(req.InterviewStateID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid interview state ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -438,13 +444,45 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 		})
 	}
 
-	// postProcessedCriteriaResp, err := s.evaluationScoresRepo.CalculateEachCriteriaCommentBySessionAndState(ctx, &preProcessedCriteria)
-	// if err != nil {
-	// 	s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error calculating each criteria comment by session and state", err)
-	// 	return err
-	// }
+	postProcessedCriteriaResp, err := s.evaluationScoresRepo.CalculateEachCriteriaCommentBySessionAndState(ctx, &preProcessedCriteria)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error calculating each criteria comment by session and state", err)
+		return err
+	}
 
-	s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Evaluation summary json", string(resp))
+	evaluationID := s.generator.GenerateUUID(ctx)
+
+	var criteriaReqTx repositories.CreateCriteriaReqTx
+	for _, criteria := range postProcessedCriteriaResp.Criteria {
+
+		newId := s.generator.GenerateUUID(ctx)
+		criteriaID, err := uuid.Parse(criteria.CriteriaID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid criteria ID", err)
+			return err
+		}
+
+		criteriaReqTx.ID = append(criteriaReqTx.ID, newId)
+		criteriaReqTx.EvaluationID = append(criteriaReqTx.EvaluationID, evaluationID)
+		criteriaReqTx.CriteriaID = append(criteriaReqTx.CriteriaID, criteriaID)
+		criteriaReqTx.CriteriaName = append(criteriaReqTx.CriteriaName, criteria.CriteriaName)
+		criteriaReqTx.CriteriaAvgScore = append(criteriaReqTx.CriteriaAvgScore, utils.RoundFloatToTwoDecimals(criteria.CriteriaAvgScore))
+		criteriaReqTx.CriteriaComment = append(criteriaReqTx.CriteriaComment, criteria.CriteriaComment)
+	}
+
+	dbReqTx := &repositories.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx{
+		EvaluationID: evaluationID,
+		SessionID:    sessionID,
+		StateID:      interviewStateID,
+		StateName:    req.CurrentState,
+		OverallScore: utils.RoundFloatToTwoDecimals(respOld.EvaluationAvgScore),
+		Criteria:     criteriaReqTx,
+	}
+
+	if err := s.evaluationScoresRepo.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx, dbReqTx); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error creating phrase evaluation and criteria score", err)
+		return err
+	}
 
 	return nil
 }

@@ -94,6 +94,12 @@ const (
 
 	// Issue Categories
 	ErrCodeIssueCategoryNotFound ErrorCode = "INS0800"
+
+	// Interview State
+	ErrCodeInterviewStateNotFound ErrorCode = "INS0900"
+
+	// Evaluation Summary
+	ErrCodeEvaluationSummaryNotFound ErrorCode = "INS1000"
 )
 
 func (c ErrorCode) Message() string {

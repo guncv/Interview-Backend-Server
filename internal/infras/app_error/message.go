@@ -93,4 +93,10 @@ const (
 
 	// Issue Categories
 	ErrMessageIssueCategoryNotFound ErrorMessage = "The issue category was not found. Please try again."
+
+	// Interview State
+	ErrMessageInterviewStateNotFound ErrorMessage = "The interview state was not found. Please try again."
+
+	// Evaluation Summary
+	ErrMessageEvaluationSummaryNotFound ErrorMessage = "The evaluation summary was not found. Please try again."
 )

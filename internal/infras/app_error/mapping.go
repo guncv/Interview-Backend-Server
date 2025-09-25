@@ -86,6 +86,12 @@ var ErrorCodeToHttpCode = map[ErrorCode]ErrorHttpCode{
 	ErrCodeIssueReportIDRequired:   ErrHttpCodeBadRequest,
 	// Issue Categories
 	ErrCodeIssueCategoryNotFound: ErrHttpCodeNotFound,
+
+	// Interview State
+	ErrCodeInterviewStateNotFound: ErrHttpCodeNotFound,
+
+	// Evaluation Summary
+	ErrCodeEvaluationSummaryNotFound: ErrHttpCodeNotFound,
 }
 
 var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
@@ -173,6 +179,13 @@ var ErrorCodeToMessage = map[ErrorCode]ErrorMessage{
 	ErrCodeIssueReportNotOpen:      ErrMessageIssueReportNotOpen,
 	ErrCodeIssueReportUnauthorized: ErrMessageIssueReportUnauthorized,
 	ErrCodeIssueReportIDRequired:   ErrMessageIssueReportIDRequired,
+
 	// Issue Categories
 	ErrCodeIssueCategoryNotFound: ErrMessageIssueCategoryNotFound,
+
+	// Interview State
+	ErrCodeInterviewStateNotFound: ErrMessageInterviewStateNotFound,
+
+	// Evaluation Summary
+	ErrCodeEvaluationSummaryNotFound: ErrMessageEvaluationSummaryNotFound,
 }

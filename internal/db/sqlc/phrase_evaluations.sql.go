@@ -7,51 +7,42 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 const createPhraseEvaluation = `-- name: CreatePhraseEvaluation :exec
 INSERT INTO phrase_evaluations (
+    id,
     session_id,
     state_id,
     state_name,
-    overall_score,
-    summary_md,
-    created_at,
-    updated_at
+    overall_score
 )
 VALUES (
     $1,
     $2,
     $3,
     $4,
-    $5,
-    $6,
-    $7
+    $5
 )
 `
 
 type CreatePhraseEvaluationParams struct {
-	SessionID    uuid.UUID      `json:"session_id"`
-	StateID      uuid.UUID      `json:"state_id"`
-	StateName    string         `json:"state_name"`
-	OverallScore float64        `json:"overall_score"`
-	SummaryMd    sql.NullString `json:"summary_md"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	UpdatedAt    sql.NullTime   `json:"updated_at"`
+	ID           uuid.UUID `json:"id"`
+	SessionID    uuid.UUID `json:"session_id"`
+	StateID      uuid.UUID `json:"state_id"`
+	StateName    string    `json:"state_name"`
+	OverallScore float64   `json:"overall_score"`
 }
 
 func (q *Queries) CreatePhraseEvaluation(ctx context.Context, arg CreatePhraseEvaluationParams) error {
 	_, err := q.db.ExecContext(ctx, createPhraseEvaluation,
+		arg.ID,
 		arg.SessionID,
 		arg.StateID,
 		arg.StateName,
 		arg.OverallScore,
-		arg.SummaryMd,
-		arg.CreatedAt,
-		arg.UpdatedAt,
 	)
 	return err
 }

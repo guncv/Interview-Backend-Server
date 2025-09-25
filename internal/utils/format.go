@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
@@ -188,4 +189,19 @@ func GetStatusDisplayName(status string) string {
 	default:
 		return "Unknown"
 	}
+}
+
+func FormatFloatToTwoDecimals(value float64) string {
+	formatted := fmt.Sprintf("%.2f", value)
+
+	if strings.Contains(formatted, ".") {
+		formatted = strings.TrimRight(formatted, "0")
+		formatted = strings.TrimRight(formatted, ".")
+	}
+
+	return formatted
+}
+
+func RoundFloatToTwoDecimals(value float64) float64 {
+	return float64(int(value*100+0.5)) / 100
 }
