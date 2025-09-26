@@ -165,8 +165,6 @@ func (s *issueReportsService) fetchIssueCategoriesFromDB(ctx context.Context) ([
 				TTL:   constants.RedisTTLIssueCategories,
 			})
 		}()
-	} else {
-		s.log.WarnWithID(ctx, "[Service: ListIssueCategories] Failed to marshal Redis payload", err)
 	}
 
 	return issueCategories, nil

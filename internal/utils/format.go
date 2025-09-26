@@ -99,7 +99,7 @@ func GetNullableString(nullString sql.NullString, defaultValue string) string {
 func GetStatusColor(status string) string {
 	switch status {
 	case constants.StatusPending:
-		return "#6C757D"
+		return "#17A2B8"
 	case constants.StatusOnGoing:
 		return "#007BFF"
 	case constants.StatusCompleted:
@@ -107,7 +107,7 @@ func GetStatusColor(status string) string {
 	case constants.StatusAborted:
 		return "#DC3545"
 	case constants.StatusCancelled:
-		return "#6C757D"
+		return "#FFC107"
 	case constants.StatusTimedOut:
 		return "#FF6B35"
 	default:

@@ -325,21 +325,9 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		LLmModel:          result.LLmModel,
 	}
 
-	var lastErr error
-	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
-		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
-		if err == nil {
-			break
-		}
-		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
-		lastErr = err
-
-		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
-	}
-
-	if lastErr != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error creating evaluation and score", lastErr)
-		return lastErr
+	if err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error creating evaluation and score", err)
+		return err
 	}
 
 	if err := s.interviewTurnsRepo.FlagIsScoreEvaluated(ctx, userTurnID); err != nil {
@@ -426,7 +414,7 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	var respOld entities.GetEvaluationSummaryJsonBySessionAndStateResp
 	if err := json.Unmarshal(resp, &respOld); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error unmarshalling evaluation summary json", err)
-		return err
+		return app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
 	}
 
 	var preProcessedCriteria repositories.PreProcessedCriteriaReq
@@ -466,7 +454,7 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 		criteriaID, err := uuid.Parse(criteria.CriteriaID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid criteria ID", err)
-			return err
+			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		}
 
 		criteriaReqTx.ID = append(criteriaReqTx.ID, newId)
@@ -504,7 +492,7 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalizing); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
 		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return err

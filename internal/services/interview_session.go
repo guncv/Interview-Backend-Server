@@ -899,10 +899,14 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
+				StatusColor:      utils.GetStatusColor(row.Status),
 				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
-				OverallScore:     utils.GetNullableFloat64(row.OverallScore, 0.00),
 			}
+
+			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+			session.OverallScore = overallScore
+			session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
 				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
@@ -955,11 +959,14 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
+				StatusColor:      utils.GetStatusColor(row.Status),
 				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
 			}
 
-			session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
+			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+			session.OverallScore = overallScore
+			session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
 				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
@@ -1067,9 +1074,12 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 			Status:           row.Status,
 			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+			StatusColor:      utils.GetStatusColor(row.Status),
 		}
 
-		session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
+		overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+		session.OverallScore = overallScore
+		session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 		if row.StartedAt.Valid && row.EndedAt.Valid {
 			duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
@@ -1423,10 +1433,6 @@ func (s *interviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx con
 		return nil, err
 	}
 
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Setting last turn ID in redis", map[string]any{
-		"current_state": req.OldCurrentState,
-		"last_turn_id":  lastTurnID.String(),
-	})
 	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, sessionID.String(), req.OldCurrentState)
 	redisPayload := database.RedisPayload{
 		Key:   redisKey,

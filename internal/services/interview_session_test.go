@@ -3702,7 +3702,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *entities.EndInterviewSessionReq
-		setup  func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository)
+		setup  func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository)
 		verify func(t *testing.T, gotErr error)
 	}{
 		{
@@ -3711,7 +3711,8 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
@@ -3736,7 +3737,10 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				})).
 					Return(nil)
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionPhraseEvaluation(ctx, sessionID.String()).
+					Return(nil)
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -3748,7 +3752,8 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
@@ -3760,7 +3765,10 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				})).
 					Return(nil)
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionPhraseEvaluation(ctx, sessionID.String()).
+					Return(nil)
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -3772,11 +3780,14 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: "invalid-session-id",
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, "invalid-session-id")
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3790,7 +3801,8 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
@@ -3801,7 +3813,9 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(invalidScore, nil)
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, sessionID.String())
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3815,14 +3829,17 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(nil, errors.New("get all evaluations by session id error"))
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, sessionID.String())
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3835,7 +3852,8 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
@@ -3853,7 +3871,9 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo.EXPECT().GetEvaluationOverallSummary(ctx, getOverallSummary).
 					Return(nil, errors.New("get evaluation overall summary error"))
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, sessionID.String())
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
@@ -3866,7 +3886,8 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				SessionId: sessionID.String(),
 				Status:    "completed",
 			},
-			setup: func() (*mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
@@ -3891,18 +3912,62 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				})).
 					Return(errors.New("end interview session repo error"))
 
-				return mockEvaluationScoresRepo, mockInterviewSessionRepo
+				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, sessionID.String())
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "end interview session repo error")
 			},
 		},
+		{
+			name: "Error WithFinalizeSessionPhraseEvaluationError",
+			input: &entities.EndInterviewSessionReq{
+				SessionId: sessionID.String(),
+				Status:    "completed",
+			},
+			setup: func() (*mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
+				mockEvaluationService := mockServices.NewMockEvaluationService(t)
+				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return(validScore, nil)
+
+				getOverallSummary := &repositories.CreateEvaluationOverallSummaryTxReq{
+					SummaryMd: []string{
+						"summary1",
+						"summary2",
+						"summary3",
+					},
+				}
+
+				mockEvaluationScoresRepo.EXPECT().GetEvaluationOverallSummary(ctx, getOverallSummary).
+					Return(&repositories.CreateEvaluationOverallSummaryTxResp{
+						OverallSummaryMd: "summary overall",
+					}, nil)
+
+				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
+					return req.ID == sessionID && req.Status == "completed" && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+				})).
+					Return(nil)
+
+				mockEvaluationService.EXPECT().FinalizeSessionPhraseEvaluation(ctx, sessionID.String()).
+					Return(errors.New("finalize session phrase evaluation error"))
+
+				return mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "finalize session phrase evaluation error")
+			},
+		},
 	}
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockEvaluationScoresRepo, mockInterviewSessionRepo := tC.setup()
+			mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo := tC.setup()
 
 			svc := NewInterviewSessionService(
 				lgr,
@@ -3915,7 +3980,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				nil,
 				nil,
 				nil,
-				nil,
+				mockEvaluationService,
 				mockEvaluationScoresRepo,
 				nil,
 				nil,
@@ -3979,7 +4044,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 						Position:       "Software Engineer",
 						Status:         "completed",
 						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
-						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 2, Valid: true},
 						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
 						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
 					},
@@ -4004,11 +4069,13 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				assert.Equal(t, "test-resume.pdf", gotResp.Sessions[0].ResumeFileName)
 				assert.Equal(t, "Software Engineer", gotResp.Sessions[0].Position)
 				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
-				assert.Equal(t, 85.5, gotResp.Sessions[0].OverallScore)
+				assert.Equal(t, float64(2), gotResp.Sessions[0].OverallScore)
 				assert.Equal(t, "30.00", gotResp.Sessions[0].TotalTime)
 				assert.Equal(t, 1, gotResp.TotalPages)
 				assert.Equal(t, 20, gotResp.PageSize)
 				assert.NotNil(t, gotResp.NextCursor)
+				assert.Equal(t, "#FFC107", gotResp.Sessions[0].OverallScoreColor)
+				assert.Equal(t, "#28A745", gotResp.Sessions[0].StatusColor)
 			},
 		},
 		{
@@ -4224,7 +4291,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 						Position:       "Software Engineer",
 						Status:         "completed",
 						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
-						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 2, Valid: true},
 						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
 						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
 					},
@@ -4235,7 +4302,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 						Position:       "Senior Engineer",
 						Status:         "completed",
 						CreatedAt:      sql.NullTime{Time: time.Now().Add(-time.Hour), Valid: true},
-						OverallScore:   sql.NullFloat64{Float64: 90.0, Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 4, Valid: true},
 						StartedAt:      sql.NullTime{Time: time.Now().Add(-90 * time.Minute), Valid: true},
 						EndedAt:        sql.NullTime{Time: time.Now().Add(-60 * time.Minute), Valid: true},
 					},
@@ -4259,6 +4326,10 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				assert.Equal(t, 2, gotResp.PageSize)
 				assert.NotNil(t, gotResp.NextCursor)
 				assert.Equal(t, "550e8400-e29b-41d4-a716-446655440001", gotResp.NextCursor.ID)
+				assert.Equal(t, "#FFC107", gotResp.Sessions[0].OverallScoreColor)
+				assert.Equal(t, "#28A745", gotResp.Sessions[0].StatusColor)
+				assert.Equal(t, "#28A745", gotResp.Sessions[1].OverallScoreColor)
+				assert.Equal(t, "#28A745", gotResp.Sessions[1].StatusColor)
 			},
 		},
 		{
@@ -6394,45 +6465,54 @@ func TestInterviewSessionService_InitialFirstCurrentStateSession(t *testing.T) {
 	}
 }
 
-func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
+func TestInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 	lastTurnID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 
 	validReq := &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
-		CurrentState:      "completed",
+		CurrentState:      constants.InterviewStateIntro,
 		SessionID:         sessionID.String(),
 		OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
+		OldCurrentState:   constants.InterviewStateGreeting,
 		LastTurnID:        lastTurnID.String(),
 	}
+
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, sessionID.String(), constants.InterviewStateGreeting)
 
 	testCases := []struct {
 		name   string
 		input  *entities.UpdateCurrentStateSessionAndLastTurnIDReq
-		setup  func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository)
+		setup  func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository)
 		verify func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error)
 	}{
 		{
 			name:  "Success",
 			input: validReq,
-			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
 				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
 
 				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
 					return req.SessionID.String() == sessionID.String() &&
-						req.PhraseType == "completed" &&
+						req.PhraseType == constants.InterviewStateIntro &&
 						req.LastTurnID == lastTurnID &&
 						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
 						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
-						req.SessionID == sessionID &&
-						req.PhraseType == "completed"
+						req.SessionID == sessionID
 				})).Return(nil)
 
-				return mockGenerator, mockInterviewStateRepo
+				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
+					return payload.Key == redisKey &&
+						payload.Value == lastTurnID.String() &&
+						payload.TTL == constants.RedisTTLInterviewLastTurnID
+				})).Return(nil)
+
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
 				assert.NoError(t, gotErr)
@@ -6445,14 +6525,15 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 			input: &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 				OldCurrentStateID: "invalid-old-current-state-id",
 				SessionID:         sessionID.String(),
-				CurrentState:      "completed",
+				CurrentState:      constants.InterviewStateIntro,
 				LastTurnID:        lastTurnID.String(),
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
 				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
 
-				return mockGenerator, mockInterviewStateRepo
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -6466,14 +6547,37 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 			input: &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 				OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
 				SessionID:         "invalid-session-id",
-				CurrentState:      "completed",
+				CurrentState:      constants.InterviewStateIntro,
 				LastTurnID:        lastTurnID.String(),
 			},
-			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
 				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
 
-				return mockGenerator, mockInterviewStateRepo
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidLastTurnID",
+			input: &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
+				OldCurrentStateID: lastTurnID.String(),
+				SessionID:         sessionID.String(),
+				CurrentState:      constants.InterviewStateIntro,
+				LastTurnID:        "invalid-last-turn-id",
+			},
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -6485,23 +6589,23 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 		{
 			name:  "Error WithEndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxError",
 			input: validReq,
-			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
 				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
 
 				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
 
 				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
 					return req.SessionID.String() == sessionID.String() &&
-						req.PhraseType == "completed" &&
+						req.PhraseType == constants.InterviewStateIntro &&
 						req.LastTurnID == lastTurnID &&
 						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
 						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
-						req.SessionID == sessionID &&
-						req.PhraseType == "completed"
+						req.SessionID == sessionID
 				})).Return(errors.New("end old interview state and create new interview state with update flag session tx error"))
 
-				return mockGenerator, mockInterviewStateRepo
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
 			},
 			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
 				assert.Error(t, gotErr)
@@ -6509,11 +6613,44 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 				assert.Nil(t, gotResp)
 			},
 		},
+		{
+			name:  "Error WithSetRedisError",
+			input: validReq,
+			setup: func() (*mockUtils.MockGenerator, *mockDatabase.MockRedisClient, *mockRepositories.MockInterviewStateRepository) {
+				mockGenerator := mockUtils.NewMockGenerator(t)
+				mockRedisClient := mockDatabase.NewMockRedisClient(t)
+				mockInterviewStateRepo := mockRepositories.NewMockInterviewStateRepository(t)
+
+				mockGenerator.EXPECT().GenerateUUID(ctx).Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.PhraseType == constants.InterviewStateIntro &&
+						req.LastTurnID == lastTurnID &&
+						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
+						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
+						req.SessionID == sessionID
+				})).Return(nil)
+
+				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
+					return payload.Key == redisKey &&
+						payload.Value == lastTurnID.String() &&
+						payload.TTL == constants.RedisTTLInterviewLastTurnID
+				})).Return(errors.New("set redis error"))
+
+				return mockGenerator, mockRedisClient, mockInterviewStateRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "set redis error")
+				assert.Nil(t, gotResp)
+			},
+		},
 	}
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockGenerator, mockInterviewStateRepo := tC.setup()
+			mockGenerator, mockRedisClient, mockInterviewStateRepo := tC.setup()
 
 			svc := NewInterviewSessionService(
 				lgr,
@@ -6525,7 +6662,7 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 				nil,
 				nil,
 				nil,
-				nil,
+				mockRedisClient,
 				nil,
 				nil,
 				nil,
@@ -6533,6 +6670,108 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 			)
 
 			gotResp, gotErr := svc.UpdateCurrentStateSessionAndLastTurnID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	lastTurnID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+
+	validReq := &entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq{
+		CurrentState: constants.InterviewStateIntro,
+		SessionID:    sessionID.String(),
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq
+		setup  func() *mockRepositories.MockInterviewTurnsRepository
+		verify func(t *testing.T, gotResp string, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validReq,
+			setup: func() *mockRepositories.MockInterviewTurnsRepository {
+				mockInterviewTurnRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+
+				mockInterviewTurnRepo.EXPECT().GetLastUserTurnIDBySessionIDAndCurrentState(ctx, mock.MatchedBy(func(req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.CurrentState == constants.InterviewStateIntro
+				})).Return(lastTurnID, nil)
+
+				return mockInterviewTurnRepo
+			},
+			verify: func(t *testing.T, gotResp string, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, lastTurnID.String(), gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidSessionID",
+			input: &entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq{
+				SessionID:    "invalid-session-id",
+				CurrentState: constants.InterviewStateIntro,
+			},
+			setup: func() *mockRepositories.MockInterviewTurnsRepository {
+				mockInterviewTurnRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+
+				return mockInterviewTurnRepo
+			},
+			verify: func(t *testing.T, gotResp string, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Equal(t, "", gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetLastUserTurnIDBySessionIDAndCurrentStateError",
+			input: validReq,
+			setup: func() *mockRepositories.MockInterviewTurnsRepository {
+				mockInterviewTurnRepo := mockRepositories.NewMockInterviewTurnsRepository(t)
+
+				mockInterviewTurnRepo.EXPECT().GetLastUserTurnIDBySessionIDAndCurrentState(ctx, mock.MatchedBy(func(req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) bool {
+					return req.SessionID.String() == sessionID.String() &&
+						req.CurrentState == constants.InterviewStateIntro
+				})).Return(uuid.UUID{}, errors.New("get last user turn ID by session ID and current state error"))
+
+				return mockInterviewTurnRepo
+			},
+			verify: func(t *testing.T, gotResp string, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Equal(t, "", gotResp)
+				assert.Contains(t, gotErr.Error(), "get last user turn ID by session ID and current state error")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewTurnRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				mockInterviewTurnRepo,
+				nil,
+			)
+
+			gotResp, gotErr := svc.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

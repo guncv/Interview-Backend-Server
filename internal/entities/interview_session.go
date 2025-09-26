@@ -210,15 +210,17 @@ type ListInterviewSessionsByUserIDResp struct {
 }
 
 type InterviewSessionSummary struct {
-	ID               string  `json:"id"`
-	ResumeID         string  `json:"resume_id"`
-	ResumeFileName   string  `json:"resume_file_name"`
-	Position         string  `json:"position"`
-	Status           string  `json:"status"`
-	TotalTime        string  `json:"total_time"`
-	OverallScore     float64 `json:"overall_score"`
-	CreatedAt        string  `json:"created_at"`
-	CreatedAtDisplay string  `json:"created_at_display"`
+	ID                string  `json:"id"`
+	ResumeID          string  `json:"resume_id"`
+	ResumeFileName    string  `json:"resume_file_name"`
+	Position          string  `json:"position"`
+	Status            string  `json:"status"`
+	StatusColor       string  `json:"status_color"`
+	TotalTime         string  `json:"total_time"`
+	OverallScore      float64 `json:"overall_score"`
+	OverallScoreColor string  `json:"overall_score_color"`
+	CreatedAt         string  `json:"created_at"`
+	CreatedAtDisplay  string  `json:"created_at_display"`
 }
 
 type GetChatHistoryBySessionIDWithEvaluationReq struct {
