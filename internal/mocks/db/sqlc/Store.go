@@ -3252,6 +3252,63 @@ func (_c *MockStore_UpdateEndedAtInterviewStateByID_Call) RunAndReturn(run func(
 	return _c
 }
 
+// UpdateFinalizeStatusInterviewSessionByID provides a mock function with given fields: ctx, arg
+func (_m *MockStore) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg db.UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateFinalizeStatusInterviewSessionByID")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateFinalizeStatusInterviewSessionByIDParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateFinalizeStatusInterviewSessionByIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStore_UpdateFinalizeStatusInterviewSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateFinalizeStatusInterviewSessionByID'
+type MockStore_UpdateFinalizeStatusInterviewSessionByID_Call struct {
+	*mock.Call
+}
+
+// UpdateFinalizeStatusInterviewSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateFinalizeStatusInterviewSessionByIDParams
+func (_e *MockStore_Expecter) UpdateFinalizeStatusInterviewSessionByID(ctx interface{}, arg interface{}) *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call {
+	return &MockStore_UpdateFinalizeStatusInterviewSessionByID_Call{Call: _e.mock.On("UpdateFinalizeStatusInterviewSessionByID", ctx, arg)}
+}
+
+func (_c *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call) Run(run func(ctx context.Context, arg db.UpdateFinalizeStatusInterviewSessionByIDParams)) *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateFinalizeStatusInterviewSessionByIDParams))
+	})
+	return _c
+}
+
+func (_c *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call) Return(_a0 int64, _a1 error) *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call) RunAndReturn(run func(context.Context, db.UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error)) *MockStore_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateInterviewSessionStatus provides a mock function with given fields: ctx, arg
 func (_m *MockStore) UpdateInterviewSessionStatus(ctx context.Context, arg db.UpdateInterviewSessionStatusParams) (int64, error) {
 	ret := _m.Called(ctx, arg)

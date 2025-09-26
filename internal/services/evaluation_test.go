@@ -223,6 +223,7 @@ func TestEvaluationService_GetRubricWithCriteriaByName(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.GetRubricWithCriteriaByName(ctx, tC.input)
@@ -565,6 +566,7 @@ func TestEvaluationService_ListAllRubricsAndCriteria(t *testing.T) {
 				nil,
 				nil,
 				nil,
+				nil,
 			)
 
 			gotResp, gotErr := svc.ListAllRubricsAndCriteria(ctx)
@@ -883,6 +885,7 @@ func TestEvaluationService_CalculateTurnScore(t *testing.T) {
 				mockEvaluationRubricsRepo,
 				mockEvaluationScoresRepo,
 				mockInterviewTurnsRepo,
+				nil,
 				mockGenerator,
 			)
 
@@ -1330,6 +1333,7 @@ func TestEvaluationService_CalculateEvaluationInOldState(t *testing.T) {
 				mockEvaluationRubricsRepo,
 				mockEvaluationScoresRepo,
 				mockInterviewTurnsRepo,
+				nil,
 				mockGenerator,
 			)
 
@@ -1505,6 +1509,7 @@ func TestEvaluationService_GetPhraseEvaluationsWithCriteriaBySessionID(t *testin
 				nil,
 				nil,
 				mockEvaluationScoresRepo,
+				nil,
 				nil,
 				nil,
 			)

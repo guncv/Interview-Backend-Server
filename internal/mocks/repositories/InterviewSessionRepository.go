@@ -623,6 +623,53 @@ func (_c *MockInterviewSessionRepository_ListInterviewSessionsByUserIDWithJumpPa
 	return _c
 }
 
+// UpdateFinalizeStatusInterviewSessionByID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateFinalizeStatusInterviewSessionByID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.UpdateFinalizeStatusInterviewSessionByIDParams) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateFinalizeStatusInterviewSessionByID'
+type MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call struct {
+	*mock.Call
+}
+
+// UpdateFinalizeStatusInterviewSessionByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.UpdateFinalizeStatusInterviewSessionByIDParams
+func (_e *MockInterviewSessionRepository_Expecter) UpdateFinalizeStatusInterviewSessionByID(ctx interface{}, req interface{}) *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call {
+	return &MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call{Call: _e.mock.On("UpdateFinalizeStatusInterviewSessionByID", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call) Run(run func(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams)) *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.UpdateFinalizeStatusInterviewSessionByIDParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call) Return(_a0 error) *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call) RunAndReturn(run func(context.Context, *db.UpdateFinalizeStatusInterviewSessionByIDParams) error) *MockInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateInterviewSessionStatus provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error {
 	ret := _m.Called(ctx, req)

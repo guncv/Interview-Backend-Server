@@ -171,3 +171,8 @@ UPDATE interview_sessions
 SET current_state = $2,
     current_state_id = $3
 WHERE id = $1;
+
+-- name: UpdateFinalizeStatusInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET finalize_status = $2
+WHERE id = $1;

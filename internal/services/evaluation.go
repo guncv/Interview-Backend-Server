@@ -33,6 +33,7 @@ type evaluationService struct {
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository
 	evaluationScoresRepo  repositories.EvaluationScoresRepository
 	interviewTurnsRepo    repositories.InterviewTurnsRepository
+	interviewSessionsRepo repositories.InterviewSessionRepository
 	generator             utils.Generator
 }
 
@@ -42,6 +43,7 @@ func NewEvaluationService(
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository,
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
 	interviewTurnsRepo repositories.InterviewTurnsRepository,
+	interviewSessionsRepo repositories.InterviewSessionRepository,
 	generator utils.Generator,
 ) EvaluationService {
 	return &evaluationService{
@@ -50,6 +52,7 @@ func NewEvaluationService(
 		redisClient:           redisClient,
 		evaluationScoresRepo:  evaluationScoresRepo,
 		interviewTurnsRepo:    interviewTurnsRepo,
+		interviewSessionsRepo: interviewSessionsRepo,
 		generator:             generator,
 	}
 }
@@ -475,6 +478,73 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 
 	if err := s.evaluationScoresRepo.CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx, dbReqTx); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error creating phrase evaluation and criteria score", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *evaluationService) FinalizeSessionEvaluation(ctx context.Context, sessionIDReq string) error {
+	s.log.InfoWithID(ctx, "[Service: FinalizeSessionEvaluation] Called")
+
+	// sessionID, err := uuid.Parse(sessionIDReq)
+	// if err != nil {
+	// 	s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Invalid session ID", err)
+	// 	return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	// }
+
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
+
+		err = s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
+			return err
+		}
+
+		return err
+	}
+
+	states, err := s.interviewStatesRepo.GetUnprocessedStates(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	for _, st := range states {
+		s.log.InfoWithID(ctx, fmt.Sprintf("[Finalize] Triggering late evaluation for state %s", st.State))
+
+		err := s.CalculateEvaluationInOldState(ctx, &entities.CalculateEvaluationInOldStateReq{
+			SessionID:        sessionID,
+			CurrentState:     st.State,
+			InterviewStateID: st.InterviewStateID,
+		})
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Finalize] Failed evaluation", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
+	s.log.InfoWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.UpdateFinalizeStatusInterviewSessionByIDParams{
+		ID: sessionID,
+		FinalizeStatus: db.NullFinalizeStatusEnum{
+			FinalizeStatusEnum: finalizeStatus,
+			Valid:              true,
+		},
+	}
+
+	if err := s.interviewSessionsRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
 		return err
 	}
 

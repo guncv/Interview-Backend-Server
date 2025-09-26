@@ -493,6 +493,25 @@ func (q *Queries) UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Contex
 	return result.RowsAffected()
 }
 
+const updateFinalizeStatusInterviewSessionByID = `-- name: UpdateFinalizeStatusInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET finalize_status = $2
+WHERE id = $1
+`
+
+type UpdateFinalizeStatusInterviewSessionByIDParams struct {
+	ID             uuid.UUID              `json:"id"`
+	FinalizeStatus NullFinalizeStatusEnum `json:"finalize_status"`
+}
+
+func (q *Queries) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateFinalizeStatusInterviewSessionByID, arg.ID, arg.FinalizeStatus)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :execrows
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),

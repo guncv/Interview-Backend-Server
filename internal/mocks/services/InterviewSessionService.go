@@ -1222,53 +1222,6 @@ func (_c *MockInterviewSessionService_UpdateInterviewSessionStatus_Call) RunAndR
 	return _c
 }
 
-// UpdateLastTurnIDInterviewStateByID provides a mock function with given fields: ctx, req
-func (_m *MockInterviewSessionService) UpdateLastTurnIDInterviewStateByID(ctx context.Context, req *entities.UpdateLastTurnIDInterviewStateByIDReq) error {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateLastTurnIDInterviewStateByID")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateLastTurnIDInterviewStateByIDReq) error); ok {
-		r0 = rf(ctx, req)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateLastTurnIDInterviewStateByID'
-type MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call struct {
-	*mock.Call
-}
-
-// UpdateLastTurnIDInterviewStateByID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.UpdateLastTurnIDInterviewStateByIDReq
-func (_e *MockInterviewSessionService_Expecter) UpdateLastTurnIDInterviewStateByID(ctx interface{}, req interface{}) *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call {
-	return &MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call{Call: _e.mock.On("UpdateLastTurnIDInterviewStateByID", ctx, req)}
-}
-
-func (_c *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call) Run(run func(ctx context.Context, req *entities.UpdateLastTurnIDInterviewStateByIDReq)) *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.UpdateLastTurnIDInterviewStateByIDReq))
-	})
-	return _c
-}
-
-func (_c *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call) Return(_a0 error) *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call) RunAndReturn(run func(context.Context, *entities.UpdateLastTurnIDInterviewStateByIDReq) error) *MockInterviewSessionService_UpdateLastTurnIDInterviewStateByID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // NewMockInterviewSessionService creates a new instance of MockInterviewSessionService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockInterviewSessionService(t interface {

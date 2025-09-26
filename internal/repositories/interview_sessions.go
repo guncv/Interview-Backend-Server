@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	log "gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -27,6 +28,7 @@ type InterviewSessionRepository interface {
 	CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error)
 	DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error
 	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
+	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 }
 
 type interviewSessionRepository struct {
@@ -282,4 +284,21 @@ func (r *interviewSessionRepository) GetInterviewSessionInformationByID(ctx cont
 		return nil, app_error.HandleDatabaseError(err)
 	}
 	return &resp, nil
+}
+
+func (r *interviewSessionRepository) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateFinalizeStatusInterviewSessionByID] Called")
+
+	rowAffected, err := r.db.UpdateFinalizeStatusInterviewSessionByID(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateFinalizeStatusInterviewSessionByID] Error updating interview session finalize status", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateFinalizeStatusInterviewSessionByID] Interview session not found")
+		return app_error.New(constants.ErrInterviewSessionNotFound, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
 }

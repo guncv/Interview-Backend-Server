@@ -71,6 +71,7 @@ type Querier interface {
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Context, arg UpdateCurrentStateAndIDInterviewSessionByIDParams) (int64, error)
 	UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error)
+	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error)
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
 	UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg UpdateIsEvaluatedInterviewStateByIDParams) (int64, error)
 	UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error)

@@ -29,6 +29,7 @@ var (
 	ErrInterviewSessionInvalidStatus        = errors.New("interview session status is invalid")
 	ErrInterviewSessionNotStarted           = errors.New("interview session is not started")
 	ErrInterviewSessionTurnNoNegative       = errors.New("interview session turn no cannot be negative")
+	ErrInterviewSessionNotFound             = errors.New("interview session not found")
 
 	// Issue Reports
 	ErrIssueReportNotOpen      = errors.New("issue report not open")
