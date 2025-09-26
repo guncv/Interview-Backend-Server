@@ -24,7 +24,6 @@ type RedisTaskConsumer interface {
 	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error
-	ConsumeTaskCalculateEvaluationInOldState(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
@@ -82,7 +81,6 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
 	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 	mux.HandleFunc(constants.TaskCalculateTurnScore, c.ConsumeTaskCalculateTurnScore)
-	mux.HandleFunc(constants.TaskCalculateEvaluationInOldState, c.ConsumeTaskCalculateEvaluationInOldState)
 
 	if err := c.server.Start(mux); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
@@ -176,23 +174,5 @@ func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, t
 	}
 
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Successfully deleted redis", nil)
-	return nil
-}
-
-func (c *redisTaskConsumer) ConsumeTaskCalculateEvaluationInOldState(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Processing calculate evaluation in old state task")
-
-	var payload entities.CalculateEvaluationInOldStateReq
-	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Failed to unmarshal payload", err)
-		return app_error.New(fmt.Errorf("invalid calculate evaluation in old state payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	if err := c.evaluationService.CalculateEvaluationInOldState(ctx, &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Failed to calculate evaluation in old state", err)
-		return app_error.New(fmt.Errorf("failed to calculate evaluation in old state: %w", err), app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateEvaluationInOldState] Successfully calculated evaluation in old state", nil)
 	return nil
 }

@@ -2251,6 +2251,65 @@ func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) RunAndRetu
 	return _c
 }
 
+// GetUnprocessedInterviewStatesBySessionID provides a mock function with given fields: ctx, sessionID
+func (_m *MockQuerier) GetUnprocessedInterviewStatesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUnprocessedInterviewStatesBySessionID")
+	}
+
+	var r0 []db.GetUnprocessedInterviewStatesBySessionIDRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetUnprocessedInterviewStatesBySessionIDRow); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetUnprocessedInterviewStatesBySessionIDRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUnprocessedInterviewStatesBySessionID'
+type MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call struct {
+	*mock.Call
+}
+
+// GetUnprocessedInterviewStatesBySessionID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockQuerier_Expecter) GetUnprocessedInterviewStatesBySessionID(ctx interface{}, sessionID interface{}) *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call {
+	return &MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call{Call: _e.mock.On("GetUnprocessedInterviewStatesBySessionID", ctx, sessionID)}
+}
+
+func (_c *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call) Return(_a0 []db.GetUnprocessedInterviewStatesBySessionIDRow, _a1 error) *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error)) *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserIssueReportUserIDAndStatusByID provides a mock function with given fields: ctx, id
 func (_m *MockQuerier) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (db.GetUserIssueReportUserIDAndStatusByIDRow, error) {
 	ret := _m.Called(ctx, id)

@@ -54,6 +54,7 @@ type Querier interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error)
+	GetUnprocessedInterviewStatesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetUnprocessedInterviewStatesBySessionIDRow, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	IsLastUserStateTurnScored(ctx context.Context, arg IsLastUserStateTurnScoredParams) (sql.NullBool, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)

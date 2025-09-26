@@ -15,6 +15,7 @@ type InterviewStateRepository interface {
 	CreateInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *CreateInterviewStateWithUpdateFlagSessionTxReq) error
 	EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) error
 	GetLastTurnIDInterviewStateByID(ctx context.Context, req uuid.UUID) (uuid.NullUUID, error)
+	GetUnprocessedInterviewStatesBySessionID(ctx context.Context, req uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error)
 }
 
 type interviewStateRepository struct {
@@ -149,4 +150,16 @@ func (r *interviewStateRepository) GetLastTurnIDInterviewStateByID(ctx context.C
 	}
 
 	return lastTurnID, nil
+}
+
+func (r *interviewStateRepository) GetUnprocessedInterviewStatesBySessionID(ctx context.Context, req uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetUnprocessedInterviewStatesBySessionID] Called")
+
+	states, err := r.db.GetUnprocessedInterviewStatesBySessionID(ctx, req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetUnprocessedInterviewStatesBySessionID] Error getting interview states", err)
+		return nil, err
+	}
+
+	return states, nil
 }

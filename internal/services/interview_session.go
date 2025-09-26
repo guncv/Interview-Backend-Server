@@ -750,12 +750,16 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 	sessionID, err := uuid.Parse(req.SessionId)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Invalid session ID", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
+
+	endAt := time.Now().UTC()
 
 	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting all evaluations by session ID", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 		return err
 	}
 
@@ -772,6 +776,7 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 			overallScoreFloat, err := strconv.ParseFloat(evaluation.OverallScore, 64)
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error parsing overall score", err)
+				s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 				return app_error.New(err, app_error.ErrCodeGeneralInvalidNumber)
 			}
 			overallScore += overallScoreFloat
@@ -783,6 +788,7 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 		overallSummary, err := s.evaluationScoresRepo.GetEvaluationOverallSummary(ctx, createEvaluationOverallSummaryTxReq)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting evaluation overall summary", err)
+			s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 			return err
 		}
 
@@ -796,13 +802,19 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 	dbReq := &db.EndInterviewSessionParams{
 		ID:           sessionID,
 		Status:       req.Status,
-		EndedAt:      sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 		OverallScore: sql.NullFloat64{Float64: math.Round(overallScore*100) / 100, Valid: true},
 		SummaryMd:    sql.NullString{String: overallSummaryMd, Valid: true},
 	}
 
 	if err := s.interviewSessionRepo.EndInterviewSession(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error ending interview session", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
+		return err
+	}
+
+	if err := s.evaluationService.FinalizeSessionPhraseEvaluation(ctx, req.SessionId); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error finalizing session evaluation", err)
 		return err
 	}
 

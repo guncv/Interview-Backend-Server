@@ -27,3 +27,10 @@ WHERE id = $1;
 SELECT last_turn_id
 FROM interview_states
 WHERE id = $1;
+
+-- name: GetUnprocessedInterviewStatesBySessionID :many
+SELECT id, session_id, phrase_type
+FROM interview_states
+WHERE session_id = $1
+    AND soft_delete = FALSE
+    AND (ended_at IS NULL OR is_evaluated = FALSE);

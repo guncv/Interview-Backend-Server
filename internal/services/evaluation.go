@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,8 @@ type EvaluationService interface {
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error
 	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
+	FinalizeSessionPhraseEvaluation(ctx context.Context, sessionID string) error
+	FinalizeSessionFailed(ctx context.Context, sessionID string)
 }
 
 type evaluationService struct {
@@ -34,6 +37,7 @@ type evaluationService struct {
 	evaluationScoresRepo  repositories.EvaluationScoresRepository
 	interviewTurnsRepo    repositories.InterviewTurnsRepository
 	interviewSessionsRepo repositories.InterviewSessionRepository
+	interviewStatesRepo   repositories.InterviewStateRepository
 	generator             utils.Generator
 }
 
@@ -44,6 +48,7 @@ func NewEvaluationService(
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
 	interviewTurnsRepo repositories.InterviewTurnsRepository,
 	interviewSessionsRepo repositories.InterviewSessionRepository,
+	interviewStatesRepo repositories.InterviewStateRepository,
 	generator utils.Generator,
 ) EvaluationService {
 	return &evaluationService{
@@ -53,6 +58,7 @@ func NewEvaluationService(
 		evaluationScoresRepo:  evaluationScoresRepo,
 		interviewTurnsRepo:    interviewTurnsRepo,
 		interviewSessionsRepo: interviewSessionsRepo,
+		interviewStatesRepo:   interviewStatesRepo,
 		generator:             generator,
 	}
 }
@@ -409,6 +415,10 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 
 	resp, err := s.evaluationScoresRepo.GetEvaluationSummaryJsonBySessionAndState(ctx, dbReq)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.log.WarnWithID(ctx, "[Service: CalculateEvaluationInOldState] Evaluation summary json by session and state not found", err)
+			return nil
+		}
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error getting evaluation summary json by session and state", err)
 		return err
 	}
@@ -484,46 +494,60 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	return nil
 }
 
-func (s *evaluationService) FinalizeSessionEvaluation(ctx context.Context, sessionIDReq string) error {
+func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context, sessionIDReq string) error {
 	s.log.InfoWithID(ctx, "[Service: FinalizeSessionEvaluation] Called")
 
-	// sessionID, err := uuid.Parse(sessionIDReq)
-	// if err != nil {
-	// 	s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Invalid session ID", err)
-	// 	return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	// }
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Invalid session ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
 
 	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
-
-		err = s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
-			return err
-		}
-
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return err
 	}
 
-	states, err := s.interviewStatesRepo.GetUnprocessedStates(ctx, sessionID)
+	states, err := s.interviewStatesRepo.GetUnprocessedInterviewStatesBySessionID(ctx, sessionID)
 	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error getting unprocessed interview states by session ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return err
 	}
 
-	for _, st := range states {
-		s.log.InfoWithID(ctx, fmt.Sprintf("[Finalize] Triggering late evaluation for state %s", st.State))
+	for _, state := range states {
+		s.log.InfoWithID(ctx, fmt.Sprintf("[Finalize] Triggering late evaluation for state %s", state.PhraseType))
 
 		err := s.CalculateEvaluationInOldState(ctx, &entities.CalculateEvaluationInOldStateReq{
-			SessionID:        sessionID,
-			CurrentState:     st.State,
-			InterviewStateID: st.InterviewStateID,
+			SessionID:        sessionIDReq,
+			CurrentState:     state.PhraseType,
+			InterviewStateID: state.ID.String(),
 		})
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Finalize] Failed evaluation", err)
+			s.FinalizeSessionFailed(ctx, sessionIDReq)
+			return err
 		}
 	}
 
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return err
+	}
+
 	return nil
+}
+
+func (s *evaluationService) FinalizeSessionFailed(ctx context.Context, sessionIDReq string) {
+	s.log.InfoWithID(ctx, "[Service: FinalizeSessionFailed] Called")
+
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionFailed] Error updating finalize status interview session by ID", err)
+		return
+	}
 }
 
 func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {

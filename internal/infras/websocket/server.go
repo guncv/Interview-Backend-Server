@@ -370,6 +370,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 
+	endInterviewReq := &entities.EndInterviewSessionReq{
+		SessionId: client.SessionID,
+		Status:    constants.StatusCancelled,
+	}
+	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation", err)
+	}
+
 	s.mu.Lock()
 	delete(s.sessions, client.SessionID)
 	if set := s.userSessions[client.userID]; set != nil {
