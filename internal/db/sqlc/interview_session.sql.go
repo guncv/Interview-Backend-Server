@@ -32,6 +32,7 @@ SELECT COUNT(*)
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -228,6 +229,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -302,6 +304,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -404,6 +407,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $4::text IS NULL OR $4::text = ''
         OR position ILIKE '%' || $4 || '%'
