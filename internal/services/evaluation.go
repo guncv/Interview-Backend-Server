@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -320,9 +320,8 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
 		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
 		if err == nil {
-			return nil
+			break
 		}
-
 		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
 		lastErr = err
 
@@ -339,13 +338,48 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		return err
 	}
 
-	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
-	redisPayload := database.RedisPayload{
-		Key:   redisKey,
-		Value: true,
-		TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Current state ", req.CurrentState)
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, req.SessionID, req.CurrentState)
+	const maxRedisRetries = 3
+	const retryDelay = 300 * time.Millisecond
+
+	var lastTurnID string
+	for i := 0; i < maxRedisRetries; i++ {
+		lastTurnID, err = s.redisClient.Get(ctx, redisKey)
+		if err == nil {
+			break
+		}
+		if errors.Is(err, redis.Nil) {
+			s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Redis key not found, retrying... (%d/%d)", i+1, maxRedisRetries))
+			time.Sleep(retryDelay * time.Duration(i+1))
+			continue
+		}
+
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting last turn ID from redis", err)
+		return err
 	}
-	_ = s.redisClient.Set(ctx, redisPayload)
+
+	if lastTurnID == "" {
+		s.log.WarnWithID(ctx, "[Service: CalculateTurnScore] Last turn ID not found in Redis after retries, skipping evaluation trigger")
+		return nil
+	}
+
+	if lastTurnID == req.UserTurnID {
+		s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Last turn ID is the same as user turn ID", req.UserTurnID, " ", lastTurnID)
+		req := entities.CalculateEvaluationInOldStateReq{
+			SessionID:        req.SessionID,
+			CurrentState:     req.CurrentState,
+			InterviewStateID: req.CurrentStateID,
+		}
+		_ = s.CalculateEvaluationInOldState(ctx, &req)
+	} else {
+		s.log.WarnWithID(ctx, "[Service: CalculateTurnScore] Last turn ID is not the same as user turn ID", req.UserTurnID, " ", lastTurnID)
+	}
+
+	if err := s.redisClient.Delete(ctx, redisKey); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error deleting last turn ID from redis", err)
+		return err
+	}
 
 	return nil
 }
@@ -363,47 +397,6 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid interview state ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	const maxRetries = 5
-	const retryDelay = time.Second * 1
-
-	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
-
-	for i := 0; i < maxRetries; i++ {
-		var isScored bool
-
-		redisValue, err := s.redisClient.Get(ctx, redisKey)
-		if err == nil {
-			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Already marked as scored in Redis")
-
-			isScored, err = strconv.ParseBool(redisValue)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error parsing Redis value", err)
-				return err
-			}
-		} else {
-			s.log.WarnWithID(ctx, "[Service: CalculateEvaluationInOldState] Redis miss, checking database")
-
-			dbReq := &db.IsLastUserStateTurnScoredParams{
-				SessionID:    sessionID,
-				CurrentState: req.CurrentState,
-			}
-
-			isScored, err = s.evaluationScoresRepo.IsLastUserStateTurnScored(ctx, dbReq)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error checking is_scored", err)
-				return err
-			}
-		}
-
-		if isScored {
-			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Last user turn is scored. Proceeding with evaluation.")
-			break
-		}
-
-		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateEvaluationInOldState] Turn not scored yet. Retrying... (%d/%d)", i+1, maxRetries))
-		time.Sleep(retryDelay * time.Duration(i+1))
 	}
 
 	dbReq := &db.GetEvaluationSummaryJsonBySessionAndStateParams{

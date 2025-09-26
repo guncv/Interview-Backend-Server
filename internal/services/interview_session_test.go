@@ -6398,16 +6398,18 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	lastTurnID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
 
-	validReq := &entities.UpdateCurrentStateSessionReq{
+	validReq := &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 		CurrentState:      "completed",
 		SessionID:         sessionID.String(),
 		OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
+		LastTurnID:        lastTurnID.String(),
 	}
 
 	testCases := []struct {
 		name   string
-		input  *entities.UpdateCurrentStateSessionReq
+		input  *entities.UpdateCurrentStateSessionAndLastTurnIDReq
 		setup  func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository)
 		verify func(t *testing.T, gotResp *entities.UpdateCurrentStateSessionResp, gotErr error)
 	}{
@@ -6423,6 +6425,7 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
 					return req.SessionID.String() == sessionID.String() &&
 						req.PhraseType == "completed" &&
+						req.LastTurnID == lastTurnID &&
 						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
 						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
 						req.SessionID == sessionID &&
@@ -6439,10 +6442,11 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 		},
 		{
 			name: "Error WithInvalidOldCurrentStateID",
-			input: &entities.UpdateCurrentStateSessionReq{
+			input: &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 				OldCurrentStateID: "invalid-old-current-state-id",
 				SessionID:         sessionID.String(),
 				CurrentState:      "completed",
+				LastTurnID:        lastTurnID.String(),
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
@@ -6459,10 +6463,11 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 		},
 		{
 			name: "Error WithInvalidSessionID",
-			input: &entities.UpdateCurrentStateSessionReq{
+			input: &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 				OldCurrentStateID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001").String(),
 				SessionID:         "invalid-session-id",
 				CurrentState:      "completed",
+				LastTurnID:        lastTurnID.String(),
 			},
 			setup: func() (*mockUtils.MockGenerator, *mockRepositories.MockInterviewStateRepository) {
 				mockGenerator := mockUtils.NewMockGenerator(t)
@@ -6489,6 +6494,7 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 				mockInterviewStateRepo.EXPECT().EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, mock.MatchedBy(func(req *repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) bool {
 					return req.SessionID.String() == sessionID.String() &&
 						req.PhraseType == "completed" &&
+						req.LastTurnID == lastTurnID &&
 						req.ID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") &&
 						req.NewID == uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") &&
 						req.SessionID == sessionID &&
@@ -6526,7 +6532,7 @@ func TestInterviewSessionService_UpdateCurrentStateSession(t *testing.T) {
 				mockInterviewStateRepo,
 			)
 
-			gotResp, gotErr := svc.UpdateCurrentStateSession(ctx, tC.input)
+			gotResp, gotErr := svc.UpdateCurrentStateSessionAndLastTurnID(ctx, tC.input)
 
 			tC.verify(t, gotResp, gotErr)
 		})

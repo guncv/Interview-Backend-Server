@@ -29,6 +29,7 @@ type Client struct {
 	SessionID                string
 	resumeID                 string
 	CurrentSegmentID         string
+	LastTurnID               string
 	PreviousSegmentID        string
 	PreviousSegmentExpiredAt time.Time
 	StartSessionTime         time.Time
@@ -141,6 +142,7 @@ func (s *webSocketServer) HandleConnection(
 		SessionID:                session.SessionID,
 		resumeID:                 session.ResumeID,
 		CurrentSegmentID:         "",
+		LastTurnID:               "",
 		PreviousSegmentID:        "",
 		PreviousSegmentExpiredAt: time.Now(),
 		StartSessionTime:         time.Now(),

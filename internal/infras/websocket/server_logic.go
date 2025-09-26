@@ -322,6 +322,7 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		Transcript:   req.Transcript,
 	}
 
+	client.LastTurnID = req.SegmentID
 	if err := s.interviewSessionService.CreateUserSessionTurnBySessionID(context.Background(), createSessionTurnReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error creating session turn", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
@@ -334,7 +335,8 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		UserID:             client.userID,
 		UserMessage:        req.Transcript,
 		InterviewerMessage: lastMessage.Message,
-		CurrentState:       lastMessage.CurrentState,
+		CurrentState:       client.currentState,
+		CurrentStateID:     client.currentStateID,
 	}
 
 	timeDuration, err := s.interviewSessionService.GetSessionStartedAtAndEndedAt(ctx, client.SessionID)
@@ -464,24 +466,35 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 				"old_current_state_id": client.currentStateID,
 				"current_state":        req.CurrentState,
 			})
-			resp, err := s.interviewSessionService.UpdateCurrentStateSession(context.Background(), &entities.UpdateCurrentStateSessionReq{
+
+			var lastTurnID string
+			if client.LastTurnID != "" {
+				lastTurnID = client.LastTurnID
+			} else {
+				req := entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq{
+					SessionID:    req.SessionID,
+					CurrentState: req.CurrentState,
+				}
+
+				lastTurnID, err = s.interviewSessionService.GetLastUserTurnIDBySessionIDAndCurrentState(context.Background(), &req)
+				if err != nil {
+					s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error getting last user turn ID by session ID and current state", err)
+					s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+					return
+				}
+			}
+
+			req := &entities.UpdateCurrentStateSessionAndLastTurnIDReq{
 				SessionID:         req.SessionID,
 				CurrentState:      req.CurrentState,
 				OldCurrentStateID: client.currentStateID,
-			})
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error update current state session", err)
-				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
-				return
+				OldCurrentState:   client.currentState,
+				LastTurnID:        lastTurnID,
 			}
 
-			publishReq := &entities.CalculateEvaluationInOldStateReq{
-				SessionID:        req.SessionID,
-				CurrentState:     client.currentState,
-				InterviewStateID: client.currentStateID,
-			}
-			if err := s.publisher.PublishTaskCalculateEvaluationInOldState(context.Background(), publishReq); err != nil {
-				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error publishing task calculate evaluation in old state", err)
+			resp, err := s.interviewSessionService.UpdateCurrentStateSessionAndLastTurnID(context.Background(), req)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error update current state session", err)
 				s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 				return
 			}

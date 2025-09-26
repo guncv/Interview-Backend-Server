@@ -18,6 +18,7 @@ type InterviewTurnsRepository interface {
 	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)
 	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error
+	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error)
 }
 
 type interviewTurnsRepository struct {
@@ -116,4 +117,19 @@ func (r *interviewTurnsRepository) FlagIsScoreEvaluated(ctx context.Context, id 
 	}
 
 	return nil
+}
+
+func (r *interviewTurnsRepository) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetLastUserTurnIDBySessionIDAndCurrentState] Called")
+
+	turnID, err := r.db.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, *req)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetLastUserTurnIDBySessionIDAndCurrentState] Last user turn ID not found", err)
+			return uuid.UUID{}, app_error.New(err, app_error.ErrCodeInterviewTurnsNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetLastUserTurnIDBySessionIDAndCurrentState] Error getting last user turn ID by session ID and current state", err)
+		return uuid.UUID{}, app_error.HandleDatabaseError(err)
+	}
+	return turnID, nil
 }

@@ -48,7 +48,8 @@ type InterviewSessionService interface {
 	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
 	InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)
-	UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)
+	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
+	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 }
 
 type interviewSessionService struct {
@@ -1370,18 +1371,24 @@ func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Co
 	return &resp, nil
 }
 
-func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Called")
+func (s *interviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid session ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
 	oldInterviewStateID, err := uuid.Parse(req.OldCurrentStateID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid old interview state ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid old interview state ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	lastTurnID, err := uuid.Parse(req.LastTurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid last turn ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -1389,8 +1396,9 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 	newInterviewStateID := s.generator.GenerateUUID(ctx)
 
 	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
-		ID:      oldInterviewStateID,
-		EndedAt: currentTime,
+		ID:         oldInterviewStateID,
+		EndedAt:    currentTime,
+		LastTurnID: lastTurnID,
 
 		NewID:      newInterviewStateID,
 		SessionID:  sessionID,
@@ -1398,10 +1406,23 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		StartedAt:  currentTime,
 	}
 
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Ending old interview state and creating new interview state Req", dbReq)
-
 	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Error creating interview state", err)
+		return nil, err
+	}
+
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Setting last turn ID in redis", map[string]any{
+		"current_state": req.OldCurrentState,
+		"last_turn_id":  lastTurnID.String(),
+	})
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, sessionID.String(), req.OldCurrentState)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: lastTurnID.String(),
+		TTL:   constants.RedisTTLInterviewLastTurnID,
+	}
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Error setting last turn ID in redis", err)
 		return nil, err
 	}
 
@@ -1411,4 +1432,27 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Invalid session ID", err)
+		return "", app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.GetLastUserTurnIDBySessionIDAndCurrentStateParams{
+		SessionID:    sessionID,
+		CurrentState: req.CurrentState,
+	}
+
+	dbResp, err := s.interviewTurnsRepo.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Error getting last user turn ID by session ID and current state", err)
+		return "", err
+	}
+
+	return dbResp.String(), nil
 }

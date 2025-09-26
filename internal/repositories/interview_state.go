@@ -14,6 +14,7 @@ import (
 type InterviewStateRepository interface {
 	CreateInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *CreateInterviewStateWithUpdateFlagSessionTxReq) error
 	EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) error
+	GetLastTurnIDInterviewStateByID(ctx context.Context, req uuid.UUID) (uuid.NullUUID, error)
 }
 
 type interviewStateRepository struct {
@@ -59,7 +60,7 @@ func (r *interviewStateRepository) CreateInterviewStateWithUpdateFlagSessionTx(c
 
 		if rowsAffected == 0 {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewStateWithUpdateFlagSession] Error updating interview state", errors.New("rows affected is 0"))
-			return app_error.New(errors.New("rows affected is 0"), app_error.ErrCodeSessionNotFound)
+			return app_error.New(errors.New("interview state not found"), app_error.ErrCodeInterviewStateNotFound)
 		}
 
 		return nil
@@ -79,8 +80,9 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		updateInterviewStateReq := db.UpdateEndedAtInterviewStateByIDParams{
-			ID:      req.ID,
-			EndedAt: sql.NullTime{Time: req.EndedAt, Valid: true},
+			ID:         req.ID,
+			EndedAt:    sql.NullTime{Time: req.EndedAt, Valid: true},
+			LastTurnID: uuid.NullUUID{UUID: req.LastTurnID, Valid: true},
 		}
 
 		rowsAffected, err := q.UpdateEndedAtInterviewStateByID(ctx, updateInterviewStateReq)
@@ -91,7 +93,7 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 
 		if rowsAffected == 0 {
 			r.log.ErrorWithID(ctx, "[Repository: EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSession] Error updating interview state", errors.New("rows affected is 0"))
-			return app_error.New(errors.New("rows affected is 0"), app_error.ErrCodeSessionNotFound)
+			return app_error.New(errors.New("interview state not found"), app_error.ErrCodeInterviewStateNotFound)
 		}
 
 		createInterviewStateReq := db.CreateInterviewStateParams{
@@ -120,7 +122,7 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 
 		if rowsAffected == 0 {
 			r.log.ErrorWithID(ctx, "[Repository: EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSession] Error updating current state and id interview session", errors.New("rows affected is 0"))
-			return app_error.New(errors.New("rows affected is 0"), app_error.ErrCodeSessionNotFound)
+			return app_error.New(errors.New("interview state not found"), app_error.ErrCodeInterviewStateNotFound)
 		}
 
 		return nil
@@ -131,4 +133,20 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 		return err
 	}
 	return nil
+}
+
+func (r *interviewStateRepository) GetLastTurnIDInterviewStateByID(ctx context.Context, req uuid.UUID) (uuid.NullUUID, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetLastTurnIDInterviewStateByID] Called")
+
+	lastTurnID, err := r.db.GetLastTurnIDInterviewStateByID(ctx, req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			r.log.ErrorWithID(ctx, "[Repository: GetLastTurnIDInterviewStateByID] Interview state not found", err)
+			return uuid.NullUUID{}, app_error.New(err, app_error.ErrCodeInterviewStateNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetLastTurnIDInterviewStateByID] Error getting interview state", err)
+		return uuid.NullUUID{}, err
+	}
+
+	return lastTurnID, nil
 }

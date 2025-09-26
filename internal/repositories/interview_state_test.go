@@ -529,3 +529,90 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 		})
 	}
 }
+
+func TestInterviewStateRepository_GetLastTurnIDInterviewStateByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	lastTurnID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	stateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	testCases := []struct {
+		name   string
+		input  uuid.UUID
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotResp uuid.NullUUID, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: stateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastTurnIDInterviewStateByID(ctx, stateID).
+					Return(uuid.NullUUID{UUID: lastTurnID, Valid: true}, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.NullUUID, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, lastTurnID, gotResp.UUID)
+			},
+		},
+		{
+			name:  "Error WithGetLastTurnIDInterviewStateByIDNotFound",
+			input: stateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastTurnIDInterviewStateByID(ctx, stateID).
+					Return(uuid.NullUUID{UUID: uuid.Nil, Valid: false}, sql.ErrNoRows)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.NullUUID, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0900]")
+				assert.Contains(t, gotErr.Error(), "The interview state was not found. Please try again.")
+				assert.Equal(t, uuid.NullUUID{UUID: uuid.Nil, Valid: false}, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetLastTurnIDInterviewStateByIDError",
+			input: stateID,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastTurnIDInterviewStateByID(ctx, stateID).
+					Return(uuid.NullUUID{UUID: uuid.Nil, Valid: false}, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.NullUUID, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "error")
+				assert.Equal(t, uuid.NullUUID{UUID: uuid.Nil, Valid: false}, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			repo := NewInterviewStateRepository(lgr, mockStore)
+
+			gotResp, gotErr := repo.GetLastTurnIDInterviewStateByID(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}

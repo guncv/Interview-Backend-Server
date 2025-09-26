@@ -85,6 +85,7 @@ const (
 	ErrMessageInterviewTurnLastMessageNotFound ErrorMessage = "The interviewer last message was not found. Please try again."
 	ErrMessageInterviewTurnsMaxTurnNoNotFound  ErrorMessage = "The max turn no by session ID was not found. Please try again."
 	ErrMessageInterviewTurnsNotFound           ErrorMessage = "The interview turns were not found. Please try again."
+
 	// Issue Reports
 	ErrMessageIssueReportNotFound     ErrorMessage = "The issue report was not found. Please try again."
 	ErrMessageIssueReportNotOpen      ErrorMessage = "The issue report is not open. Please try again."

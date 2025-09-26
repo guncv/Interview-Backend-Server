@@ -89,3 +89,10 @@ FROM interview_turns
 WHERE session_id = $1 AND current_state = $2
 ORDER BY created_at DESC
 LIMIT 1;
+
+-- name: GetLastUserTurnIDBySessionIDAndCurrentState :one
+SELECT id
+FROM interview_turns
+WHERE session_id = $1 AND current_state = $2
+ORDER BY created_at DESC
+LIMIT 1;

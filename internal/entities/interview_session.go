@@ -78,6 +78,7 @@ type CalculateTurnScoreReq struct {
 	UserMessage        string `json:"user_message" binding:"required"`
 	InterviewerMessage string `json:"interviewer_message" binding:"required"`
 	CurrentState       string `json:"current_state" binding:"required"`
+	CurrentStateID     string `json:"current_state_id" binding:"required"`
 }
 
 type GetInterviewerLastMessageReq struct {
@@ -268,13 +269,25 @@ type InitialFirstCurrentStateSessionResp struct {
 	CurrentStateID string `json:"current_state_id"`
 }
 
-type UpdateCurrentStateSessionReq struct {
+type UpdateCurrentStateSessionAndLastTurnIDReq struct {
 	OldCurrentStateID string `json:"old_current_state_id" binding:"required"`
+	OldCurrentState   string `json:"old_current_state" binding:"required"`
 	SessionID         string `json:"session_id" binding:"required"`
 	CurrentState      string `json:"current_state" binding:"required"`
+	LastTurnID        string `json:"last_turn_id" binding:"required"`
 }
 
 type UpdateCurrentStateSessionResp struct {
 	CurrentState   string `json:"current_state"`
 	CurrentStateID string `json:"current_state_id"`
+}
+
+type UpdateLastTurnIDInterviewStateByIDReq struct {
+	InterviewStateID string `json:"interview_state_id" binding:"required"`
+	LastTurnID       string `json:"last_turn_id" binding:"required"`
+}
+
+type GetLastUserTurnIDBySessionIDAndCurrentStateReq struct {
+	SessionID    string `json:"session_id" binding:"required"`
+	CurrentState string `json:"current_state" binding:"required"`
 }
