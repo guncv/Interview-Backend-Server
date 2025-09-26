@@ -2,13 +2,14 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
@@ -25,6 +26,8 @@ type EvaluationService interface {
 	CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error
 	CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error
 	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
+	FinalizeSessionPhraseEvaluation(ctx context.Context, sessionID string) error
+	FinalizeSessionFailed(ctx context.Context, sessionID string)
 }
 
 type evaluationService struct {
@@ -33,6 +36,8 @@ type evaluationService struct {
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository
 	evaluationScoresRepo  repositories.EvaluationScoresRepository
 	interviewTurnsRepo    repositories.InterviewTurnsRepository
+	interviewSessionsRepo repositories.InterviewSessionRepository
+	interviewStatesRepo   repositories.InterviewStateRepository
 	generator             utils.Generator
 }
 
@@ -42,6 +47,8 @@ func NewEvaluationService(
 	evaluationRubricsRepo repositories.EvaluationRubricsRepository,
 	evaluationScoresRepo repositories.EvaluationScoresRepository,
 	interviewTurnsRepo repositories.InterviewTurnsRepository,
+	interviewSessionsRepo repositories.InterviewSessionRepository,
+	interviewStatesRepo repositories.InterviewStateRepository,
 	generator utils.Generator,
 ) EvaluationService {
 	return &evaluationService{
@@ -50,6 +57,8 @@ func NewEvaluationService(
 		redisClient:           redisClient,
 		evaluationScoresRepo:  evaluationScoresRepo,
 		interviewTurnsRepo:    interviewTurnsRepo,
+		interviewSessionsRepo: interviewSessionsRepo,
+		interviewStatesRepo:   interviewStatesRepo,
 		generator:             generator,
 	}
 }
@@ -316,22 +325,9 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		LLmModel:          result.LLmModel,
 	}
 
-	var lastErr error
-	for attempt := 1; attempt <= constants.MaxRetryDbEvaluationTx; attempt++ {
-		err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq)
-		if err == nil {
-			return nil
-		}
-
-		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Attempt %d/%d failed: %v", attempt, constants.MaxRetryDbEvaluationTx, err))
-		lastErr = err
-
-		time.Sleep(constants.RetryDelayDbEvaluationTx * time.Duration(attempt))
-	}
-
-	if lastErr != nil {
-		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error creating evaluation and score", lastErr)
-		return lastErr
+	if err := s.evaluationScoresRepo.CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx, createEvaluationAndScoreTxReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error creating evaluation and score", err)
+		return err
 	}
 
 	if err := s.interviewTurnsRepo.FlagIsScoreEvaluated(ctx, userTurnID); err != nil {
@@ -339,13 +335,48 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		return err
 	}
 
-	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
-	redisPayload := database.RedisPayload{
-		Key:   redisKey,
-		Value: true,
-		TTL:   constants.RedisTTLInterviewIsScoreSessionState,
+	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Current state ", req.CurrentState)
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, req.SessionID, req.CurrentState)
+	const maxRedisRetries = 3
+	const retryDelay = 300 * time.Millisecond
+
+	var lastTurnID string
+	for i := 0; i < maxRedisRetries; i++ {
+		lastTurnID, err = s.redisClient.Get(ctx, redisKey)
+		if err == nil {
+			break
+		}
+		if errors.Is(err, redis.Nil) {
+			s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateTurnScore] Redis key not found, retrying... (%d/%d)", i+1, maxRedisRetries))
+			time.Sleep(retryDelay * time.Duration(i+1))
+			continue
+		}
+
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error getting last turn ID from redis", err)
+		return err
 	}
-	_ = s.redisClient.Set(ctx, redisPayload)
+
+	if lastTurnID == "" {
+		s.log.WarnWithID(ctx, "[Service: CalculateTurnScore] Last turn ID not found in Redis after retries, skipping evaluation trigger")
+		return nil
+	}
+
+	if lastTurnID == req.UserTurnID {
+		s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Last turn ID is the same as user turn ID", req.UserTurnID, " ", lastTurnID)
+		req := entities.CalculateEvaluationInOldStateReq{
+			SessionID:        req.SessionID,
+			CurrentState:     req.CurrentState,
+			InterviewStateID: req.CurrentStateID,
+		}
+		_ = s.CalculateEvaluationInOldState(ctx, &req)
+	} else {
+		s.log.WarnWithID(ctx, "[Service: CalculateTurnScore] Last turn ID is not the same as user turn ID", req.UserTurnID, " ", lastTurnID)
+	}
+
+	if err := s.redisClient.Delete(ctx, redisKey); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CalculateTurnScore] Error deleting last turn ID from redis", err)
+		return err
+	}
 
 	return nil
 }
@@ -365,47 +396,6 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	const maxRetries = 5
-	const retryDelay = time.Second * 1
-
-	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewIsScoreSessionState, req.SessionID, req.CurrentState)
-
-	for i := 0; i < maxRetries; i++ {
-		var isScored bool
-
-		redisValue, err := s.redisClient.Get(ctx, redisKey)
-		if err == nil {
-			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Already marked as scored in Redis")
-
-			isScored, err = strconv.ParseBool(redisValue)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error parsing Redis value", err)
-				return err
-			}
-		} else {
-			s.log.WarnWithID(ctx, "[Service: CalculateEvaluationInOldState] Redis miss, checking database")
-
-			dbReq := &db.IsLastUserStateTurnScoredParams{
-				SessionID:    sessionID,
-				CurrentState: req.CurrentState,
-			}
-
-			isScored, err = s.evaluationScoresRepo.IsLastUserStateTurnScored(ctx, dbReq)
-			if err != nil {
-				s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error checking is_scored", err)
-				return err
-			}
-		}
-
-		if isScored {
-			s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Last user turn is scored. Proceeding with evaluation.")
-			break
-		}
-
-		s.log.WarnWithID(ctx, fmt.Sprintf("[Service: CalculateEvaluationInOldState] Turn not scored yet. Retrying... (%d/%d)", i+1, maxRetries))
-		time.Sleep(retryDelay * time.Duration(i+1))
-	}
-
 	dbReq := &db.GetEvaluationSummaryJsonBySessionAndStateParams{
 		SessionID:    sessionID,
 		CurrentState: req.CurrentState,
@@ -413,6 +403,10 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 
 	resp, err := s.evaluationScoresRepo.GetEvaluationSummaryJsonBySessionAndState(ctx, dbReq)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			s.log.WarnWithID(ctx, "[Service: CalculateEvaluationInOldState] Evaluation summary json by session and state not found", err)
+			return nil
+		}
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error getting evaluation summary json by session and state", err)
 		return err
 	}
@@ -420,7 +414,7 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	var respOld entities.GetEvaluationSummaryJsonBySessionAndStateResp
 	if err := json.Unmarshal(resp, &respOld); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Error unmarshalling evaluation summary json", err)
-		return err
+		return app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
 	}
 
 	var preProcessedCriteria repositories.PreProcessedCriteriaReq
@@ -460,7 +454,7 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 		criteriaID, err := uuid.Parse(criteria.CriteriaID)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: CalculateEvaluationInOldState] Invalid criteria ID", err)
-			return err
+			return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 		}
 
 		criteriaReqTx.ID = append(criteriaReqTx.ID, newId)
@@ -488,6 +482,87 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 	return nil
 }
 
+func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context, sessionIDReq string) error {
+	s.log.InfoWithID(ctx, "[Service: FinalizeSessionEvaluation] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Invalid session ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalizing); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return err
+	}
+
+	states, err := s.interviewStatesRepo.GetUnprocessedInterviewStatesBySessionID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error getting unprocessed interview states by session ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return err
+	}
+
+	for _, state := range states {
+		s.log.InfoWithID(ctx, fmt.Sprintf("[Finalize] Triggering late evaluation for state %s", state.PhraseType))
+
+		err := s.CalculateEvaluationInOldState(ctx, &entities.CalculateEvaluationInOldStateReq{
+			SessionID:        sessionIDReq,
+			CurrentState:     state.PhraseType,
+			InterviewStateID: state.ID.String(),
+		})
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Finalize] Failed evaluation", err)
+			s.FinalizeSessionFailed(ctx, sessionIDReq)
+			return err
+		}
+	}
+
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
+		s.FinalizeSessionFailed(ctx, sessionIDReq)
+		return err
+	}
+
+	return nil
+}
+
+func (s *evaluationService) FinalizeSessionFailed(ctx context.Context, sessionIDReq string) {
+	s.log.InfoWithID(ctx, "[Service: FinalizeSessionFailed] Called")
+
+	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionFailed] Error updating finalize status interview session by ID", err)
+		return
+	}
+}
+
+func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
+	s.log.InfoWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.UpdateFinalizeStatusInterviewSessionByIDParams{
+		ID: sessionID,
+		FinalizeStatus: db.NullFinalizeStatusEnum{
+			FinalizeStatusEnum: finalizeStatus,
+			Valid:              true,
+		},
+	}
+
+	if err := s.interviewSessionsRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
+		return err
+	}
+
+	return nil
+}
+
 func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionIdReq string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
 	s.log.InfoWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
 
@@ -509,10 +584,17 @@ func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx cont
 		respEntity.StateID = row.StateID.String()
 		respEntity.StateName = row.StateName
 		respEntity.OverallScore = utils.RoundFloatToTwoDecimals(row.OverallScore)
+		respEntity.OverallColor = utils.GetScoreColor(row.OverallScore)
+		respEntity.MaxScore = 5
 
 		if err := json.Unmarshal(row.Criteria.([]byte), &respEntity.Criteria); err != nil {
 			s.log.ErrorWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Error unmarshalling phrase evaluations with criteria", err)
 			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+
+		for i := range respEntity.Criteria {
+			respEntity.Criteria[i].MaxScore = 5
+			respEntity.Criteria[i].CriteriaColor = utils.GetScoreColor(respEntity.Criteria[i].CriteriaScore)
 		}
 
 		respEntities = append(respEntities, respEntity)

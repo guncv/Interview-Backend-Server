@@ -192,3 +192,95 @@ func TestInterviewTurnsRepository_GetMaxTurnNoBySessionID(t *testing.T) {
 		})
 	}
 }
+
+func TestInterviewSessionRepository_GetLastUserTurnIDBySessionIDAndCurrentState(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	lastTurnID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+
+	validResp := &db.GetLastUserTurnIDBySessionIDAndCurrentStateParams{
+		SessionID:    sessionID,
+		CurrentState: "current_state",
+	}
+
+	testCases := []struct {
+		name   string
+		input  *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotResp uuid.UUID, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: validResp,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastUserTurnIDBySessionIDAndCurrentState(ctx, *validResp).
+					Return(lastTurnID, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.UUID, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.Equal(t, lastTurnID, gotResp)
+			},
+		},
+		{
+			name:  "Error WithGetInterviewSessionInformationByIDNotFound",
+			input: validResp,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastUserTurnIDBySessionIDAndCurrentState(ctx, *validResp).
+					Return(uuid.UUID{}, sql.ErrNoRows)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.UUID, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0602]")
+				assert.Contains(t, gotErr.Error(), "The interview turns were not found. Please try again.")
+				assert.Equal(t, uuid.UUID{}, gotResp)
+			},
+		}, {
+			name:  "Error WithGetInterviewSessionInformationByIDError",
+			input: validResp,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					GetLastUserTurnIDBySessionIDAndCurrentState(ctx, *validResp).
+					Return(uuid.UUID{}, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotResp uuid.UUID, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+				assert.Equal(t, uuid.UUID{}, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewInterviewTurnsRepository(lgr, mockStore)
+
+			gotResp, gotErr := svc.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, tC.input)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}

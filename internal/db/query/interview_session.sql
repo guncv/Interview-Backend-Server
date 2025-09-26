@@ -61,6 +61,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -83,6 +84,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -123,6 +125,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $4::text IS NULL OR $4::text = ''
         OR position ILIKE '%' || $4 || '%'
@@ -138,6 +141,7 @@ SELECT COUNT(*)
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -170,4 +174,9 @@ WHERE id = $1 AND soft_delete = false;
 UPDATE interview_sessions
 SET current_state = $2,
     current_state_id = $3
+WHERE id = $1;
+
+-- name: UpdateFinalizeStatusInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET finalize_status = $2
 WHERE id = $1;

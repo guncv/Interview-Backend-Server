@@ -49,6 +49,22 @@ func FormatSecondsToMMSS(seconds float64) string {
 	return fmt.Sprintf("%02d:%02d", minutes, secs)
 }
 
+func FormatDurationToMinutesSeconds(startTime, endTime time.Time) string {
+	if startTime.IsZero() || endTime.IsZero() {
+		return "0.00"
+	}
+
+	duration := endTime.Sub(startTime)
+	totalMinutes := int(duration.Minutes())
+	totalSeconds := int(duration.Seconds()) % 60
+
+	if totalMinutes > 0 || totalSeconds > 0 {
+		return fmt.Sprintf("%d.%02d", totalMinutes, totalSeconds)
+	}
+
+	return "0.00"
+}
+
 func ParseAndFormatDurationSince(dateAt string, startTime time.Time) (string, error) {
 	parsedTime, err := time.Parse(time.RFC3339Nano, dateAt)
 	if err != nil {
@@ -99,7 +115,7 @@ func GetNullableString(nullString sql.NullString, defaultValue string) string {
 func GetStatusColor(status string) string {
 	switch status {
 	case constants.StatusPending:
-		return "#6C757D"
+		return "#17A2B8"
 	case constants.StatusOnGoing:
 		return "#007BFF"
 	case constants.StatusCompleted:
@@ -107,7 +123,7 @@ func GetStatusColor(status string) string {
 	case constants.StatusAborted:
 		return "#DC3545"
 	case constants.StatusCancelled:
-		return "#6C757D"
+		return "#FFC107"
 	case constants.StatusTimedOut:
 		return "#FF6B35"
 	default:

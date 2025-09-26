@@ -235,6 +235,26 @@ func (q *Queries) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.
 	return i, err
 }
 
+const getLastUserTurnIDBySessionIDAndCurrentState = `-- name: GetLastUserTurnIDBySessionIDAndCurrentState :one
+SELECT id
+FROM interview_turns
+WHERE session_id = $1 AND current_state = $2
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetLastUserTurnIDBySessionIDAndCurrentStateParams struct {
+	SessionID    uuid.UUID `json:"session_id"`
+	CurrentState string    `json:"current_state"`
+}
+
+func (q *Queries) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, arg GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getLastUserTurnIDBySessionIDAndCurrentState, arg.SessionID, arg.CurrentState)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getMaxTurnNoBySessionID = `-- name: GetMaxTurnNoBySessionID :one
 SELECT COALESCE(MAX(turn_no), 0) AS max_turn_no
 FROM interview_turns

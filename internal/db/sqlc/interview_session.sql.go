@@ -32,6 +32,7 @@ SELECT COUNT(*)
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -228,6 +229,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -302,6 +304,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $2::text IS NULL OR $2::text = ''
         OR position ILIKE '%' || $2 || '%'
@@ -404,6 +407,7 @@ SELECT id,
 FROM interview_sessions
 WHERE user_id = $1
     AND soft_delete = false
+    AND finalize_status = 'finalized'
     AND (
         $4::text IS NULL OR $4::text = ''
         OR position ILIKE '%' || $4 || '%'
@@ -487,6 +491,25 @@ type UpdateCurrentStateAndIDInterviewSessionByIDParams struct {
 
 func (q *Queries) UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Context, arg UpdateCurrentStateAndIDInterviewSessionByIDParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateCurrentStateAndIDInterviewSessionByID, arg.ID, arg.CurrentState, arg.CurrentStateID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateFinalizeStatusInterviewSessionByID = `-- name: UpdateFinalizeStatusInterviewSessionByID :execrows
+UPDATE interview_sessions
+SET finalize_status = $2
+WHERE id = $1
+`
+
+type UpdateFinalizeStatusInterviewSessionByIDParams struct {
+	ID             uuid.UUID              `json:"id"`
+	FinalizeStatus NullFinalizeStatusEnum `json:"finalize_status"`
+}
+
+func (q *Queries) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateFinalizeStatusInterviewSessionByID, arg.ID, arg.FinalizeStatus)
 	if err != nil {
 		return 0, err
 	}

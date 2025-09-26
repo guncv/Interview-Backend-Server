@@ -939,3 +939,95 @@ func TestInterviewSessionRepository_GetInterviewSessionInformationByID(t *testin
 		})
 	}
 }
+
+func TestInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	finalizeReq := db.UpdateFinalizeStatusInterviewSessionByIDParams{
+		ID: updateID,
+		FinalizeStatus: db.NullFinalizeStatusEnum{
+			FinalizeStatusEnum: db.FinalizeStatusEnumFinalizing,
+			Valid:              true,
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *db.UpdateFinalizeStatusInterviewSessionByIDParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: &finalizeReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateFinalizeStatusInterviewSessionByID(ctx, finalizeReq).
+					Return(1, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error WithUpdateFinalizeStatusInterviewSessionByIDNotFound",
+			input: &finalizeReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateFinalizeStatusInterviewSessionByID(ctx, finalizeReq).
+					Return(0, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+			},
+		}, {
+			name:  "Error WithUpdateFinalizeStatusInterviewSessionByIDError",
+			input: &finalizeReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateFinalizeStatusInterviewSessionByID(ctx, finalizeReq).
+					Return(0, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotErr := svc.UpdateFinalizeStatusInterviewSessionByID(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}

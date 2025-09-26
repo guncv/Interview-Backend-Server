@@ -44,6 +44,8 @@ type PhraseEvaluations struct {
 	StateID      string                     `json:"state_id"`
 	StateName    string                     `json:"state_name"`
 	OverallScore float64                    `json:"overall_score"`
+	MaxScore     float64                    `json:"max_score"`
+	OverallColor string                     `json:"overall_color"`
 	Criteria     []PhraseEvaluationCriteria `json:"criteria"`
 }
 
@@ -51,5 +53,7 @@ type PhraseEvaluationCriteria struct {
 	CriteriaID      string  `json:"criteria_id"`
 	CriteriaName    string  `json:"criteria_name"`
 	CriteriaScore   float64 `json:"criteria_score"`
+	MaxScore        float64 `json:"max_score"`
+	CriteriaColor   string  `json:"criteria_color"`
 	CriteriaComment string  `json:"criteria_comment"`
 }

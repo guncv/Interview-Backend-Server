@@ -48,7 +48,8 @@ type InterviewSessionService interface {
 	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
 	InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)
-	UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)
+	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
+	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 }
 
 type interviewSessionService struct {
@@ -749,12 +750,16 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 	sessionID, err := uuid.Parse(req.SessionId)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Invalid session ID", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
+
+	endAt := time.Now().UTC()
 
 	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting all evaluations by session ID", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 		return err
 	}
 
@@ -771,6 +776,7 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 			overallScoreFloat, err := strconv.ParseFloat(evaluation.OverallScore, 64)
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error parsing overall score", err)
+				s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 				return app_error.New(err, app_error.ErrCodeGeneralInvalidNumber)
 			}
 			overallScore += overallScoreFloat
@@ -782,6 +788,7 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 		overallSummary, err := s.evaluationScoresRepo.GetEvaluationOverallSummary(ctx, createEvaluationOverallSummaryTxReq)
 		if err != nil {
 			s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting evaluation overall summary", err)
+			s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 			return err
 		}
 
@@ -795,13 +802,19 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 	dbReq := &db.EndInterviewSessionParams{
 		ID:           sessionID,
 		Status:       req.Status,
-		EndedAt:      sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 		OverallScore: sql.NullFloat64{Float64: math.Round(overallScore*100) / 100, Valid: true},
 		SummaryMd:    sql.NullString{String: overallSummaryMd, Valid: true},
 	}
 
 	if err := s.interviewSessionRepo.EndInterviewSession(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error ending interview session", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
+		return err
+	}
+
+	if err := s.evaluationService.FinalizeSessionPhraseEvaluation(ctx, req.SessionId); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error finalizing session evaluation", err)
 		return err
 	}
 
@@ -886,18 +899,19 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
+				StatusColor:      utils.GetStatusColor(row.Status),
 				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
-				OverallScore:     utils.GetNullableFloat64(row.OverallScore, 0.00),
 			}
 
+			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+			session.OverallScore = overallScore
+			session.OverallScoreColor = utils.GetScoreColor(overallScore)
+
 			if row.StartedAt.Valid && row.EndedAt.Valid {
-				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-				totalMinutes := int(duration.Minutes())
-				totalSeconds := int(duration.Seconds()) % 60
-				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+				session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 			} else {
-				session.TotalTime = "00.00"
+				session.TotalTime = "0.00"
 			}
 
 			sessions = append(sessions, session)
@@ -942,19 +956,19 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 				ResumeFileName:   row.ResumeFileName,
 				Position:         row.Position,
 				Status:           row.Status,
+				StatusColor:      utils.GetStatusColor(row.Status),
 				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
 			}
 
-			session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
+			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+			session.OverallScore = overallScore
+			session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
-				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-				totalMinutes := int(duration.Minutes())
-				totalSeconds := int(duration.Seconds()) % 60
-				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+				session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 			} else {
-				session.TotalTime = "00.00"
+				session.TotalTime = "0.00"
 			}
 
 			sessions = append(sessions, session)
@@ -1054,17 +1068,17 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 			Status:           row.Status,
 			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
 			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+			StatusColor:      utils.GetStatusColor(row.Status),
 		}
 
-		session.OverallScore = utils.GetNullableFloat64(row.OverallScore, 0.00)
+		overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+		session.OverallScore = overallScore
+		session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 		if row.StartedAt.Valid && row.EndedAt.Valid {
-			duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-			totalMinutes := int(duration.Minutes())
-			totalSeconds := int(duration.Seconds()) % 60
-			session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+			session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 		} else {
-			session.TotalTime = "00.00"
+			session.TotalTime = "0.00"
 		}
 
 		sessions = append(sessions, session)
@@ -1180,6 +1194,16 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 	statusColor := utils.GetStatusColor(dbResp.Status)
 	statusDisplayName := utils.GetStatusDisplayName(dbResp.Status)
 
+	totalTime := ""
+	if dbResp.StartedAt.Valid && dbResp.EndedAt.Valid {
+		duration := dbResp.EndedAt.Time.Sub(dbResp.StartedAt.Time)
+		totalMinutes := int(duration.Minutes())
+		totalSeconds := int(duration.Seconds()) % 60
+		if totalMinutes > 0 || totalSeconds > 0 {
+			totalTime = fmt.Sprintf("%d.%02d", totalMinutes, totalSeconds)
+		}
+	}
+
 	resp := entities.GetInterviewSessionInformationResp{
 		ResumeID:            dbResp.ResumeID,
 		ResumeFileName:      dbResp.ResumeFileName,
@@ -1187,6 +1211,7 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 		Status:              dbResp.Status,
 		StatusDisplayName:   statusDisplayName,
 		StatusColor:         statusColor,
+		TotalTime:           totalTime,
 		StartedAt:           utils.FormatNullableTimeToBangkokString(dbResp.StartedAt),
 		EndedAt:             utils.FormatNullableTimeToBangkokString(dbResp.EndedAt),
 		OverallScore:        overallScore,
@@ -1370,18 +1395,24 @@ func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Co
 	return &resp, nil
 }
 
-func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Called")
+func (s *interviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error) {
+	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid session ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
 	oldInterviewStateID, err := uuid.Parse(req.OldCurrentStateID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Invalid old interview state ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid old interview state ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	lastTurnID, err := uuid.Parse(req.LastTurnID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Invalid last turn ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -1389,8 +1420,9 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 	newInterviewStateID := s.generator.GenerateUUID(ctx)
 
 	dbReq := &repositories.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq{
-		ID:      oldInterviewStateID,
-		EndedAt: currentTime,
+		ID:         oldInterviewStateID,
+		EndedAt:    currentTime,
+		LastTurnID: lastTurnID,
 
 		NewID:      newInterviewStateID,
 		SessionID:  sessionID,
@@ -1398,10 +1430,19 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 		StartedAt:  currentTime,
 	}
 
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSession] Ending old interview state and creating new interview state Req", dbReq)
-
 	if err = s.interviewStateRepo.EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSession] Error creating interview state", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Error creating interview state", err)
+		return nil, err
+	}
+
+	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, sessionID.String(), req.OldCurrentState)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: lastTurnID.String(),
+		TTL:   constants.RedisTTLInterviewLastTurnID,
+	}
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Error setting last turn ID in redis", err)
 		return nil, err
 	}
 
@@ -1411,4 +1452,27 @@ func (s *interviewSessionService) UpdateCurrentStateSession(ctx context.Context,
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Called")
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Invalid session ID", err)
+		return "", app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.GetLastUserTurnIDBySessionIDAndCurrentStateParams{
+		SessionID:    sessionID,
+		CurrentState: req.CurrentState,
+	}
+
+	dbResp, err := s.interviewTurnsRepo.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, dbReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Error getting last user turn ID by session ID and current state", err)
+		return "", err
+	}
+
+	return dbResp.String(), nil
 }

@@ -44,5 +44,5 @@ SELECT
 FROM latest_evaluations le
 LEFT JOIN phrase_rubric_scores prs ON le.id = prs.phrase_evaluation_id AND prs.soft_delete = false
 WHERE le.rn = 1
-GROUP BY le.id, le.state_id, le.state_name, le.overall_score
+GROUP BY le.id, le.state_id, le.state_name, le.overall_score, le.created_at
 ORDER BY le.created_at ASC;

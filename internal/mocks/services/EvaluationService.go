@@ -116,6 +116,87 @@ func (_c *MockEvaluationService_CalculateTurnScore_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// FinalizeSessionFailed provides a mock function with given fields: ctx, sessionID
+func (_m *MockEvaluationService) FinalizeSessionFailed(ctx context.Context, sessionID string) {
+	_m.Called(ctx, sessionID)
+}
+
+// MockEvaluationService_FinalizeSessionFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FinalizeSessionFailed'
+type MockEvaluationService_FinalizeSessionFailed_Call struct {
+	*mock.Call
+}
+
+// FinalizeSessionFailed is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+func (_e *MockEvaluationService_Expecter) FinalizeSessionFailed(ctx interface{}, sessionID interface{}) *MockEvaluationService_FinalizeSessionFailed_Call {
+	return &MockEvaluationService_FinalizeSessionFailed_Call{Call: _e.mock.On("FinalizeSessionFailed", ctx, sessionID)}
+}
+
+func (_c *MockEvaluationService_FinalizeSessionFailed_Call) Run(run func(ctx context.Context, sessionID string)) *MockEvaluationService_FinalizeSessionFailed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationService_FinalizeSessionFailed_Call) Return() *MockEvaluationService_FinalizeSessionFailed_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockEvaluationService_FinalizeSessionFailed_Call) RunAndReturn(run func(context.Context, string)) *MockEvaluationService_FinalizeSessionFailed_Call {
+	_c.Run(run)
+	return _c
+}
+
+// FinalizeSessionPhraseEvaluation provides a mock function with given fields: ctx, sessionID
+func (_m *MockEvaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context, sessionID string) error {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FinalizeSessionPhraseEvaluation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockEvaluationService_FinalizeSessionPhraseEvaluation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FinalizeSessionPhraseEvaluation'
+type MockEvaluationService_FinalizeSessionPhraseEvaluation_Call struct {
+	*mock.Call
+}
+
+// FinalizeSessionPhraseEvaluation is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+func (_e *MockEvaluationService_Expecter) FinalizeSessionPhraseEvaluation(ctx interface{}, sessionID interface{}) *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call {
+	return &MockEvaluationService_FinalizeSessionPhraseEvaluation_Call{Call: _e.mock.On("FinalizeSessionPhraseEvaluation", ctx, sessionID)}
+}
+
+func (_c *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call) Run(run func(ctx context.Context, sessionID string)) *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call) Return(_a0 error) *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call) RunAndReturn(run func(context.Context, string) error) *MockEvaluationService_FinalizeSessionPhraseEvaluation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPhraseEvaluationsWithCriteriaBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockEvaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
 	ret := _m.Called(ctx, sessionID)

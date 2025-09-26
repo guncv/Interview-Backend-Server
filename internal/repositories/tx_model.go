@@ -169,8 +169,9 @@ type CreateInterviewStateWithUpdateFlagSessionTxReq struct {
 }
 
 type EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq struct {
-	ID      uuid.UUID
-	EndedAt time.Time
+	ID         uuid.UUID
+	EndedAt    time.Time
+	LastTurnID uuid.UUID
 
 	NewID      uuid.UUID
 	SessionID  uuid.UUID

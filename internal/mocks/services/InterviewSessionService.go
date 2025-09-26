@@ -623,6 +623,63 @@ func (_c *MockInterviewSessionService_GetInterviewerLastMessage_Call) RunAndRetu
 	return _c
 }
 
+// GetLastUserTurnIDBySessionIDAndCurrentState provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLastUserTurnIDBySessionIDAndCurrentState")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) string); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLastUserTurnIDBySessionIDAndCurrentState'
+type MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call struct {
+	*mock.Call
+}
+
+// GetLastUserTurnIDBySessionIDAndCurrentState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq
+func (_e *MockInterviewSessionService_Expecter) GetLastUserTurnIDBySessionIDAndCurrentState(ctx interface{}, req interface{}) *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	return &MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call{Call: _e.mock.On("GetLastUserTurnIDBySessionIDAndCurrentState", ctx, req)}
+}
+
+func (_c *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call) Run(run func(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq)) *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call) Return(_a0 string, _a1 error) *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call) RunAndReturn(run func(context.Context, *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)) *MockInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSessionStartedAtAndEndedAt provides a mock function with given fields: ctx, sessionID
 func (_m *MockInterviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error) {
 	ret := _m.Called(ctx, sessionID)
@@ -1059,20 +1116,20 @@ func (_c *MockInterviewSessionService_StartConversationBySessionID_Call) RunAndR
 	return _c
 }
 
-// UpdateCurrentStateSession provides a mock function with given fields: ctx, req
-func (_m *MockInterviewSessionService) UpdateCurrentStateSession(ctx context.Context, req *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error) {
+// UpdateCurrentStateSessionAndLastTurnID provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateCurrentStateSession")
+		panic("no return value specified for UpdateCurrentStateSessionAndLastTurnID")
 	}
 
 	var r0 *entities.UpdateCurrentStateSessionResp
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionReq) *entities.UpdateCurrentStateSessionResp); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.UpdateCurrentStateSessionAndLastTurnIDReq) *entities.UpdateCurrentStateSessionResp); ok {
 		r0 = rf(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
@@ -1080,7 +1137,7 @@ func (_m *MockInterviewSessionService) UpdateCurrentStateSession(ctx context.Con
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.UpdateCurrentStateSessionReq) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.UpdateCurrentStateSessionAndLastTurnIDReq) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -1089,31 +1146,31 @@ func (_m *MockInterviewSessionService) UpdateCurrentStateSession(ctx context.Con
 	return r0, r1
 }
 
-// MockInterviewSessionService_UpdateCurrentStateSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateCurrentStateSession'
-type MockInterviewSessionService_UpdateCurrentStateSession_Call struct {
+// MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateCurrentStateSessionAndLastTurnID'
+type MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call struct {
 	*mock.Call
 }
 
-// UpdateCurrentStateSession is a helper method to define mock.On call
+// UpdateCurrentStateSessionAndLastTurnID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *entities.UpdateCurrentStateSessionReq
-func (_e *MockInterviewSessionService_Expecter) UpdateCurrentStateSession(ctx interface{}, req interface{}) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
-	return &MockInterviewSessionService_UpdateCurrentStateSession_Call{Call: _e.mock.On("UpdateCurrentStateSession", ctx, req)}
+//   - req *entities.UpdateCurrentStateSessionAndLastTurnIDReq
+func (_e *MockInterviewSessionService_Expecter) UpdateCurrentStateSessionAndLastTurnID(ctx interface{}, req interface{}) *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call {
+	return &MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call{Call: _e.mock.On("UpdateCurrentStateSessionAndLastTurnID", ctx, req)}
 }
 
-func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) Run(run func(ctx context.Context, req *entities.UpdateCurrentStateSessionReq)) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+func (_c *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call) Run(run func(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq)) *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.UpdateCurrentStateSessionReq))
+		run(args[0].(context.Context), args[1].(*entities.UpdateCurrentStateSessionAndLastTurnIDReq))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) Return(_a0 *entities.UpdateCurrentStateSessionResp, _a1 error) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+func (_c *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call) Return(_a0 *entities.UpdateCurrentStateSessionResp, _a1 error) *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockInterviewSessionService_UpdateCurrentStateSession_Call) RunAndReturn(run func(context.Context, *entities.UpdateCurrentStateSessionReq) (*entities.UpdateCurrentStateSessionResp, error)) *MockInterviewSessionService_UpdateCurrentStateSession_Call {
+func (_c *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call) RunAndReturn(run func(context.Context, *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)) *MockInterviewSessionService_UpdateCurrentStateSessionAndLastTurnID_Call {
 	_c.Call.Return(run)
 	return _c
 }

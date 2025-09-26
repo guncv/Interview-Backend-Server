@@ -41,19 +41,70 @@ func (q *Queries) CreateInterviewState(ctx context.Context, arg CreateInterviewS
 	return err
 }
 
+const getLastTurnIDInterviewStateByID = `-- name: GetLastTurnIDInterviewStateByID :one
+SELECT last_turn_id
+FROM interview_states
+WHERE id = $1
+`
+
+func (q *Queries) GetLastTurnIDInterviewStateByID(ctx context.Context, id uuid.UUID) (uuid.NullUUID, error) {
+	row := q.db.QueryRowContext(ctx, getLastTurnIDInterviewStateByID, id)
+	var last_turn_id uuid.NullUUID
+	err := row.Scan(&last_turn_id)
+	return last_turn_id, err
+}
+
+const getUnprocessedInterviewStatesBySessionID = `-- name: GetUnprocessedInterviewStatesBySessionID :many
+SELECT id, session_id, phrase_type
+FROM interview_states
+WHERE session_id = $1
+    AND soft_delete = FALSE
+    AND (ended_at IS NULL OR is_evaluated = FALSE)
+`
+
+type GetUnprocessedInterviewStatesBySessionIDRow struct {
+	ID         uuid.UUID `json:"id"`
+	SessionID  uuid.UUID `json:"session_id"`
+	PhraseType string    `json:"phrase_type"`
+}
+
+func (q *Queries) GetUnprocessedInterviewStatesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetUnprocessedInterviewStatesBySessionIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUnprocessedInterviewStatesBySessionID, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUnprocessedInterviewStatesBySessionIDRow{}
+	for rows.Next() {
+		var i GetUnprocessedInterviewStatesBySessionIDRow
+		if err := rows.Scan(&i.ID, &i.SessionID, &i.PhraseType); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateEndedAtInterviewStateByID = `-- name: UpdateEndedAtInterviewStateByID :execrows
 UPDATE interview_states
-SET ended_at = $2
+SET ended_at = $2, last_turn_id = $3
 WHERE id = $1
 `
 
 type UpdateEndedAtInterviewStateByIDParams struct {
-	ID      uuid.UUID    `json:"id"`
-	EndedAt sql.NullTime `json:"ended_at"`
+	ID         uuid.UUID     `json:"id"`
+	EndedAt    sql.NullTime  `json:"ended_at"`
+	LastTurnID uuid.NullUUID `json:"last_turn_id"`
 }
 
 func (q *Queries) UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateEndedAtInterviewStateByID, arg.ID, arg.EndedAt)
+	result, err := q.db.ExecContext(ctx, updateEndedAtInterviewStateByID, arg.ID, arg.EndedAt, arg.LastTurnID)
 	if err != nil {
 		return 0, err
 	}
@@ -73,6 +124,25 @@ type UpdateIsEvaluatedInterviewStateByIDParams struct {
 
 func (q *Queries) UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg UpdateIsEvaluatedInterviewStateByIDParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateIsEvaluatedInterviewStateByID, arg.ID, arg.IsEvaluated)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateLastTurnIDInterviewStateByID = `-- name: UpdateLastTurnIDInterviewStateByID :execrows
+UPDATE interview_states
+SET last_turn_id = $2
+WHERE id = $1
+`
+
+type UpdateLastTurnIDInterviewStateByIDParams struct {
+	ID         uuid.UUID     `json:"id"`
+	LastTurnID uuid.NullUUID `json:"last_turn_id"`
+}
+
+func (q *Queries) UpdateLastTurnIDInterviewStateByID(ctx context.Context, arg UpdateLastTurnIDInterviewStateByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateLastTurnIDInterviewStateByID, arg.ID, arg.LastTurnID)
 	if err != nil {
 		return 0, err
 	}

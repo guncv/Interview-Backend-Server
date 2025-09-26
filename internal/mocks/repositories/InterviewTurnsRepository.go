@@ -295,6 +295,65 @@ func (_c *MockInterviewTurnsRepository_GetInterviewerLastMessage_Call) RunAndRet
 	return _c
 }
 
+// GetLastUserTurnIDBySessionIDAndCurrentState provides a mock function with given fields: ctx, req
+func (_m *MockInterviewTurnsRepository) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLastUserTurnIDBySessionIDAndCurrentState")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) uuid.UUID); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLastUserTurnIDBySessionIDAndCurrentState'
+type MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call struct {
+	*mock.Call
+}
+
+// GetLastUserTurnIDBySessionIDAndCurrentState is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams
+func (_e *MockInterviewTurnsRepository_Expecter) GetLastUserTurnIDBySessionIDAndCurrentState(ctx interface{}, req interface{}) *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	return &MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call{Call: _e.mock.On("GetLastUserTurnIDBySessionIDAndCurrentState", ctx, req)}
+}
+
+func (_c *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call) Run(run func(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams)) *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.GetLastUserTurnIDBySessionIDAndCurrentStateParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call) Return(_a0 uuid.UUID, _a1 error) *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call) RunAndReturn(run func(context.Context, *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error)) *MockInterviewTurnsRepository_GetLastUserTurnIDBySessionIDAndCurrentState_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetMaxTurnNoBySessionID provides a mock function with given fields: ctx, sessionID
 func (_m *MockInterviewTurnsRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
 	ret := _m.Called(ctx, sessionID)

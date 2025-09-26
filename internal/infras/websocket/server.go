@@ -29,6 +29,7 @@ type Client struct {
 	SessionID                string
 	resumeID                 string
 	CurrentSegmentID         string
+	LastTurnID               string
 	PreviousSegmentID        string
 	PreviousSegmentExpiredAt time.Time
 	StartSessionTime         time.Time
@@ -141,6 +142,7 @@ func (s *webSocketServer) HandleConnection(
 		SessionID:                session.SessionID,
 		resumeID:                 session.ResumeID,
 		CurrentSegmentID:         "",
+		LastTurnID:               "",
 		PreviousSegmentID:        "",
 		PreviousSegmentExpiredAt: time.Now(),
 		StartSessionTime:         time.Now(),
@@ -367,6 +369,14 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
+
+	endInterviewReq := &entities.EndInterviewSessionReq{
+		SessionId: client.SessionID,
+		Status:    constants.StatusCancelled,
+	}
+	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation", err)
+	}
 
 	s.mu.Lock()
 	delete(s.sessions, client.SessionID)

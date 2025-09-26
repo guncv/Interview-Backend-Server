@@ -6,10 +6,56 @@ package db
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type FinalizeStatusEnum string
+
+const (
+	FinalizeStatusEnumOngoing    FinalizeStatusEnum = "ongoing"
+	FinalizeStatusEnumFinalizing FinalizeStatusEnum = "finalizing"
+	FinalizeStatusEnumFinalized  FinalizeStatusEnum = "finalized"
+	FinalizeStatusEnumFailed     FinalizeStatusEnum = "failed"
+)
+
+func (e *FinalizeStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FinalizeStatusEnum(s)
+	case string:
+		*e = FinalizeStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FinalizeStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullFinalizeStatusEnum struct {
+	FinalizeStatusEnum FinalizeStatusEnum `json:"finalize_status_enum"`
+	Valid              bool               `json:"valid"` // Valid is true if FinalizeStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFinalizeStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.FinalizeStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FinalizeStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFinalizeStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FinalizeStatusEnum), nil
+}
 
 type AuthSessions struct {
 	ID               uuid.UUID    `json:"id"`
@@ -78,35 +124,37 @@ type Evaluations struct {
 }
 
 type InterviewSessions struct {
-	ID                    uuid.UUID       `json:"id"`
-	UserID                uuid.UUID       `json:"user_id"`
-	ResumeID              uuid.UUID       `json:"resume_id"`
-	Position              string          `json:"position"`
-	Modality              string          `json:"modality"`
-	Status                string          `json:"status"`
-	IsConsent             bool            `json:"is_consent"`
-	StartedAt             sql.NullTime    `json:"started_at"`
-	EndedAt               sql.NullTime    `json:"ended_at"`
-	OverallScore          sql.NullFloat64 `json:"overall_score"`
-	SummaryMd             sql.NullString  `json:"summary_md"`
-	CreatedAt             sql.NullTime    `json:"created_at"`
-	UpdatedAt             sql.NullTime    `json:"updated_at"`
-	DeletedAt             sql.NullTime    `json:"deleted_at"`
-	SoftDelete            sql.NullBool    `json:"soft_delete"`
-	IsStartedConversation sql.NullBool    `json:"is_started_conversation"`
-	ResumeFileName        string          `json:"resume_file_name"`
-	CurrentState          sql.NullString  `json:"current_state"`
-	CurrentStateID        uuid.NullUUID   `json:"current_state_id"`
+	ID                    uuid.UUID              `json:"id"`
+	UserID                uuid.UUID              `json:"user_id"`
+	ResumeID              uuid.UUID              `json:"resume_id"`
+	Position              string                 `json:"position"`
+	Modality              string                 `json:"modality"`
+	Status                string                 `json:"status"`
+	IsConsent             bool                   `json:"is_consent"`
+	StartedAt             sql.NullTime           `json:"started_at"`
+	EndedAt               sql.NullTime           `json:"ended_at"`
+	OverallScore          sql.NullFloat64        `json:"overall_score"`
+	SummaryMd             sql.NullString         `json:"summary_md"`
+	CreatedAt             sql.NullTime           `json:"created_at"`
+	UpdatedAt             sql.NullTime           `json:"updated_at"`
+	DeletedAt             sql.NullTime           `json:"deleted_at"`
+	SoftDelete            sql.NullBool           `json:"soft_delete"`
+	IsStartedConversation sql.NullBool           `json:"is_started_conversation"`
+	ResumeFileName        string                 `json:"resume_file_name"`
+	CurrentState          sql.NullString         `json:"current_state"`
+	CurrentStateID        uuid.NullUUID          `json:"current_state_id"`
+	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
 }
 
 type InterviewStates struct {
-	ID          uuid.UUID    `json:"id"`
-	SessionID   uuid.UUID    `json:"session_id"`
-	PhraseType  string       `json:"phrase_type"`
-	IsEvaluated sql.NullBool `json:"is_evaluated"`
-	StartedAt   time.Time    `json:"started_at"`
-	EndedAt     sql.NullTime `json:"ended_at"`
-	SoftDelete  sql.NullBool `json:"soft_delete"`
+	ID          uuid.UUID     `json:"id"`
+	SessionID   uuid.UUID     `json:"session_id"`
+	PhraseType  string        `json:"phrase_type"`
+	IsEvaluated sql.NullBool  `json:"is_evaluated"`
+	StartedAt   time.Time     `json:"started_at"`
+	EndedAt     sql.NullTime  `json:"ended_at"`
+	SoftDelete  sql.NullBool  `json:"soft_delete"`
+	LastTurnID  uuid.NullUUID `json:"last_turn_id"`
 }
 
 type InterviewTurns struct {
