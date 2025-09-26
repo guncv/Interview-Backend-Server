@@ -4375,7 +4375,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithCursor(t *test
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 1)
 				assert.Equal(t, 0.00, gotResp.Sessions[0].OverallScore)
-				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime)
+				assert.Equal(t, "0.00", gotResp.Sessions[0].TotalTime)
 				assert.Equal(t, 1, gotResp.TotalPages)
 				assert.Equal(t, 20, gotResp.PageSize)
 			},
@@ -5150,8 +5150,8 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 1)
-				assert.Equal(t, 0.0, gotResp.Sessions[0].OverallScore)  // Should be 0.0 for null score
-				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime) // Should be "00.00" for null times
+				assert.Equal(t, 0.0, gotResp.Sessions[0].OverallScore) // Should be 0.0 for null score
+				assert.Equal(t, "0.00", gotResp.Sessions[0].TotalTime) // Should be "0.00" for null times
 				assert.Equal(t, 1, gotResp.TotalPages)
 				assert.Equal(t, 20, gotResp.PageSize)
 			},
@@ -5199,7 +5199,7 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 				assert.NotNil(t, gotResp)
 				assert.Len(t, gotResp.Sessions, 1)
 				assert.Equal(t, 75.0, gotResp.Sessions[0].OverallScore)
-				assert.Equal(t, "00.00", gotResp.Sessions[0].TotalTime) // Should be "00.00" when ended_at is null
+				assert.Equal(t, "0.00", gotResp.Sessions[0].TotalTime) // Should be "0.00" when ended_at is null
 				assert.Equal(t, 1, gotResp.TotalPages)
 				assert.Equal(t, 20, gotResp.PageSize)
 			},

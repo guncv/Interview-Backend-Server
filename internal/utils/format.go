@@ -49,6 +49,22 @@ func FormatSecondsToMMSS(seconds float64) string {
 	return fmt.Sprintf("%02d:%02d", minutes, secs)
 }
 
+func FormatDurationToMinutesSeconds(startTime, endTime time.Time) string {
+	if startTime.IsZero() || endTime.IsZero() {
+		return "0.00"
+	}
+
+	duration := endTime.Sub(startTime)
+	totalMinutes := int(duration.Minutes())
+	totalSeconds := int(duration.Seconds()) % 60
+
+	if totalMinutes > 0 || totalSeconds > 0 {
+		return fmt.Sprintf("%d.%02d", totalMinutes, totalSeconds)
+	}
+
+	return "0.00"
+}
+
 func ParseAndFormatDurationSince(dateAt string, startTime time.Time) (string, error) {
 	parsedTime, err := time.Parse(time.RFC3339Nano, dateAt)
 	if err != nil {

@@ -909,12 +909,9 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 			session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
-				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-				totalMinutes := int(duration.Minutes())
-				totalSeconds := int(duration.Seconds()) % 60
-				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+				session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 			} else {
-				session.TotalTime = "00.00"
+				session.TotalTime = "0.00"
 			}
 
 			sessions = append(sessions, session)
@@ -969,12 +966,9 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 			session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 			if row.StartedAt.Valid && row.EndedAt.Valid {
-				duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-				totalMinutes := int(duration.Minutes())
-				totalSeconds := int(duration.Seconds()) % 60
-				session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+				session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 			} else {
-				session.TotalTime = "00.00"
+				session.TotalTime = "0.00"
 			}
 
 			sessions = append(sessions, session)
@@ -1082,12 +1076,9 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 		session.OverallScoreColor = utils.GetScoreColor(overallScore)
 
 		if row.StartedAt.Valid && row.EndedAt.Valid {
-			duration := row.EndedAt.Time.Sub(row.StartedAt.Time)
-			totalMinutes := int(duration.Minutes())
-			totalSeconds := int(duration.Seconds()) % 60
-			session.TotalTime = fmt.Sprintf("%02d.%02d", totalMinutes, totalSeconds)
+			session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
 		} else {
-			session.TotalTime = "00.00"
+			session.TotalTime = "0.00"
 		}
 
 		sessions = append(sessions, session)
@@ -1203,6 +1194,16 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 	statusColor := utils.GetStatusColor(dbResp.Status)
 	statusDisplayName := utils.GetStatusDisplayName(dbResp.Status)
 
+	totalTime := ""
+	if dbResp.StartedAt.Valid && dbResp.EndedAt.Valid {
+		duration := dbResp.EndedAt.Time.Sub(dbResp.StartedAt.Time)
+		totalMinutes := int(duration.Minutes())
+		totalSeconds := int(duration.Seconds()) % 60
+		if totalMinutes > 0 || totalSeconds > 0 {
+			totalTime = fmt.Sprintf("%d.%02d", totalMinutes, totalSeconds)
+		}
+	}
+
 	resp := entities.GetInterviewSessionInformationResp{
 		ResumeID:            dbResp.ResumeID,
 		ResumeFileName:      dbResp.ResumeFileName,
@@ -1210,6 +1211,7 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 		Status:              dbResp.Status,
 		StatusDisplayName:   statusDisplayName,
 		StatusColor:         statusColor,
+		TotalTime:           totalTime,
 		StartedAt:           utils.FormatNullableTimeToBangkokString(dbResp.StartedAt),
 		EndedAt:             utils.FormatNullableTimeToBangkokString(dbResp.EndedAt),
 		OverallScore:        overallScore,

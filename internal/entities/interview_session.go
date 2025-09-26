@@ -159,6 +159,7 @@ type GetInterviewSessionInformationResp struct {
 	Status              string    `json:"status"`
 	StatusDisplayName   string    `json:"status_display_name"`
 	StatusColor         string    `json:"status_color"`
+	TotalTime           string    `json:"total_time"`
 	StartedAt           string    `json:"started_at"`
 	EndedAt             string    `json:"ended_at"`
 	OverallScore        float64   `json:"overall_score"`
