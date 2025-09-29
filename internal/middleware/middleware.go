@@ -15,7 +15,7 @@ import (
 
 type AuthMiddleware interface {
 	AuthMiddleware() gin.HandlerFunc
-	VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error)
+	VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, string, error)
 }
 
 type authMiddleware struct {
@@ -61,7 +61,8 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
-		payload, err := m.VerifyAndRenewAccessToken(ctx, accessToken)
+		payload, currentAccessToken, err := m.VerifyAndRenewAccessToken(ctx, accessToken)
+		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Current access token", "token", currentAccessToken)
 		if err != nil {
 			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Error", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, err)
@@ -69,45 +70,45 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		ctx.Set(string(constants.AuthorizationPayloadKey), payload)
-		ctx.Next()
 
+		if currentAccessToken != "" {
+			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Setting X-Access-Token header ", currentAccessToken)
+			ctx.Header(string(constants.XAccessTokenHeaderKey), currentAccessToken)
+		}
+
+		ctx.Next()
 	}
 }
 
-func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error) {
+func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, string, error) {
 	m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify and renew access token", "accessToken", accessToken)
 
 	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken, m.cfg.AuthConfig.EncryptionSecretKey)
 	if err != nil {
 		var appErr *app_error.AppError
 		if errors.As(err, &appErr) && appErr.Code == app_error.ErrCodeAuthExpiredToken {
-			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Access token expired")
+			m.log.WarnWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Access token expired")
 
 			cookie, err := ctx.Request.Cookie("refresh_token")
 			if err != nil {
 				m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Get refresh token error", err)
-				return nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken)
+				return nil, "", app_error.New(err, app_error.ErrCodeAuthExpiredToken)
 			}
 
 			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renewing access token", "refreshToken", cookie.Value)
 			refreshToken := cookie.Value
-			accessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
+			newAccessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
 			if err != nil {
 				m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renew access token error", err)
-				return nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken)
+				return nil, "", app_error.New(err, app_error.ErrCodeAuthExpiredToken)
 			}
-			ctx.Set(string(constants.AuthorizationPayloadKey), payload)
-			ctx.Set(string(constants.NewAccessTokenKey), accessToken)
 
-			ctx.Header(string(constants.XAccessTokenHeaderKey), accessToken)
-
-			ctx.Next()
-			return payload, nil
+			return payload, newAccessToken, nil
 		}
 
 		m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify access token error", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+		return nil, "", app_error.New(err, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	return payload, nil
+	return payload, "", nil
 }

@@ -165,12 +165,14 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 		return
 	}
 
-	payload, err := h.middle.VerifyAndRenewAccessToken(c, accessToken)
+	payload, currentAccessToken, err := h.middle.VerifyAndRenewAccessToken(c, accessToken)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: OpenWsConnection] Authentication failed", err)
 		utils.RespondWithError(c, err)
 		return
 	}
+
+	c.Header(string(constants.XAccessTokenHeaderKey), currentAccessToken)
 
 	enrichedCtx := context.WithValue(ctx, constants.AuthContextKey, &middleware.AuthPayload{
 		Payload: payload,
