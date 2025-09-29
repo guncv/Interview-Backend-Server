@@ -44,6 +44,7 @@ type Querier interface {
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (Resumes, error)
 	GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, arg GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error)
 	GetInterviewSessionInformationByID(ctx context.Context, id uuid.UUID) (GetInterviewSessionInformationByIDRow, error)
+	GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUID) (string, error)
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (GetInterviewerLastMessageRow, error)
 	GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (GetIssueCategoryIfExistsRow, error)
 	GetLastTurnIDInterviewStateByID(ctx context.Context, id uuid.UUID) (uuid.NullUUID, error)

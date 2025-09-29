@@ -24,7 +24,7 @@ WHERE id = $1;
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
-    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END
 WHERE id = $1;
 
 -- name: CheckInterviewSessionExists :one
@@ -179,4 +179,9 @@ WHERE id = $1;
 -- name: UpdateFinalizeStatusInterviewSessionByID :execrows
 UPDATE interview_sessions
 SET finalize_status = $2
+WHERE id = $1;
+
+-- name: GetInterviewSessionStatusByID :one
+SELECT status
+FROM interview_sessions
 WHERE id = $1;

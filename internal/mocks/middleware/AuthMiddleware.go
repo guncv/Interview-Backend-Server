@@ -71,7 +71,7 @@ func (_c *MockAuthMiddleware_AuthMiddleware_Call) RunAndReturn(run func() gin.Ha
 }
 
 // VerifyAndRenewAccessToken provides a mock function with given fields: ctx, accessToken
-func (_m *MockAuthMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, error) {
+func (_m *MockAuthMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, string, error) {
 	ret := _m.Called(ctx, accessToken)
 
 	if len(ret) == 0 {
@@ -79,8 +79,9 @@ func (_m *MockAuthMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, access
 	}
 
 	var r0 *utils.SignInTokenPayload
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*gin.Context, string) (*utils.SignInTokenPayload, error)); ok {
+	var r1 string
+	var r2 error
+	if rf, ok := ret.Get(0).(func(*gin.Context, string) (*utils.SignInTokenPayload, string, error)); ok {
 		return rf(ctx, accessToken)
 	}
 	if rf, ok := ret.Get(0).(func(*gin.Context, string) *utils.SignInTokenPayload); ok {
@@ -91,13 +92,19 @@ func (_m *MockAuthMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, access
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(*gin.Context, string) error); ok {
+	if rf, ok := ret.Get(1).(func(*gin.Context, string) string); ok {
 		r1 = rf(ctx, accessToken)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
 
-	return r0, r1
+	if rf, ok := ret.Get(2).(func(*gin.Context, string) error); ok {
+		r2 = rf(ctx, accessToken)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // MockAuthMiddleware_VerifyAndRenewAccessToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyAndRenewAccessToken'
@@ -119,12 +126,12 @@ func (_c *MockAuthMiddleware_VerifyAndRenewAccessToken_Call) Run(run func(ctx *g
 	return _c
 }
 
-func (_c *MockAuthMiddleware_VerifyAndRenewAccessToken_Call) Return(_a0 *utils.SignInTokenPayload, _a1 error) *MockAuthMiddleware_VerifyAndRenewAccessToken_Call {
-	_c.Call.Return(_a0, _a1)
+func (_c *MockAuthMiddleware_VerifyAndRenewAccessToken_Call) Return(_a0 *utils.SignInTokenPayload, _a1 string, _a2 error) *MockAuthMiddleware_VerifyAndRenewAccessToken_Call {
+	_c.Call.Return(_a0, _a1, _a2)
 	return _c
 }
 
-func (_c *MockAuthMiddleware_VerifyAndRenewAccessToken_Call) RunAndReturn(run func(*gin.Context, string) (*utils.SignInTokenPayload, error)) *MockAuthMiddleware_VerifyAndRenewAccessToken_Call {
+func (_c *MockAuthMiddleware_VerifyAndRenewAccessToken_Call) RunAndReturn(run func(*gin.Context, string) (*utils.SignInTokenPayload, string, error)) *MockAuthMiddleware_VerifyAndRenewAccessToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

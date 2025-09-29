@@ -186,7 +186,7 @@ func (r *evaluationScoresRepository) GetEvaluationSummaryJsonBySessionAndState(c
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.log.ErrorWithID(ctx, "[Repository: GetEvaluationSummaryJsonBySessionAndState] Evaluation summary json by session and state not found", err)
-			return nil, err
+			return nil, app_error.New(err, app_error.ErrCodeEvaluationSummaryNotFound)
 		}
 		r.log.ErrorWithID(ctx, "[Repository: GetEvaluationSummaryJsonBySessionAndState] Error getting evaluation summary json by session and state", err)
 		return nil, app_error.HandleDatabaseError(err)

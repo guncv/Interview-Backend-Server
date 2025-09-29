@@ -387,6 +387,63 @@ func (_c *MockInterviewSessionRepository_GetInterviewSessionInformationByID_Call
 	return _c
 }
 
+// GetInterviewSessionStatusByID provides a mock function with given fields: ctx, sessionID
+func (_m *MockInterviewSessionRepository) GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error) {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetInterviewSessionStatusByID")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (string, error)); ok {
+		return rf(ctx, sessionID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) string); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionStatusByID'
+type MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call struct {
+	*mock.Call
+}
+
+// GetInterviewSessionStatusByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID uuid.UUID
+func (_e *MockInterviewSessionRepository_Expecter) GetInterviewSessionStatusByID(ctx interface{}, sessionID interface{}) *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call {
+	return &MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call{Call: _e.mock.On("GetInterviewSessionStatusByID", ctx, sessionID)}
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call) Return(_a0 string, _a1 error) *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (string, error)) *MockInterviewSessionRepository_GetInterviewSessionStatusByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, sessionID
 func (_m *MockInterviewSessionRepository) GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error) {
 	ret := _m.Called(ctx, sessionID)

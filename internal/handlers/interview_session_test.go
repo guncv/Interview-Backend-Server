@@ -391,7 +391,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 						ID:     uuid.New(),
 						UserID: "user-123",
 						Role:   "user",
-					}, nil)
+					}, "valid_access_token", nil)
 
 				mockInterviewSessionService.EXPECT().
 					IsSessionValid(mock.Anything, mock.Anything).
@@ -508,7 +508,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 
 				mockAuthMiddleware.EXPECT().
 					VerifyAndRenewAccessToken(mock.Anything, "invalid_token").
-					Return(nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken))
+					Return(nil, "", app_error.New(err, app_error.ErrCodeAuthInvalidToken))
 
 				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
@@ -543,7 +543,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				// Mock JWT token verification failure for expired token
 				mockAuthMiddleware.EXPECT().
 					VerifyAndRenewAccessToken(mock.Anything, "expired_token").
-					Return(nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
+					Return(nil, "", app_error.New(err, app_error.ErrCodeAuthExpiredToken))
 
 				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
@@ -578,7 +578,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 				// Mock JWT token verification
 				mockAuthMiddleware.EXPECT().
 					VerifyAndRenewAccessToken(mock.Anything, "valid_access_token").
-					Return(nil, app_error.New(err, app_error.ErrCodeAuthExpiredToken))
+					Return(nil, "", app_error.New(err, app_error.ErrCodeAuthExpiredToken))
 
 				return mockValidator, mockWsServer, mockAuthMiddleware, mockInterviewSessionService
 			},
@@ -617,7 +617,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 						ID:     uuid.New(),
 						UserID: "user-123",
 						Role:   "user",
-					}, nil)
+					}, "valid_access_token", nil)
 
 				mockInterviewSessionService.EXPECT().
 					IsSessionValid(mock.Anything, mock.Anything).
@@ -659,7 +659,7 @@ func TestInterviewSessionHandler_OpenWsConnection(t *testing.T) {
 						ID:     uuid.New(),
 						UserID: "user-123",
 						Role:   "user",
-					}, nil)
+					}, "valid_access_token", nil)
 
 				mockInterviewSessionService.EXPECT().
 					IsSessionValid(mock.Anything, mock.Anything).

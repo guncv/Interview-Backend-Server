@@ -435,9 +435,8 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		}
 
 		client.isStartedConversation = true
-
 		s.writeJSON(ctx, client, map[string]interface{}{
-			"type":       constants.WebSocketMessageTypeConversationStarted,
+			"type":       constants.WebSocketMessageTypeConversationStarting,
 			"session_id": req.SessionID,
 		})
 	}

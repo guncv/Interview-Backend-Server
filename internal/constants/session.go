@@ -24,6 +24,7 @@ const (
 	WebSocketMessageTypeUserFullTranscript        = "user_full_transcript"
 	WebSocketMessageTypeInterviewerResponse       = "interviewer_response"
 	WebSocketMessageTypeConversationStarted       = "conversation_started"
+	WebSocketMessageTypeConversationStarting      = "conversation_starting"
 	WebSocketMessageTypeInterviewTurnStart        = "interviewer_turn_start"
 	WebSocketMessageTypeInterviewTurnEnd          = "interviewer_turn_end"
 	WebSocketMessageTypeEndInterviewSession       = "end_interview_session"

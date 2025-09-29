@@ -50,6 +50,7 @@ type InterviewSessionService interface {
 	InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error)
 	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
+	GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error)
 }
 
 type interviewSessionService struct {
@@ -527,6 +528,12 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
+	if !isValidSessionStatus(req.Status) {
+		s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Invalid status provided",
+			fmt.Errorf("invalid status: %s", req.Status))
+		return app_error.New(fmt.Errorf("invalid status: %s", req.Status), app_error.ErrCodeSessionInvalidStatus)
+	}
+
 	dbReq := &db.UpdateInterviewSessionStatusParams{
 		ID:      sessionID,
 		Column2: req.Status,
@@ -535,6 +542,25 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 	if err := s.interviewSessionRepo.UpdateInterviewSessionStatus(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Error updating interview session status", err)
 		return err
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, req.SessionID)
+	redisPayload := database.RedisPayload{
+		Key:   redisKey,
+		Value: req.Status,
+		TTL:   constants.RedisTTLInterviewStatus,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Error updating redis with new status", err)
+
+		go func() {
+			if delErr := s.redisClient.Delete(ctx, redisKey); delErr != nil {
+				s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Error deleting stale redis key", delErr)
+			} else {
+				s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Deleted stale redis key after set failure")
+			}
+		}()
 	}
 
 	return nil
@@ -754,6 +780,19 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
+	sessionStatus, err := s.GetInterviewSessionStatusByID(ctx, req.SessionId)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting session information", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
+		return err
+	}
+
+	if sessionStatus == constants.StatusCompleted || sessionStatus == constants.StatusCancelled ||
+		sessionStatus == constants.StatusAborted || sessionStatus == constants.StatusTimedOut {
+		s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Session already ended")
+		return nil
+	}
+
 	endAt := time.Now().UTC()
 
 	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, sessionID)
@@ -794,7 +833,7 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 
 		overallSummaryMd = overallSummary.OverallSummaryMd
 	} else {
-		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] No evaluations found")
+		s.log.WarnWithID(ctx, "[Service: EndInterviewSession] No evaluations found")
 		overallScore = 0.0
 		overallSummaryMd = constants.BlankOverallSummaryMd
 	}
@@ -815,8 +854,21 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 
 	if err := s.evaluationService.FinalizeSessionPhraseEvaluation(ctx, req.SessionId); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error finalizing session evaluation", err)
+		s.evaluationService.FinalizeSessionFailed(ctx, req.SessionId)
 		return err
 	}
+
+	go func() {
+		redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, req.SessionId)
+		redisPayload := database.RedisPayload{
+			Key:   redisKey,
+			Value: req.Status,
+			TTL:   constants.RedisTTLInterviewStatus,
+		}
+		if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error updating interview session status in redis", err)
+		}
+	}()
 
 	return nil
 }
@@ -1475,4 +1527,83 @@ func (s *interviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ct
 	}
 
 	return dbResp.String(), nil
+}
+
+func (s *interviewSessionService) GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionStatusByID] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Invalid session ID", err)
+		return "", app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
+
+	redisStatus, err := s.redisClient.Get(ctx, redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Error getting interview session status from redis, falling back to database", err)
+
+		status, err := s.getStatusFromDBAndUpdateCache(ctx, sessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Error getting interview session status from database", err)
+			return "", err
+		}
+		return status, nil
+	}
+
+	if !isValidSessionStatus(redisStatus) {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Invalid status found in redis, falling back to database",
+			fmt.Errorf("invalid status: %s", redisStatus))
+
+		status, err := s.getStatusFromDBAndUpdateCache(ctx, sessionID)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Error getting interview session status from database", err)
+			return "", err
+		}
+		return status, nil
+	}
+
+	return redisStatus, nil
+}
+
+func (s *interviewSessionService) getStatusFromDBAndUpdateCache(ctx context.Context, sessionID uuid.UUID) (string, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionStatusByID] Getting interview session status from database and updating cache")
+
+	dbStatus, err := s.interviewSessionRepo.GetInterviewSessionStatusByID(ctx, sessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Error getting interview session status from database", err)
+		return "", err
+	}
+
+	go func() {
+		redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
+		redisPayload := database.RedisPayload{
+			Key:   redisKey,
+			Value: dbStatus,
+			TTL:   constants.RedisTTLInterviewStatus,
+		}
+		if setErr := s.redisClient.Set(ctx, redisPayload); setErr != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionStatusByID] Error updating redis with status from database", setErr)
+		}
+	}()
+	return dbStatus, nil
+}
+
+func isValidSessionStatus(status string) bool {
+	validStatuses := []string{
+		constants.StatusPending,
+		constants.StatusOnGoing,
+		constants.StatusCompleted,
+		constants.StatusAborted,
+		constants.StatusCancelled,
+		constants.StatusTimedOut,
+	}
+
+	for _, validStatus := range validStatuses {
+		if status == validStatus {
+			return true
+		}
+	}
+	return false
 }
