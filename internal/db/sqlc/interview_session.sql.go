@@ -191,6 +191,19 @@ func (q *Queries) GetInterviewSessionInformationByID(ctx context.Context, id uui
 	return i, err
 }
 
+const getInterviewSessionStatusByID = `-- name: GetInterviewSessionStatusByID :one
+SELECT status
+FROM interview_sessions
+WHERE id = $1
+`
+
+func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, getInterviewSessionStatusByID, id)
+	var status string
+	err := row.Scan(&status)
+	return status, err
+}
+
 const getStartedAndIsStartedConversationSession = `-- name: GetStartedAndIsStartedConversationSession :one
 SELECT current_state_id, current_state, started_at, is_started_conversation
 FROM interview_sessions
@@ -520,7 +533,7 @@ const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :exe
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
-    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out') THEN now() ELSE ended_at END
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END
 WHERE id = $1
 `
 

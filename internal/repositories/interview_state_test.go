@@ -266,6 +266,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(mockResult{affected: 1}, nil).Once()
 
@@ -317,6 +318,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(nil, errors.New("database error")).Once()
 
@@ -348,6 +350,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(mockResult{affected: 0}, nil).Once()
 
@@ -380,6 +383,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(mockResult{affected: 1}, nil).Once()
 
@@ -422,6 +426,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(mockResult{affected: 1}, nil).Once()
 
@@ -474,6 +479,7 @@ func TestInterviewStateRepository_EndOldInterviewStateAndCreateNewInterviewState
 							mock.AnythingOfType("string"),
 							globalID,
 							sql.NullTime{Time: endedAt, Valid: true},
+							uuid.NullUUID{UUID: uuid.Nil, Valid: true},
 						).
 						Return(mockResult{affected: 1}, nil).Once()
 

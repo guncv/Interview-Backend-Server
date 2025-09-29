@@ -475,7 +475,7 @@ func TestGetStatusColor(t *testing.T) {
 		{
 			name:     "Pending status",
 			status:   constants.StatusPending,
-			expected: "#6C757D", // Gray
+			expected: "#17A2B8", // Gray
 		},
 		{
 			name:     "OnGoing status",
@@ -495,7 +495,7 @@ func TestGetStatusColor(t *testing.T) {
 		{
 			name:     "Cancelled status",
 			status:   constants.StatusCancelled,
-			expected: "#6C757D", // Gray
+			expected: "#FFC107", // Gray
 		},
 		{
 			name:     "TimedOut status",

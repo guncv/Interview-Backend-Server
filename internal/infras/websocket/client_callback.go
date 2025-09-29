@@ -51,7 +51,20 @@ func (w *webSocketClientCallbacks) OnDisconnect(ctx context.Context, sessionID s
 		"session_id": sessionID,
 	})
 
-	w.server.Disconnect(ctx, w.client)
+	// Check if client is already disconnecting to prevent recursive calls
+	if w.client != nil {
+		w.client.mu.Lock()
+		if w.client.disconnecting {
+			w.client.mu.Unlock()
+			w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithDisconnect] Client already disconnecting", map[string]any{
+				"session_id": sessionID,
+			})
+			return
+		}
+		w.client.mu.Unlock()
+
+		w.server.Disconnect(ctx, w.client)
+	}
 }
 
 func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript) {

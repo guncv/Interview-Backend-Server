@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -42,6 +43,8 @@ type webSocketClient struct {
 	lastPongTime time.Time
 	pongReceived chan struct{}
 	cancelFunc   context.CancelFunc
+	mu           sync.RWMutex
+	disconnected bool
 }
 
 func NewWebSocketClient(log *log.Logger) WebSocketClient {
@@ -57,7 +60,9 @@ func NewWebSocketClient(log *log.Logger) WebSocketClient {
 }
 
 func (c *webSocketClient) Start(ctx context.Context, url string) error {
-	c.log.InfoWithID(ctx, "[WebSocketClient: Start] Called:", url)
+	c.log.InfoWithID(ctx, "[WebSocketClient: Start] Starting AI agent client connection", map[string]any{
+		"url": url,
+	})
 
 	dialer := websocket.Dialer{
 		Proxy:             http.ProxyFromEnvironment,
@@ -67,12 +72,19 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 
 	conn, _, err := dialer.DialContext(ctx, url, nil)
 	if err != nil {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: Start] Error dialing:", err)
+		c.log.ErrorWithID(ctx, "[WebSocketClient: Start] Error connecting to AI agent", map[string]any{
+			"url":   url,
+			"error": err,
+		})
 		return err
 	}
 	c.conn = conn
 	c.connected = true
 	c.lastPongTime = time.Now()
+
+	c.log.InfoWithID(ctx, "[WebSocketClient: Start] AI agent connection established successfully", map[string]any{
+		"url": url,
+	})
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	c.cancelFunc = cancel
@@ -94,14 +106,28 @@ func (c *webSocketClient) Start(ctx context.Context, url string) error {
 	go c.readLoop(cancelCtx)
 	// go c.pingLoop(cancelCtx)
 
-	defer cancel()
 	return nil
 }
 
 func (c *webSocketClient) Close(ctx context.Context) error {
 	c.log.InfoWithID(ctx, "[WebSocketClient: Close] Called")
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.disconnected {
+		c.log.InfoWithID(ctx, "[WebSocketClient: Close] Already disconnected")
+		return nil
+	}
+
 	c.connected = false
+	c.disconnected = true
+
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+		c.cancelFunc = nil
+	}
+
 	if c.conn != nil {
 		c.log.InfoWithID(ctx, "[WebSocketClient: Close] Closing connection")
 		return c.conn.Close()
@@ -225,7 +251,10 @@ func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) err
 }
 
 func (c *webSocketClient) SendMessage(ctx context.Context, data map[string]interface{}) error {
-	if !c.connected || c.conn == nil {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if !c.connected || c.conn == nil || c.disconnected {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SendMessage] Not connected")
 		return websocket.ErrCloseSent
 	}
@@ -240,7 +269,10 @@ func (c *webSocketClient) SendMessage(ctx context.Context, data map[string]inter
 }
 
 func (c *webSocketClient) SendBinaryMessage(ctx context.Context, data []byte) error {
-	if !c.connected || c.conn == nil {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if !c.connected || c.conn == nil || c.disconnected {
 		c.log.ErrorWithID(ctx, "[WebSocketClient: SendBinaryMessage] Not connected")
 		return websocket.ErrCloseSent
 	}
@@ -262,9 +294,12 @@ func (c *webSocketClient) SendSessionInfo(ctx context.Context, sessionID, userID
 }
 
 func (c *webSocketClient) IsConnected() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
 	ctx := context.Background()
 	c.log.InfoWithID(ctx, "[WebSocketClient: IsConnected] Called:", c.connected, c.conn != nil)
-	return c.connected && c.conn != nil
+	return c.connected && c.conn != nil && !c.disconnected
 }
 
 func (c *webSocketClient) SetCallbacks(callbacks WebSocketClientCallbacks) {
@@ -279,12 +314,50 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 	for {
 		mt, data, err := c.conn.ReadMessage()
 		if err != nil {
-			c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] Connection error, disconnecting", err)
-			c.connected = false
+			// Check if it's a normal close from AI agent
+			if closeErr, ok := err.(*websocket.CloseError); ok {
+				switch closeErr.Code {
+				case websocket.CloseNormalClosure:
+					c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] AI agent closed connection normally", map[string]any{
+						"session_id": c.sessionID,
+						"code":       closeErr.Code,
+						"text":       closeErr.Text,
+					})
+				case websocket.CloseGoingAway:
+					c.log.InfoWithID(ctx, "[WebSocketClient: readLoop] AI agent going away", map[string]any{
+						"session_id": c.sessionID,
+						"code":       closeErr.Code,
+						"text":       closeErr.Text,
+					})
+				default:
+					c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] AI agent closed connection with error", map[string]any{
+						"session_id": c.sessionID,
+						"code":       closeErr.Code,
+						"text":       closeErr.Text,
+						"error":      err,
+					})
+				}
+			} else if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
+				c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] Unexpected AI agent connection close", map[string]any{
+					"session_id": c.sessionID,
+					"error":      err,
+				})
+			} else {
+				c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] AI agent connection error", map[string]any{
+					"session_id": c.sessionID,
+					"error":      err,
+				})
+			}
 
-			c.cb.OnDisconnect(ctx, c.sessionID)
-
-			c.disconnect(ctx)
+			c.mu.Lock()
+			if !c.disconnected {
+				c.connected = false
+				c.mu.Unlock()
+				c.cb.OnDisconnect(ctx, c.sessionID)
+				c.disconnect(ctx)
+			} else {
+				c.mu.Unlock()
+			}
 			return
 		}
 
@@ -386,19 +459,37 @@ func (c *webSocketClient) pingLoop(ctx context.Context) {
 }
 
 func (c *webSocketClient) disconnect(ctx context.Context) {
-	c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Disconnecting client")
+	c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Disconnecting AI agent client", map[string]any{
+		"session_id": c.sessionID,
+		"connected":  c.connected,
+	})
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.disconnected {
+		c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Already disconnected")
+		return
+	}
+
+	c.disconnected = true
+	c.connected = false
 
 	if c.cancelFunc != nil {
 		c.cancelFunc()
 		c.cancelFunc = nil
 	}
 
-	if err := c.conn.Close(); err != nil {
-		c.log.ErrorWithID(ctx, "[WebSocketClient: disconnect] Error closing connection", err)
-	} else {
-		c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] Connection closed successfully")
+	if c.conn != nil {
+		if err := c.conn.Close(); err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: disconnect] Error closing AI agent connection", map[string]any{
+				"session_id": c.sessionID,
+				"error":      err,
+			})
+		} else {
+			c.log.InfoWithID(ctx, "[WebSocketClient: disconnect] AI agent connection closed successfully", map[string]any{
+				"session_id": c.sessionID,
+			})
+		}
 	}
-
-	c.connected = false
-	c.cb.OnDisconnect(ctx, c.sessionID)
 }

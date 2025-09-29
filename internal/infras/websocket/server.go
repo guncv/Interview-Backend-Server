@@ -40,6 +40,7 @@ type Client struct {
 	cancelFunc               context.CancelFunc
 	currentState             string
 	currentStateID           string
+	disconnecting            bool
 }
 
 type WebSocketServerInterface interface {
@@ -153,10 +154,6 @@ func (s *webSocketServer) HandleConnection(
 		currentState:             "",
 		currentStateID:           "",
 	}
-
-	s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Setting read deadline", map[string]any{
-		"session_id": client.SessionID,
-	})
 
 	// _ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	// client.conn.SetPongHandler(func(string) error {
@@ -277,7 +274,12 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
-	defer s.Disconnect(ctx, c)
+
+	defer func() {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Disconnecting client...")
+		s.Disconnect(ctx, c)
+	}()
+
 	c.conn.SetReadLimit(1 << 20)
 
 	for {
@@ -285,8 +287,26 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 		// _ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 
 		if err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Error reading message", err)
-			s.logic.sendMessageTypeError(ctx, c, app_error.ErrCodeWebSocketInvalidMessage)
+			// Check if it's a clean/known close from client
+			if closeErr, ok := err.(*websocket.CloseError); ok {
+				s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Client closed connection", map[string]any{
+					"session_id": c.SessionID,
+					"user_id":    c.userID,
+					"code":       closeErr.Code,
+					"text":       closeErr.Text,
+				})
+			} else if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Unexpected connection close", err)
+			} else {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Connection closed With Error", err)
+			}
+
+			// Mark connection as closed to prevent further writes
+			c.mu.Lock()
+			c.connected = false
+			c.mu.Unlock()
+
+			// No need to send error to client if they already closed
 			return
 		}
 
@@ -322,6 +342,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				return
 
 			default:
+				s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Invalid message type", map[string]any{"message_type": m.Type})
 				s.logic.sendMessageTypeError(ctx, c, app_error.ErrCodeWebSocketInvalidMessage)
 				continue
 			}
@@ -370,10 +391,22 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 
+	client.mu.Lock()
+	if client.disconnecting {
+		client.mu.Unlock()
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Already disconnecting")
+		return
+	}
+	client.disconnecting = true
+	client.connected = false
+	client.mu.Unlock()
+
 	endInterviewReq := &entities.EndInterviewSessionReq{
 		SessionId: client.SessionID,
 		Status:    constants.StatusCancelled,
 	}
+
+	s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] End interview session", endInterviewReq)
 	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation", err)
 	}
@@ -388,11 +421,8 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	}
 	s.mu.Unlock()
 
-	s.writeJSON(ctx, client, map[string]any{
-		"type":    "disconnect",
-		"code":    string(app_error.ErrCodeWebSocketInvalidMessage),
-		"message": app_error.ErrCodeWebSocketInvalidMessage.Message(),
-	})
+	// Don't try to send disconnect message as connection might already be closed
+	// The client will detect the disconnection through the connection close
 
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{
@@ -410,8 +440,7 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	}
 
 	client.mu.Lock()
-	if client.connected {
-		client.connected = false
+	if !client.disconnecting {
 		close(client.pongReceived)
 	}
 	client.mu.Unlock()
@@ -420,9 +449,22 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 func (s *webSocketServer) writeJSON(ctx context.Context, c *Client, v any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if !c.connected || c.conn == nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Connection already closed, skipping write")
+		return
+	}
+
 	err := c.conn.WriteJSON(v)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Error writing JSON", err)
+		// Check if it's a close error to avoid logging it as an error
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			s.log.InfoWithID(ctx, "[WebSocketServer: writeJSON] Connection closed during write", map[string]any{
+				"error": err.Error(),
+			})
+		} else {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: writeJSON] Error writing JSON", err)
+		}
 	}
 }
 

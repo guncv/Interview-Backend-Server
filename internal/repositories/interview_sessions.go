@@ -29,6 +29,7 @@ type InterviewSessionRepository interface {
 	DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error
 	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
+	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
 }
 
 type interviewSessionRepository struct {
@@ -301,4 +302,19 @@ func (r *interviewSessionRepository) UpdateFinalizeStatusInterviewSessionByID(ct
 	}
 
 	return nil
+}
+
+func (r *interviewSessionRepository) GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionStatusByID] Called")
+
+	resp, err := r.db.GetInterviewSessionStatusByID(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionStatusByID] Interview session not found", err)
+			return "", app_error.New(constants.ErrInterviewSessionNotFound, app_error.ErrCodeSessionNotFound)
+		}
+		r.log.ErrorWithID(ctx, "[Repository: GetInterviewSessionStatusByID] Error getting interview session status", err)
+		return "", app_error.HandleDatabaseError(err)
+	}
+	return resp, nil
 }
