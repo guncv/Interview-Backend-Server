@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -34,6 +35,8 @@ type Client struct {
 	PreviousSegmentExpiredAt time.Time
 	StartSessionTime         time.Time
 	lastPongTime             time.Time
+	lastActivityTime         time.Time
+	inactivityWarningSent    bool
 	isStartedConversation    bool
 	pongReceived             chan struct{}
 	connected                bool
@@ -47,7 +50,7 @@ type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp) error
 	Start(ctx context.Context) error
 	SendCloseMessage(ctx context.Context, sessionID string, reason string) error
-	Disconnect(ctx context.Context, client *Client)
+	Disconnect(ctx context.Context, client *Client, status ...string)
 }
 
 type webSocketServer struct {
@@ -101,7 +104,9 @@ func NewWebSocketServer(
 
 	logic := NewWebSocketServerLogic(
 		log,
-		server.Disconnect,
+		func(ctx context.Context, client *Client) {
+			server.Disconnect(ctx, client)
+		},
 		server.writeJSON,
 		clientManager,
 		interviewSessionService,
@@ -148,6 +153,8 @@ func (s *webSocketServer) HandleConnection(
 		PreviousSegmentExpiredAt: time.Now(),
 		StartSessionTime:         time.Now(),
 		lastPongTime:             time.Now(),
+		lastActivityTime:         time.Now(),
+		inactivityWarningSent:    false,
 		pongReceived:             make(chan struct{}, 1),
 		connected:                true,
 		isStartedConversation:    false,
@@ -155,7 +162,6 @@ func (s *webSocketServer) HandleConnection(
 		currentStateID:           "",
 	}
 
-	// _ = client.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 	// client.conn.SetPongHandler(func(string) error {
 	// 	client.mu.Lock()
 	// 	client.lastPongTime = time.Now()
@@ -214,6 +220,8 @@ func (s *webSocketServer) HandleConnection(
 	})
 	client.StartSessionTime = utils.ParseToTime(resp.StartedAt)
 
+	s.sendActivityTimerReset(ctx, client)
+
 	if !resp.IsStartedConversation {
 		s.logic.sendStartSessionConversationMessage(ctx, client)
 	} else {
@@ -226,6 +234,7 @@ func (s *webSocketServer) HandleConnection(
 
 	// go s.pingLoop(cancelCtx, client)
 	go s.readLoop(cancelCtx, client)
+	go s.inactivityMonitor(cancelCtx, client)
 
 	return nil
 }
@@ -272,6 +281,13 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	return nil
 }
 
+func (s *webSocketServer) sendActivityTimerReset(ctx context.Context, client *Client) {
+	s.writeJSON(ctx, client, map[string]any{
+		"type":  constants.WebSocketMessageTypeActivityTimerReset,
+		"timer": int(constants.WebSocketInactivityWarningTimeout.Seconds()),
+	})
+}
+
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
 
@@ -284,10 +300,20 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 	for {
 		mt, payload, err := c.conn.ReadMessage()
-		// _ = c.conn.SetReadDeadline(time.Now().Add(constants.WebSocketReadTimeout))
 
 		if err != nil {
-			// Check if it's a clean/known close from client
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Connection timeout - ending session due to inactivity")
+
+				s.writeJSON(ctx, c, map[string]any{
+					"type":   constants.WebSocketMessageTypeInterviewSessionTimedOut,
+					"reason": constants.TimeOutMessage,
+				})
+
+				s.Disconnect(ctx, c, constants.StatusTimedOut)
+				return
+			}
+
 			if closeErr, ok := err.(*websocket.CloseError); ok {
 				s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Client closed connection", map[string]any{
 					"session_id": c.SessionID,
@@ -301,14 +327,19 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 				s.log.ErrorWithID(ctx, "[WebSocketServer: readLoop] Connection closed With Error", err)
 			}
 
-			// Mark connection as closed to prevent further writes
 			c.mu.Lock()
 			c.connected = false
 			c.mu.Unlock()
 
-			// No need to send error to client if they already closed
 			return
 		}
+
+		c.mu.Lock()
+		c.lastActivityTime = time.Now()
+		c.inactivityWarningSent = false
+		c.mu.Unlock()
+
+		s.sendActivityTimerReset(ctx, c)
 
 		switch mt {
 		case websocket.TextMessage:
@@ -356,6 +387,62 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	}
 }
 
+func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Starting inactivity monitor")
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Context cancelled, stopping inactivity monitor")
+			return
+		case <-ticker.C:
+			client.mu.Lock()
+			if !client.connected || client.disconnecting {
+				client.mu.Unlock()
+				return
+			}
+
+			timeSinceLastActivity := time.Since(client.lastActivityTime)
+			warningSent := client.inactivityWarningSent
+			client.mu.Unlock()
+
+			if !warningSent && timeSinceLastActivity >= constants.WebSocketInactivityWarningTimeout {
+				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Sending inactivity warning", map[string]any{
+					"session_id":               client.SessionID,
+					"time_since_last_activity": timeSinceLastActivity,
+				})
+
+				s.writeJSON(ctx, client, map[string]any{
+					"type":    constants.WebSocketMessageTypeInactivityWarning,
+					"message": constants.InactivityWarningMessage,
+				})
+
+				client.mu.Lock()
+				client.inactivityWarningSent = true
+				client.mu.Unlock()
+			}
+
+			if timeSinceLastActivity >= constants.WebSocketInactivityTimeoutDuration {
+				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Session timed out due to inactivity", map[string]any{
+					"session_id":               client.SessionID,
+					"time_since_last_activity": timeSinceLastActivity,
+				})
+
+				s.writeJSON(ctx, client, map[string]any{
+					"type":    constants.WebSocketMessageTypeInterviewSessionTimedOut,
+					"message": constants.TimeOutMessage,
+				})
+
+				s.Disconnect(ctx, client, constants.StatusTimedOut)
+				return
+			}
+		}
+	}
+}
+
 // func (s *webSocketServer) pingLoop(ctx context.Context, client *Client) {
 // 	s.log.InfoWithID(ctx, "[WebSocketServer: pingLoop] Starting ping loop")
 
@@ -388,7 +475,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 // 	}
 // }
 
-func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
+func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status ...string) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Called")
 
 	client.mu.Lock()
@@ -401,9 +488,14 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client) {
 	client.connected = false
 	client.mu.Unlock()
 
+	sessionStatus := constants.StatusCancelled
+	if len(status) > 0 && status[0] != "" {
+		sessionStatus = status[0]
+	}
+
 	endInterviewReq := &entities.EndInterviewSessionReq{
 		SessionId: client.SessionID,
-		Status:    constants.StatusCancelled,
+		Status:    sessionStatus,
 	}
 
 	s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] End interview session", endInterviewReq)
