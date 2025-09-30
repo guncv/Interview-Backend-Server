@@ -26,9 +26,16 @@ func (_m *MockWebSocketServerInterface) EXPECT() *MockWebSocketServerInterface_E
 	return &MockWebSocketServerInterface_Expecter{mock: &_m.Mock}
 }
 
-// Disconnect provides a mock function with given fields: ctx, client
-func (_m *MockWebSocketServerInterface) Disconnect(ctx context.Context, client *websocket.Client) {
-	_m.Called(ctx, client)
+// Disconnect provides a mock function with given fields: ctx, client, status
+func (_m *MockWebSocketServerInterface) Disconnect(ctx context.Context, client *websocket.Client, status ...string) {
+	_va := make([]interface{}, len(status))
+	for _i := range status {
+		_va[_i] = status[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, client)
+	_ca = append(_ca, _va...)
+	_m.Called(_ca...)
 }
 
 // MockWebSocketServerInterface_Disconnect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Disconnect'
@@ -39,13 +46,21 @@ type MockWebSocketServerInterface_Disconnect_Call struct {
 // Disconnect is a helper method to define mock.On call
 //   - ctx context.Context
 //   - client *websocket.Client
-func (_e *MockWebSocketServerInterface_Expecter) Disconnect(ctx interface{}, client interface{}) *MockWebSocketServerInterface_Disconnect_Call {
-	return &MockWebSocketServerInterface_Disconnect_Call{Call: _e.mock.On("Disconnect", ctx, client)}
+//   - status ...string
+func (_e *MockWebSocketServerInterface_Expecter) Disconnect(ctx interface{}, client interface{}, status ...interface{}) *MockWebSocketServerInterface_Disconnect_Call {
+	return &MockWebSocketServerInterface_Disconnect_Call{Call: _e.mock.On("Disconnect",
+		append([]interface{}{ctx, client}, status...)...)}
 }
 
-func (_c *MockWebSocketServerInterface_Disconnect_Call) Run(run func(ctx context.Context, client *websocket.Client)) *MockWebSocketServerInterface_Disconnect_Call {
+func (_c *MockWebSocketServerInterface_Disconnect_Call) Run(run func(ctx context.Context, client *websocket.Client, status ...string)) *MockWebSocketServerInterface_Disconnect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*websocket.Client))
+		variadicArgs := make([]string, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(string)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*websocket.Client), variadicArgs...)
 	})
 	return _c
 }
@@ -55,7 +70,7 @@ func (_c *MockWebSocketServerInterface_Disconnect_Call) Return() *MockWebSocketS
 	return _c
 }
 
-func (_c *MockWebSocketServerInterface_Disconnect_Call) RunAndReturn(run func(context.Context, *websocket.Client)) *MockWebSocketServerInterface_Disconnect_Call {
+func (_c *MockWebSocketServerInterface_Disconnect_Call) RunAndReturn(run func(context.Context, *websocket.Client, ...string)) *MockWebSocketServerInterface_Disconnect_Call {
 	_c.Run(run)
 	return _c
 }
