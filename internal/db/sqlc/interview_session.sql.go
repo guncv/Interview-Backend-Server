@@ -204,27 +204,29 @@ func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUI
 	return status, err
 }
 
-const getStartedAndIsStartedConversationSession = `-- name: GetStartedAndIsStartedConversationSession :one
-SELECT current_state_id, current_state, started_at, is_started_conversation
+const getSessionState = `-- name: GetSessionState :one
+SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out
 FROM interview_sessions
 WHERE id = $1
 `
 
-type GetStartedAndIsStartedConversationSessionRow struct {
+type GetSessionStateRow struct {
 	CurrentStateID        uuid.NullUUID  `json:"current_state_id"`
 	CurrentState          sql.NullString `json:"current_state"`
 	StartedAt             sql.NullTime   `json:"started_at"`
 	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
+	IsTimedOut            sql.NullBool   `json:"is_timed_out"`
 }
 
-func (q *Queries) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (GetStartedAndIsStartedConversationSessionRow, error) {
-	row := q.db.QueryRowContext(ctx, getStartedAndIsStartedConversationSession, id)
-	var i GetStartedAndIsStartedConversationSessionRow
+func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error) {
+	row := q.db.QueryRowContext(ctx, getSessionState, id)
+	var i GetSessionStateRow
 	err := row.Scan(
 		&i.CurrentStateID,
 		&i.CurrentState,
 		&i.StartedAt,
 		&i.IsStartedConversation,
+		&i.IsTimedOut,
 	)
 	return i, err
 }
@@ -533,7 +535,8 @@ const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :exe
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
-    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END,
+    is_timed_out = CASE WHEN $2 IN ('timed_out') THEN true ELSE false END
 WHERE id = $1
 `
 
@@ -563,6 +566,25 @@ type UpdateIsStartedConversationSessionParams struct {
 
 func (q *Queries) UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateIsStartedConversationSession, arg.ID, arg.IsStartedConversation)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateIsTimedOutSession = `-- name: UpdateIsTimedOutSession :execrows
+UPDATE interview_sessions
+SET is_timed_out = $2
+WHERE id = $1
+`
+
+type UpdateIsTimedOutSessionParams struct {
+	ID         uuid.UUID    `json:"id"`
+	IsTimedOut sql.NullBool `json:"is_timed_out"`
+}
+
+func (q *Queries) UpdateIsTimedOutSession(ctx context.Context, arg UpdateIsTimedOutSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateIsTimedOutSession, arg.ID, arg.IsTimedOut)
 	if err != nil {
 		return 0, err
 	}

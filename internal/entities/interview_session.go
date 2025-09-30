@@ -170,11 +170,12 @@ type GetInterviewSessionInformationResp struct {
 	CreatedAtFullName   string    `json:"created_at_full_name"`
 }
 
-type CheckExistsAndInitStartedAtInterviewSessionResp struct {
+type GetInterviewSessionStateResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
 	CurrentState          string `json:"current_state"`
 	CurrentStateID        string `json:"current_state_id"`
+	IsTimedOut            bool   `json:"is_timed_out"`
 }
 
 type EndInterviewSessionReq struct {

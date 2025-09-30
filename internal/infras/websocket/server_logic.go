@@ -56,12 +56,12 @@ func NewWebSocketServerLogic(
 	}
 }
 
-func (s *WebSocketServerLogic) checkExistsAndInitStartedAtInterviewSession(ctx context.Context, client *Client) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Called")
+func (s *WebSocketServerLogic) getInterviewSessionState(ctx context.Context, client *Client) (*entities.GetInterviewSessionStateResp, error) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: getInterviewSessionState] Called")
 
-	resp, err := s.interviewSessionService.CheckExistsAndInitStartedAtInterviewSession(ctx, client.SessionID)
+	resp, err := s.interviewSessionService.GetInterviewSessionState(ctx, client.SessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: checkExistsAndInitStartedAtInterviewSession] Error checking exists and initializing started at interview session", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: getInterviewSessionState] Error getting interview session state", err)
 		return nil, err
 	}
 

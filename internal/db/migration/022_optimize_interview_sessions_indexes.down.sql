@@ -6,3 +6,5 @@ DROP INDEX IF EXISTS idx_interview_sessions_user_finalized_created_desc;
 DROP INDEX IF EXISTS idx_interview_sessions_user_finalized_created_asc;
 DROP INDEX IF EXISTS idx_interview_sessions_user_finalized_created_desc_jump;
 DROP INDEX IF EXISTS idx_interview_sessions_user_finalized_count;
+
+ALTER TABLE interview_sessions DROP COLUMN is_timed_out;
