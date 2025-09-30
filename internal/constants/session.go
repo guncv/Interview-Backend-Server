@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// Interview Session Constants
 const (
 	StatusPending   = "pending"
 	StatusOnGoing   = "on_going"
@@ -33,7 +32,6 @@ const (
 	WebSocketMessageTypeInactivityWarning         = "inactivity_warning"
 	WebSocketMessageTypeActivityTimerReset        = "activity_timer_reset"
 
-	// Additional message types for Python server compatibility
 	WebSocketMessageTypeConnectionEstablished = "connection_established"
 	WebSocketMessageTypeEcho                  = "echo"
 	WebSocketMessageTypePing                  = "ping"
@@ -46,8 +44,8 @@ const (
 	WebSocketPongTimeout                    = 6 * time.Second
 	WebSocketClientHandshakeTimeout         = 2 * time.Second
 	WebSocketPreviousSegmentExpiredDuration = 10 * time.Second
-	WebSocketInactivityWarningTimeout       = 3 * time.Minute
-	WebSocketInactivityTimeoutDuration      = 6 * time.Minute
+	WebSocketInactivityWarningTimeout       = 2 * time.Minute
+	WebSocketInactivityTimeoutDuration      = 4 * time.Minute
 
 	// Interviewer Constants
 	ActorInterviewer = "interviewer"
