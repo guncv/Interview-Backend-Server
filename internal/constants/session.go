@@ -47,6 +47,8 @@ const (
 	WebSocketInactivityWarningTimeout       = 3 * time.Minute
 	WebSocketInactivityTimeoutDuration      = 6 * time.Minute
 
+	WebSocketInactivityMonitorInterval = 10 * time.Second
+
 	// Interviewer Constants
 	ActorInterviewer = "interviewer"
 	ActorUser        = "user"

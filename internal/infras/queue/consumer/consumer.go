@@ -24,6 +24,7 @@ type RedisTaskConsumer interface {
 	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error
+	ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error
 }
 
 type redisTaskConsumer struct {
@@ -81,6 +82,7 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
 	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 	mux.HandleFunc(constants.TaskCalculateTurnScore, c.ConsumeTaskCalculateTurnScore)
+	mux.HandleFunc(constants.TaskEndInterviewSession, c.ConsumeTaskEndInterviewSession)
 
 	if err := c.server.Start(mux); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: Start] Failed to start server", err)
@@ -174,5 +176,28 @@ func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, t
 	}
 
 	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Successfully deleted redis", nil)
+	return nil
+}
+
+func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error {
+	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Processing end interview session task")
+
+	var payload entities.EndInterviewSessionPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to unmarshal payload", err)
+		return app_error.New(fmt.Errorf("invalid end interview session payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	endInterviewReq := &entities.EndInterviewSessionReq{
+		SessionId: payload.SessionID,
+		Status:    payload.Status,
+	}
+
+	if err := c.interviewSessionService.EndInterviewSession(ctx, endInterviewReq); err != nil {
+		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to end interview session", err)
+		return app_error.New(fmt.Errorf("failed to end interview session: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Successfully ended interview session", nil)
 	return nil
 }

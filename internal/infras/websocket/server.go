@@ -66,6 +66,7 @@ type webSocketServer struct {
 	cfg                     *config.Config
 	logic                   *WebSocketServerLogic
 	jwtMaker                utils.JwtToken
+	publisher               publisher.RedisTaskPublisher
 }
 
 func NewWebSocketServer(
@@ -100,6 +101,7 @@ func NewWebSocketServer(
 		cfg:                     cfg,
 		logic:                   nil,
 		jwtMaker:                jwtMaker,
+		publisher:               publisher,
 	}
 
 	logic := NewWebSocketServerLogic(
@@ -389,7 +391,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Starting inactivity monitor")
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(constants.WebSocketInactivityMonitorInterval)
 	defer ticker.Stop()
 
 	for {
@@ -492,9 +494,18 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 	}
 
 	if sessionStatus != constants.StatusAlreadyTimedOut {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] End interview session", endInterviewReq)
-		if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); err != nil {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation", err)
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task", endInterviewReq)
+
+		endInterviewPayload := &entities.EndInterviewSessionPayload{
+			SessionID: endInterviewReq.SessionId,
+			Status:    endInterviewReq.Status,
+		}
+
+		if err := s.logic.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error publishing end interview session task", err)
+			if fallbackErr := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); fallbackErr != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation (fallback)", fallbackErr)
+			}
 		}
 	}
 

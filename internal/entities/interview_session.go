@@ -295,3 +295,8 @@ type GetLastUserTurnIDBySessionIDAndCurrentStateReq struct {
 	SessionID    string `json:"session_id" binding:"required"`
 	CurrentState string `json:"current_state" binding:"required"`
 }
+
+type EndInterviewSessionPayload struct {
+	SessionID string `json:"session_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
+}

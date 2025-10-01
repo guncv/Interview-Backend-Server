@@ -10,6 +10,7 @@ var (
 	TaskDeleteJobRequirement          = "task:delete_job_requirement"
 	TaskCalculateTurnScore            = "task:calculate_turn_score"
 	TaskCalculateEvaluationInOldState = "task:calculate_evaluation_in_old_state"
+	TaskEndInterviewSession           = "task:end_interview_session"
 
 	QueueCritical = "critical"
 	QueueDefault  = "default"
