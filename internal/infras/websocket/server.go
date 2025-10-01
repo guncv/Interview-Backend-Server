@@ -44,6 +44,7 @@ type Client struct {
 	currentState             string
 	currentStateID           string
 	disconnecting            bool
+	biasPrompt               string
 }
 
 type WebSocketServerInterface interface {
@@ -162,6 +163,7 @@ func (s *webSocketServer) HandleConnection(
 		isStartedConversation:    false,
 		currentState:             "",
 		currentStateID:           "",
+		biasPrompt:               "",
 	}
 
 	// client.conn.SetPongHandler(func(string) error {
@@ -202,6 +204,7 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
+	client.biasPrompt = resp.BiasPrompt
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
 

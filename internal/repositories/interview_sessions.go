@@ -102,21 +102,23 @@ func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, re
 func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Called")
 
+	createResumeParams := db.CreateResumeParams{
+		ID:         req.ResumeID,
+		UserID:     req.UserID,
+		FileName:   req.FileName,
+		StorageKey: req.StorageKey,
+		MimeType:   req.MimeType,
+		ByteSize:   req.ByteSize,
+		IsDefault:  req.IsDefault,
+	}
+
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
-		if err := q.CreateResume(ctx, db.CreateResumeParams{
-			ID:         req.ResumeID,
-			UserID:     req.UserID,
-			FileName:   req.FileName,
-			StorageKey: req.StorageKey,
-			MimeType:   req.MimeType,
-			ByteSize:   req.ByteSize,
-			IsDefault:  req.IsDefault,
-		}); err != nil {
+		if err := q.CreateResume(ctx, createResumeParams); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
 		}
 
-		if err := q.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
+		createInterviewSessionParams := db.CreateInterviewSessionParams{
 			ID:             req.SessionID,
 			UserID:         req.UserID,
 			ResumeID:       req.ResumeID,
@@ -125,7 +127,10 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			Status:         req.Status,
 			Modality:       req.Modality,
 			IsConsent:      req.IsConsent,
-		}); err != nil {
+			BiasPrompt:     req.BiasPrompt,
+		}
+
+		if err := q.CreateInterviewSession(ctx, createInterviewSessionParams); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
 		}

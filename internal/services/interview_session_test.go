@@ -39,6 +39,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 	ctx := context.Background()
 	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 	invalidUserID := "invalid-user-id"
+	validExtractResp := &repositories.ExtractResumeJsonForRAGResp{
+		BiasPrompt: "bias_prompt",
+	}
 
 	testCases := []struct {
 		name   string
@@ -91,7 +94,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -176,7 +179,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
@@ -292,7 +295,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(errors.New("JSON generation failed"))
+					Return(nil, errors.New("JSON generation failed"))
 
 				config := &config.Config{}
 
@@ -346,7 +349,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
@@ -404,7 +407,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -461,7 +464,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -522,7 +525,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -587,7 +590,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -661,7 +664,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -734,7 +737,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -814,7 +817,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock resume repository to return error
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(errors.New("resume processing failed"))
+					Return(nil, errors.New("resume processing failed"))
 
 				config := &config.Config{}
 
@@ -866,7 +869,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					ListAllResumesFileNameByUserID(ctx, userID).
@@ -948,7 +951,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(errors.New("invalid file: file is nil or corrupted"))
+					Return(nil, errors.New("invalid file: file is nil or corrupted"))
 
 				config := &config.Config{}
 
@@ -1005,7 +1008,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithNewResume(t *testing.
 				// Mock resume repository for JSON generation with successful file conversion
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockResumeRepo.EXPECT().
 					CheckIsDefaultResumeExistsByUserID(ctx, userID).
@@ -1110,6 +1113,9 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 	invalidResumeID := "invalid-resume-id"
 	invalidUserID := "invalid-user-id"
 	resumeID := uuid.New()
+	validExtractResp := &repositories.ExtractResumeJsonForRAGResp{
+		BiasPrompt: "bias_prompt",
+	}
 
 	testCases := []struct {
 		name   string
@@ -1181,7 +1187,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 				// Mock resume repository for JSON generation
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				// Mock interview session repository
 				mockInterviewSessionRepo.EXPECT().
@@ -1437,7 +1443,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(errors.New("JSON generation failed"))
+					Return(nil, errors.New("JSON generation failed"))
 
 				config := &config.Config{}
 
@@ -1506,7 +1512,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				// Mock interview session repository to return error
 				mockInterviewSessionRepo.EXPECT().
@@ -1582,7 +1588,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				config := &config.Config{
 					InterviewSessionConfig: config.InterviewSessionConfig{
@@ -1655,7 +1661,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				mockInterviewSessionRepo.EXPECT().
 					CreateInterviewSession(ctx, mock.AnythingOfType("*db.CreateInterviewSessionParams")).
@@ -1728,7 +1734,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				// Mock generator for remaining UUIDs
 
@@ -1816,7 +1822,7 @@ func TestInterviewSessionService_CreateInterviewSessionWithExistingResume(t *tes
 
 				mockResumeRepo.EXPECT().
 					ExtractResumeJsonForRAG(ctx, mock.AnythingOfType("*repositories.ExtractResumeJsonForRAGReq")).
-					Return(nil)
+					Return(validExtractResp, nil)
 
 				// Mock generator for remaining UUIDs
 				tokenKey := uuid.New()

@@ -176,6 +176,7 @@ type GetInterviewSessionStateResp struct {
 	CurrentState          string `json:"current_state"`
 	CurrentStateID        string `json:"current_state_id"`
 	IsTimedOut            bool   `json:"is_timed_out"`
+	BiasPrompt            string `json:"bias_prompt"`
 }
 
 type EndInterviewSessionReq struct {

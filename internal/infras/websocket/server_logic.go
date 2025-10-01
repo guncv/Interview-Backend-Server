@@ -200,6 +200,7 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 		return
 	}
 
+	m.BiasPrompt = client.biasPrompt
 	if client.SessionID != m.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)

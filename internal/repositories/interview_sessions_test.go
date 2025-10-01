@@ -573,6 +573,7 @@ func TestInterviewSessionRepository_GetInterviewSessionState(t *testing.T) {
 					Return(db.GetSessionStateRow{
 						StartedAt:             sql.NullTime{Time: startedAt, Valid: true},
 						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
+						IsTimedOut:            sql.NullBool{Bool: false, Valid: true},
 					}, nil)
 
 				return mockStore

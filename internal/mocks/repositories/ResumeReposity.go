@@ -131,21 +131,33 @@ func (_c *MockResumeReposity_CreateResume_Call) RunAndReturn(run func(context.Co
 }
 
 // ExtractResumeJsonForRAG provides a mock function with given fields: ctx, req
-func (_m *MockResumeReposity) ExtractResumeJsonForRAG(ctx context.Context, req *repositories.ExtractResumeJsonForRAGReq) error {
+func (_m *MockResumeReposity) ExtractResumeJsonForRAG(ctx context.Context, req *repositories.ExtractResumeJsonForRAGReq) (*repositories.ExtractResumeJsonForRAGResp, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExtractResumeJsonForRAG")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *repositories.ExtractResumeJsonForRAGReq) error); ok {
+	var r0 *repositories.ExtractResumeJsonForRAGResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.ExtractResumeJsonForRAGReq) (*repositories.ExtractResumeJsonForRAGResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *repositories.ExtractResumeJsonForRAGReq) *repositories.ExtractResumeJsonForRAGResp); ok {
 		r0 = rf(ctx, req)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*repositories.ExtractResumeJsonForRAGResp)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, *repositories.ExtractResumeJsonForRAGReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockResumeReposity_ExtractResumeJsonForRAG_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExtractResumeJsonForRAG'
@@ -167,12 +179,12 @@ func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) Return(_a0 error) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
-	_c.Call.Return(_a0)
+func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) Return(_a0 *repositories.ExtractResumeJsonForRAGResp, _a1 error) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) RunAndReturn(run func(context.Context, *repositories.ExtractResumeJsonForRAGReq) error) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
+func (_c *MockResumeReposity_ExtractResumeJsonForRAG_Call) RunAndReturn(run func(context.Context, *repositories.ExtractResumeJsonForRAGReq) (*repositories.ExtractResumeJsonForRAGResp, error)) *MockResumeReposity_ExtractResumeJsonForRAG_Call {
 	_c.Call.Return(run)
 	return _c
 }

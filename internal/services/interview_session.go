@@ -148,7 +148,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		ResumeFile: customFileHeader,
 	}
 
-	err = s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
+	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error extracting resume json for RAG", err)
 		return nil, err
@@ -189,6 +189,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		MimeType:   req.File.Header.Get("Content-Type"),
 		ByteSize:   int32(req.File.Size),
 		IsDefault:  !isDefaultResume,
+		BiasPrompt: extractResumeJsonForRAGResp.BiasPrompt,
 
 		SessionID: sessionID,
 		Position:  req.Position,
@@ -283,7 +284,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		ResumeFile: resumeFile,
 	}
 
-	err = s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
+	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error extracting resume json for RAG", err)
 		return nil, err
@@ -304,6 +305,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		Status:         constants.StatusPending,
 		Modality:       constants.ModalityVoiceChat,
 		IsConsent:      req.IsConsent,
+		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -733,6 +735,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
 			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			BiasPrompt:            dbResp.BiasPrompt,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -753,6 +756,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
 			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			BiasPrompt:            dbResp.BiasPrompt,
 		}, nil
 	}
 }

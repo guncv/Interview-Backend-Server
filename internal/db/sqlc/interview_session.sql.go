@@ -62,9 +62,10 @@ INSERT INTO interview_sessions (
     position,
     modality,
     status,
-    is_consent
+    is_consent,
+    bias_prompt
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 `
 
@@ -77,6 +78,7 @@ type CreateInterviewSessionParams struct {
 	Modality       string    `json:"modality"`
 	Status         string    `json:"status"`
 	IsConsent      bool      `json:"is_consent"`
+	BiasPrompt     string    `json:"bias_prompt"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -89,6 +91,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.Modality,
 		arg.Status,
 		arg.IsConsent,
+		arg.BiasPrompt,
 	)
 	return err
 }
@@ -205,7 +208,7 @@ func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUI
 }
 
 const getSessionState = `-- name: GetSessionState :one
-SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out
+SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
 FROM interview_sessions
 WHERE id = $1
 `
@@ -216,6 +219,7 @@ type GetSessionStateRow struct {
 	StartedAt             sql.NullTime   `json:"started_at"`
 	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
 	IsTimedOut            sql.NullBool   `json:"is_timed_out"`
+	BiasPrompt            string         `json:"bias_prompt"`
 }
 
 func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error) {
@@ -227,6 +231,7 @@ func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSession
 		&i.StartedAt,
 		&i.IsStartedConversation,
 		&i.IsTimedOut,
+		&i.BiasPrompt,
 	)
 	return i, err
 }
