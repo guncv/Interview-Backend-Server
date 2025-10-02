@@ -204,8 +204,7 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param session_token path string true "Session token"
-// @Param last_create_at query string false "Last create timestamp for pagination"
-// @Param last_chat_history_id query string false "Last chat history ID for pagination"
+// @Param turn_no query int false "Turn number for pagination"
 // @Security BearerAuth
 // @Success 200 {object} entities.GetChatHistoryBySessionTokenResp "Chat history"
 // @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Invalid session token or request"
@@ -244,13 +243,13 @@ func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 	if turnNoParam := c.Query("turn_no"); turnNoParam != "" {
 		turnNoInt, err := strconv.Atoi(turnNoParam)
 		if err != nil {
-			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Invalid turn no", err)
+			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Invalid turn no", err)
 			utils.RespondWithError(c, app_error.New(err, app_error.ErrCodeGeneralInvalidNumber))
 			return
 		}
 
 		if turnNoInt < 0 {
-			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Turn no cannot be negative")
+			h.log.ErrorWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Turn no cannot be negative")
 			utils.RespondWithError(c, app_error.New(constants.ErrInterviewSessionTurnNoNegative, app_error.ErrCodeGeneralInvalidNumber))
 			return
 		}

@@ -712,7 +712,7 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 		if len(chatHistory) > 0 {
 			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
 		} else {
-			cursorTurnNext = *req.TurnNo
+			cursorTurnNext = 0
 		}
 	} else {
 		dbReq := &db.GetChatHistoryBySessionIDParams{
