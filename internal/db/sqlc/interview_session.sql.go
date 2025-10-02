@@ -208,12 +208,13 @@ func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUI
 }
 
 const getSessionState = `-- name: GetSessionState :one
-SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
+SELECT position, current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
 FROM interview_sessions
 WHERE id = $1
 `
 
 type GetSessionStateRow struct {
+	Position              string         `json:"position"`
 	CurrentStateID        uuid.NullUUID  `json:"current_state_id"`
 	CurrentState          sql.NullString `json:"current_state"`
 	StartedAt             sql.NullTime   `json:"started_at"`
@@ -226,6 +227,7 @@ func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSession
 	row := q.db.QueryRowContext(ctx, getSessionState, id)
 	var i GetSessionStateRow
 	err := row.Scan(
+		&i.Position,
 		&i.CurrentStateID,
 		&i.CurrentState,
 		&i.StartedAt,

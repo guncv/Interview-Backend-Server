@@ -30,10 +30,9 @@ type MsgSegmentStart struct {
 }
 
 type MsgSegmentEnd struct {
-	Type       string `json:"type"`
-	SessionID  string `json:"session_id"`
-	SegmentID  string `json:"segment_id"`
-	BiasPrompt string `json:"bias_prompt"`
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+	SegmentID string `json:"segment_id"`
 }
 
 type MsgUserFullTranscript struct {
