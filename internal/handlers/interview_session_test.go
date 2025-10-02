@@ -719,6 +719,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		sessionToken   string
+		queryParams    map[string]string
 		setup          func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService)
 		verify         func(t *testing.T, w *httptest.ResponseRecorder)
 		expectedStatus int
@@ -726,6 +727,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 		{
 			name:         "Success",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{},
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -762,8 +764,104 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			name:         "Success - With Turn No",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{"turn_no": "5"},
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					GetChatHistoryBySessionToken(mock.Anything, mock.MatchedBy(func(req *entities.GetChatHistoryBySessionTokenReq) bool {
+						return req.SessionToken == "123e4567-e89b-12d3-a456-426614174000" && req.TurnNo != nil && *req.TurnNo == 5
+					})).
+					Return(&entities.GetChatHistoryBySessionTokenResp{
+						ChatHistory: []entities.ChatHistory{
+							{
+								ID:             uuid.New(),
+								TurnNo:         5,
+								Actor:          "user",
+								TranscriptText: "Hello, how are you?",
+							},
+						},
+					}, nil)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:         "Error - Invalid Turn No (Non-numeric)",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{"turn_no": "invalid"},
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "Error - Negative Turn No",
+			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{"turn_no": "-1"},
+			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockValidator := new(utils.MockValidator)
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				realValidator := validator.New()
+
+				mockValidator.EXPECT().
+					GetValidate().
+					Return(realValidator)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				return mockValidator, mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.Contains(t, w.Body.String(), "The number is invalid")
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
 			name:         "Error - WithNonSessionTokenParam",
 			sessionToken: "",
+			queryParams:  map[string]string{},
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -780,6 +878,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 		{
 			name:         "Error With Validation",
 			sessionToken: "invalid-session-token",
+			queryParams:  map[string]string{},
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -802,6 +901,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 		{
 			name:         "Error - WithExtractAuthContextError",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{},
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -829,6 +929,7 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 		{
 			name:         "Error - WithGetChatHistoryBySessionTokenError",
 			sessionToken: "123e4567-e89b-12d3-a456-426614174000",
+			queryParams:  map[string]string{},
 			setup: func() (*utils.MockValidator, *middleware.MockAuthContext, *services.MockInterviewSessionService) {
 				mockValidator := new(utils.MockValidator)
 				mockAuthContext := new(middleware.MockAuthContext)
@@ -864,9 +965,21 @@ func TestInterviewSessionHandler_GetChatHistoryBySessionToken(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
-			url := fmt.Sprintf("/api/v1/sessions/chat-history/%s", tt.sessionToken)
+			baseURL := fmt.Sprintf("/api/v1/sessions/chat-history/%s", tt.sessionToken)
+			if len(tt.queryParams) > 0 {
+				u, err := url.Parse(baseURL)
+				if err != nil {
+					t.Fatalf("Failed to parse base URL: %v", err)
+				}
+				q := u.Query()
+				for key, value := range tt.queryParams {
+					q.Set(key, value)
+				}
+				u.RawQuery = q.Encode()
+				baseURL = u.String()
+			}
 
-			c.Request = httptest.NewRequest(http.MethodGet, url, nil)
+			c.Request = httptest.NewRequest(http.MethodGet, baseURL, nil)
 			c.Params = gin.Params{{Key: "session_token", Value: tt.sessionToken}}
 
 			mockValidator, mockAuthContext, mockInterviewSessionService := tt.setup()

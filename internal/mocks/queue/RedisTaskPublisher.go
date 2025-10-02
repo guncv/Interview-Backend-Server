@@ -200,6 +200,68 @@ func (_c *MockRedisTaskPublisher_PublishTaskDeleteFile_Call) RunAndReturn(run fu
 	return _c
 }
 
+// PublishTaskEndInterviewSession provides a mock function with given fields: ctx, payload, opts
+func (_m *MockRedisTaskPublisher) PublishTaskEndInterviewSession(ctx context.Context, payload *entities.EndInterviewSessionPayload, opts ...asynq.Option) error {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, payload)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PublishTaskEndInterviewSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.EndInterviewSessionPayload, ...asynq.Option) error); ok {
+		r0 = rf(ctx, payload, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PublishTaskEndInterviewSession'
+type MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call struct {
+	*mock.Call
+}
+
+// PublishTaskEndInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - payload *entities.EndInterviewSessionPayload
+//   - opts ...asynq.Option
+func (_e *MockRedisTaskPublisher_Expecter) PublishTaskEndInterviewSession(ctx interface{}, payload interface{}, opts ...interface{}) *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call {
+	return &MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call{Call: _e.mock.On("PublishTaskEndInterviewSession",
+		append([]interface{}{ctx, payload}, opts...)...)}
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call) Run(run func(ctx context.Context, payload *entities.EndInterviewSessionPayload, opts ...asynq.Option)) *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]asynq.Option, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(asynq.Option)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*entities.EndInterviewSessionPayload), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call) Return(_a0 error) *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call) RunAndReturn(run func(context.Context, *entities.EndInterviewSessionPayload, ...asynq.Option) error) *MockRedisTaskPublisher_PublishTaskEndInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PublishTaskSendResetPasswordEmail provides a mock function with given fields: ctx, payload, opts
 func (_m *MockRedisTaskPublisher) PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error {
 	_va := make([]interface{}, len(opts))

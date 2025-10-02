@@ -119,7 +119,7 @@ func (_c *MockInterviewTurnsRepository_FlagIsScoreEvaluated_Call) RunAndReturn(r
 }
 
 // GetChatHistoryBySessionID provides a mock function with given fields: ctx, sessionID
-func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
+func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, sessionID *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error) {
 	ret := _m.Called(ctx, sessionID)
 
 	if len(ret) == 0 {
@@ -128,10 +128,10 @@ func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Co
 
 	var r0 []db.GetChatHistoryBySessionIDRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error)); ok {
 		return rf(ctx, sessionID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetChatHistoryBySessionIDRow); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetChatHistoryBySessionIDParams) []db.GetChatHistoryBySessionIDRow); ok {
 		r0 = rf(ctx, sessionID)
 	} else {
 		if ret.Get(0) != nil {
@@ -139,7 +139,7 @@ func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Co
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *db.GetChatHistoryBySessionIDParams) error); ok {
 		r1 = rf(ctx, sessionID)
 	} else {
 		r1 = ret.Error(1)
@@ -155,14 +155,14 @@ type MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call struct {
 
 // GetChatHistoryBySessionID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - sessionID uuid.UUID
+//   - sessionID *db.GetChatHistoryBySessionIDParams
 func (_e *MockInterviewTurnsRepository_Expecter) GetChatHistoryBySessionID(ctx interface{}, sessionID interface{}) *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call {
 	return &MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call{Call: _e.mock.On("GetChatHistoryBySessionID", ctx, sessionID)}
 }
 
-func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call {
+func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call) Run(run func(ctx context.Context, sessionID *db.GetChatHistoryBySessionIDParams)) *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
+		run(args[0].(context.Context), args[1].(*db.GetChatHistoryBySessionIDParams))
 	})
 	return _c
 }
@@ -172,7 +172,66 @@ func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call) Return(_a
 	return _c
 }
 
-func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)) *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call {
+func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call) RunAndReturn(run func(context.Context, *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error)) *MockInterviewTurnsRepository_GetChatHistoryBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetChatHistoryBySessionIDWithCursor provides a mock function with given fields: ctx, req
+func (_m *MockInterviewTurnsRepository) GetChatHistoryBySessionIDWithCursor(ctx context.Context, req *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChatHistoryBySessionIDWithCursor")
+	}
+
+	var r0 []db.GetChatHistoryBySessionIDWithCursorRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *db.GetChatHistoryBySessionIDWithCursorParams) []db.GetChatHistoryBySessionIDWithCursorRow); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetChatHistoryBySessionIDWithCursorRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *db.GetChatHistoryBySessionIDWithCursorParams) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChatHistoryBySessionIDWithCursor'
+type MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call struct {
+	*mock.Call
+}
+
+// GetChatHistoryBySessionIDWithCursor is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.GetChatHistoryBySessionIDWithCursorParams
+func (_e *MockInterviewTurnsRepository_Expecter) GetChatHistoryBySessionIDWithCursor(ctx interface{}, req interface{}) *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call {
+	return &MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call{Call: _e.mock.On("GetChatHistoryBySessionIDWithCursor", ctx, req)}
+}
+
+func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call) Run(run func(ctx context.Context, req *db.GetChatHistoryBySessionIDWithCursorParams)) *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.GetChatHistoryBySessionIDWithCursorParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call) Return(_a0 []db.GetChatHistoryBySessionIDWithCursorRow, _a1 error) *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call) RunAndReturn(run func(context.Context, *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error)) *MockInterviewTurnsRepository_GetChatHistoryBySessionIDWithCursor_Call {
 	_c.Call.Return(run)
 	return _c
 }

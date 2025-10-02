@@ -132,10 +132,12 @@ type RedisLastMessagePayload struct {
 
 type GetChatHistoryBySessionTokenReq struct {
 	SessionToken string `json:"session_token" binding:"required"`
+	TurnNo       *int32 `json:"turn_no"`
 }
 
 type GetChatHistoryBySessionTokenResp struct {
-	ChatHistory []ChatHistory `json:"chat_history"`
+	ChatHistory    []ChatHistory `json:"chat_history"`
+	CursorTurnNext int32         `json:"cursor_turn_next"`
 }
 
 type ChatHistory struct {
@@ -170,11 +172,13 @@ type GetInterviewSessionInformationResp struct {
 	CreatedAtFullName   string    `json:"created_at_full_name"`
 }
 
-type CheckExistsAndInitStartedAtInterviewSessionResp struct {
+type GetInterviewSessionStateResp struct {
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
 	CurrentState          string `json:"current_state"`
 	CurrentStateID        string `json:"current_state_id"`
+	IsTimedOut            bool   `json:"is_timed_out"`
+	BiasPrompt            string `json:"bias_prompt"`
 }
 
 type EndInterviewSessionReq struct {
@@ -293,4 +297,9 @@ type UpdateLastTurnIDInterviewStateByIDReq struct {
 type GetLastUserTurnIDBySessionIDAndCurrentStateReq struct {
 	SessionID    string `json:"session_id" binding:"required"`
 	CurrentState string `json:"current_state" binding:"required"`
+}
+
+type EndInterviewSessionPayload struct {
+	SessionID string `json:"session_id" binding:"required"`
+	Status    string `json:"status" binding:"required"`
 }

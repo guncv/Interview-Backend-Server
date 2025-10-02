@@ -44,6 +44,7 @@ type Client struct {
 	currentState             string
 	currentStateID           string
 	disconnecting            bool
+	biasPrompt               string
 }
 
 type WebSocketServerInterface interface {
@@ -66,6 +67,7 @@ type webSocketServer struct {
 	cfg                     *config.Config
 	logic                   *WebSocketServerLogic
 	jwtMaker                utils.JwtToken
+	publisher               publisher.RedisTaskPublisher
 }
 
 func NewWebSocketServer(
@@ -100,6 +102,7 @@ func NewWebSocketServer(
 		cfg:                     cfg,
 		logic:                   nil,
 		jwtMaker:                jwtMaker,
+		publisher:               publisher,
 	}
 
 	logic := NewWebSocketServerLogic(
@@ -160,6 +163,7 @@ func (s *webSocketServer) HandleConnection(
 		isStartedConversation:    false,
 		currentState:             "",
 		currentStateID:           "",
+		biasPrompt:               "",
 	}
 
 	// client.conn.SetPongHandler(func(string) error {
@@ -183,13 +187,24 @@ func (s *webSocketServer) HandleConnection(
 	s.userSessions[client.userID][client.SessionID] = true
 	s.mu.Unlock()
 
-	resp, err := s.logic.checkExistsAndInitStartedAtInterviewSession(ctx, client)
+	resp, err := s.logic.getInterviewSessionState(ctx, client)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error checking exists and initializing started at interview session", err)
 		s.Disconnect(ctx, client)
 		return nil
 	}
 
+	if resp.IsTimedOut {
+		s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Interview session timed out")
+		s.writeJSON(ctx, client, map[string]any{
+			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyTimedOut,
+		})
+
+		s.Disconnect(ctx, client, constants.StatusAlreadyTimedOut)
+		return nil
+	}
+
+	client.biasPrompt = resp.BiasPrompt
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
 
@@ -219,8 +234,6 @@ func (s *webSocketServer) HandleConnection(
 		"session_id": client.SessionID,
 	})
 	client.StartSessionTime = utils.ParseToTime(resp.StartedAt)
-
-	s.sendActivityTimerReset(ctx, client)
 
 	if !resp.IsStartedConversation {
 		s.logic.sendStartSessionConversationMessage(ctx, client)
@@ -281,13 +294,6 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client) error 
 	return nil
 }
 
-func (s *webSocketServer) sendActivityTimerReset(ctx context.Context, client *Client) {
-	s.writeJSON(ctx, client, map[string]any{
-		"type":  constants.WebSocketMessageTypeActivityTimerReset,
-		"timer": int(constants.WebSocketInactivityWarningTimeout.Seconds()),
-	})
-}
-
 func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: readLoop] Called")
 
@@ -339,8 +345,6 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 		c.inactivityWarningSent = false
 		c.mu.Unlock()
 
-		s.sendActivityTimerReset(ctx, c)
-
 		switch mt {
 		case websocket.TextMessage:
 			var m struct {
@@ -390,7 +394,7 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Starting inactivity monitor")
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(constants.WebSocketInactivityMonitorInterval)
 	defer ticker.Stop()
 
 	for {
@@ -410,10 +414,7 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 			client.mu.Unlock()
 
 			if !warningSent && timeSinceLastActivity >= constants.WebSocketInactivityWarningTimeout {
-				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Sending inactivity warning", map[string]any{
-					"session_id":               client.SessionID,
-					"time_since_last_activity": timeSinceLastActivity,
-				})
+				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Sending inactivity warning")
 
 				s.writeJSON(ctx, client, map[string]any{
 					"type":    constants.WebSocketMessageTypeInactivityWarning,
@@ -426,10 +427,9 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 			}
 
 			if timeSinceLastActivity >= constants.WebSocketInactivityTimeoutDuration {
-				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Session timed out due to inactivity", map[string]any{
-					"session_id":               client.SessionID,
-					"time_since_last_activity": timeSinceLastActivity,
-				})
+				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Session timed out due to inactivity")
+
+				_ = s.interviewSessionService.UpdateIsTimedOutSession(ctx, client.SessionID)
 
 				s.writeJSON(ctx, client, map[string]any{
 					"type":    constants.WebSocketMessageTypeInterviewSessionTimedOut,
@@ -498,9 +498,20 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 		Status:    sessionStatus,
 	}
 
-	s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] End interview session", endInterviewReq)
-	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation", err)
+	if sessionStatus != constants.StatusAlreadyTimedOut {
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task", endInterviewReq)
+
+		endInterviewPayload := &entities.EndInterviewSessionPayload{
+			SessionID: endInterviewReq.SessionId,
+			Status:    endInterviewReq.Status,
+		}
+
+		if err := s.logic.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload); err != nil {
+			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error publishing end interview session task", err)
+			if fallbackErr := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); fallbackErr != nil {
+				s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation (fallback)", fallbackErr)
+			}
+		}
 	}
 
 	s.mu.Lock()
@@ -512,9 +523,6 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 		}
 	}
 	s.mu.Unlock()
-
-	// Don't try to send disconnect message as connection might already be closed
-	// The client will detect the disconnection through the connection close
 
 	if agentClient, exists := s.clientManager.GetClientBySessionID(ctx, client.SessionID); exists {
 		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Closing AI agent client", map[string]any{

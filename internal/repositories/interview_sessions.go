@@ -20,7 +20,7 @@ type InterviewSessionRepository interface {
 	CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error
 	CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error
 	UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error
-	GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error)
+	GetSessionState(ctx context.Context, sessionID uuid.UUID) (*db.GetSessionStateRow, error)
 	UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error
 	ListInterviewSessionsByUserIDFirstPage(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error)
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error)
@@ -30,6 +30,7 @@ type InterviewSessionRepository interface {
 	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
+	UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error
 }
 
 type interviewSessionRepository struct {
@@ -101,21 +102,23 @@ func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, re
 func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error {
 	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Called")
 
+	createResumeParams := db.CreateResumeParams{
+		ID:         req.ResumeID,
+		UserID:     req.UserID,
+		FileName:   req.FileName,
+		StorageKey: req.StorageKey,
+		MimeType:   req.MimeType,
+		ByteSize:   req.ByteSize,
+		IsDefault:  req.IsDefault,
+	}
+
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
-		if err := q.CreateResume(ctx, db.CreateResumeParams{
-			ID:         req.ResumeID,
-			UserID:     req.UserID,
-			FileName:   req.FileName,
-			StorageKey: req.StorageKey,
-			MimeType:   req.MimeType,
-			ByteSize:   req.ByteSize,
-			IsDefault:  req.IsDefault,
-		}); err != nil {
+		if err := q.CreateResume(ctx, createResumeParams); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
 		}
 
-		if err := q.CreateInterviewSession(ctx, db.CreateInterviewSessionParams{
+		createInterviewSessionParams := db.CreateInterviewSessionParams{
 			ID:             req.SessionID,
 			UserID:         req.UserID,
 			ResumeID:       req.ResumeID,
@@ -124,7 +127,10 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			Status:         req.Status,
 			Modality:       req.Modality,
 			IsConsent:      req.IsConsent,
-		}); err != nil {
+			BiasPrompt:     req.BiasPrompt,
+		}
+
+		if err := q.CreateInterviewSession(ctx, createInterviewSessionParams); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Error creating interview session with new resume", err)
 			return app_error.HandleDatabaseError(err)
 		}
@@ -172,10 +178,10 @@ func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context
 	return nil
 }
 
-func (r *interviewSessionRepository) GetStartedAndIsStartedConversationSession(ctx context.Context, sessionID uuid.UUID) (*db.GetStartedAndIsStartedConversationSessionRow, error) {
+func (r *interviewSessionRepository) GetSessionState(ctx context.Context, sessionID uuid.UUID) (*db.GetSessionStateRow, error) {
 	r.log.InfoWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Called")
 
-	resp, err := r.db.GetStartedAndIsStartedConversationSession(ctx, sessionID)
+	resp, err := r.db.GetSessionState(ctx, sessionID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			r.log.ErrorWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Started at interview session not found", err)
@@ -317,4 +323,22 @@ func (r *interviewSessionRepository) GetInterviewSessionStatusByID(ctx context.C
 		return "", app_error.HandleDatabaseError(err)
 	}
 	return resp, nil
+}
+
+func (r *interviewSessionRepository) UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateIsTimedOutSession] Called")
+
+	rowAffected, err := r.db.UpdateIsTimedOutSession(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
 }

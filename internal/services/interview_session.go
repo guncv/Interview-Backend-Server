@@ -39,7 +39,7 @@ type InterviewSessionService interface {
 	IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error)
 	GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error)
 	GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error)
-	CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error)
+	GetInterviewSessionState(ctx context.Context, sessionId string) (*entities.GetInterviewSessionStateResp, error)
 	StartConversationBySessionID(ctx context.Context, sessionId string) error
 	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)
@@ -51,6 +51,7 @@ type InterviewSessionService interface {
 	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 	GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error)
+	UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error
 }
 
 type interviewSessionService struct {
@@ -147,7 +148,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		ResumeFile: customFileHeader,
 	}
 
-	err = s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
+	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error extracting resume json for RAG", err)
 		return nil, err
@@ -188,6 +189,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		MimeType:   req.File.Header.Get("Content-Type"),
 		ByteSize:   int32(req.File.Size),
 		IsDefault:  !isDefaultResume,
+		BiasPrompt: extractResumeJsonForRAGResp.BiasPrompt,
 
 		SessionID: sessionID,
 		Position:  req.Position,
@@ -282,7 +284,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		ResumeFile: resumeFile,
 	}
 
-	err = s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
+	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error extracting resume json for RAG", err)
 		return nil, err
@@ -303,6 +305,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		Status:         constants.StatusPending,
 		Modality:       constants.ModalityVoiceChat,
 		IsConsent:      req.IsConsent,
+		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -670,44 +673,101 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 		return nil, err
 	}
 
-	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, uuid.MustParse(sessionPayload.SessionID))
+	sessionID, err := uuid.Parse(sessionPayload.SessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
-		return nil, err
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	chatHistoryResp := make([]entities.ChatHistory, len(chatHistory))
-	for i, chat := range chatHistory {
-		chatHistoryResp[i] = entities.ChatHistory{
-			ID:             chat.ID,
-			TurnNo:         chat.TurnNo,
-			Actor:          chat.Actor,
-			TranscriptText: chat.TranscriptText,
-			StartAt:        chat.StartAt,
-			EndAt:          chat.EndAt,
-			CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+	var chatHistoryResp []entities.ChatHistory
+	var cursorTurnNext int32
+
+	if req.TurnNo != nil {
+		dbReq := &db.GetChatHistoryBySessionIDWithCursorParams{
+			SessionID: sessionID,
+			TurnNo:    int64(*req.TurnNo),
+			Limit:     constants.DefaultPageSize,
+		}
+
+		chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionIDWithCursor(ctx, dbReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history with cursor", err)
+			return nil, err
+		}
+
+		chatHistoryResp = make([]entities.ChatHistory, len(chatHistory))
+
+		for i, chat := range chatHistory {
+			chatHistoryResp[len(chatHistory)-1-i] = entities.ChatHistory{
+				ID:             chat.ID,
+				TurnNo:         chat.TurnNo,
+				Actor:          chat.Actor,
+				TranscriptText: chat.TranscriptText,
+				StartAt:        chat.StartAt,
+				EndAt:          chat.EndAt,
+				CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+			}
+		}
+
+		if len(chatHistory) > 0 {
+			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
+		} else {
+			cursorTurnNext = 0
+		}
+	} else {
+		dbReq := &db.GetChatHistoryBySessionIDParams{
+			SessionID: sessionID,
+			Limit:     constants.DefaultPageSize,
+		}
+
+		chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, dbReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
+			return nil, err
+		}
+
+		chatHistoryResp = make([]entities.ChatHistory, len(chatHistory))
+
+		for i, chat := range chatHistory {
+			chatHistoryResp[len(chatHistory)-1-i] = entities.ChatHistory{
+				ID:             chat.ID,
+				TurnNo:         chat.TurnNo,
+				Actor:          chat.Actor,
+				TranscriptText: chat.TranscriptText,
+				StartAt:        chat.StartAt,
+				EndAt:          chat.EndAt,
+				CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+			}
+		}
+
+		if len(chatHistory) > 0 {
+			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
+			s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Cursor turn next", "cursor_turn_next", cursorTurnNext)
+		} else {
+			cursorTurnNext = 0
 		}
 	}
 
 	resp := &entities.GetChatHistoryBySessionTokenResp{
-		ChatHistory: chatHistoryResp,
+		ChatHistory:    chatHistoryResp,
+		CursorTurnNext: cursorTurnNext,
 	}
 
 	return resp, nil
 }
 
-func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ctx context.Context, sessionId string) (*entities.CheckExistsAndInitStartedAtInterviewSessionResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetStartedAtInterviewSession] Called")
+func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, sessionId string) (*entities.GetInterviewSessionStateResp, error) {
+	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionState] Called")
 
 	sessionID, err := uuid.Parse(sessionId)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionState] Invalid session ID", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	dbResp, err := s.interviewSessionRepo.GetStartedAndIsStartedConversationSession(ctx, sessionID)
+	dbResp, err := s.interviewSessionRepo.GetSessionState(ctx, sessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error getting started at interview session", err)
+		s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionState] Error getting started at interview session", err)
 		return nil, err
 	}
 
@@ -726,11 +786,13 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 	}
 
 	if dbResp.StartedAt.Valid {
-		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+		return &entities.GetInterviewSessionStateResp{
 			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
+			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			BiasPrompt:            dbResp.BiasPrompt,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -741,15 +803,17 @@ func (s *interviewSessionService) CheckExistsAndInitStartedAtInterviewSession(ct
 		}
 
 		if err := s.interviewSessionRepo.UpdateStartedAtInterviewSession(ctx, updateReq); err != nil {
-			s.log.ErrorWithID(ctx, "[Service: GetStartedAtInterviewSession] Error updating started at interview session", err)
+			s.log.ErrorWithID(ctx, "[Service: GetInterviewSessionState] Error updating started at interview session", err)
 			return nil, err
 		}
 
-		return &entities.CheckExistsAndInitStartedAtInterviewSessionResp{
+		return &entities.GetInterviewSessionStateResp{
 			StartedAt:             utils.FormatToUTCString(currStartedAt),
 			IsStartedConversation: dbResp.IsStartedConversation.Bool,
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
+			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			BiasPrompt:            dbResp.BiasPrompt,
 		}, nil
 	}
 }
@@ -1606,4 +1670,26 @@ func isValidSessionStatus(status string) bool {
 		}
 	}
 	return false
+}
+
+func (s *interviewSessionService) UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error {
+	s.log.InfoWithID(ctx, "[Service: UpdateIsTimedOutSession] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateIsTimedOutSession] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.UpdateIsTimedOutSessionParams{
+		ID:         sessionID,
+		IsTimedOut: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.UpdateIsTimedOutSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
+		return err
+	}
+
+	return nil
 }

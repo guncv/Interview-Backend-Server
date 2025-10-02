@@ -36,34 +36,8 @@ type ExtractResumeJsonForRAGReq struct {
 	ResumeFile *aws.CustomFileHeader
 }
 
-type Experience struct {
-	Company     string `mapstructure:"company" json:"company"`
-	Position    string `mapstructure:"position" json:"position"`
-	JobType     string `mapstructure:"job_type" json:"job_type"`
-	StartDate   string `mapstructure:"start_date" json:"start_date"`
-	EndDate     string `mapstructure:"end_date" json:"end_date"`
-	Description string `mapstructure:"description" json:"description"`
-}
-
-type Education struct {
-	School       string `mapstructure:"school" json:"school"`
-	Degree       string `mapstructure:"degree" json:"degree"`
-	FieldOfStudy string `mapstructure:"field_of_study" json:"field_of_study"`
-	StartDate    string `mapstructure:"start_date" json:"start_date"`
-	EndDate      string `mapstructure:"end_date" json:"end_date"`
-	Description  string `mapstructure:"description" json:"description"`
-}
-type PromptInfo struct {
-	FirstName      string       `mapstructure:"first_name" json:"first_name"`
-	LastName       string       `mapstructure:"last_name" json:"last_name"`
-	Email          string       `mapstructure:"email" json:"email"`
-	Phone          string       `mapstructure:"phone" json:"phone"`
-	Location       string       `mapstructure:"location" json:"location"`
-	Experience     []Experience `mapstructure:"experience" json:"experience"`
-	Education      []Education  `mapstructure:"education" json:"education"`
-	Skills         []string     `mapstructure:"skills" json:"skills"`
-	Certifications []string     `mapstructure:"certifications" json:"certifications"`
-	Language       string       `mapstructure:"language" json:"language"`
+type ExtractResumeJsonForRAGResp struct {
+	BiasPrompt string `json:"bias_prompt"`
 }
 
 type CreateResumeAndJobRequirementReq struct {
@@ -94,6 +68,7 @@ type CreateInterviewSessionTxReq struct {
 	MimeType   string
 	ByteSize   int32
 	IsDefault  bool
+	BiasPrompt string
 
 	SessionID uuid.UUID
 	Position  string

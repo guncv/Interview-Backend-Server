@@ -163,6 +163,53 @@ func (_c *MockRedisTaskConsumer_ConsumeTaskDeleteFile_Call) RunAndReturn(run fun
 	return _c
 }
 
+// ConsumeTaskEndInterviewSession provides a mock function with given fields: ctx, task
+func (_m *MockRedisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error {
+	ret := _m.Called(ctx, task)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConsumeTaskEndInterviewSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *asynq.Task) error); ok {
+		r0 = rf(ctx, task)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConsumeTaskEndInterviewSession'
+type MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call struct {
+	*mock.Call
+}
+
+// ConsumeTaskEndInterviewSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - task *asynq.Task
+func (_e *MockRedisTaskConsumer_Expecter) ConsumeTaskEndInterviewSession(ctx interface{}, task interface{}) *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call {
+	return &MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call{Call: _e.mock.On("ConsumeTaskEndInterviewSession", ctx, task)}
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call) Run(run func(ctx context.Context, task *asynq.Task)) *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*asynq.Task))
+	})
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call) Return(_a0 error) *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call) RunAndReturn(run func(context.Context, *asynq.Task) error) *MockRedisTaskConsumer_ConsumeTaskEndInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ConsumeTaskSendResetPasswordEmail provides a mock function with given fields: ctx, task
 func (_m *MockRedisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
 	ret := _m.Called(ctx, task)

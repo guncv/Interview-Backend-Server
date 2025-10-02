@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -25,7 +26,7 @@ type ResumeReposity interface {
 	GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error)
 	GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (*db.Resumes, error)
 	SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error
-	ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error
+	ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) (*ExtractResumeJsonForRAGResp, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
 }
 
@@ -147,7 +148,7 @@ func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID
 	return nil
 }
 
-func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) error {
+func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) (*ExtractResumeJsonForRAGResp, error) {
 	r.log.InfoWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Called")
 
 	var body bytes.Buffer
@@ -155,47 +156,47 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 
 	if err := writer.WriteField("session_id", req.SessionID); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write session_id field", err)
-		return err
+		return nil, err
 	}
 	if err := writer.WriteField("user_id", req.UserID); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write user_id field", err)
-		return err
+		return nil, err
 	}
 	if err := writer.WriteField("resume_id", req.ResumeID); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write resume_id field", err)
-		return err
+		return nil, err
 	}
 
 	if req.ResumeFile != nil {
 		part, err := writer.CreateFormFile("resume_file", req.ResumeFile.Filename)
 		if err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to create form file", err)
-			return err
+			return nil, err
 		}
 
 		file, err := req.ResumeFile.Open()
 		if err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to open uploaded file", err)
-			return err
+			return nil, err
 		}
 		defer file.Close()
 
 		if _, err := io.Copy(part, file); err != nil {
 			r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to write resume file data", err)
-			return err
+			return nil, err
 		}
 	}
 
 	if err := writer.Close(); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to close multipart writer", err)
-		return err
+		return nil, err
 	}
 
 	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathExtractResumeRAGAgent
 	httpReq, err := http.NewRequest("POST", endpoint, &body)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to create HTTP request", err)
-		return err
+		return nil, err
 	}
 
 	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
@@ -204,25 +205,31 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to read response body", err)
-		return err
+		return nil, err
 	}
 
 	r.log.InfoWithID(ctx, fmt.Sprintf("[Repository: ExtractResumeJsonForRAG] Response: %s | Body: %s", resp.Status, string(bodyBytes)))
 
-	if resp.StatusCode != http.StatusNoContent {
-		err := fmt.Errorf("interview agent returned status: %s | body: %s", resp.Status, string(bodyBytes))
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("interview agent returned status: %s | Body: %s", resp.Status, string(bodyBytes))
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	var result ExtractResumeJsonForRAGResp
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Failed to unmarshal response", err)
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 func (r *resumeRepository) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {

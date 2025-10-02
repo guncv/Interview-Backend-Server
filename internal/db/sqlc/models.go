@@ -144,6 +144,8 @@ type InterviewSessions struct {
 	CurrentState          sql.NullString         `json:"current_state"`
 	CurrentStateID        uuid.NullUUID          `json:"current_state_id"`
 	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
+	IsTimedOut            sql.NullBool           `json:"is_timed_out"`
+	BiasPrompt            string                 `json:"bias_prompt"`
 }
 
 type InterviewStates struct {

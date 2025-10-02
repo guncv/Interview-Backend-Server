@@ -1382,9 +1382,9 @@ func (_c *MockQuerier_GetAuthSessionByID_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
-// GetChatHistoryBySessionID provides a mock function with given fields: ctx, sessionID
-func (_m *MockQuerier) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
-	ret := _m.Called(ctx, sessionID)
+// GetChatHistoryBySessionID provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) GetChatHistoryBySessionID(ctx context.Context, arg db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error) {
+	ret := _m.Called(ctx, arg)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetChatHistoryBySessionID")
@@ -1392,19 +1392,19 @@ func (_m *MockQuerier) GetChatHistoryBySessionID(ctx context.Context, sessionID 
 
 	var r0 []db.GetChatHistoryBySessionIDRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)); ok {
-		return rf(ctx, sessionID)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error)); ok {
+		return rf(ctx, arg)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []db.GetChatHistoryBySessionIDRow); ok {
-		r0 = rf(ctx, sessionID)
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDParams) []db.GetChatHistoryBySessionIDRow); ok {
+		r0 = rf(ctx, arg)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]db.GetChatHistoryBySessionIDRow)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, sessionID)
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetChatHistoryBySessionIDParams) error); ok {
+		r1 = rf(ctx, arg)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1419,14 +1419,14 @@ type MockQuerier_GetChatHistoryBySessionID_Call struct {
 
 // GetChatHistoryBySessionID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - sessionID uuid.UUID
-func (_e *MockQuerier_Expecter) GetChatHistoryBySessionID(ctx interface{}, sessionID interface{}) *MockQuerier_GetChatHistoryBySessionID_Call {
-	return &MockQuerier_GetChatHistoryBySessionID_Call{Call: _e.mock.On("GetChatHistoryBySessionID", ctx, sessionID)}
+//   - arg db.GetChatHistoryBySessionIDParams
+func (_e *MockQuerier_Expecter) GetChatHistoryBySessionID(ctx interface{}, arg interface{}) *MockQuerier_GetChatHistoryBySessionID_Call {
+	return &MockQuerier_GetChatHistoryBySessionID_Call{Call: _e.mock.On("GetChatHistoryBySessionID", ctx, arg)}
 }
 
-func (_c *MockQuerier_GetChatHistoryBySessionID_Call) Run(run func(ctx context.Context, sessionID uuid.UUID)) *MockQuerier_GetChatHistoryBySessionID_Call {
+func (_c *MockQuerier_GetChatHistoryBySessionID_Call) Run(run func(ctx context.Context, arg db.GetChatHistoryBySessionIDParams)) *MockQuerier_GetChatHistoryBySessionID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
+		run(args[0].(context.Context), args[1].(db.GetChatHistoryBySessionIDParams))
 	})
 	return _c
 }
@@ -1436,7 +1436,66 @@ func (_c *MockQuerier_GetChatHistoryBySessionID_Call) Return(_a0 []db.GetChatHis
 	return _c
 }
 
-func (_c *MockQuerier_GetChatHistoryBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)) *MockQuerier_GetChatHistoryBySessionID_Call {
+func (_c *MockQuerier_GetChatHistoryBySessionID_Call) RunAndReturn(run func(context.Context, db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error)) *MockQuerier_GetChatHistoryBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetChatHistoryBySessionIDWithCursor provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) GetChatHistoryBySessionIDWithCursor(ctx context.Context, arg db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChatHistoryBySessionIDWithCursor")
+	}
+
+	var r0 []db.GetChatHistoryBySessionIDWithCursorRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetChatHistoryBySessionIDWithCursorParams) []db.GetChatHistoryBySessionIDWithCursorRow); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.GetChatHistoryBySessionIDWithCursorRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetChatHistoryBySessionIDWithCursorParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetChatHistoryBySessionIDWithCursor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChatHistoryBySessionIDWithCursor'
+type MockQuerier_GetChatHistoryBySessionIDWithCursor_Call struct {
+	*mock.Call
+}
+
+// GetChatHistoryBySessionIDWithCursor is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.GetChatHistoryBySessionIDWithCursorParams
+func (_e *MockQuerier_Expecter) GetChatHistoryBySessionIDWithCursor(ctx interface{}, arg interface{}) *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call {
+	return &MockQuerier_GetChatHistoryBySessionIDWithCursor_Call{Call: _e.mock.On("GetChatHistoryBySessionIDWithCursor", ctx, arg)}
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call) Run(run func(ctx context.Context, arg db.GetChatHistoryBySessionIDWithCursorParams)) *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.GetChatHistoryBySessionIDWithCursorParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call) Return(_a0 []db.GetChatHistoryBySessionIDWithCursorRow, _a1 error) *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call) RunAndReturn(run func(context.Context, db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error)) *MockQuerier_GetChatHistoryBySessionIDWithCursor_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2251,23 +2310,23 @@ func (_c *MockQuerier_GetRubricWithCriteriaByName_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// GetStartedAndIsStartedConversationSession provides a mock function with given fields: ctx, id
-func (_m *MockQuerier) GetStartedAndIsStartedConversationSession(ctx context.Context, id uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error) {
+// GetSessionState provides a mock function with given fields: ctx, id
+func (_m *MockQuerier) GetSessionState(ctx context.Context, id uuid.UUID) (db.GetSessionStateRow, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetStartedAndIsStartedConversationSession")
+		panic("no return value specified for GetSessionState")
 	}
 
-	var r0 db.GetStartedAndIsStartedConversationSessionRow
+	var r0 db.GetSessionStateRow
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (db.GetSessionStateRow, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetStartedAndIsStartedConversationSessionRow); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) db.GetSessionStateRow); ok {
 		r0 = rf(ctx, id)
 	} else {
-		r0 = ret.Get(0).(db.GetStartedAndIsStartedConversationSessionRow)
+		r0 = ret.Get(0).(db.GetSessionStateRow)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
@@ -2279,31 +2338,31 @@ func (_m *MockQuerier) GetStartedAndIsStartedConversationSession(ctx context.Con
 	return r0, r1
 }
 
-// MockQuerier_GetStartedAndIsStartedConversationSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStartedAndIsStartedConversationSession'
-type MockQuerier_GetStartedAndIsStartedConversationSession_Call struct {
+// MockQuerier_GetSessionState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSessionState'
+type MockQuerier_GetSessionState_Call struct {
 	*mock.Call
 }
 
-// GetStartedAndIsStartedConversationSession is a helper method to define mock.On call
+// GetSessionState is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockQuerier_Expecter) GetStartedAndIsStartedConversationSession(ctx interface{}, id interface{}) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
-	return &MockQuerier_GetStartedAndIsStartedConversationSession_Call{Call: _e.mock.On("GetStartedAndIsStartedConversationSession", ctx, id)}
+func (_e *MockQuerier_Expecter) GetSessionState(ctx interface{}, id interface{}) *MockQuerier_GetSessionState_Call {
+	return &MockQuerier_GetSessionState_Call{Call: _e.mock.On("GetSessionState", ctx, id)}
 }
 
-func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+func (_c *MockQuerier_GetSessionState_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockQuerier_GetSessionState_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) Return(_a0 db.GetStartedAndIsStartedConversationSessionRow, _a1 error) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+func (_c *MockQuerier_GetSessionState_Call) Return(_a0 db.GetSessionStateRow, _a1 error) *MockQuerier_GetSessionState_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockQuerier_GetStartedAndIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetStartedAndIsStartedConversationSessionRow, error)) *MockQuerier_GetStartedAndIsStartedConversationSession_Call {
+func (_c *MockQuerier_GetSessionState_Call) RunAndReturn(run func(context.Context, uuid.UUID) (db.GetSessionStateRow, error)) *MockQuerier_GetSessionState_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3545,6 +3604,63 @@ func (_c *MockQuerier_UpdateIsStartedConversationSession_Call) Return(_a0 int64,
 }
 
 func (_c *MockQuerier_UpdateIsStartedConversationSession_Call) RunAndReturn(run func(context.Context, db.UpdateIsStartedConversationSessionParams) (int64, error)) *MockQuerier_UpdateIsStartedConversationSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIsTimedOutSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateIsTimedOutSession(ctx context.Context, arg db.UpdateIsTimedOutSessionParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIsTimedOutSession")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsTimedOutSessionParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsTimedOutSessionParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateIsTimedOutSessionParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateIsTimedOutSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsTimedOutSession'
+type MockQuerier_UpdateIsTimedOutSession_Call struct {
+	*mock.Call
+}
+
+// UpdateIsTimedOutSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateIsTimedOutSessionParams
+func (_e *MockQuerier_Expecter) UpdateIsTimedOutSession(ctx interface{}, arg interface{}) *MockQuerier_UpdateIsTimedOutSession_Call {
+	return &MockQuerier_UpdateIsTimedOutSession_Call{Call: _e.mock.On("UpdateIsTimedOutSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateIsTimedOutSession_Call) Run(run func(ctx context.Context, arg db.UpdateIsTimedOutSessionParams)) *MockQuerier_UpdateIsTimedOutSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateIsTimedOutSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsTimedOutSession_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateIsTimedOutSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsTimedOutSession_Call) RunAndReturn(run func(context.Context, db.UpdateIsTimedOutSessionParams) (int64, error)) *MockQuerier_UpdateIsTimedOutSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

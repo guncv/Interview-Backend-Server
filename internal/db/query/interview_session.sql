@@ -7,9 +7,10 @@ INSERT INTO interview_sessions (
     position,
     modality,
     status,
-    is_consent
+    is_consent,
+    bias_prompt
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 );
 
 -- name: EndInterviewSession :execrows
@@ -24,7 +25,8 @@ WHERE id = $1;
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
-    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END,
+    is_timed_out = CASE WHEN $2 IN ('timed_out') THEN true ELSE false END
 WHERE id = $1;
 
 -- name: CheckInterviewSessionExists :one
@@ -43,8 +45,8 @@ UPDATE interview_sessions
 SET is_started_conversation = $2
 WHERE id = $1;
 
--- name: GetStartedAndIsStartedConversationSession :one
-SELECT current_state_id, current_state, started_at, is_started_conversation
+-- name: GetSessionState :one
+SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
 FROM interview_sessions
 WHERE id = $1;
 
@@ -185,3 +187,9 @@ WHERE id = $1;
 SELECT status
 FROM interview_sessions
 WHERE id = $1;
+
+-- name: UpdateIsTimedOutSession :execrows
+UPDATE interview_sessions
+SET is_timed_out = $2
+WHERE id = $1;
+
