@@ -15,7 +15,8 @@ type InterviewTurnsRepository interface {
 	GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewerLastMessageRow, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error)
 	CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error
-	GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error)
+	GetChatHistoryBySessionID(ctx context.Context, sessionID *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error)
+	GetChatHistoryBySessionIDWithCursor(ctx context.Context, req *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error)
 	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error)
@@ -76,12 +77,24 @@ func (r *interviewTurnsRepository) CreateSessionTurnBySessionID(ctx context.Cont
 	return nil
 }
 
-func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetChatHistoryBySessionIDRow, error) {
+func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, req *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error) {
 	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionID] Called")
 
-	chatHistory, err := r.db.GetChatHistoryBySessionID(ctx, sessionID)
+	chatHistory, err := r.db.GetChatHistoryBySessionID(ctx, *req)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetChatHistoryBySessionID] Error getting chat history by session ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return chatHistory, nil
+}
+
+func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithCursor(ctx context.Context, req *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error) {
+	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithCursor] Called")
+
+	chatHistory, err := r.db.GetChatHistoryBySessionIDWithCursor(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithCursor] Error getting chat history by session ID with cursor", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 

@@ -673,27 +673,84 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 		return nil, err
 	}
 
-	chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, uuid.MustParse(sessionPayload.SessionID))
+	sessionID, err := uuid.Parse(sessionPayload.SessionID)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
-		return nil, err
+		s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Invalid session ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	chatHistoryResp := make([]entities.ChatHistory, len(chatHistory))
-	for i, chat := range chatHistory {
-		chatHistoryResp[i] = entities.ChatHistory{
-			ID:             chat.ID,
-			TurnNo:         chat.TurnNo,
-			Actor:          chat.Actor,
-			TranscriptText: chat.TranscriptText,
-			StartAt:        chat.StartAt,
-			EndAt:          chat.EndAt,
-			CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+	var chatHistoryResp []entities.ChatHistory
+	var cursorTurnNext int32
+
+	if req.TurnNo != nil {
+		dbReq := &db.GetChatHistoryBySessionIDWithCursorParams{
+			SessionID: sessionID,
+			TurnNo:    int64(*req.TurnNo),
+			Limit:     constants.DefaultPageSize,
+		}
+
+		chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionIDWithCursor(ctx, dbReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history with cursor", err)
+			return nil, err
+		}
+
+		chatHistoryResp = make([]entities.ChatHistory, len(chatHistory))
+
+		for i, chat := range chatHistory {
+			chatHistoryResp[len(chatHistory)-1-i] = entities.ChatHistory{
+				ID:             chat.ID,
+				TurnNo:         chat.TurnNo,
+				Actor:          chat.Actor,
+				TranscriptText: chat.TranscriptText,
+				StartAt:        chat.StartAt,
+				EndAt:          chat.EndAt,
+				CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+			}
+		}
+
+		if len(chatHistory) > 0 {
+			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
+		} else {
+			cursorTurnNext = *req.TurnNo
+		}
+	} else {
+		dbReq := &db.GetChatHistoryBySessionIDParams{
+			SessionID: sessionID,
+			Limit:     constants.DefaultPageSize,
+		}
+
+		chatHistory, err := s.interviewTurnsRepo.GetChatHistoryBySessionID(ctx, dbReq)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: GetChatHistoryBySessionToken] Error getting chat history", err)
+			return nil, err
+		}
+
+		chatHistoryResp = make([]entities.ChatHistory, len(chatHistory))
+
+		for i, chat := range chatHistory {
+			chatHistoryResp[len(chatHistory)-1-i] = entities.ChatHistory{
+				ID:             chat.ID,
+				TurnNo:         chat.TurnNo,
+				Actor:          chat.Actor,
+				TranscriptText: chat.TranscriptText,
+				StartAt:        chat.StartAt,
+				EndAt:          chat.EndAt,
+				CreatedAt:      utils.FormatToBangkokFullTimeFormat(chat.CreatedAt),
+			}
+		}
+
+		if len(chatHistory) > 0 {
+			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
+			s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Cursor turn next", "cursor_turn_next", cursorTurnNext)
+		} else {
+			cursorTurnNext = 0
 		}
 	}
 
 	resp := &entities.GetChatHistoryBySessionTokenResp{
-		ChatHistory: chatHistoryResp,
+		ChatHistory:    chatHistoryResp,
+		CursorTurnNext: cursorTurnNext,
 	}
 
 	return resp, nil

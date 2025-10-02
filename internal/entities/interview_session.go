@@ -132,10 +132,12 @@ type RedisLastMessagePayload struct {
 
 type GetChatHistoryBySessionTokenReq struct {
 	SessionToken string `json:"session_token" binding:"required"`
+	TurnNo       *int32 `json:"turn_no" binding:"required"`
 }
 
 type GetChatHistoryBySessionTokenResp struct {
-	ChatHistory []ChatHistory `json:"chat_history"`
+	ChatHistory    []ChatHistory `json:"chat_history"`
+	CursorTurnNext int32         `json:"cursor_turn_next"`
 }
 
 type ChatHistory struct {

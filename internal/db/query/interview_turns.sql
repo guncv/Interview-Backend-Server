@@ -29,7 +29,15 @@ WHERE session_id = $1;
 SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
 FROM interview_turns
 WHERE session_id = $1
-ORDER BY turn_no ASC;
+ORDER BY turn_no DESC
+LIMIT $2;
+
+-- name: GetChatHistoryBySessionIDWithCursor :many
+SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
+FROM interview_turns
+WHERE session_id = $1 AND turn_no < $2
+ORDER BY turn_no DESC
+LIMIT $3;
 
 -- name: GetChatHistoryBySessionIDWithEvaluation :many
 SELECT

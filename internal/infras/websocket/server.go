@@ -429,6 +429,8 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 			if timeSinceLastActivity >= constants.WebSocketInactivityTimeoutDuration {
 				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Session timed out due to inactivity")
 
+				_ = s.interviewSessionService.UpdateIsTimedOutSession(ctx, client.SessionID)
+
 				s.writeJSON(ctx, client, map[string]any{
 					"type":    constants.WebSocketMessageTypeInterviewSessionTimedOut,
 					"message": constants.TimeOutMessage,

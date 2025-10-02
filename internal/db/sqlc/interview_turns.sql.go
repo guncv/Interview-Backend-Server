@@ -71,8 +71,14 @@ const getChatHistoryBySessionID = `-- name: GetChatHistoryBySessionID :many
 SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
 FROM interview_turns
 WHERE session_id = $1
-ORDER BY turn_no ASC
+ORDER BY turn_no DESC
+LIMIT $2
 `
+
+type GetChatHistoryBySessionIDParams struct {
+	SessionID uuid.UUID `json:"session_id"`
+	Limit     int32     `json:"limit"`
+}
 
 type GetChatHistoryBySessionIDRow struct {
 	ID             uuid.UUID `json:"id"`
@@ -84,8 +90,8 @@ type GetChatHistoryBySessionIDRow struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-func (q *Queries) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetChatHistoryBySessionIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, getChatHistoryBySessionID, sessionID)
+func (q *Queries) GetChatHistoryBySessionID(ctx context.Context, arg GetChatHistoryBySessionIDParams) ([]GetChatHistoryBySessionIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatHistoryBySessionID, arg.SessionID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +99,61 @@ func (q *Queries) GetChatHistoryBySessionID(ctx context.Context, sessionID uuid.
 	items := []GetChatHistoryBySessionIDRow{}
 	for rows.Next() {
 		var i GetChatHistoryBySessionIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TurnNo,
+			&i.Actor,
+			&i.TranscriptText,
+			&i.StartAt,
+			&i.EndAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getChatHistoryBySessionIDWithCursor = `-- name: GetChatHistoryBySessionIDWithCursor :many
+SELECT id, turn_no, actor, transcript_text, start_at, end_at, created_at
+FROM interview_turns
+WHERE session_id = $1 AND turn_no < $2
+ORDER BY turn_no DESC
+LIMIT $3
+`
+
+type GetChatHistoryBySessionIDWithCursorParams struct {
+	SessionID uuid.UUID `json:"session_id"`
+	TurnNo    int64     `json:"turn_no"`
+	Limit     int32     `json:"limit"`
+}
+
+type GetChatHistoryBySessionIDWithCursorRow struct {
+	ID             uuid.UUID `json:"id"`
+	TurnNo         int64     `json:"turn_no"`
+	Actor          string    `json:"actor"`
+	TranscriptText string    `json:"transcript_text"`
+	StartAt        string    `json:"start_at"`
+	EndAt          string    `json:"end_at"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+func (q *Queries) GetChatHistoryBySessionIDWithCursor(ctx context.Context, arg GetChatHistoryBySessionIDWithCursorParams) ([]GetChatHistoryBySessionIDWithCursorRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatHistoryBySessionIDWithCursor, arg.SessionID, arg.TurnNo, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetChatHistoryBySessionIDWithCursorRow{}
+	for rows.Next() {
+		var i GetChatHistoryBySessionIDWithCursorRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.TurnNo,
