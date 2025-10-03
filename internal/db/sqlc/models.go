@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type FinalizeStatusEnum string
@@ -146,6 +147,7 @@ type InterviewSessions struct {
 	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
 	IsTimedOut            sql.NullBool           `json:"is_timed_out"`
 	BiasPrompt            string                 `json:"bias_prompt"`
+	ResumeContext         pqtype.NullRawMessage  `json:"resume_context"`
 }
 
 type InterviewStates struct {

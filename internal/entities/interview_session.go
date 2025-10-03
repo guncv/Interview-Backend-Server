@@ -119,10 +119,12 @@ type IsSessionValidResp struct {
 }
 
 type WebSocketSessionReq struct {
-	UserID    string        `json:"user_id"`
-	SessionID string        `json:"session_id"`
-	ResumeID  string        `json:"resume_id"`
-	Duration  time.Duration `json:"duration"`
+	UserID     string        `json:"user_id"`
+	SessionID  string        `json:"session_id"`
+	ResumeID   string        `json:"resume_id"`
+	Duration   time.Duration `json:"duration"`
+	Position   string        `json:"position"`
+	BiasPrompt string        `json:"bias_prompt"`
 }
 
 type RedisLastMessagePayload struct {
@@ -173,6 +175,7 @@ type GetInterviewSessionInformationResp struct {
 }
 
 type GetInterviewSessionStateResp struct {
+	Position              string `json:"position"`
 	StartedAt             string `json:"started_at"`
 	IsStartedConversation bool   `json:"is_started_conversation"`
 	CurrentState          string `json:"current_state"`

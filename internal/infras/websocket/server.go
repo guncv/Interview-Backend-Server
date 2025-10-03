@@ -208,7 +208,7 @@ func (s *webSocketServer) HandleConnection(
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
 
-	if err := s.initClient(ctx, client); err != nil {
+	if err := s.initClient(ctx, client, resp.Position, resp.BiasPrompt); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
 		s.Disconnect(ctx, client)
 		return nil
@@ -252,15 +252,19 @@ func (s *webSocketServer) HandleConnection(
 	return nil
 }
 
-func (s *webSocketServer) initClient(ctx context.Context, client *Client) error {
+func (s *webSocketServer) initClient(ctx context.Context, client *Client, position string, biasPrompt string) error {
 	s.log.InfoWithID(ctx, "[WebSocketServer: initClient] Called")
 
-	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, &entities.WebSocketSessionReq{
-		UserID:    client.userID,
-		SessionID: client.SessionID,
-		ResumeID:  client.resumeID,
-		Duration:  s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
-	})
+	webSocketSessionReq := &entities.WebSocketSessionReq{
+		UserID:     client.userID,
+		SessionID:  client.SessionID,
+		ResumeID:   client.resumeID,
+		Duration:   s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
+		Position:   position,
+		BiasPrompt: biasPrompt,
+	}
+
+	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, webSocketSessionReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error creating web socket session token", err)
 		s.Disconnect(ctx, client)

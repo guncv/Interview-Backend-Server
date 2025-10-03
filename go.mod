@@ -19,6 +19,7 @@ require (
 	github.com/ngrok/sqlmw v0.0.0-20220520173518-97c9c04efc79
 	github.com/redis/go-redis/v9 v9.12.1
 	github.com/spf13/viper v1.20.1
+	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/zap v1.27.0

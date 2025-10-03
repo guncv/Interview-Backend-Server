@@ -8,9 +8,10 @@ INSERT INTO interview_sessions (
     modality,
     status,
     is_consent,
+    resume_context,
     bias_prompt
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 );
 
 -- name: EndInterviewSession :execrows
@@ -46,7 +47,7 @@ SET is_started_conversation = $2
 WHERE id = $1;
 
 -- name: GetSessionState :one
-SELECT current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
+SELECT position, current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
 FROM interview_sessions
 WHERE id = $1;
 

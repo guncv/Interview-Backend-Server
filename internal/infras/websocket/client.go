@@ -237,10 +237,9 @@ func (c *webSocketClient) SegmentEnd(ctx context.Context, msg MsgSegmentEnd) err
 	}
 
 	message := map[string]interface{}{
-		"type":        msg.Type,
-		"session_id":  msg.SessionID,
-		"segment_id":  msg.SegmentID,
-		"bias_prompt": msg.BiasPrompt,
+		"type":       msg.Type,
+		"session_id": msg.SessionID,
+		"segment_id": msg.SegmentID,
 	}
 
 	if err := c.SendMessage(ctx, message); err != nil {

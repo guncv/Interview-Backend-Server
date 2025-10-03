@@ -1,0 +1,1 @@
+ALTER TABLE interview_sessions ADD COLUMN resume_context JSONB;

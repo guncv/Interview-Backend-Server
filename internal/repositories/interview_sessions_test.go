@@ -324,6 +324,7 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 							mock.Anything,
 							mock.Anything,
 							mock.Anything,
+							mock.Anything,
 							mock.Anything).
 						Return(nil, nil).Once()
 
@@ -402,6 +403,7 @@ func TestInterviewSessionRepository_CreateInterviewSessionWithNewResumeTx(t *tes
 						ExecContext(
 							mock.AnythingOfType("context.backgroundCtx"),
 							mock.AnythingOfType("string"),
+							mock.Anything,
 							mock.Anything,
 							mock.Anything,
 							mock.Anything,
