@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -191,11 +192,12 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		IsDefault:  !isDefaultResume,
 		BiasPrompt: extractResumeJsonForRAGResp.BiasPrompt,
 
-		SessionID: sessionID,
-		Position:  req.Position,
-		Status:    constants.StatusPending,
-		Modality:  constants.ModalityVoiceChat,
-		IsConsent: req.IsConsent,
+		SessionID:     sessionID,
+		Position:      req.Position,
+		Status:        constants.StatusPending,
+		Modality:      constants.ModalityVoiceChat,
+		IsConsent:     req.IsConsent,
+		ResumeContext: extractResumeJsonForRAGResp.ResumeContext,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSessionWithNewResumeTx(ctx, createResumeAndJobRequirementReq); err != nil {
@@ -306,6 +308,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		Modality:       constants.ModalityVoiceChat,
 		IsConsent:      req.IsConsent,
 		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
+		ResumeContext:  pqtype.NullRawMessage{RawMessage: extractResumeJsonForRAGResp.ResumeContext, Valid: true},
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {

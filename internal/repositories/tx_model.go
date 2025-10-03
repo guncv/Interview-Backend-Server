@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,7 +38,8 @@ type ExtractResumeJsonForRAGReq struct {
 }
 
 type ExtractResumeJsonForRAGResp struct {
-	BiasPrompt string `json:"bias_prompt"`
+	BiasPrompt    string          `json:"bias_prompt"`
+	ResumeContext json.RawMessage `json:"resume_context"`
 }
 
 type CreateResumeAndJobRequirementReq struct {
@@ -70,11 +72,12 @@ type CreateInterviewSessionTxReq struct {
 	IsDefault  bool
 	BiasPrompt string
 
-	SessionID uuid.UUID
-	Position  string
-	Status    string
-	Modality  string
-	IsConsent bool
+	SessionID     uuid.UUID
+	Position      string
+	Status        string
+	Modality      string
+	IsConsent     bool
+	ResumeContext json.RawMessage
 }
 
 type InterviewFeedbackAndScoreReq struct {

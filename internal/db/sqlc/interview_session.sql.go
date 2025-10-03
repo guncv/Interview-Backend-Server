@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const checkInterviewSessionExists = `-- name: CheckInterviewSessionExists :one
@@ -63,22 +64,24 @@ INSERT INTO interview_sessions (
     modality,
     status,
     is_consent,
+    resume_context,
     bias_prompt
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 `
 
 type CreateInterviewSessionParams struct {
-	ID             uuid.UUID `json:"id"`
-	UserID         uuid.UUID `json:"user_id"`
-	ResumeID       uuid.UUID `json:"resume_id"`
-	ResumeFileName string    `json:"resume_file_name"`
-	Position       string    `json:"position"`
-	Modality       string    `json:"modality"`
-	Status         string    `json:"status"`
-	IsConsent      bool      `json:"is_consent"`
-	BiasPrompt     string    `json:"bias_prompt"`
+	ID             uuid.UUID             `json:"id"`
+	UserID         uuid.UUID             `json:"user_id"`
+	ResumeID       uuid.UUID             `json:"resume_id"`
+	ResumeFileName string                `json:"resume_file_name"`
+	Position       string                `json:"position"`
+	Modality       string                `json:"modality"`
+	Status         string                `json:"status"`
+	IsConsent      bool                  `json:"is_consent"`
+	ResumeContext  pqtype.NullRawMessage `json:"resume_context"`
+	BiasPrompt     string                `json:"bias_prompt"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -91,6 +94,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.Modality,
 		arg.Status,
 		arg.IsConsent,
+		arg.ResumeContext,
 		arg.BiasPrompt,
 	)
 	return err
