@@ -1313,12 +1313,16 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 	statusDisplayName := utils.GetStatusDisplayName(dbResp.Status)
 
 	totalTime := ""
-	if dbResp.StartedAt.Valid && dbResp.EndedAt.Valid {
+	if dbResp.StartedAt.Valid && dbResp.EndedAt.Valid && !dbResp.EndedAt.Time.Equal(dbResp.StartedAt.Time) {
 		duration := dbResp.EndedAt.Time.Sub(dbResp.StartedAt.Time)
 		totalMinutes := int(duration.Minutes())
 		totalSeconds := int(duration.Seconds()) % 60
-		if totalMinutes > 0 || totalSeconds > 0 {
-			totalTime = fmt.Sprintf("%d.%02d", totalMinutes, totalSeconds)
+		if totalMinutes > 0 {
+			totalTime = fmt.Sprintf("%d min %d sec", totalMinutes, totalSeconds)
+		} else if totalSeconds > 0 {
+			totalTime = fmt.Sprintf("%d sec", totalSeconds)
+		} else {
+			totalTime = "0 sec"
 		}
 	}
 

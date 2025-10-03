@@ -5872,6 +5872,7 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 		Status:              status,
 		StatusDisplayName:   statusDisplayName,
 		StatusColor:         statusColor,
+		TotalTime:           "",
 		StartedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
 		EndedAt:             utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: true}),
 		OverallScore:        5,
@@ -5911,6 +5912,7 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 		Status:              status,
 		StatusDisplayName:   statusDisplayName,
 		StatusColor:         statusColor,
+		TotalTime:           "", // Empty because StartedAt and EndedAt are invalid
 		StartedAt:           utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
 		EndedAt:             utils.FormatNullableTimeToBangkokString(sql.NullTime{Time: dateNow, Valid: false}),
 		OverallScore:        0.00,
@@ -6120,6 +6122,236 @@ func TestInterviewSessionService_GetInterviewSessionInformationByID(t *testing.T
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "The status is invalid.")
 				assert.Contains(t, gotErr.Error(), "[INS0421]")
+			},
+		},
+		{
+			name:  "Success With Time Duration",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utils.SignInTokenPayload{
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				// Create a test case with actual duration (5 minutes 30 seconds)
+				startTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+				endTime := time.Date(2024, 1, 15, 10, 35, 30, 0, time.UTC) // 5 minutes 30 seconds later
+
+				validDbRespWithDuration := &db.GetInterviewSessionInformationByIDRow{
+					UserID:         userID,
+					ResumeID:       sessionID,
+					ResumeFileName: "resume_file_name",
+					Position:       "position",
+					Status:         status,
+					StartedAt:      sql.NullTime{Time: startTime, Valid: true},
+					EndedAt:        sql.NullTime{Time: endTime, Valid: true},
+					OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+					SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+					CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+				}
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithDuration, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, "5 min 30 sec", gotResp.TotalTime)
+				assert.Equal(t, sessionID, gotResp.ResumeID)
+				assert.Equal(t, "resume_file_name", gotResp.ResumeFileName)
+				assert.Equal(t, "position", gotResp.Position)
+				assert.Equal(t, status, gotResp.Status)
+			},
+		},
+		{
+			name:  "Success with equal start and end times",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utils.SignInTokenPayload{
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				// Create a test case with equal start and end times
+				startTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+				endTime := startTime // Same time
+
+				validDbRespWithEqualTimes := &db.GetInterviewSessionInformationByIDRow{
+					UserID:         userID,
+					ResumeID:       sessionID,
+					ResumeFileName: "resume_file_name",
+					Position:       "position",
+					Status:         status,
+					StartedAt:      sql.NullTime{Time: startTime, Valid: true},
+					EndedAt:        sql.NullTime{Time: endTime, Valid: true},
+					OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+					SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+					CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+				}
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithEqualTimes, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, "", gotResp.TotalTime) // Should be empty when start and end times are equal
+				assert.Equal(t, sessionID, gotResp.ResumeID)
+				assert.Equal(t, "resume_file_name", gotResp.ResumeFileName)
+				assert.Equal(t, "position", gotResp.Position)
+				assert.Equal(t, status, gotResp.Status)
+			},
+		},
+		{
+			name:  "Success with zero duration",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utils.SignInTokenPayload{
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				// Create a test case with very small duration (less than 1 second)
+				startTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+				endTime := time.Date(2024, 1, 15, 10, 30, 0, 500000000, time.UTC) // 0.5 seconds later
+
+				validDbRespWithZeroDuration := &db.GetInterviewSessionInformationByIDRow{
+					UserID:         userID,
+					ResumeID:       sessionID,
+					ResumeFileName: "resume_file_name",
+					Position:       "position",
+					Status:         status,
+					StartedAt:      sql.NullTime{Time: startTime, Valid: true},
+					EndedAt:        sql.NullTime{Time: endTime, Valid: true},
+					OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+					SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+					CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+				}
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithZeroDuration, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, "0 sec", gotResp.TotalTime) // Should show "0 sec" for zero duration
+				assert.Equal(t, sessionID, gotResp.ResumeID)
+				assert.Equal(t, "resume_file_name", gotResp.ResumeFileName)
+				assert.Equal(t, "position", gotResp.Position)
+				assert.Equal(t, status, gotResp.Status)
+			},
+		},
+		{
+			name:  "Success with seconds only",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utils.SignInTokenPayload{
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				// Create a test case with only seconds (no minutes)
+				startTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+				endTime := time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC) // 45 seconds later
+
+				validDbRespWithSecondsOnly := &db.GetInterviewSessionInformationByIDRow{
+					UserID:         userID,
+					ResumeID:       sessionID,
+					ResumeFileName: "resume_file_name",
+					Position:       "position",
+					Status:         status,
+					StartedAt:      sql.NullTime{Time: startTime, Valid: true},
+					EndedAt:        sql.NullTime{Time: endTime, Valid: true},
+					OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+					SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+					CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+				}
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithSecondsOnly, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, "45 sec", gotResp.TotalTime) // Should show only seconds without minutes
+				assert.Equal(t, sessionID, gotResp.ResumeID)
+				assert.Equal(t, "resume_file_name", gotResp.ResumeFileName)
+				assert.Equal(t, "position", gotResp.Position)
+				assert.Equal(t, status, gotResp.Status)
+			},
+		},
+		{
+			name:  "Success with minutes only",
+			input: sessionID.String(),
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).
+					Return(&middleware.AuthPayload{
+						Payload: &utils.SignInTokenPayload{
+							UserID: userID.String(),
+						},
+					}, nil)
+
+				// Create a test case with only minutes (no seconds)
+				startTime := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+				endTime := time.Date(2024, 1, 15, 10, 35, 0, 0, time.UTC) // 5 minutes later
+
+				validDbRespWithMinutesOnly := &db.GetInterviewSessionInformationByIDRow{
+					UserID:         userID,
+					ResumeID:       sessionID,
+					ResumeFileName: "resume_file_name",
+					Position:       "position",
+					Status:         status,
+					StartedAt:      sql.NullTime{Time: startTime, Valid: true},
+					EndedAt:        sql.NullTime{Time: endTime, Valid: true},
+					OverallScore:   sql.NullFloat64{Float64: 5, Valid: true},
+					SummaryMd:      sql.NullString{String: "summary_md", Valid: true},
+					CreatedAt:      sql.NullTime{Time: dateNow, Valid: true},
+				}
+
+				mockInterviewSessionRepo.EXPECT().GetInterviewSessionInformationByID(ctx, sessionID).
+					Return(validDbRespWithMinutesOnly, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.GetInterviewSessionInformationResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Equal(t, "5 min 0 sec", gotResp.TotalTime) // Should show minutes with 0 seconds
+				assert.Equal(t, sessionID, gotResp.ResumeID)
+				assert.Equal(t, "resume_file_name", gotResp.ResumeFileName)
+				assert.Equal(t, "position", gotResp.Position)
+				assert.Equal(t, status, gotResp.Status)
 			},
 		},
 	}
