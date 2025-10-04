@@ -76,6 +76,7 @@ type Querier interface {
 	UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error)
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error)
 	UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error)
+	UpdateIsCompletedSession(ctx context.Context, arg UpdateIsCompletedSessionParams) (int64, error)
 	UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg UpdateIsEvaluatedInterviewStateByIDParams) (int64, error)
 	UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error)
 	UpdateIsTimedOutSession(ctx context.Context, arg UpdateIsTimedOutSessionParams) (int64, error)

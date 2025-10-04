@@ -3494,6 +3494,63 @@ func (_c *MockQuerier_UpdateInterviewSessionStatus_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// UpdateIsCompletedSession provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateIsCompletedSession(ctx context.Context, arg db.UpdateIsCompletedSessionParams) (int64, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIsCompletedSession")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsCompletedSessionParams) (int64, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateIsCompletedSessionParams) int64); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.UpdateIsCompletedSessionParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_UpdateIsCompletedSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsCompletedSession'
+type MockQuerier_UpdateIsCompletedSession_Call struct {
+	*mock.Call
+}
+
+// UpdateIsCompletedSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateIsCompletedSessionParams
+func (_e *MockQuerier_Expecter) UpdateIsCompletedSession(ctx interface{}, arg interface{}) *MockQuerier_UpdateIsCompletedSession_Call {
+	return &MockQuerier_UpdateIsCompletedSession_Call{Call: _e.mock.On("UpdateIsCompletedSession", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateIsCompletedSession_Call) Run(run func(ctx context.Context, arg db.UpdateIsCompletedSessionParams)) *MockQuerier_UpdateIsCompletedSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateIsCompletedSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsCompletedSession_Call) Return(_a0 int64, _a1 error) *MockQuerier_UpdateIsCompletedSession_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateIsCompletedSession_Call) RunAndReturn(run func(context.Context, db.UpdateIsCompletedSessionParams) (int64, error)) *MockQuerier_UpdateIsCompletedSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateIsEvaluatedInterviewStateByID provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg db.UpdateIsEvaluatedInterviewStateByIDParams) (int64, error) {
 	ret := _m.Called(ctx, arg)

@@ -53,6 +53,7 @@ type InterviewSessionService interface {
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 	GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error)
 	UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error
+	UpdateIsCompletedSession(ctx context.Context, sessionIDReq string) error
 }
 
 type interviewSessionService struct {
@@ -797,6 +798,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentStateID:        currentStateID,
 			IsTimedOut:            dbResp.IsTimedOut.Bool,
 			BiasPrompt:            dbResp.BiasPrompt,
+			IsCompleted:           dbResp.IsCompleted.Bool,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -819,6 +821,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentStateID:        currentStateID,
 			IsTimedOut:            dbResp.IsTimedOut.Bool,
 			BiasPrompt:            dbResp.BiasPrompt,
+			IsCompleted:           dbResp.IsCompleted.Bool,
 		}, nil
 	}
 }
@@ -1697,6 +1700,28 @@ func (s *interviewSessionService) UpdateIsTimedOutSession(ctx context.Context, s
 
 	if err := s.interviewSessionRepo.UpdateIsTimedOutSession(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *interviewSessionService) UpdateIsCompletedSession(ctx context.Context, sessionIDReq string) error {
+	s.log.InfoWithID(ctx, "[Service: UpdateIsCompletedSession] Called")
+
+	sessionID, err := uuid.Parse(sessionIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateIsCompletedSession] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.UpdateIsCompletedSessionParams{
+		ID:          sessionID,
+		IsCompleted: sql.NullBool{Bool: true, Valid: true},
+	}
+
+	if err := s.interviewSessionRepo.UpdateIsCompletedSession(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateIsCompletedSession] Error updating interview session is completed", err)
 		return err
 	}
 

@@ -182,6 +182,7 @@ type GetInterviewSessionStateResp struct {
 	CurrentStateID        string `json:"current_state_id"`
 	IsTimedOut            bool   `json:"is_timed_out"`
 	BiasPrompt            string `json:"bias_prompt"`
+	IsCompleted           bool   `json:"is_completed"`
 }
 
 type EndInterviewSessionReq struct {

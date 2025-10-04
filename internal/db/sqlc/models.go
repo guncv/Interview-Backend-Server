@@ -148,6 +148,7 @@ type InterviewSessions struct {
 	IsTimedOut            sql.NullBool           `json:"is_timed_out"`
 	BiasPrompt            string                 `json:"bias_prompt"`
 	ResumeContext         pqtype.NullRawMessage  `json:"resume_context"`
+	IsCompleted           sql.NullBool           `json:"is_completed"`
 }
 
 type InterviewStates struct {

@@ -774,6 +774,53 @@ func (_c *MockInterviewSessionRepository_UpdateInterviewSessionStatus_Call) RunA
 	return _c
 }
 
+// UpdateIsCompletedSession provides a mock function with given fields: ctx, req
+func (_m *MockInterviewSessionRepository) UpdateIsCompletedSession(ctx context.Context, req *db.UpdateIsCompletedSessionParams) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIsCompletedSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *db.UpdateIsCompletedSessionParams) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockInterviewSessionRepository_UpdateIsCompletedSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsCompletedSession'
+type MockInterviewSessionRepository_UpdateIsCompletedSession_Call struct {
+	*mock.Call
+}
+
+// UpdateIsCompletedSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *db.UpdateIsCompletedSessionParams
+func (_e *MockInterviewSessionRepository_Expecter) UpdateIsCompletedSession(ctx interface{}, req interface{}) *MockInterviewSessionRepository_UpdateIsCompletedSession_Call {
+	return &MockInterviewSessionRepository_UpdateIsCompletedSession_Call{Call: _e.mock.On("UpdateIsCompletedSession", ctx, req)}
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsCompletedSession_Call) Run(run func(ctx context.Context, req *db.UpdateIsCompletedSessionParams)) *MockInterviewSessionRepository_UpdateIsCompletedSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*db.UpdateIsCompletedSessionParams))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsCompletedSession_Call) Return(_a0 error) *MockInterviewSessionRepository_UpdateIsCompletedSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockInterviewSessionRepository_UpdateIsCompletedSession_Call) RunAndReturn(run func(context.Context, *db.UpdateIsCompletedSessionParams) error) *MockInterviewSessionRepository_UpdateIsCompletedSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateIsStartedConversationSession provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionRepository) UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error {
 	ret := _m.Called(ctx, req)

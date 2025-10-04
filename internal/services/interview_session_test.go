@@ -7613,3 +7613,179 @@ func TestInterviewSessionService_GetInterviewSessionStatusByID(t *testing.T) {
 		})
 	}
 }
+
+func TestInterviewSessionService_UpdateIsTimedOutSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	testCases := []struct {
+		name   string
+		input  string
+		setup  func() *mockRepositories.MockInterviewSessionRepository
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: sessionID.String(),
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().UpdateIsTimedOutSession(ctx, mock.MatchedBy(func(req *db.UpdateIsTimedOutSessionParams) bool {
+					return req.ID.String() == sessionID.String()
+				})).Return(nil)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error WithInvalidSessionID",
+			input: "invalid-session-id",
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithUpdateIsTimedOutSessionError",
+			input: sessionID.String(),
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().UpdateIsTimedOutSession(ctx, mock.MatchedBy(func(req *db.UpdateIsTimedOutSessionParams) bool {
+					return req.ID.String() == sessionID.String()
+				})).Return(errors.New("update is timed out session error"))
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "update is timed out session error")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotErr := svc.UpdateIsTimedOutSession(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionService_UpdateIsCompletedSession(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	testCases := []struct {
+		name   string
+		input  string
+		setup  func() *mockRepositories.MockInterviewSessionRepository
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: sessionID.String(),
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().UpdateIsCompletedSession(ctx, mock.MatchedBy(func(req *db.UpdateIsCompletedSessionParams) bool {
+					return req.ID.String() == sessionID.String()
+				})).Return(nil)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error WithInvalidSessionID",
+			input: "invalid-session-id",
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name:  "Error WithUpdateIsCompletedSessionError",
+			input: sessionID.String(),
+			setup: func() *mockRepositories.MockInterviewSessionRepository {
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockInterviewSessionRepo.EXPECT().UpdateIsCompletedSession(ctx, mock.MatchedBy(func(req *db.UpdateIsCompletedSessionParams) bool {
+					return req.ID.String() == sessionID.String()
+				})).Return(errors.New("update is completed session error"))
+
+				return mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "update is completed session error")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				nil,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotErr := svc.UpdateIsCompletedSession(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}

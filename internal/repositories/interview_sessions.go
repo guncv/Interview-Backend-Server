@@ -32,6 +32,7 @@ type InterviewSessionRepository interface {
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
 	UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error
+	UpdateIsCompletedSession(ctx context.Context, req *db.UpdateIsCompletedSessionParams) error
 }
 
 type interviewSessionRepository struct {
@@ -339,6 +340,24 @@ func (r *interviewSessionRepository) UpdateIsTimedOutSession(ctx context.Context
 	if rowAffected == 0 {
 		err := errors.New("interview session not found")
 		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Interview session not found", err)
+		return app_error.New(err, app_error.ErrCodeSessionNotFound)
+	}
+
+	return nil
+}
+
+func (r *interviewSessionRepository) UpdateIsCompletedSession(ctx context.Context, req *db.UpdateIsCompletedSessionParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateIsCompletedSession] Called")
+
+	rowAffected, err := r.db.UpdateIsCompletedSession(ctx, *req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsCompletedSession] Error updating interview session is completed", err)
+		return app_error.HandleDatabaseError(err)
+	}
+
+	if rowAffected == 0 {
+		err := errors.New("interview session not found")
+		r.log.ErrorWithID(ctx, "[Repository: UpdateIsCompletedSession] Interview session not found", err)
 		return app_error.New(err, app_error.ErrCodeSessionNotFound)
 	}
 

@@ -212,7 +212,14 @@ func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUI
 }
 
 const getSessionState = `-- name: GetSessionState :one
-SELECT position, current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
+SELECT position,
+    current_state_id,
+    current_state,
+    started_at,
+    is_started_conversation,
+    is_timed_out,
+    bias_prompt,
+    is_completed
 FROM interview_sessions
 WHERE id = $1
 `
@@ -225,6 +232,7 @@ type GetSessionStateRow struct {
 	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
 	IsTimedOut            sql.NullBool   `json:"is_timed_out"`
 	BiasPrompt            string         `json:"bias_prompt"`
+	IsCompleted           sql.NullBool   `json:"is_completed"`
 }
 
 func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error) {
@@ -238,6 +246,7 @@ func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSession
 		&i.IsStartedConversation,
 		&i.IsTimedOut,
 		&i.BiasPrompt,
+		&i.IsCompleted,
 	)
 	return i, err
 }
@@ -558,6 +567,25 @@ type UpdateInterviewSessionStatusParams struct {
 
 func (q *Queries) UpdateInterviewSessionStatus(ctx context.Context, arg UpdateInterviewSessionStatusParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateInterviewSessionStatus, arg.ID, arg.Column2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateIsCompletedSession = `-- name: UpdateIsCompletedSession :execrows
+UPDATE interview_sessions
+SET is_completed = $2
+WHERE id = $1
+`
+
+type UpdateIsCompletedSessionParams struct {
+	ID          uuid.UUID    `json:"id"`
+	IsCompleted sql.NullBool `json:"is_completed"`
+}
+
+func (q *Queries) UpdateIsCompletedSession(ctx context.Context, arg UpdateIsCompletedSessionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateIsCompletedSession, arg.ID, arg.IsCompleted)
 	if err != nil {
 		return 0, err
 	}

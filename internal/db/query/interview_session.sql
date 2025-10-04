@@ -47,7 +47,14 @@ SET is_started_conversation = $2
 WHERE id = $1;
 
 -- name: GetSessionState :one
-SELECT position, current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
+SELECT position,
+    current_state_id,
+    current_state,
+    started_at,
+    is_started_conversation,
+    is_timed_out,
+    bias_prompt,
+    is_completed
 FROM interview_sessions
 WHERE id = $1;
 
@@ -192,5 +199,10 @@ WHERE id = $1;
 -- name: UpdateIsTimedOutSession :execrows
 UPDATE interview_sessions
 SET is_timed_out = $2
+WHERE id = $1;
+
+-- name: UpdateIsCompletedSession :execrows
+UPDATE interview_sessions
+SET is_completed = $2
 WHERE id = $1;
 

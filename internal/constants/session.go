@@ -32,6 +32,8 @@ const (
 	WebSocketMessageTypeInterviewSessionTimedOut        = "interview_session_timed_out"
 	WebSocketMessageTypeInterviewSessionAlreadyTimedOut = "interview_session_already_timed_out"
 	WebSocketMessageTypeInactivityWarning               = "inactivity_warning"
+	WebSocketMessageTypeInterviewCompleted              = "interview_completed"
+	WebSocketMessageTypeUserCompleteSession             = "user_complete_session"
 
 	WebSocketMessageTypeConnectionEstablished = "connection_established"
 	WebSocketMessageTypeEcho                  = "echo"
