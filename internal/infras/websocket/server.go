@@ -136,7 +136,6 @@ func (s *webSocketServer) HandleConnection(
 	r *http.Request,
 	session *entities.IsSessionValidResp,
 ) error {
-
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error upgrading connection", err)
@@ -180,6 +179,12 @@ func (s *webSocketServer) HandleConnection(
 	// })
 
 	s.mu.Lock()
+	if existingClient, exists := s.sessions[client.SessionID]; exists && existingClient.connected {
+		s.mu.Unlock()
+		conn.Close()
+		return nil
+	}
+
 	s.sessions[client.SessionID] = client
 	if s.userSessions[client.userID] == nil {
 		s.userSessions[client.userID] = map[string]bool{}
@@ -195,15 +200,20 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	if resp.Status == constants.StatusTimedOut {
+		s.log.WarnWithID(ctx, "[WebSocketServer: HandleConnection] Session already timed out", map[string]any{
+			"session_id": client.SessionID,
+		})
 		s.writeJSON(ctx, client, map[string]any{
 			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyTimedOut,
 		})
-
 		s.Disconnect(ctx, client, constants.StatusTimedOut)
 		return nil
 	}
 
 	if resp.Status == constants.StatusCompleted {
+		s.log.WarnWithID(ctx, "[WebSocketServer: HandleConnection] Session already completed", map[string]any{
+			"session_id": client.SessionID,
+		})
 		s.writeJSON(ctx, client, map[string]any{
 			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyCompleted,
 		})
@@ -216,7 +226,7 @@ func (s *webSocketServer) HandleConnection(
 	client.isFinalized = resp.IsFinalized
 
 	if err := s.initClient(ctx, client, resp.Position, resp.BiasPrompt); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client - AI agent connection failed", err)
 		s.Disconnect(ctx, client)
 		return nil
 	}
@@ -227,7 +237,7 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	if err := s.interviewSessionService.UpdateInterviewSessionStatus(ctx, interviewReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error starting interview session - status update failed", err)
 		s.Disconnect(ctx, client)
 		return nil
 	}
@@ -469,7 +479,6 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 // }
 
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status ...string) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Disconnecting client", map[string]any{"session_id": client.SessionID})
 	client.mu.Lock()
 	if client.disconnecting {
 		client.mu.Unlock()
@@ -496,7 +505,6 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 			Status:    sessionStatus,
 		}
 
-		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task", map[string]any{"session_id": client.SessionID})
 		taskOpts := s.publisher.DefineTaskOptions(constants.TaskEndInterviewSession)
 		if err := s.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload, taskOpts...); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error publishing end interview session task", err)

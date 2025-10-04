@@ -1854,6 +1854,119 @@ func TestInterviewSessionHandler_ListInterviewSessionsByUserIDWithJumpPagination
 	}
 }
 
+func TestInterviewSessionHandler_ListFinalizingInterviewSessionByUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	validResp := &entities.ListFinalizingInterviewSessionByUserIDResp{
+		Sessions: []entities.InterviewSessionSummary{
+			{
+				ID:                uuid.New().String(),
+				ResumeFileName:    "resume.pdf",
+				Position:          "position",
+				Status:            "status",
+				CreatedAt:         time.Now().Format(time.RFC3339),
+				TotalTime:         "10:00",
+				OverallScore:      85.5,
+				OverallScoreColor: "green",
+				CreatedAtDisplay:  time.Now().Format(time.RFC3339),
+				StatusColor:       "green",
+			},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		setup          func() (*middleware.MockAuthContext, *services.MockInterviewSessionService)
+		verify         func(t *testing.T, w *httptest.ResponseRecorder)
+		expectedStatus int
+	}{
+		{
+			name: "Success",
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				mockInterviewSessionService.EXPECT().
+					ListFinalizingInterviewSessionByUserID(mock.Anything).
+					Return(validResp, nil)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "Error WithExtractAuthContextError",
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				authError := app_error.New(errors.New("extract auth context error"), app_error.ErrCodeAuthInvalidHeader)
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, authError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusUnauthorized, w.Code)
+				assert.Contains(t, w.Body.String(), "Please log in to continue")
+			},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "Error WithListFinalizingInterviewSessionByUserIDError",
+			setup: func() (*middleware.MockAuthContext, *services.MockInterviewSessionService) {
+				mockAuthContext := new(middleware.MockAuthContext)
+				mockInterviewSessionService := new(services.MockInterviewSessionService)
+
+				mockAuthContext.EXPECT().
+					ExtractAuthContext(mock.Anything).
+					Return(ctx, nil)
+
+				serviceError := app_error.New(errors.New("list finalizing interview session by user ID error"), app_error.ErrCodeGeneralServerUnavailable)
+				mockInterviewSessionService.EXPECT().
+					ListFinalizingInterviewSessionByUserID(mock.Anything).
+					Return(nil, serviceError)
+
+				return mockAuthContext, mockInterviewSessionService
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			baseURL := "/api/v1/sessions/finalizing"
+
+			c.Request = httptest.NewRequest(http.MethodGet, baseURL, nil)
+
+			mockAuthContext, mockInterviewSessionService := tt.setup()
+			defer mockAuthContext.AssertExpectations(t)
+			defer mockInterviewSessionService.AssertExpectations(t)
+
+			handler := NewInterviewSessionHandler(mockInterviewSessionService, log, mockAuthContext, nil, nil, nil, nil)
+			handler.ListFinalizingInterviewSessionByUserID(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
 func TestInterviewSessionHandler_DeleteUserInterviewSessionByID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	log := log.Initialize("test")

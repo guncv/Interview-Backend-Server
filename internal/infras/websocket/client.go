@@ -60,6 +60,7 @@ func NewWebSocketClient(log *log.Logger) WebSocketClient {
 }
 
 func (c *webSocketClient) Start(ctx context.Context, url string) error {
+
 	dialer := websocket.Dialer{
 		Proxy:             http.ProxyFromEnvironment,
 		HandshakeTimeout:  constants.WebSocketClientHandshakeTimeout,
@@ -285,6 +286,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 	for {
 		mt, data, err := c.conn.ReadMessage()
 		if err != nil {
+			c.log.ErrorWithID(ctx, "[WebSocketClient: readLoop] AI agent connection closed with error", err)
 			c.mu.Lock()
 			if !c.disconnected {
 				c.connected = false

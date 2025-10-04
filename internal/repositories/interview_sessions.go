@@ -32,6 +32,7 @@ type InterviewSessionRepository interface {
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
 	UpdateSessionStatus(ctx context.Context, req *db.UpdateSessionStatusParams) error
+	ListFinalizingInterviewSessionByUserID(ctx context.Context, req uuid.UUID) ([]db.ListFinalizingInterviewSessionByUserIDRow, error)
 }
 
 type interviewSessionRepository struct {
@@ -326,4 +327,15 @@ func (r *interviewSessionRepository) UpdateSessionStatus(ctx context.Context, re
 	}
 
 	return nil
+}
+
+func (r *interviewSessionRepository) ListFinalizingInterviewSessionByUserID(ctx context.Context, req uuid.UUID) ([]db.ListFinalizingInterviewSessionByUserIDRow, error) {
+
+	resp, err := r.db.ListFinalizingInterviewSessionByUserID(ctx, req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListFinalizingInterviewSessionByUserID] Error listing finalize interview session by user ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
 }

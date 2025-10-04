@@ -205,6 +205,10 @@ type ListInterviewSessionsByUserIDWithJumpPaginationReq struct {
 	Limit      *int    `form:"limit"`
 }
 
+type ListFinalizingInterviewSessionByUserIDResp struct {
+	Sessions []InterviewSessionSummary `json:"sessions"`
+}
+
 type Cursor struct {
 	CreatedAt string `json:"created_at"`
 	ID        string `json:"id"`

@@ -857,6 +857,64 @@ func (_c *MockInterviewSessionService_IsSessionValid_Call) RunAndReturn(run func
 	return _c
 }
 
+// ListFinalizingInterviewSessionByUserID provides a mock function with given fields: ctx
+func (_m *MockInterviewSessionService) ListFinalizingInterviewSessionByUserID(ctx context.Context) (*entities.ListFinalizingInterviewSessionByUserIDResp, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListFinalizingInterviewSessionByUserID")
+	}
+
+	var r0 *entities.ListFinalizingInterviewSessionByUserIDResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (*entities.ListFinalizingInterviewSessionByUserIDResp, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) *entities.ListFinalizingInterviewSessionByUserIDResp); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.ListFinalizingInterviewSessionByUserIDResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListFinalizingInterviewSessionByUserID'
+type MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call struct {
+	*mock.Call
+}
+
+// ListFinalizingInterviewSessionByUserID is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockInterviewSessionService_Expecter) ListFinalizingInterviewSessionByUserID(ctx interface{}) *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call {
+	return &MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call{Call: _e.mock.On("ListFinalizingInterviewSessionByUserID", ctx)}
+}
+
+func (_c *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call) Run(run func(ctx context.Context)) *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call) Return(_a0 *entities.ListFinalizingInterviewSessionByUserIDResp, _a1 error) *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call) RunAndReturn(run func(context.Context) (*entities.ListFinalizingInterviewSessionByUserIDResp, error)) *MockInterviewSessionService_ListFinalizingInterviewSessionByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListInterviewSessionsByUserIDWithCursor provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
 	ret := _m.Called(ctx, req)

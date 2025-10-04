@@ -292,8 +292,6 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /auth/sign-out [post]
 func (h *UserHandler) SignOut(c *gin.Context) {
-	ctx := c.Request.Context()
-
 	ctx, err := h.authContext.ExtractAuthContext(c)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: SignOut] Error getting auth context", err)

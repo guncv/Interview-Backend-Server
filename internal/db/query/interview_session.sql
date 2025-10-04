@@ -199,3 +199,19 @@ WHERE id = $1;
 UPDATE interview_sessions
 SET status = $2
 WHERE id = $1;
+
+-- name: ListFinalizingInterviewSessionByUserID :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND finalize_status = 'finalizing'
+ORDER BY created_at DESC, id DESC;

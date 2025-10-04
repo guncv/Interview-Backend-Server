@@ -5595,6 +5595,153 @@ func TestInterviewSessionService_ListInterviewSessionsByUserIDWithJumpPagination
 	}
 }
 
+func TestInterviewSessionService_ListFinalizingInterviewSessionByUserID(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	userID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	testCases := []struct {
+		name   string
+		setup  func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository)
+		verify func(t *testing.T, gotResp *entities.ListFinalizingInterviewSessionByUserIDResp, gotErr error)
+	}{
+		{
+			name: "Success",
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				dbRows := []db.ListFinalizingInterviewSessionByUserIDRow{
+					{
+						ID:             userID,
+						ResumeID:       userID,
+						ResumeFileName: "test-resume.pdf",
+						Position:       "Software Engineer",
+						Status:         "completed",
+						CreatedAt:      sql.NullTime{Time: time.Now(), Valid: true},
+						OverallScore:   sql.NullFloat64{Float64: 85.5, Valid: true},
+						StartedAt:      sql.NullTime{Time: time.Now().Add(-30 * time.Minute), Valid: true},
+						EndedAt:        sql.NullTime{Time: time.Now(), Valid: true},
+					},
+				}
+
+				mockInterviewSessionRepo.EXPECT().ListFinalizingInterviewSessionByUserID(ctx, mock.MatchedBy(func(req uuid.UUID) bool {
+					return req == userID
+				})).
+					Return(dbRows, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListFinalizingInterviewSessionByUserIDResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, gotResp)
+				assert.Len(t, gotResp.Sessions, 1)
+				assert.Equal(t, userID.String(), gotResp.Sessions[0].ID)
+				assert.Equal(t, "test-resume.pdf", gotResp.Sessions[0].ResumeFileName)
+				assert.Equal(t, "Software Engineer", gotResp.Sessions[0].Position)
+				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
+				assert.Equal(t, 85.5, gotResp.Sessions[0].OverallScore)
+				assert.Equal(t, "30.00", gotResp.Sessions[0].TotalTime)
+			},
+		},
+		{
+			name: "Error WithGetAuthContextError",
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(nil, errors.New("auth context error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListFinalizingInterviewSessionByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "auth context error")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error WithInvalidUserID",
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: "invalid-user-id",
+					},
+				}, nil)
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListFinalizingInterviewSessionByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+				assert.Nil(t, gotResp)
+			},
+		},
+		{
+			name: "Error WithListFinalizingInterviewSessionByUserIDError",
+			setup: func() (*mockMiddleware.MockAuthContext, *mockRepositories.MockInterviewSessionRepository) {
+				mockAuthContext := mockMiddleware.NewMockAuthContext(t)
+				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
+
+				mockAuthContext.EXPECT().GetAuthContext(ctx).Return(&middleware.AuthPayload{
+					Payload: &utils.SignInTokenPayload{
+						UserID: userID.String(),
+					},
+				}, nil)
+
+				mockInterviewSessionRepo.EXPECT().ListFinalizingInterviewSessionByUserID(ctx, mock.MatchedBy(func(req uuid.UUID) bool {
+					return req == userID
+				})).
+					Return(nil, errors.New("error"))
+
+				return mockAuthContext, mockInterviewSessionRepo
+			},
+			verify: func(t *testing.T, gotResp *entities.ListFinalizingInterviewSessionByUserIDResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "error")
+				assert.Nil(t, gotResp)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockAuthContext, mockInterviewSessionRepo := tC.setup()
+
+			svc := NewInterviewSessionService(
+				lgr,
+				mockAuthContext,
+				nil,
+				nil,
+				mockInterviewSessionRepo,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			)
+
+			gotResp, gotErr := svc.ListFinalizingInterviewSessionByUserID(ctx)
+
+			tC.verify(t, gotResp, gotErr)
+		})
+	}
+}
+
 func TestInterviewSessionService_DeleteUserInterviewSessionByID(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()

@@ -45,6 +45,7 @@ type InterviewSessionService interface {
 	EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error
 	ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error)
 	ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error)
+	ListFinalizingInterviewSessionByUserID(ctx context.Context) (*entities.ListFinalizingInterviewSessionByUserIDResp, error)
 	DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error
 	GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error)
 	GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error)
@@ -1194,6 +1195,52 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 	}
 
 	return &resp, nil
+}
+
+func (s *interviewSessionService) ListFinalizingInterviewSessionByUserID(ctx context.Context) (*entities.ListFinalizingInterviewSessionByUserIDResp, error) {
+
+	authContext, err := s.authContext.GetAuthContext(ctx)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListFinalizeInterviewSessionByUserID] Error getting auth context", err)
+		return nil, err
+	}
+
+	userID, err := uuid.Parse(authContext.Payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListFinalizeInterviewSessionByUserID] Invalid user ID", err)
+		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbResp, err := s.interviewSessionRepo.ListFinalizingInterviewSessionByUserID(ctx, userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ListFinalizeInterviewSessionByUserID] Error listing finalize interview session by user ID", err)
+		return nil, err
+	}
+
+	sessions := make([]entities.InterviewSessionSummary, 0, len(dbResp))
+	for _, row := range dbResp {
+		session := entities.InterviewSessionSummary{
+			ID:               row.ID.String(),
+			ResumeID:         row.ResumeID.String(),
+			ResumeFileName:   row.ResumeFileName,
+			Position:         row.Position,
+			Status:           row.Status,
+			TotalTime:        utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time),
+			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
+			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+			StatusColor:      utils.GetStatusColor(row.Status),
+		}
+
+		overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
+		session.OverallScore = overallScore
+		session.OverallScoreColor = utils.GetScoreColor(overallScore)
+
+		sessions = append(sessions, session)
+	}
+
+	return &entities.ListFinalizingInterviewSessionByUserIDResp{
+		Sessions: sessions,
+	}, nil
 }
 
 func (s *interviewSessionService) DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error {

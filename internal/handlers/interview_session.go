@@ -429,6 +429,36 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPaginatio
 	c.JSON(http.StatusOK, resp)
 }
 
+// ListFinalizeInterviewSessionByUserID godoc
+// @Summary List finalizing interview session by user ID
+// @Description List finalizing interview session by user ID
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} entities.ListFinalizingInterviewSessionByUserIDResp "List of finalize interview sessions"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /sessions/finalizing [get]
+func (h *InterviewSessionHandler) ListFinalizingInterviewSessionByUserID(c *gin.Context) {
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListFinalizingInterviewSessionByUserID] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.interviewSessionService.ListFinalizingInterviewSessionByUserID(ctx)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListFinalizingInterviewSessionByUserID] Error listing finalize interview session", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
 // DeleteUserInterviewSessionByID godoc
 // @Summary Delete interview session by ID
 // @Description Delete an interview session by ID
