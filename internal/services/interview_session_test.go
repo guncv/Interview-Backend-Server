@@ -1943,15 +1943,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 					UpdateInterviewSessionStatus(ctx, mock.AnythingOfType("*db.UpdateInterviewSessionStatusParams")).
 					Return(nil)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().
-					Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
-						return payload.Key == redisKey &&
-							payload.Value == constants.StatusPending &&
-							payload.TTL == constants.RedisTTLInterviewStatus
-					})).
-					Return(nil)
-
 				config := &config.Config{}
 
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
@@ -1981,19 +1972,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 					UpdateInterviewSessionStatus(ctx, mock.AnythingOfType("*db.UpdateInterviewSessionStatusParams")).
 					Return(nil)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().
-					Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
-						return payload.Key == redisKey &&
-							payload.Value == constants.StatusPending &&
-							payload.TTL == constants.RedisTTLInterviewStatus
-					})).
-					Return(errors.New("Redis set failed"))
-
-				mockRedisClient.EXPECT().
-					Delete(ctx, redisKey).
-					Return(nil).Maybe()
-
 				config := &config.Config{}
 
 				return mockResumeService, mockAuthContext, mockResumeRepo, mockGenerator, mockInterviewSessionRepo, mockJwtMaker, config, mockS3Storage, mockPublisher, mockRedisClient
@@ -2022,19 +2000,6 @@ func TestInterviewSessionService_UpdateInterviewSessionStatus(t *testing.T) {
 				mockInterviewSessionRepo.EXPECT().
 					UpdateInterviewSessionStatus(ctx, mock.AnythingOfType("*db.UpdateInterviewSessionStatusParams")).
 					Return(nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().
-					Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
-						return payload.Key == redisKey &&
-							payload.Value == constants.StatusPending &&
-							payload.TTL == constants.RedisTTLInterviewStatus
-					})).
-					Return(errors.New("Redis set failed"))
-
-				mockRedisClient.EXPECT().
-					Delete(ctx, redisKey).
-					Return(errors.New("Redis delete failed")).Maybe()
 
 				config := &config.Config{}
 
@@ -4027,10 +3992,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
-
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(validScore, nil)
 
@@ -4055,13 +4016,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationService.EXPECT().FinalizeSessionPhraseEvaluation(ctx, sessionID.String()).
 					Return(nil)
 
-				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
-					return payload.Key == fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String()) &&
-						payload.Value == constants.StatusCompleted &&
-						payload.TTL == constants.RedisTTLInterviewStatus
-				})).
-					Return(errors.New("set redis error")).Maybe()
-
 				return mockRedisClient, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
 			verify: func(t *testing.T, gotErr error) {
@@ -4080,10 +4034,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
-
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return([]db.GetAllEvaluationsBySessionIDRow{}, nil)
 
@@ -4094,13 +4044,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 
 				mockEvaluationService.EXPECT().FinalizeSessionPhraseEvaluation(ctx, sessionID.String()).
 					Return(nil)
-
-				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(payload database.RedisPayload) bool {
-					return payload.Key == fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String()) &&
-						payload.Value == constants.StatusCompleted &&
-						payload.TTL == constants.RedisTTLInterviewStatus
-				})).
-					Return(nil).Maybe()
 
 				return mockRedisClient, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
 			},
@@ -4141,12 +4084,12 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return("", errors.New("redis get error"))
+				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
+					Return([]db.GetAllEvaluationsBySessionIDRow{}, nil)
 
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return("", errors.New("get interview session status by ID error"))
+				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
+					return req.ID.String() == sessionID.String()
+				})).Return(errors.New("get interview session status by ID error"))
 
 				mockEvaluationService.EXPECT().FinalizeSessionFailed(ctx, sessionID.String())
 
@@ -4155,28 +4098,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "get interview session status by ID error")
-			},
-		},
-		{
-			name: "Success WithThisSessionAlreadyEnded",
-			input: &entities.EndInterviewSessionReq{
-				SessionId: sessionID.String(),
-				Status:    constants.StatusCompleted,
-			},
-			setup: func() (*mockDatabase.MockRedisClient, *mockServices.MockEvaluationService, *mockRepositories.MockEvaluationScoresRepository, *mockRepositories.MockInterviewSessionRepository) {
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-				mockEvaluationService := mockServices.NewMockEvaluationService(t)
-				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusCompleted, nil)
-
-				return mockRedisClient, mockEvaluationService, mockEvaluationScoresRepo, mockInterviewSessionRepo
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.NoError(t, gotErr)
 			},
 		},
 		{
@@ -4190,10 +4111,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
 
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(nil, errors.New("get all evaluations by session ID error"))
@@ -4220,10 +4137,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
-
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(invalidScore, nil)
 
@@ -4248,10 +4161,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
 
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(validScore, nil)
@@ -4289,10 +4198,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
 
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(validScore, nil)
@@ -4335,10 +4240,6 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 				mockEvaluationService := mockServices.NewMockEvaluationService(t)
 				mockEvaluationScoresRepo := mockRepositories.NewMockEvaluationScoresRepository(t)
 				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).
-					Return(constants.StatusOnGoing, nil)
 
 				mockEvaluationScoresRepo.EXPECT().GetAllEvaluationsBySessionID(ctx, sessionID).
 					Return(validScore, nil)
@@ -7420,200 +7321,6 @@ func TestInterviewSessionService_GetLastUserTurnIDBySessionIDAndCurrentState(t *
 	}
 }
 
-func TestInterviewSessionService_GetInterviewSessionStatusByID(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	sessionID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	validStatusRes := constants.StatusPending
-
-	testCases := []struct {
-		name   string
-		input  string
-		setup  func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient)
-		verify func(t *testing.T, gotResp string, gotErr error)
-	}{
-		{
-			name:  "Success WithGetRedisSuccess",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return(validStatusRes, nil)
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validStatusRes, gotResp)
-			},
-		},
-		{
-			name:  "Success WithGetRedisError",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return("", errors.New("get redis error"))
-
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return(validStatusRes, nil)
-
-				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(req database.RedisPayload) bool {
-					return req.Key == redisKey &&
-						req.Value == validStatusRes &&
-						req.TTL == constants.RedisTTLInterviewStatus
-				})).Return(nil)
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validStatusRes, gotResp)
-			},
-		},
-		{
-			name:  "Success WithGetRedisErrorAndSetRedisError",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return("", errors.New("get redis error"))
-
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return(validStatusRes, nil)
-
-				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(req database.RedisPayload) bool {
-					return req.Key == redisKey &&
-						req.Value == validStatusRes &&
-						req.TTL == constants.RedisTTLInterviewStatus
-				})).Return(errors.New("set redis error"))
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validStatusRes, gotResp)
-			},
-		},
-		{
-			name:  "Success WithInvalidRedisStatusResp",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return("invalid status", nil)
-
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return(validStatusRes, nil)
-
-				mockRedisClient.EXPECT().Set(ctx, mock.MatchedBy(func(req database.RedisPayload) bool {
-					return req.Key == redisKey &&
-						req.Value == validStatusRes &&
-						req.TTL == constants.RedisTTLInterviewStatus
-				})).Return(nil).Maybe()
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.Equal(t, validStatusRes, gotResp)
-			},
-		},
-		{
-			name:  "Error WithInvalidSessionID",
-			input: "invalid-session-id",
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
-				assert.Contains(t, gotErr.Error(), "[INS0107]")
-			},
-		},
-		{
-			name:  "Error WithGetRedisErrorAndGetInterviewSessionStatusByIDError",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return("", errors.New("get redis error"))
-
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return(validStatusRes, errors.New("get interview session status by ID error"))
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "get interview session status by ID error")
-				assert.Equal(t, "", gotResp)
-			},
-		},
-		{
-			name:  "Error WithGetRedisInvalidStatusAndGetInterviewSessionStatusByIDError",
-			input: sessionID.String(),
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockDatabase.MockRedisClient) {
-				mockInterviewSessionRepo := mockRepositories.NewMockInterviewSessionRepository(t)
-				mockRedisClient := mockDatabase.NewMockRedisClient(t)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStatus, sessionID.String())
-				mockRedisClient.EXPECT().Get(ctx, redisKey).Return("invalid status", nil)
-
-				mockInterviewSessionRepo.EXPECT().GetInterviewSessionStatusByID(ctx, sessionID).
-					Return(validStatusRes, errors.New("get interview session status by ID error"))
-
-				return mockInterviewSessionRepo, mockRedisClient
-			},
-			verify: func(t *testing.T, gotResp string, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "get interview session status by ID error")
-				assert.Equal(t, "", gotResp)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockInterviewSessionRepo, mockRedisClient := tC.setup()
-
-			svc := NewInterviewSessionService(
-				lgr,
-				nil,
-				nil,
-				nil,
-				mockInterviewSessionRepo,
-				nil,
-				nil,
-				nil,
-				nil,
-				mockRedisClient,
-				nil,
-				nil,
-				nil,
-				nil,
-			)
-
-			gotResp, gotErr := svc.GetInterviewSessionStatusByID(ctx, tC.input)
-
-			tC.verify(t, gotResp, gotErr)
-		})
-	}
-}
-
 func TestInterviewSessionService_UpdateSessionStatus(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
@@ -7673,7 +7380,7 @@ func TestInterviewSessionService_UpdateSessionStatus(t *testing.T) {
 			},
 			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
-				assert.Contains(t, gotErr.Error(), "update is timed out session error")
+				assert.Contains(t, gotErr.Error(), "update session status error")
 			},
 		},
 	}

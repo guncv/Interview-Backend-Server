@@ -24,6 +24,63 @@ func (_m *MockRedisClient) EXPECT() *MockRedisClient_Expecter {
 	return &MockRedisClient_Expecter{mock: &_m.Mock}
 }
 
+// Decrement provides a mock function with given fields: ctx, key
+func (_m *MockRedisClient) Decrement(ctx context.Context, key string) (int64, error) {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Decrement")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int64, error)); ok {
+		return rf(ctx, key)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRedisClient_Decrement_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Decrement'
+type MockRedisClient_Decrement_Call struct {
+	*mock.Call
+}
+
+// Decrement is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockRedisClient_Expecter) Decrement(ctx interface{}, key interface{}) *MockRedisClient_Decrement_Call {
+	return &MockRedisClient_Decrement_Call{Call: _e.mock.On("Decrement", ctx, key)}
+}
+
+func (_c *MockRedisClient_Decrement_Call) Run(run func(ctx context.Context, key string)) *MockRedisClient_Decrement_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRedisClient_Decrement_Call) Return(_a0 int64, _a1 error) *MockRedisClient_Decrement_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRedisClient_Decrement_Call) RunAndReturn(run func(context.Context, string) (int64, error)) *MockRedisClient_Decrement_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function with given fields: ctx, keys
 func (_m *MockRedisClient) Delete(ctx context.Context, keys ...string) error {
 	_va := make([]interface{}, len(keys))

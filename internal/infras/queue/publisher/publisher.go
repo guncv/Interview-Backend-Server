@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
@@ -148,8 +149,9 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 		}
 	case constants.TaskEndInterviewSession:
 		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
+			asynq.MaxRetry(constants.MaxRetryEndInterviewSession),
 			asynq.Queue(constants.QueueCritical),
+			asynq.Retention(time.Hour * 24),
 		}
 	case constants.TaskSendVerifyEmail:
 		return []asynq.Option{

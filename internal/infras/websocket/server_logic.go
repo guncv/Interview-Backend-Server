@@ -268,13 +268,13 @@ func (s *WebSocketServerLogic) updateInterviewSession(ctx context.Context, clien
 		return
 	}
 
-	endInterviewSessionReq := &entities.EndInterviewSessionReq{
-		SessionId: req.SessionID,
+	endInterviewSessionPayload := &entities.EndInterviewSessionPayload{
+		SessionID: req.SessionID,
 		Status:    status,
 	}
 
-	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewSessionReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: updateInterviewSession] Error ending interview session", err)
+	if err := s.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewSessionPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: updateInterviewSession] Error publishing task end interview session", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
@@ -350,8 +350,22 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 		"ended_at":   timeDuration["ended_at"],
 	})
 
+	key := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, client.SessionID)
+	_, err = s.redisClient.Increment(ctx, key)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Failed to increment pending score counter", err)
+	}
+
+	if err := s.redisClient.Expire(ctx, key, constants.RedisTTLInterviewPendingScores); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error expiring pending score counter", err)
+		_, _ = s.redisClient.Decrement(ctx, key)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
 	if err := s.publisher.PublishTaskCalculateTurnScore(context.Background(), calculateTurnScoreReq); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Error publishing task calculate turn score", err)
+		_, _ = s.redisClient.Decrement(ctx, key)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}

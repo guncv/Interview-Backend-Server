@@ -28,6 +28,7 @@ type EvaluationService interface {
 	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
 	FinalizeSessionPhraseEvaluation(ctx context.Context, sessionID string) error
 	FinalizeSessionFailed(ctx context.Context, sessionID string)
+	UpdateFinalizeStatusSessionEvaluation(ctx context.Context, sessionID string, finalizeStatus db.FinalizeStatusEnum) error
 }
 
 type evaluationService struct {
@@ -482,12 +483,6 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalizing); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
-		s.FinalizeSessionFailed(ctx, sessionIDReq)
-		return err
-	}
-
 	states, err := s.interviewStatesRepo.GetUnprocessedInterviewStatesBySessionID(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error getting unprocessed interview states by session ID", err)
@@ -509,7 +504,7 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 		}
 	}
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+	if err := s.UpdateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
 		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return err
@@ -520,17 +515,17 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 
 func (s *evaluationService) FinalizeSessionFailed(ctx context.Context, sessionIDReq string) {
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
+	if err := s.UpdateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionFailed] Error updating finalize status interview session by ID", err)
 		return
 	}
 }
 
-func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
+func (s *evaluationService) UpdateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusSessionEvaluation] Invalid session ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -543,7 +538,7 @@ func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Co
 	}
 
 	if err := s.interviewSessionsRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
 		return err
 	}
 

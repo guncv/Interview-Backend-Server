@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
@@ -157,14 +159,17 @@ func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, t
 	var payload entities.CalculateTurnScoreReq
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to unmarshal payload", err)
+		_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 		return app_error.New(fmt.Errorf("invalid calculate turn score payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
 	if err := c.evaluationService.CalculateTurnScore(ctx, &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to calculate turn score", err)
+		_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 		return app_error.New(fmt.Errorf("failed to calculate turn score: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
+	_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 	return nil
 }
 
@@ -174,6 +179,25 @@ func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, 
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to unmarshal payload", err)
 		return app_error.New(fmt.Errorf("invalid end interview session payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.evaluationService.UpdateFinalizeStatusSessionEvaluation(ctx, payload.SessionID, db.FinalizeStatusEnumFinalizing); err != nil {
+		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to finalize session phrase evaluation", err)
+		return app_error.New(fmt.Errorf("failed to finalize session phrase evaluation: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	pendingScoresKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID)
+	maxRetries := constants.MaxRetryEndInterviewSession
+	retryDelay := time.Duration(constants.RetryDelayEndInterviewSession) * time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		pendingScoresStr, _ := c.redisClient.Get(ctx, pendingScoresKey)
+
+		if pendingScoresStr == "0" {
+			break
+		}
+
+		time.Sleep(retryDelay)
 	}
 
 	endInterviewReq := &entities.EndInterviewSessionReq{

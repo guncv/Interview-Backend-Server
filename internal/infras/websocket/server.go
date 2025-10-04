@@ -469,7 +469,7 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 // }
 
 func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status ...string) {
-
+	s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Disconnecting client", map[string]any{"session_id": client.SessionID})
 	client.mu.Lock()
 	if client.disconnecting {
 		client.mu.Unlock()
@@ -496,7 +496,9 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 			Status:    sessionStatus,
 		}
 
-		if err := s.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload); err != nil {
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task", map[string]any{"session_id": client.SessionID})
+		taskOpts := s.publisher.DefineTaskOptions(constants.TaskEndInterviewSession)
+		if err := s.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload, taskOpts...); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error publishing end interview session task", err)
 			if fallbackErr := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); fallbackErr != nil {
 				s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation (fallback)", fallbackErr)

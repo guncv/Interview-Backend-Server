@@ -2206,14 +2206,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
 				mockGenerator := new(mockUtils.MockGenerator)
 
-				// Mock UpdateFinalizeStatusInterviewSessionByID (first call)
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(nil)
-
 				// Mock GetUnprocessedInterviewStatesBySessionID
 				mockInterviewStatesRepo.EXPECT().
 					GetUnprocessedInterviewStatesBySessionID(ctx, uuid.MustParse(validSessionID)).
@@ -2274,36 +2266,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:  "Error WithUpdateFinalizeStatusInterviewSessionByIDFailed(First Call)",
-			input: validSessionID,
-			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewStateRepository, *mockRepositories.MockEvaluationScoresRepository, *mockUtils.MockGenerator) {
-				mockInterviewSessionsRepo := new(mockRepositories.MockInterviewSessionRepository)
-				mockInterviewStatesRepo := new(mockRepositories.MockInterviewStateRepository)
-				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
-				mockGenerator := new(mockUtils.MockGenerator)
-
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(errors.New("database error"))
-
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFailed
-					})).
-					Return(nil)
-
-				return mockInterviewSessionsRepo, mockInterviewStatesRepo, mockEvaluationScoresRepo, mockGenerator
-			},
-			verify: func(t *testing.T, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Equal(t, "database error", gotErr.Error())
-			},
-		},
-		{
 			name:  "Error WithGetUnprocessedInterviewStatesBySessionIDFailed",
 			input: validSessionID,
 			setup: func() (*mockRepositories.MockInterviewSessionRepository, *mockRepositories.MockInterviewStateRepository, *mockRepositories.MockEvaluationScoresRepository, *mockUtils.MockGenerator) {
@@ -2311,14 +2273,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewStatesRepo := new(mockRepositories.MockInterviewStateRepository)
 				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
 				mockGenerator := new(mockUtils.MockGenerator)
-
-				// Mock UpdateFinalizeStatusInterviewSessionByID (first call)
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(nil)
 
 				mockInterviewStatesRepo.EXPECT().
 					GetUnprocessedInterviewStatesBySessionID(ctx, uuid.MustParse(validSessionID)).
@@ -2346,14 +2300,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewStatesRepo := new(mockRepositories.MockInterviewStateRepository)
 				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
 				mockGenerator := new(mockUtils.MockGenerator)
-
-				// Mock UpdateFinalizeStatusInterviewSessionByID (first call)
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(nil)
 
 				// Mock GetUnprocessedInterviewStatesBySessionID
 				mockInterviewStatesRepo.EXPECT().
@@ -2389,14 +2335,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
 				mockGenerator := new(mockUtils.MockGenerator)
 
-				// Mock UpdateFinalizeStatusInterviewSessionByID (first call)
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(nil)
-
 				// Mock GetUnprocessedInterviewStatesBySessionID - return empty
 				mockInterviewStatesRepo.EXPECT().
 					GetUnprocessedInterviewStatesBySessionID(ctx, uuid.MustParse(validSessionID)).
@@ -2424,14 +2362,6 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewStatesRepo := new(mockRepositories.MockInterviewStateRepository)
 				mockEvaluationScoresRepo := new(mockRepositories.MockEvaluationScoresRepository)
 				mockGenerator := new(mockUtils.MockGenerator)
-
-				// Mock UpdateFinalizeStatusInterviewSessionByID (first call)
-				mockInterviewSessionsRepo.EXPECT().
-					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
-						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalizing
-					})).
-					Return(nil)
 
 				// Mock GetUnprocessedInterviewStatesBySessionID
 				mockInterviewStatesRepo.EXPECT().

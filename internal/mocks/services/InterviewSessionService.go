@@ -564,63 +564,6 @@ func (_c *MockInterviewSessionService_GetInterviewSessionState_Call) RunAndRetur
 	return _c
 }
 
-// GetInterviewSessionStatusByID provides a mock function with given fields: ctx, sessionIDReq
-func (_m *MockInterviewSessionService) GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error) {
-	ret := _m.Called(ctx, sessionIDReq)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetInterviewSessionStatusByID")
-	}
-
-	var r0 string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, sessionIDReq)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, sessionIDReq)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, sessionIDReq)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockInterviewSessionService_GetInterviewSessionStatusByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetInterviewSessionStatusByID'
-type MockInterviewSessionService_GetInterviewSessionStatusByID_Call struct {
-	*mock.Call
-}
-
-// GetInterviewSessionStatusByID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - sessionIDReq string
-func (_e *MockInterviewSessionService_Expecter) GetInterviewSessionStatusByID(ctx interface{}, sessionIDReq interface{}) *MockInterviewSessionService_GetInterviewSessionStatusByID_Call {
-	return &MockInterviewSessionService_GetInterviewSessionStatusByID_Call{Call: _e.mock.On("GetInterviewSessionStatusByID", ctx, sessionIDReq)}
-}
-
-func (_c *MockInterviewSessionService_GetInterviewSessionStatusByID_Call) Run(run func(ctx context.Context, sessionIDReq string)) *MockInterviewSessionService_GetInterviewSessionStatusByID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockInterviewSessionService_GetInterviewSessionStatusByID_Call) Return(_a0 string, _a1 error) *MockInterviewSessionService_GetInterviewSessionStatusByID_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockInterviewSessionService_GetInterviewSessionStatusByID_Call) RunAndReturn(run func(context.Context, string) (string, error)) *MockInterviewSessionService_GetInterviewSessionStatusByID_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetInterviewerLastMessage provides a mock function with given fields: ctx, req
 func (_m *MockInterviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
 	ret := _m.Called(ctx, req)
