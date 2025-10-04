@@ -575,7 +575,7 @@ func TestInterviewSessionRepository_GetInterviewSessionState(t *testing.T) {
 					Return(db.GetSessionStateRow{
 						StartedAt:             sql.NullTime{Time: startedAt, Valid: true},
 						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
-						IsTimedOut:            sql.NullBool{Bool: false, Valid: true},
+						Status:                constants.StatusCompleted,
 					}, nil)
 
 				return mockStore
@@ -586,8 +586,7 @@ func TestInterviewSessionRepository_GetInterviewSessionState(t *testing.T) {
 				assert.True(t, gotResp.StartedAt.Valid)
 				assert.Equal(t, true, gotResp.IsStartedConversation.Bool)
 				assert.True(t, gotResp.IsStartedConversation.Valid)
-				assert.False(t, gotResp.IsTimedOut.Bool)
-				assert.True(t, gotResp.IsTimedOut.Valid)
+				assert.Equal(t, constants.StatusCompleted, gotResp.Status)
 			},
 		},
 		{
@@ -1031,6 +1030,95 @@ func TestInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID(t *
 			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
 
 			gotErr := svc.UpdateFinalizeStatusInterviewSessionByID(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestInterviewSessionRepository_UpdateSessionStatus(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	isCompletedReq := db.UpdateSessionStatusParams{
+		ID:     updateID,
+		Status: constants.StatusCompleted,
+	}
+
+	testCases := []struct {
+		name   string
+		input  *db.UpdateSessionStatusParams
+		setup  func() *mockSqlc.MockStore
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name:  "Success",
+			input: &isCompletedReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateSessionStatus(ctx, isCompletedReq).
+					Return(1, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name:  "Error WithUpdateIsCompletedSessionNotFound",
+			input: &isCompletedReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateSessionStatus(ctx, isCompletedReq).
+					Return(0, nil)
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0401]")
+				assert.Contains(t, gotErr.Error(), "The session was not found. Please try again.")
+			},
+		}, {
+			name:  "Error WithUpdateIsCompletedSessionError",
+			input: &isCompletedReq,
+			setup: func() *mockSqlc.MockStore {
+				mockStore := new(mockSqlc.MockStore)
+
+				mockStore.EXPECT().
+					UpdateSessionStatus(ctx, isCompletedReq).
+					Return(0, errors.New("error"))
+
+				return mockStore
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "[INS0101]")
+				assert.Contains(t, gotErr.Error(), "We're having trouble connecting to the server")
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockStore := tC.setup()
+
+			defer func() {
+				if mockStore != nil {
+					mockStore.AssertExpectations(t)
+				}
+			}()
+
+			cfg := &config.Config{}
+
+			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
+
+			gotErr := svc.UpdateSessionStatus(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

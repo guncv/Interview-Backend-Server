@@ -212,19 +212,27 @@ func (q *Queries) GetInterviewSessionStatusByID(ctx context.Context, id uuid.UUI
 }
 
 const getSessionState = `-- name: GetSessionState :one
-SELECT position, current_state_id, current_state, started_at, is_started_conversation, is_timed_out, bias_prompt
+SELECT position,
+    current_state_id,
+    current_state,
+    started_at,
+    is_started_conversation,
+    bias_prompt,
+    status,
+    finalize_status
 FROM interview_sessions
 WHERE id = $1
 `
 
 type GetSessionStateRow struct {
-	Position              string         `json:"position"`
-	CurrentStateID        uuid.NullUUID  `json:"current_state_id"`
-	CurrentState          sql.NullString `json:"current_state"`
-	StartedAt             sql.NullTime   `json:"started_at"`
-	IsStartedConversation sql.NullBool   `json:"is_started_conversation"`
-	IsTimedOut            sql.NullBool   `json:"is_timed_out"`
-	BiasPrompt            string         `json:"bias_prompt"`
+	Position              string                 `json:"position"`
+	CurrentStateID        uuid.NullUUID          `json:"current_state_id"`
+	CurrentState          sql.NullString         `json:"current_state"`
+	StartedAt             sql.NullTime           `json:"started_at"`
+	IsStartedConversation sql.NullBool           `json:"is_started_conversation"`
+	BiasPrompt            string                 `json:"bias_prompt"`
+	Status                string                 `json:"status"`
+	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
 }
 
 func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error) {
@@ -236,10 +244,73 @@ func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSession
 		&i.CurrentState,
 		&i.StartedAt,
 		&i.IsStartedConversation,
-		&i.IsTimedOut,
 		&i.BiasPrompt,
+		&i.Status,
+		&i.FinalizeStatus,
 	)
 	return i, err
+}
+
+const listFinalizingInterviewSessionByUserID = `-- name: ListFinalizingInterviewSessionByUserID :many
+SELECT id,
+    resume_id,
+    resume_file_name,
+    position,
+    status,
+    started_at,
+    ended_at,
+    overall_score,
+    created_at
+FROM interview_sessions
+WHERE user_id = $1
+    AND soft_delete = false
+    AND finalize_status = 'finalizing'
+ORDER BY created_at DESC, id DESC
+`
+
+type ListFinalizingInterviewSessionByUserIDRow struct {
+	ID             uuid.UUID       `json:"id"`
+	ResumeID       uuid.UUID       `json:"resume_id"`
+	ResumeFileName string          `json:"resume_file_name"`
+	Position       string          `json:"position"`
+	Status         string          `json:"status"`
+	StartedAt      sql.NullTime    `json:"started_at"`
+	EndedAt        sql.NullTime    `json:"ended_at"`
+	OverallScore   sql.NullFloat64 `json:"overall_score"`
+	CreatedAt      sql.NullTime    `json:"created_at"`
+}
+
+func (q *Queries) ListFinalizingInterviewSessionByUserID(ctx context.Context, userID uuid.UUID) ([]ListFinalizingInterviewSessionByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFinalizingInterviewSessionByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFinalizingInterviewSessionByUserIDRow{}
+	for rows.Next() {
+		var i ListFinalizingInterviewSessionByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResumeID,
+			&i.ResumeFileName,
+			&i.Position,
+			&i.Status,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.OverallScore,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listInterviewSessionsByUserIDFirstPage = `-- name: ListInterviewSessionsByUserIDFirstPage :many
@@ -546,8 +617,7 @@ const updateInterviewSessionStatus = `-- name: UpdateInterviewSessionStatus :exe
 UPDATE interview_sessions
 SET status = $2::VARCHAR(20),
     started_at = CASE WHEN $2 = 'on_going' AND started_at IS NULL THEN now() ELSE started_at END,
-    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END,
-    is_timed_out = CASE WHEN $2 IN ('timed_out') THEN true ELSE false END
+    ended_at   = CASE WHEN $2 IN ('aborted','cancelled','timed_out','completed') THEN now() ELSE ended_at END
 WHERE id = $1
 `
 
@@ -583,19 +653,19 @@ func (q *Queries) UpdateIsStartedConversationSession(ctx context.Context, arg Up
 	return result.RowsAffected()
 }
 
-const updateIsTimedOutSession = `-- name: UpdateIsTimedOutSession :execrows
+const updateSessionStatus = `-- name: UpdateSessionStatus :execrows
 UPDATE interview_sessions
-SET is_timed_out = $2
+SET status = $2
 WHERE id = $1
 `
 
-type UpdateIsTimedOutSessionParams struct {
-	ID         uuid.UUID    `json:"id"`
-	IsTimedOut sql.NullBool `json:"is_timed_out"`
+type UpdateSessionStatusParams struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
 }
 
-func (q *Queries) UpdateIsTimedOutSession(ctx context.Context, arg UpdateIsTimedOutSessionParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateIsTimedOutSession, arg.ID, arg.IsTimedOut)
+func (q *Queries) UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateSessionStatus, arg.ID, arg.Status)
 	if err != nil {
 		return 0, err
 	}

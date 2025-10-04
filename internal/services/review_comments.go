@@ -41,7 +41,6 @@ func NewReviewCommentService(
 }
 
 func (s *reviewCommentService) CreateReviewComment(ctx context.Context, req *entities.CreateReviewCommentReq) error {
-	s.log.InfoWithID(ctx, "[Service: CreateReviewComment] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {

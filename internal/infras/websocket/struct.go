@@ -2,12 +2,7 @@ package websocket
 
 import "time"
 
-type MsgConnectionEstablished struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-}
-
-type MsgStartSessionConversation struct {
+type MsgInterviewTypeAndSessionID struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 }
@@ -16,11 +11,6 @@ type MsgUserAudioChunk struct {
 	Type      string `json:"type"`
 	SessionID string `json:"session_id"`
 	SegmentID string `json:"segment_id"`
-}
-
-type MsgInterviewerAudioChunk struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
 }
 
 type MsgSegmentStart struct {
@@ -41,21 +31,6 @@ type MsgUserFullTranscript struct {
 	SessionID  string `json:"session_id"`
 	SegmentID  string `json:"segment_id"`
 	Transcript string `json:"transcript"`
-}
-
-type MsgInterviewTurnStart struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-}
-
-type MsgInterviewTurnEnd struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
-}
-
-type MsgEndInterviewSession struct {
-	Type      string `json:"type"`
-	SessionID string `json:"session_id"`
 }
 
 type MsgInterviewerResp struct {

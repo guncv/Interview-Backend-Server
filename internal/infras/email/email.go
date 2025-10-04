@@ -39,7 +39,6 @@ func NewEmailSender(config *config.Config, log *log.Logger) EmailSender {
 }
 
 func (s *emailSender) SendResetPasswordEmail(ctx context.Context, payload *ResetPasswordEmailPayload) error {
-	s.log.InfoWithID(ctx, "[Email: SendResetPasswordEmail] Sending reset password email", nil)
 
 	resetLink := fmt.Sprintf("%s?token=%s", s.config.EmailConfig.ResetPasswordURL, payload.Token)
 	body := s.buildResetPasswordEmailBody(resetLink)
@@ -49,12 +48,10 @@ func (s *emailSender) SendResetPasswordEmail(ctx context.Context, payload *Reset
 		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	s.log.InfoWithID(ctx, "[Email: SendResetPasswordEmail] Successfully sent reset password email", nil)
 	return nil
 }
 
 func (s *emailSender) SendVerifyEmail(ctx context.Context, payload *VerifyEmailPayload) error {
-	s.log.InfoWithID(ctx, "[Email: SendVerifyEmail] Sending verify email", nil)
 
 	body := s.buildVerifyEmailBody(payload.Code)
 
@@ -63,12 +60,10 @@ func (s *emailSender) SendVerifyEmail(ctx context.Context, payload *VerifyEmailP
 		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	s.log.InfoWithID(ctx, "[Email: SendVerifyEmail] Successfully sent verify email", nil)
 	return nil
 }
 
 func (s *emailSender) sendEmail(ctx context.Context, to, subject, body string) error {
-	s.log.InfoWithID(ctx, "[Email: SendEmail] Sending email", nil)
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", s.config.EmailConfig.From)
 	msg.SetHeader("To", to)

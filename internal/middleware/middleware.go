@@ -34,8 +34,6 @@ func NewAuthMiddleware(tokenMaker utils.JwtToken, log *log.Logger, cfg *config.C
 
 func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Called")
-
 		authorizationHeader := ctx.GetHeader(string(constants.AuthorizationHeaderKey))
 		if len(authorizationHeader) == 0 {
 			err := app_error.New(errors.New("authorization header is not provided"), app_error.ErrCodeAuthInvalidHeader)
@@ -62,7 +60,6 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 
 		accessToken := fields[1]
 		payload, currentAccessToken, err := m.VerifyAndRenewAccessToken(ctx, accessToken)
-		m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Current access token", "token", currentAccessToken)
 		if err != nil {
 			m.log.ErrorWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Error", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, err)
@@ -72,7 +69,6 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 		ctx.Set(string(constants.AuthorizationPayloadKey), payload)
 
 		if currentAccessToken != "" {
-			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Setting X-Access-Token header ", currentAccessToken)
 			ctx.Header(string(constants.XAccessTokenHeaderKey), currentAccessToken)
 		}
 
@@ -81,7 +77,6 @@ func (m *authMiddleware) AuthMiddleware() gin.HandlerFunc {
 }
 
 func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken string) (*utils.SignInTokenPayload, string, error) {
-	m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Verify and renew access token", "accessToken", accessToken)
 
 	payload, err := m.tokenMaker.VerifyToken(ctx.Request.Context(), accessToken, m.cfg.AuthConfig.EncryptionSecretKey)
 	if err != nil {
@@ -95,7 +90,6 @@ func (m *authMiddleware) VerifyAndRenewAccessToken(ctx *gin.Context, accessToken
 				return nil, "", app_error.New(err, app_error.ErrCodeAuthExpiredToken)
 			}
 
-			m.log.InfoWithID(ctx.Request.Context(), "[Middleware: AuthMiddleware] Renewing access token", "refreshToken", cookie.Value)
 			refreshToken := cookie.Value
 			newAccessToken, payload, err := m.tokenMaker.RenewAccessToken(ctx, refreshToken)
 			if err != nil {

@@ -442,7 +442,8 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.Equal(t, &ExtractResumeJsonForRAGResp{
-					BiasPrompt: "bias_prompt",
+					BiasPrompt:    "bias_prompt",
+					ResumeContext: json.RawMessage("null"),
 				}, gotResp)
 			},
 		},
@@ -480,7 +481,8 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.Equal(t, &ExtractResumeJsonForRAGResp{
-					BiasPrompt: "bias_prompt",
+					BiasPrompt:    "bias_prompt",
+					ResumeContext: json.RawMessage("null"),
 				}, gotResp)
 			},
 		},

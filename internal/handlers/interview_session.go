@@ -68,9 +68,6 @@ func NewInterviewSessionHandler(
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /sessions [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithNewResume] Called")
-
 	var req entities.CreateInterviewSessionWithNewResumeRequest
 	if err := h.validator.ValidateAndBind(c, &req, "CreateInterviewSessionWithNewResume"); err != nil {
 		utils.RespondWithError(c, err)
@@ -108,9 +105,6 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Con
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /sessions/existing [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Called")
-
 	var req entities.CreateInterviewSessionWithExistingResumeReq
 	if err := h.validator.ValidateAndBind(c, &req, "CreateInterviewSessionWithExistingResume"); err != nil {
 		utils.RespondWithError(c, err)
@@ -149,7 +143,6 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gi
 // @Router /ws/connect/{id} [get]
 func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: OpenWsConnection] Called")
 
 	sessionToken := c.Param("id")
 	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
@@ -213,7 +206,6 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 // @Router /sessions/chat-history/{session_token} [get]
 func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Called")
 
 	req := entities.GetChatHistoryBySessionTokenReq{}
 
@@ -290,7 +282,6 @@ func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 // @Router /sessions/cursor [get]
 func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithCursor(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Called")
 
 	req := entities.ListInterviewSessionsByUserIDWithCursorReq{}
 
@@ -374,7 +365,6 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithCursor(c *gin
 // @Router /sessions/jump [get]
 func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPagination(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Called")
 
 	req := entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{}
 
@@ -439,6 +429,36 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPaginatio
 	c.JSON(http.StatusOK, resp)
 }
 
+// ListFinalizeInterviewSessionByUserID godoc
+// @Summary List finalizing interview session by user ID
+// @Description List finalizing interview session by user ID
+// @Tags Interview Sessions
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} entities.ListFinalizingInterviewSessionByUserIDResp "List of finalize interview sessions"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
+// @Failure 401 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Unauthorized"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /sessions/finalizing [get]
+func (h *InterviewSessionHandler) ListFinalizingInterviewSessionByUserID(c *gin.Context) {
+	ctx, err := h.authContext.ExtractAuthContext(c)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListFinalizingInterviewSessionByUserID] Error getting auth context", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	resp, err := h.interviewSessionService.ListFinalizingInterviewSessionByUserID(ctx)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: ListFinalizingInterviewSessionByUserID] Error listing finalize interview session", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
 // DeleteUserInterviewSessionByID godoc
 // @Summary Delete interview session by ID
 // @Description Delete an interview session by ID
@@ -454,7 +474,6 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPaginatio
 // @Router /sessions/{session_id} [delete]
 func (h *InterviewSessionHandler) DeleteUserInterviewSessionByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: DeleteUserInterviewSessionByID] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {
@@ -500,7 +519,6 @@ func (h *InterviewSessionHandler) DeleteUserInterviewSessionByID(c *gin.Context)
 // @Router /sessions/{session_id} [get]
 func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetInterviewSessionInformationByID] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {
@@ -548,7 +566,6 @@ func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Cont
 // @Router /sessions/{session_id}/chat-with-evaluation [get]
 func (h *InterviewSessionHandler) GetChatHistoryBySessionIDWithEvaluation(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {

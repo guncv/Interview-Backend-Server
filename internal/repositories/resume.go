@@ -45,8 +45,6 @@ func NewResumeRepository(l *log.Logger, db db.Store, cfg *config.Config) ResumeR
 }
 
 func (r *resumeRepository) CreateResume(ctx context.Context, req *db.CreateResumeParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateResume] Called")
-
 	if err := r.db.CreateResume(ctx, *req); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateResume] Error creating resume", err)
 		return app_error.HandleDatabaseError(err)
@@ -56,7 +54,6 @@ func (r *resumeRepository) CreateResume(ctx context.Context, req *db.CreateResum
 }
 
 func (r *resumeRepository) ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserIDFirstPage] Called")
 
 	resumes, err := r.db.ListResumeByUserIDFirstPage(ctx, userID)
 	if err != nil {
@@ -68,7 +65,6 @@ func (r *resumeRepository) ListResumeByUserIDFirstPage(ctx context.Context, user
 }
 
 func (r *resumeRepository) ListResumeByUserIDPaginated(ctx context.Context, req *db.ListResumeByUserIDPaginatedParams) ([]db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListResumeByUserIDPaginated] Called")
 
 	resumes, err := r.db.ListResumeByUserIDPaginated(ctx, *req)
 	if err != nil {
@@ -80,7 +76,6 @@ func (r *resumeRepository) ListResumeByUserIDPaginated(ctx context.Context, req 
 }
 
 func (r *resumeRepository) CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error) {
-	r.log.InfoWithID(ctx, "[Repository: CheckIsDefaultResumeExistsByUserID] Called")
 
 	exists, err := r.db.CheckIsDefaultResumeExistsByUserID(ctx, userID)
 	if err != nil {
@@ -92,7 +87,6 @@ func (r *resumeRepository) CheckIsDefaultResumeExistsByUserID(ctx context.Contex
 }
 
 func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (*db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetResumeByID] Called")
 
 	resume, err := r.db.GetResumeByID(ctx, id)
 	if err != nil {
@@ -108,7 +102,6 @@ func (r *resumeRepository) GetResumeByID(ctx context.Context, id uuid.UUID) (*db
 }
 
 func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID uuid.UUID) (*db.Resumes, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetDefaultResumeByUserID] Called")
 
 	defaultResume, err := r.db.GetDefaultResumeByUserID(ctx, userID)
 	if err != nil {
@@ -124,7 +117,6 @@ func (r *resumeRepository) GetDefaultResumeByUserID(ctx context.Context, userID 
 }
 
 func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID uuid.UUID) error {
-	r.log.InfoWithID(ctx, "[Repository: SwitchDefaultResume] Called")
 
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 		if err := q.UnsetDefaultResume(ctx, oldID); err != nil {
@@ -149,7 +141,6 @@ func (r *resumeRepository) SwitchDefaultResume(ctx context.Context, oldID, newID
 }
 
 func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *ExtractResumeJsonForRAGReq) (*ExtractResumeJsonForRAGResp, error) {
-	r.log.InfoWithID(ctx, "[Repository: ExtractResumeJsonForRAG] Called")
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -215,8 +206,6 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 		return nil, err
 	}
 
-	r.log.InfoWithID(ctx, fmt.Sprintf("[Repository: ExtractResumeJsonForRAG] Response: %s | Body: %s", resp.Status, string(bodyBytes)))
-
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("interview agent returned status: %s | Body: %s", resp.Status, string(bodyBytes))
 		r.log.ErrorWithID(ctx, "[Repository: ExtractResumeJsonForRAG] HTTP request failed", err)
@@ -233,7 +222,6 @@ func (r *resumeRepository) ExtractResumeJsonForRAG(ctx context.Context, req *Ext
 }
 
 func (r *resumeRepository) ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListAllResumesFileNameByUserID] Called")
 
 	resumes, err := r.db.ListAllResumesFileNameByUserID(ctx, userID)
 	if err != nil {

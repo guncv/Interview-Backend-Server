@@ -27,8 +27,6 @@ func NewIssueCategoriesRepository(log *log.Logger, db db.Store) IssueCategoriesR
 }
 
 func (r *issueCategoriesRepository) GetIssueCategoryIfExists(ctx context.Context, id uuid.UUID) (*db.GetIssueCategoryIfExistsRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetIssueCategoryIfExists] Called")
-
 	resp, err := r.db.GetIssueCategoryIfExists(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -43,8 +41,6 @@ func (r *issueCategoriesRepository) GetIssueCategoryIfExists(ctx context.Context
 }
 
 func (r *issueCategoriesRepository) CreateAdminIssueCategory(ctx context.Context, req *db.CreateAdminIssueCategoryParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateAdminIssueCategory] Called")
-
 	err := r.db.CreateAdminIssueCategory(ctx, *req)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateAdminIssueCategory] Error creating admin issue category", err)
@@ -55,8 +51,6 @@ func (r *issueCategoriesRepository) CreateAdminIssueCategory(ctx context.Context
 }
 
 func (r *issueCategoriesRepository) ListIssueCategories(ctx context.Context) ([]db.ListIssueCategoriesRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListIssueCategories] Called")
-
 	resp, err := r.db.ListIssueCategories(ctx)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ListIssueCategories] Error listing issue categories", err)

@@ -80,7 +80,6 @@ func NewUserService(l *log.Logger,
 }
 
 func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: HealthCheck] Called")
 
 	res, err := s.userRepo.HealthCheck(ctx)
 	if err != nil {
@@ -95,7 +94,6 @@ func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResp
 }
 
 func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: SignUpUser] Called")
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
@@ -239,7 +237,6 @@ func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRe
 }
 
 func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
-	s.log.InfoWithID(ctx, "[Service: VerifyEmail] Called")
 
 	payload, err := s.jwtToken.VerifyVerifyEmailToken(ctx, req.Token)
 	if err != nil {
@@ -313,7 +310,6 @@ func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyE
 }
 
 func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: ResetVerifyEmailCode] Called")
 
 	code := s.generator.GenerateRandomString(ctx, 6)
 
@@ -365,7 +361,6 @@ func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.Re
 }
 
 func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: SignInUserByEmailAndPassword] Called")
 
 	resp, err := s.signInByEmailAndPassword(ctx, req, false)
 	if err != nil {
@@ -377,7 +372,6 @@ func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *ent
 }
 
 func (s *userService) SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: SignInAdminByEmailAndPassword] Called")
 
 	resp, err := s.signInByEmailAndPassword(ctx, req, true)
 	if err != nil {
@@ -389,7 +383,6 @@ func (s *userService) SignInAdminByEmailAndPassword(ctx context.Context, req *en
 }
 
 func (s *userService) signInByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest, isAdmin bool) (*entities.SignInByEmailAndPasswordResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: signInByEmailAndPassword] Called")
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
@@ -475,7 +468,6 @@ func (s *userService) signInByEmailAndPassword(ctx context.Context, req *entitie
 }
 
 func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error {
-	s.log.InfoWithID(ctx, "[Service: ForgotPassword] Called")
 
 	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
@@ -526,13 +518,10 @@ func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPa
 		return err
 	}
 
-	s.log.InfoWithID(ctx, "[Service: ForgotPassword] forgot password successfully ", token)
-
 	return nil
 }
 
 func (s *userService) ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error {
-	s.log.InfoWithID(ctx, "[Service: ResetUserPassword] Called")
 
 	hashedToken := s.jwtToken.HashTokenSHA256(ctx, req.Token)
 	if hashedToken == "" {
@@ -612,7 +601,6 @@ func (s *userService) ResetUserPassword(ctx context.Context, req *entities.Reset
 }
 
 func (s *userService) SignOut(ctx context.Context) error {
-	s.log.InfoWithID(ctx, "[Service: SignOut] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {

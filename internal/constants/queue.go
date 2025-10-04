@@ -12,9 +12,11 @@ var (
 	TaskCalculateEvaluationInOldState = "task:calculate_evaluation_in_old_state"
 	TaskEndInterviewSession           = "task:end_interview_session"
 
-	QueueCritical = "critical"
-	QueueDefault  = "default"
-	MaxRetry      = 3
+	QueueCritical                 = "critical"
+	QueueDefault                  = "default"
+	MaxRetry                      = 3
+	MaxRetryEndInterviewSession   = 7
+	RetryDelayEndInterviewSession = 5
 
 	CriticalQueueConcurrency = 10
 	DefaultQueueConcurrency  = 5

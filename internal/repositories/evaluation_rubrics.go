@@ -26,8 +26,6 @@ func NewEvaluationRubricsRepository(l *log.Logger, db db.Store) EvaluationRubric
 }
 
 func (r *evaluationRubricsRepository) GetRubricWithCriteriaByName(ctx context.Context, req *db.GetRubricWithCriteriaByNameParams) ([]db.GetRubricWithCriteriaByNameRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetRubricWithCriteriaByName] Called")
-
 	resp, err := r.db.GetRubricWithCriteriaByName(ctx, *req)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetRubricWithCriteriaByName] Error getting rubric with criteria by name", err)
@@ -38,8 +36,6 @@ func (r *evaluationRubricsRepository) GetRubricWithCriteriaByName(ctx context.Co
 }
 
 func (r *evaluationRubricsRepository) ListAllRubricsAndCriteria(ctx context.Context, versionLabel string) ([]db.ListAllRubricsAndCriteriaRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListAllRubricsAndCriteria] Called")
-
 	resp, err := r.db.ListAllRubricsAndCriteria(ctx, versionLabel)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: ListAllRubricsAndCriteria] Error getting all rubrics and criteria", err)

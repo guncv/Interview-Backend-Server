@@ -61,7 +61,6 @@ func (maker *jwtToken) CreateJWTToken(ctx context.Context, claims jwt.Claims, se
 }
 
 func (maker *jwtToken) CreateWebSocketSessionToken(ctx context.Context, req *entities.WebSocketSessionReq) (string, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating web socket session token", "req", req)
 
 	payload := NewWebSocketSessionPayload(req)
 
@@ -74,7 +73,6 @@ func (maker *jwtToken) CreateWebSocketSessionToken(ctx context.Context, req *ent
 }
 
 func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating verify email token", "req", req)
 
 	payload, err := NewVerifyEmailTokenPayload(req)
 	if err != nil {
@@ -91,7 +89,6 @@ func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities
 }
 
 func (maker *jwtToken) VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Verifying verify email token", "token", token)
 
 	payload := &VerifyEmailTokenPayload{}
 	if err := maker.verifyJWTToken(ctx, token, payload, maker.config.EmailConfig.EncryptionSecretKey); err != nil {
@@ -102,7 +99,6 @@ func (maker *jwtToken) VerifyVerifyEmailToken(ctx context.Context, token string)
 }
 
 func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Creating sign-in token", "req", req)
 
 	payload, err := NewSignInTokenPayload(req)
 	if err != nil {
@@ -120,7 +116,6 @@ func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenReque
 }
 
 func (maker *jwtToken) VerifyToken(ctx context.Context, token string, secretKey string) (*SignInTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Verifying sign-in token", "token", token)
 
 	payload := &SignInTokenPayload{}
 	if err := maker.verifyJWTToken(ctx, token, payload, secretKey); err != nil {
@@ -168,10 +163,7 @@ func (maker *jwtToken) validateClaims(ctx context.Context, targetClaims jwt.Clai
 				graceWindow = time.Minute
 			}
 
-			if time.Since(expiredAt) <= graceWindow {
-				maker.logger.InfoWithID(ctx, "[Utils: JWT] Token expired but within grace window",
-					"expiredAt", expiredAt, "graceWindow", graceWindow)
-			} else {
+			if time.Since(expiredAt) < graceWindow {
 				maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token outside grace window",
 					"error", constants.ErrExpiredToken, "expiredAt", expiredAt, "graceWindow", graceWindow)
 				return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
@@ -183,19 +175,16 @@ func (maker *jwtToken) validateClaims(ctx context.Context, targetClaims jwt.Clai
 }
 
 func (maker *jwtToken) HashTokenSHA256(ctx context.Context, token string) string {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Hashing token", "token", token)
 	h := sha256.New()
 	h.Write([]byte(token))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (maker *jwtToken) IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Checking if token matches", "providedToken", providedToken, "storedTokenHash", storedTokenHash)
 	return maker.HashTokenSHA256(ctx, providedToken) == storedTokenHash
 }
 
 func (maker *jwtToken) RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: RenewAccessToken] Renewing access token", "token")
 
 	refreshPayload, err := maker.VerifyToken(ctx, token, maker.config.AuthConfig.EncryptionSecretKey)
 	if err != nil {
@@ -255,7 +244,6 @@ func (maker *jwtToken) checkSessionByID(ctx context.Context, refreshPayload *Sig
 }
 
 func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token string, session *db.AuthSessions) error {
-	maker.logger.InfoWithID(ctx, "[Utils: isRefreshTokenValidWithSession] Checking refresh token with session")
 	refreshTokenHash := maker.HashTokenSHA256(ctx, token)
 
 	if session.RefreshTokenHash != refreshTokenHash {
@@ -272,7 +260,6 @@ func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token
 }
 
 func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {
-	maker.logger.InfoWithID(ctx, "[Utils: JWT] Renewing verify email token", "oldToken", oldToken)
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

@@ -48,7 +48,6 @@ func NewIssueReportsHandler(
 // @Router /issue-reports [post]
 func (h *IssueReportsHandler) CreateUserIssueReport(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateUserIssueReport] Called")
 
 	req := &entities.CreateUserIssueReportReq{}
 	if err := h.validator.ValidateAndBind(c, req, "CreateUserIssueReport"); err != nil {
@@ -87,7 +86,6 @@ func (h *IssueReportsHandler) CreateUserIssueReport(c *gin.Context) {
 // @Router /issue-categories [get]
 func (h *IssueReportsHandler) ListIssueCategories(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListIssueCategories] Called")
 
 	res, err := h.issueReportsService.ListIssueCategories(ctx)
 	if err != nil {
@@ -115,7 +113,6 @@ func (h *IssueReportsHandler) ListIssueCategories(c *gin.Context) {
 // @Router /issue-categories [post]
 func (h *IssueReportsHandler) CreateAdminIssueCategory(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateAdminIssueCategory] Called")
 
 	req := &entities.CreateAdminIssueCategoryReq{}
 	if err := h.validator.ValidateAndBind(c, req, "CreateAdminIssueCategory"); err != nil {

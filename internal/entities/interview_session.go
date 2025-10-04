@@ -180,8 +180,9 @@ type GetInterviewSessionStateResp struct {
 	IsStartedConversation bool   `json:"is_started_conversation"`
 	CurrentState          string `json:"current_state"`
 	CurrentStateID        string `json:"current_state_id"`
-	IsTimedOut            bool   `json:"is_timed_out"`
+	Status                string `json:"status"`
 	BiasPrompt            string `json:"bias_prompt"`
+	IsFinalized           bool   `json:"is_finalized"`
 }
 
 type EndInterviewSessionReq struct {
@@ -202,6 +203,10 @@ type ListInterviewSessionsByUserIDWithJumpPaginationReq struct {
 	Status     *string `form:"status"`
 	Offset     *int    `form:"offset"`
 	Limit      *int    `form:"limit"`
+}
+
+type ListFinalizingInterviewSessionByUserIDResp struct {
+	Sessions []InterviewSessionSummary `json:"sessions"`
 }
 
 type Cursor struct {

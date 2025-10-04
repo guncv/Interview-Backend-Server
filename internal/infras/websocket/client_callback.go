@@ -14,8 +14,9 @@ type WebSocketClientCallbacks interface {
 	OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript)
 	OnInterviewerResp(ctx context.Context, req MsgInterviewerResp)
 	OnInterviewerAudioChunk(ctx context.Context, data []byte)
-	OnInterviewTurnStart(ctx context.Context, req MsgInterviewTurnStart)
-	OnInterviewTurnEnd(ctx context.Context, req MsgInterviewTurnEnd)
+	OnInterviewTurnStart(ctx context.Context, req MsgInterviewTypeAndSessionID)
+	OnInterviewTurnEnd(ctx context.Context, req MsgInterviewTypeAndSessionID)
+	OnInterviewCompleted(ctx context.Context, req MsgInterviewTypeAndSessionID)
 }
 
 type webSocketClientCallbacks struct {
@@ -41,24 +42,14 @@ func NewWebSocketClientCallbacks(
 }
 
 func (w *webSocketClientCallbacks) OnConnectionEstablished(ctx context.Context, sessionID string) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithConnectionEstablished] Agent connected", map[string]any{
-		"session_id": sessionID,
-	})
 }
 
 func (w *webSocketClientCallbacks) OnDisconnect(ctx context.Context, sessionID string) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithDisconnect] Agent disconnected", map[string]any{
-		"session_id": sessionID,
-	})
 
-	// Check if client is already disconnecting to prevent recursive calls
 	if w.client != nil {
 		w.client.mu.Lock()
 		if w.client.disconnecting {
 			w.client.mu.Unlock()
-			w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: WithDisconnect] Client already disconnecting", map[string]any{
-				"session_id": sessionID,
-			})
 			return
 		}
 		w.client.mu.Unlock()
@@ -68,11 +59,6 @@ func (w *webSocketClientCallbacks) OnDisconnect(ctx context.Context, sessionID s
 }
 
 func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req MsgUserFullTranscript) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Agent sent full transcript", map[string]any{
-		"session_id": req.SessionID,
-		"transcript": req.Transcript,
-	})
-
 	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnUserFullTranscript] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
@@ -94,8 +80,6 @@ func (w *webSocketClientCallbacks) OnUserFullTranscript(ctx context.Context, req
 }
 
 func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req MsgInterviewerResp) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Called")
-
 	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerResp] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
@@ -108,8 +92,6 @@ func (w *webSocketClientCallbacks) OnInterviewerResp(ctx context.Context, req Ms
 }
 
 func (w *webSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, data []byte) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Called: ")
-
 	if len(data) < 4 {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Invalid frame: too short")
 		return
@@ -122,7 +104,7 @@ func (w *webSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, 
 	}
 
 	headerBytes := data[4 : 4+headerLength]
-	var req MsgInterviewerAudioChunk
+	var req MsgInterviewTypeAndSessionID
 	if err := json.Unmarshal(headerBytes, &req); err != nil {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Invalid header JSON", err)
 		return
@@ -137,34 +119,41 @@ func (w *webSocketClientCallbacks) OnInterviewerAudioChunk(ctx context.Context, 
 	}
 
 	audioData := data[4+headerLength:]
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewerAudioChunk] Audio chunk received", map[string]any{
-		"session_id": req.SessionID,
-		"audio_size": len(audioData),
-	})
-
 	w.logic.sendMessageTypeInterviewerAudioChunk(ctx, w.client, req, audioData)
 }
 
-func (w *webSocketClientCallbacks) OnInterviewTurnStart(ctx context.Context, req MsgInterviewTurnStart) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewTurnStart] Called")
-
+func (w *webSocketClientCallbacks) OnInterviewTurnStart(ctx context.Context, req MsgInterviewTypeAndSessionID) {
 	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewTurnStart] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})
+		w.server.Disconnect(ctx, w.client)
+		return
 	}
 
 	w.logic.sendMessageTypeInterviewTurnStart(ctx, w.client, req)
 }
 
-func (w *webSocketClientCallbacks) OnInterviewTurnEnd(ctx context.Context, req MsgInterviewTurnEnd) {
-	w.log.InfoWithID(ctx, "[WebSocketClientCallbacks: OnInterviewTurnEnd] Called")
-
+func (w *webSocketClientCallbacks) OnInterviewTurnEnd(ctx context.Context, req MsgInterviewTypeAndSessionID) {
 	if req.SessionID != w.client.SessionID {
 		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewTurnEnd] Security violation: Session ID mismatch", map[string]any{
 			"session_id": req.SessionID,
 		})
+		w.server.Disconnect(ctx, w.client)
+		return
 	}
 
 	w.logic.sendMessageTypeInterviewTurnEnd(ctx, w.client, req)
+}
+
+func (w *webSocketClientCallbacks) OnInterviewCompleted(ctx context.Context, req MsgInterviewTypeAndSessionID) {
+	if req.SessionID != w.client.SessionID {
+		w.log.ErrorWithID(ctx, "[WebSocketClientCallbacks: OnInterviewCompleted] Security violation: Session ID mismatch", map[string]any{
+			"session_id": req.SessionID,
+		})
+		w.server.Disconnect(ctx, w.client)
+		return
+	}
+
+	w.logic.sendMessageTypeInterviewCompleted(ctx, w.client, req)
 }

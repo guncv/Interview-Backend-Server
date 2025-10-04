@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
+	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
@@ -76,7 +78,6 @@ func NewRedisTaskConsumer(
 }
 
 func (c *redisTaskConsumer) Start(ctx context.Context) error {
-	c.log.InfoWithID(ctx, "[Email: Start] Starting email consumer server")
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(constants.TaskSendResetPasswordEmail, c.ConsumeTaskSendResetPasswordEmail)
 	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
@@ -93,7 +94,6 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 }
 
 func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
-	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Cleaning up email queue")
 
 	if err := c.redisClient.Delete(ctx, constants.QueueDefault); err != nil {
 		c.log.WarnWithID(ctx, "Failed to cleanup default queue", err)
@@ -103,12 +103,10 @@ func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
 		c.log.WarnWithID(ctx, "Failed to cleanup critical queue", err)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Queue cleanup completed")
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Processing reset password email task")
 
 	var payload email.ResetPasswordEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -121,12 +119,10 @@ func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Contex
 		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Successfully sent reset password email", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Processing verify email task")
 
 	var payload email.VerifyEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -139,12 +135,10 @@ func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task
 		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Successfully sent verify email", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Processing delete file task")
 
 	var payload aws.DeleteFilePayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -157,35 +151,53 @@ func (c *redisTaskConsumer) ConsumeTaskDeleteFile(ctx context.Context, task *asy
 		return app_error.New(fmt.Errorf("failed to delete file: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Successfully deleted file", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Processing calculate turn score task")
 
 	var payload entities.CalculateTurnScoreReq
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to unmarshal payload", err)
+		_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 		return app_error.New(fmt.Errorf("invalid calculate turn score payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
 	if err := c.evaluationService.CalculateTurnScore(ctx, &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Failed to calculate turn score", err)
+		_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 		return app_error.New(fmt.Errorf("failed to calculate turn score: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Successfully deleted redis", nil)
+	_, _ = c.redisClient.Decrement(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID))
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Processing end interview session task")
 
 	var payload entities.EndInterviewSessionPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to unmarshal payload", err)
 		return app_error.New(fmt.Errorf("invalid end interview session payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	if err := c.evaluationService.UpdateFinalizeStatusSessionEvaluation(ctx, payload.SessionID, db.FinalizeStatusEnumFinalizing); err != nil {
+		c.log.ErrorWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Failed to finalize session phrase evaluation", err)
+		return app_error.New(fmt.Errorf("failed to finalize session phrase evaluation: %w", err), app_error.ErrCodeGeneralServerUnavailable)
+	}
+
+	pendingScoresKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewPendingScores, payload.SessionID)
+	maxRetries := constants.MaxRetryEndInterviewSession
+	retryDelay := time.Duration(constants.RetryDelayEndInterviewSession) * time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		pendingScoresStr, _ := c.redisClient.Get(ctx, pendingScoresKey)
+
+		if pendingScoresStr == "0" {
+			break
+		}
+
+		time.Sleep(retryDelay)
 	}
 
 	endInterviewReq := &entities.EndInterviewSessionReq{
@@ -198,6 +210,5 @@ func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, 
 		return app_error.New(fmt.Errorf("failed to end interview session: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Successfully ended interview session", nil)
 	return nil
 }

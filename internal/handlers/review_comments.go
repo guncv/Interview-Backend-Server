@@ -47,7 +47,6 @@ func NewReviewCommentHandler(
 // @Router /review-comments [post]
 func (h *ReviewCommentHandler) CreateReviewComment(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateReviewComment] Called")
 
 	req := &entities.CreateReviewCommentReq{}
 	if err := h.validator.ValidateAndBind(c, req, "CreateReviewComment"); err != nil {

@@ -479,7 +479,7 @@ func (_c *MockWebSocketClient_Start_Call) RunAndReturn(run func(context.Context,
 }
 
 // StartSessionConversation provides a mock function with given fields: ctx, msg
-func (_m *MockWebSocketClient) StartSessionConversation(ctx context.Context, msg websocket.MsgStartSessionConversation) error {
+func (_m *MockWebSocketClient) StartSessionConversation(ctx context.Context, msg websocket.MsgInterviewTypeAndSessionID) error {
 	ret := _m.Called(ctx, msg)
 
 	if len(ret) == 0 {
@@ -487,7 +487,7 @@ func (_m *MockWebSocketClient) StartSessionConversation(ctx context.Context, msg
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, websocket.MsgStartSessionConversation) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, websocket.MsgInterviewTypeAndSessionID) error); ok {
 		r0 = rf(ctx, msg)
 	} else {
 		r0 = ret.Error(0)
@@ -503,14 +503,14 @@ type MockWebSocketClient_StartSessionConversation_Call struct {
 
 // StartSessionConversation is a helper method to define mock.On call
 //   - ctx context.Context
-//   - msg websocket.MsgStartSessionConversation
+//   - msg websocket.MsgInterviewTypeAndSessionID
 func (_e *MockWebSocketClient_Expecter) StartSessionConversation(ctx interface{}, msg interface{}) *MockWebSocketClient_StartSessionConversation_Call {
 	return &MockWebSocketClient_StartSessionConversation_Call{Call: _e.mock.On("StartSessionConversation", ctx, msg)}
 }
 
-func (_c *MockWebSocketClient_StartSessionConversation_Call) Run(run func(ctx context.Context, msg websocket.MsgStartSessionConversation)) *MockWebSocketClient_StartSessionConversation_Call {
+func (_c *MockWebSocketClient_StartSessionConversation_Call) Run(run func(ctx context.Context, msg websocket.MsgInterviewTypeAndSessionID)) *MockWebSocketClient_StartSessionConversation_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(websocket.MsgStartSessionConversation))
+		run(args[0].(context.Context), args[1].(websocket.MsgInterviewTypeAndSessionID))
 	})
 	return _c
 }
@@ -520,7 +520,7 @@ func (_c *MockWebSocketClient_StartSessionConversation_Call) Return(_a0 error) *
 	return _c
 }
 
-func (_c *MockWebSocketClient_StartSessionConversation_Call) RunAndReturn(run func(context.Context, websocket.MsgStartSessionConversation) error) *MockWebSocketClient_StartSessionConversation_Call {
+func (_c *MockWebSocketClient_StartSessionConversation_Call) RunAndReturn(run func(context.Context, websocket.MsgInterviewTypeAndSessionID) error) *MockWebSocketClient_StartSessionConversation_Call {
 	_c.Call.Return(run)
 	return _c
 }

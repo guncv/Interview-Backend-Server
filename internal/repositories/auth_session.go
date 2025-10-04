@@ -30,7 +30,6 @@ func NewAuthSessionRepository(l *log.Logger, db db.Store) AuthSessionRepository 
 }
 
 func (r *authSessionRepository) CreateAuthSession(ctx context.Context, req *db.CreateAuthSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateAuthSession] Called")
 
 	if err := r.db.CreateAuthSession(ctx, *req); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateAuthSession] Error creating session", err)
@@ -41,7 +40,6 @@ func (r *authSessionRepository) CreateAuthSession(ctx context.Context, req *db.C
 }
 
 func (r *authSessionRepository) GetAuthSessionByID(ctx context.Context, id uuid.UUID) (*db.AuthSessions, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetAuthSessionByID] Called")
 
 	session, err := r.db.GetAuthSessionByID(ctx, id)
 	if err != nil {
@@ -57,7 +55,6 @@ func (r *authSessionRepository) GetAuthSessionByID(ctx context.Context, id uuid.
 }
 
 func (r *authSessionRepository) RevokeAuthSessionByID(ctx context.Context, id uuid.UUID) error {
-	r.log.InfoWithID(ctx, "[Repository: RevokeAuthSessionByID] Called")
 
 	if err := r.db.RevokeAuthSessionByID(ctx, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

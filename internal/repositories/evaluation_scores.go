@@ -49,8 +49,6 @@ func NewEvaluationScoresRepository(
 }
 
 func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreAndImproveSentenceTx(ctx context.Context, req *CreateEvaluationAndScoreTxReq) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateEvaluationScore] Called")
-
 	if err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		evaluationReq := db.CreateEvaluationParams{
@@ -112,8 +110,6 @@ func (r *evaluationScoresRepository) CreateEvaluationWithCriteriaScoreAndImprove
 }
 
 func (r *evaluationScoresRepository) GetAllEvaluationsBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetAllEvaluationsBySessionIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetAllEvaluationsBySessionID] Called")
-
 	resp, err := r.db.GetAllEvaluationsBySessionID(ctx, sessionID)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetAllEvaluationsBySessionID] Error getting all evaluations by session ID", err)
@@ -124,8 +120,6 @@ func (r *evaluationScoresRepository) GetAllEvaluationsBySessionID(ctx context.Co
 }
 
 func (r *evaluationScoresRepository) GetEvaluationOverallSummary(ctx context.Context, req *CreateEvaluationOverallSummaryTxReq) (*CreateEvaluationOverallSummaryTxResp, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetEvaluationOverallSummary] Called")
-
 	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathEvaluationOverallSummaryAgent
 
 	config := http.HTTPClientConfig{
@@ -144,8 +138,6 @@ func (r *evaluationScoresRepository) GetEvaluationOverallSummary(ctx context.Con
 }
 
 func (r *evaluationScoresRepository) InterviewFeedbackAndScore(ctx context.Context, req *InterviewFeedbackAndScoreReq) (*InterviewFeedbackAndScoreResp, error) {
-	r.log.InfoWithID(ctx, "[Repository: InterviewFeedbackAndScore] Called")
-
 	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathFeedbackAndScoreAgent
 
 	config := http.HTTPClientConfig{
@@ -164,8 +156,6 @@ func (r *evaluationScoresRepository) InterviewFeedbackAndScore(ctx context.Conte
 }
 
 func (r *evaluationScoresRepository) IsLastUserStateTurnScored(ctx context.Context, dbReq *db.IsLastUserStateTurnScoredParams) (bool, error) {
-	r.log.InfoWithID(ctx, "[Repository: IsLastUserStateTurnScored] Called")
-
 	resp, err := r.db.IsLastUserStateTurnScored(ctx, *dbReq)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -180,8 +170,6 @@ func (r *evaluationScoresRepository) IsLastUserStateTurnScored(ctx context.Conte
 }
 
 func (r *evaluationScoresRepository) GetEvaluationSummaryJsonBySessionAndState(ctx context.Context, dbReq *db.GetEvaluationSummaryJsonBySessionAndStateParams) (json.RawMessage, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetEvaluationSummaryJsonBySessionAndState] Called")
-
 	resp, err := r.db.GetEvaluationSummaryJsonBySessionAndState(ctx, *dbReq)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -196,8 +184,6 @@ func (r *evaluationScoresRepository) GetEvaluationSummaryJsonBySessionAndState(c
 }
 
 func (r *evaluationScoresRepository) CalculateEachCriteriaCommentBySessionAndState(ctx context.Context, req *PreProcessedCriteriaReq) (*PostProcessedCriteriaResp, error) {
-	r.log.InfoWithID(ctx, "[Repository: CalculateEachCriteriaCommentBySessionAndState] Called")
-
 	endpoint := r.cfg.InterviewSessionConfig.InterviewAgentURL + constants.PathCalculateEachCriteriaCommentBySessionAgent
 
 	config := http.HTTPClientConfig{
@@ -216,8 +202,6 @@ func (r *evaluationScoresRepository) CalculateEachCriteriaCommentBySessionAndSta
 }
 
 func (r *evaluationScoresRepository) CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState(ctx context.Context, req *CreatePhraseEvaluationAndCriteriaScoreWithIsScoredStateReqTx) error {
-	r.log.InfoWithID(ctx, "[Repository: CreatePhraseEvaluationAndCriteriaScoreWithIsScoredState] Called")
-
 	if err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		dbCreatePhraseEvaluationParams := db.CreatePhraseEvaluationParams{
@@ -273,15 +257,11 @@ func (r *evaluationScoresRepository) CreatePhraseEvaluationAndCriteriaScoreWithI
 }
 
 func (r *evaluationScoresRepository) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]db.GetPhraseEvaluationsWithCriteriaBySessionIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
-
 	resp, err := r.db.GetPhraseEvaluationsWithCriteriaBySessionID(ctx, sessionID)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Error getting phrase evaluations with criteria by session ID", err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
-
-	r.log.InfoWithID(ctx, "[Repository: GetPhraseEvaluationsWithCriteriaBySessionID] Response: ", resp)
 
 	return resp, nil
 }

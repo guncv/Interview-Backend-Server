@@ -31,7 +31,8 @@ type InterviewSessionRepository interface {
 	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
-	UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error
+	UpdateSessionStatus(ctx context.Context, req *db.UpdateSessionStatusParams) error
+	ListFinalizingInterviewSessionByUserID(ctx context.Context, req uuid.UUID) ([]db.ListFinalizingInterviewSessionByUserIDRow, error)
 }
 
 type interviewSessionRepository struct {
@@ -53,7 +54,6 @@ func NewInterviewSessionRepository(
 }
 
 func (r *interviewSessionRepository) CheckInterviewSessionExists(ctx context.Context, sessionID uuid.UUID) (bool, error) {
-	r.log.InfoWithID(ctx, "[Repository: CheckInterviewSessionExists] Called")
 
 	exists, err := r.db.CheckInterviewSessionExists(ctx, sessionID)
 	if err != nil {
@@ -65,7 +65,6 @@ func (r *interviewSessionRepository) CheckInterviewSessionExists(ctx context.Con
 }
 
 func (r *interviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Context, req *db.UpdateInterviewSessionStatusParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateInterviewSessionStatus] Called")
 
 	rowAffected, err := r.db.UpdateInterviewSessionStatus(ctx, *req)
 	if err != nil {
@@ -83,7 +82,6 @@ func (r *interviewSessionRepository) UpdateInterviewSessionStatus(ctx context.Co
 }
 
 func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, req *db.EndInterviewSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: EndInterviewSession] Called")
 
 	rowAffected, err := r.db.EndInterviewSession(ctx, *req)
 	if err != nil {
@@ -101,7 +99,6 @@ func (r *interviewSessionRepository) EndInterviewSession(ctx context.Context, re
 }
 
 func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx context.Context, req *CreateInterviewSessionTxReq) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithNewResume] Called")
 
 	createResumeParams := db.CreateResumeParams{
 		ID:         req.ResumeID,
@@ -149,7 +146,6 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 }
 
 func (r *interviewSessionRepository) CreateInterviewSession(ctx context.Context, req *db.CreateInterviewSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Called")
 
 	if err := r.db.CreateInterviewSession(ctx, *req); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateInterviewSessionWithExistingResume] Error creating interview session with existing resume", err)
@@ -160,7 +156,6 @@ func (r *interviewSessionRepository) CreateInterviewSession(ctx context.Context,
 }
 
 func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context.Context, req *db.UpdateStartedAtInterviewSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateStartedAtInterviewSession] Called")
 
 	rowAffected, err := r.db.UpdateStartedAtInterviewSession(ctx, db.UpdateStartedAtInterviewSessionParams{
 		ID:        req.ID,
@@ -181,7 +176,6 @@ func (r *interviewSessionRepository) UpdateStartedAtInterviewSession(ctx context
 }
 
 func (r *interviewSessionRepository) GetSessionState(ctx context.Context, sessionID uuid.UUID) (*db.GetSessionStateRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetStartedAndIsStartedConversationSession] Called")
 
 	resp, err := r.db.GetSessionState(ctx, sessionID)
 	if err != nil {
@@ -197,7 +191,6 @@ func (r *interviewSessionRepository) GetSessionState(ctx context.Context, sessio
 }
 
 func (r *interviewSessionRepository) UpdateIsStartedConversationSession(ctx context.Context, req *db.UpdateIsStartedConversationSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateIsStartedConversationSession] Called")
 
 	rowAffected, err := r.db.UpdateIsStartedConversationSession(ctx, *req)
 	if err != nil {
@@ -215,7 +208,6 @@ func (r *interviewSessionRepository) UpdateIsStartedConversationSession(ctx cont
 }
 
 func (r *interviewSessionRepository) ListInterviewSessionsByUserIDFirstPage(ctx context.Context, req *db.ListInterviewSessionsByUserIDFirstPageParams) ([]db.ListInterviewSessionsByUserIDFirstPageRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserIDFirstPage] Called: ", req)
 
 	resp, err := r.db.ListInterviewSessionsByUserIDFirstPage(ctx, *req)
 	if err != nil {
@@ -227,7 +219,6 @@ func (r *interviewSessionRepository) ListInterviewSessionsByUserIDFirstPage(ctx 
 }
 
 func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithCursorParams) ([]db.ListInterviewSessionsByUserIDWithCursorRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithCursor] Called: ", req)
 
 	resp, err := r.db.ListInterviewSessionsByUserIDWithCursor(ctx, *req)
 	if err != nil {
@@ -239,7 +230,6 @@ func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithCursor(ctx
 }
 
 func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *db.ListInterviewSessionsByUserIDWithJumpPaginationParams) ([]db.ListInterviewSessionsByUserIDWithJumpPaginationRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: ListInterviewSessionsByUserIDWithJumpPagination] Called: ", req)
 
 	resp, err := r.db.ListInterviewSessionsByUserIDWithJumpPagination(ctx, *req)
 	if err != nil {
@@ -251,7 +241,6 @@ func (r *interviewSessionRepository) ListInterviewSessionsByUserIDWithJumpPagina
 }
 
 func (r *interviewSessionRepository) CountInterviewSessionsByUserID(ctx context.Context, req *db.CountInterviewSessionsByUserIDParams) (int64, error) {
-	r.log.InfoWithID(ctx, "[Repository: CountInterviewSessionsByUserID] Called")
 
 	count, err := r.db.CountInterviewSessionsByUserID(ctx, *req)
 	if err != nil {
@@ -263,7 +252,6 @@ func (r *interviewSessionRepository) CountInterviewSessionsByUserID(ctx context.
 }
 
 func (r *interviewSessionRepository) DeleteUserInterviewSessionByID(ctx context.Context, req *db.DeleteUserInterviewSessionByIDParams) error {
-	r.log.InfoWithID(ctx, "[Repository: DeleteUserInterviewSessionByID] Called")
 
 	rowAffected, err := r.db.DeleteUserInterviewSessionByID(ctx, *req)
 	if err != nil {
@@ -281,7 +269,6 @@ func (r *interviewSessionRepository) DeleteUserInterviewSessionByID(ctx context.
 }
 
 func (r *interviewSessionRepository) GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionInformationByID] Called")
 
 	resp, err := r.db.GetInterviewSessionInformationByID(ctx, sessionID)
 	if err != nil {
@@ -296,7 +283,6 @@ func (r *interviewSessionRepository) GetInterviewSessionInformationByID(ctx cont
 }
 
 func (r *interviewSessionRepository) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateFinalizeStatusInterviewSessionByID] Called")
 
 	rowAffected, err := r.db.UpdateFinalizeStatusInterviewSessionByID(ctx, *req)
 	if err != nil {
@@ -313,7 +299,6 @@ func (r *interviewSessionRepository) UpdateFinalizeStatusInterviewSessionByID(ct
 }
 
 func (r *interviewSessionRepository) GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetInterviewSessionStatusByID] Called")
 
 	resp, err := r.db.GetInterviewSessionStatusByID(ctx, sessionID)
 	if err != nil {
@@ -327,20 +312,30 @@ func (r *interviewSessionRepository) GetInterviewSessionStatusByID(ctx context.C
 	return resp, nil
 }
 
-func (r *interviewSessionRepository) UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateIsTimedOutSession] Called")
+func (r *interviewSessionRepository) UpdateSessionStatus(ctx context.Context, req *db.UpdateSessionStatusParams) error {
 
-	rowAffected, err := r.db.UpdateIsTimedOutSession(ctx, *req)
+	rowAffected, err := r.db.UpdateSessionStatus(ctx, *req)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateSessionStatus] Error updating interview session is timed out", err)
 		return app_error.HandleDatabaseError(err)
 	}
 
 	if rowAffected == 0 {
 		err := errors.New("interview session not found")
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Interview session not found", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateSessionStatus] Interview session not found", err)
 		return app_error.New(err, app_error.ErrCodeSessionNotFound)
 	}
 
 	return nil
+}
+
+func (r *interviewSessionRepository) ListFinalizingInterviewSessionByUserID(ctx context.Context, req uuid.UUID) ([]db.ListFinalizingInterviewSessionByUserIDRow, error) {
+
+	resp, err := r.db.ListFinalizingInterviewSessionByUserID(ctx, req)
+	if err != nil {
+		r.log.ErrorWithID(ctx, "[Repository: ListFinalizingInterviewSessionByUserID] Error listing finalize interview session by user ID", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	return resp, nil
 }

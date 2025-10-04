@@ -28,6 +28,7 @@ type EvaluationService interface {
 	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error)
 	FinalizeSessionPhraseEvaluation(ctx context.Context, sessionID string) error
 	FinalizeSessionFailed(ctx context.Context, sessionID string)
+	UpdateFinalizeStatusSessionEvaluation(ctx context.Context, sessionID string, finalizeStatus db.FinalizeStatusEnum) error
 }
 
 type evaluationService struct {
@@ -64,7 +65,6 @@ func NewEvaluationService(
 }
 
 func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rubricName string) (*entities.GetRubricWithCriteriaByNameResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetRubricWithCriteriaByName] Called")
 
 	var resp entities.GetRubricWithCriteriaByNameResp
 	redisKey := fmt.Sprintf("%s:%s", constants.RedisPrefixEvaluationRubric, rubricName)
@@ -126,7 +126,6 @@ func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rub
 		return &resp, nil
 	}
 
-	s.log.InfoWithID(ctx, "[Service: GetRubricWithCriteriaByName] Cache hit")
 	if err := json.Unmarshal([]byte(redisValue), &resp); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: GetRubricWithCriteriaByName] Failed to unmarshal Redis value", err)
 		return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
@@ -136,7 +135,6 @@ func (s *evaluationService) GetRubricWithCriteriaByName(ctx context.Context, rub
 }
 
 func (s *evaluationService) ListAllRubricsAndCriteria(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error) {
-	s.log.InfoWithID(ctx, "[Service: ListAllRubricsAndCriteria] Called")
 
 	var resp entities.ListAllRubricsAndCriteriaResp
 	redisKey := constants.RedisPrefixAllRubricsAndCriteria
@@ -168,7 +166,6 @@ func (s *evaluationService) ListAllRubricsAndCriteria(ctx context.Context) (*ent
 }
 
 func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context) (*entities.ListAllRubricsAndCriteriaResp, error) {
-	s.log.InfoWithID(ctx, "[Service: fetchAllRubricsAndCriteriaFromDB] Fetching all rubrics and criteria from DB")
 
 	redisKey := constants.RedisPrefixAllRubricsAndCriteria
 
@@ -179,7 +176,6 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 	}
 
 	if len(dbRows) == 0 {
-		s.log.InfoWithID(ctx, "[Service: fetchAllRubricsAndCriteriaFromDB] No rubrics found")
 
 		resp := entities.ListAllRubricsAndCriteriaResp{
 			Rubrics: []entities.RubricAndCriteriaRow{},
@@ -242,7 +238,6 @@ func (s *evaluationService) fetchAllRubricsAndCriteriaFromDB(ctx context.Context
 }
 
 func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entities.CalculateTurnScoreReq) error {
-	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Called")
 
 	rubric, err := s.GetRubricWithCriteriaByName(ctx, req.CurrentState)
 	if err != nil {
@@ -335,7 +330,6 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 		return err
 	}
 
-	s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Current state ", req.CurrentState)
 	redisKey := fmt.Sprintf("%s%s:%s", constants.RedisPrefixInterviewLastTurnID, req.SessionID, req.CurrentState)
 	const maxRedisRetries = 3
 	const retryDelay = 300 * time.Millisecond
@@ -362,7 +356,6 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 	}
 
 	if lastTurnID == req.UserTurnID {
-		s.log.InfoWithID(ctx, "[Service: CalculateTurnScore] Last turn ID is the same as user turn ID", req.UserTurnID, " ", lastTurnID)
 		req := entities.CalculateEvaluationInOldStateReq{
 			SessionID:        req.SessionID,
 			CurrentState:     req.CurrentState,
@@ -382,7 +375,6 @@ func (s *evaluationService) CalculateTurnScore(ctx context.Context, req *entitie
 }
 
 func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, req *entities.CalculateEvaluationInOldStateReq) error {
-	s.log.InfoWithID(ctx, "[Service: CalculateEvaluationInOldState] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -483,19 +475,12 @@ func (s *evaluationService) CalculateEvaluationInOldState(ctx context.Context, r
 }
 
 func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context, sessionIDReq string) error {
-	s.log.InfoWithID(ctx, "[Service: FinalizeSessionEvaluation] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Invalid session ID", err)
 		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalizing); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
-		s.FinalizeSessionFailed(ctx, sessionIDReq)
-		return err
 	}
 
 	states, err := s.interviewStatesRepo.GetUnprocessedInterviewStatesBySessionID(ctx, sessionID)
@@ -506,7 +491,6 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 	}
 
 	for _, state := range states {
-		s.log.InfoWithID(ctx, fmt.Sprintf("[Finalize] Triggering late evaluation for state %s", state.PhraseType))
 
 		err := s.CalculateEvaluationInOldState(ctx, &entities.CalculateEvaluationInOldStateReq{
 			SessionID:        sessionIDReq,
@@ -520,7 +504,7 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 		}
 	}
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
+	if err := s.UpdateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFinalized); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionEvaluation] Error updating finalize status interview session by ID", err)
 		s.FinalizeSessionFailed(ctx, sessionIDReq)
 		return err
@@ -530,20 +514,18 @@ func (s *evaluationService) FinalizeSessionPhraseEvaluation(ctx context.Context,
 }
 
 func (s *evaluationService) FinalizeSessionFailed(ctx context.Context, sessionIDReq string) {
-	s.log.InfoWithID(ctx, "[Service: FinalizeSessionFailed] Called")
 
-	if err := s.updateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
+	if err := s.UpdateFinalizeStatusSessionEvaluation(ctx, sessionIDReq, db.FinalizeStatusEnumFailed); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: FinalizeSessionFailed] Error updating finalize status interview session by ID", err)
 		return
 	}
 }
 
-func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
-	s.log.InfoWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Called")
+func (s *evaluationService) UpdateFinalizeStatusSessionEvaluation(ctx context.Context, sessionIDReq string, finalizeStatus db.FinalizeStatusEnum) error {
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusSessionEvaluation] Invalid session ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
@@ -556,7 +538,7 @@ func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Co
 	}
 
 	if err := s.interviewSessionsRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: updateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusSessionEvaluation] Error updating finalize status interview session by ID", err)
 		return err
 	}
 
@@ -564,7 +546,6 @@ func (s *evaluationService) updateFinalizeStatusSessionEvaluation(ctx context.Co
 }
 
 func (s *evaluationService) GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionIdReq string) (*entities.GetPhraseEvaluationsWithCriteriaResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
 
 	sessionID, err := uuid.Parse(sessionIdReq)
 	if err != nil {

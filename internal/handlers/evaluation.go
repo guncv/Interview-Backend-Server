@@ -46,9 +46,6 @@ func NewEvaluationHandler(
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /evaluation/rubrics [get]
 func (h *EvaluationHandler) ListAllRubricsAndCriteria(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListAllRubricsAndCriteria] Called")
-
 	ctx, err := h.authContext.ExtractAuthContext(c)
 	if err != nil {
 		h.log.ErrorWithID(ctx, "[Handler: ListAllRubricsAndCriteria] Error extracting auth context", err)
@@ -81,7 +78,6 @@ func (h *EvaluationHandler) ListAllRubricsAndCriteria(c *gin.Context) {
 // @Router /evaluation/phrase-evaluations/{session_id} [get]
 func (h *EvaluationHandler) GetPhraseEvaluationsWithCriteriaBySessionID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetPhraseEvaluationsWithCriteriaBySessionID] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {
