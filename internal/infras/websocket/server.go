@@ -44,7 +44,7 @@ type Client struct {
 	currentState             string
 	currentStateID           string
 	disconnecting            bool
-	biasPrompt               string
+	isCompleted              bool
 }
 
 type WebSocketServerInterface interface {
@@ -163,7 +163,7 @@ func (s *webSocketServer) HandleConnection(
 		isStartedConversation:    false,
 		currentState:             "",
 		currentStateID:           "",
-		biasPrompt:               "",
+		isCompleted:              false,
 	}
 
 	// client.conn.SetPongHandler(func(string) error {
@@ -204,7 +204,15 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
-	client.biasPrompt = resp.BiasPrompt
+	if resp.IsCompleted {
+		s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Interview session completed")
+		s.writeJSON(ctx, client, map[string]any{
+			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyCompleted,
+		})
+		s.Disconnect(ctx, client, constants.StatusCompleted)
+		return nil
+	}
+
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
 
@@ -370,6 +378,10 @@ func (s *webSocketServer) readLoop(ctx context.Context, c *Client) {
 
 			case constants.WebSocketMessageTypeEndInterviewSession:
 				s.logic.endInterviewSession(ctx, c, payload)
+				continue
+
+			case constants.WebSocketMessageTypeUserCompleteSession:
+				s.logic.sendMessageTypeUserCompleteSession(ctx, c, payload)
 				continue
 
 			case constants.WebSocketMessageTypeClose:

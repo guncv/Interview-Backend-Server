@@ -71,7 +71,7 @@ func (s *WebSocketServerLogic) getInterviewSessionState(ctx context.Context, cli
 func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.Context, client *Client) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Called")
 
-	openingMsg := MsgStartSessionConversation{
+	openingMsg := MsgInterviewTypeAndSessionID{
 		Type:      constants.WebSocketMessageTypeStartSessionConversation,
 		SessionID: client.SessionID,
 	}
@@ -259,26 +259,51 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 func (s *WebSocketServerLogic) endInterviewSession(ctx context.Context, client *Client, payload []byte) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: endInterviewSession] Called")
 
-	var req MsgEndInterviewSession
+	var req MsgInterviewTypeAndSessionID
 	if json.Unmarshal(payload, &req) != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Invalid end interview session message")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
 
+	s.updateInterviewSession(ctx, client, req, constants.StatusCancelled)
+}
+
+func (s *WebSocketServerLogic) sendMessageTypeUserCompleteSession(ctx context.Context, client *Client, payload []byte) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserCompleteSession] Called")
+
+	if !client.isCompleted {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserCompleteSession] Interview session is not completed")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	var req MsgInterviewTypeAndSessionID
+	if json.Unmarshal(payload, &req) != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserCompleteSession] Invalid user complete session message")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	s.updateInterviewSession(ctx, client, req, constants.StatusCompleted)
+}
+
+func (s *WebSocketServerLogic) updateInterviewSession(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID, status string) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: updateInterviewSession] Called")
+
 	if client.SessionID != req.SessionID {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Security violation: Session ID mismatch")
+		s.log.ErrorWithID(ctx, "[WebSocketServer: updateInterviewSession] Security violation: Session ID mismatch")
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
 		return
 	}
 
 	endInterviewSessionReq := &entities.EndInterviewSessionReq{
 		SessionId: req.SessionID,
-		Status:    constants.StatusCancelled,
+		Status:    status,
 	}
 
 	if err := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewSessionReq); err != nil {
-		s.log.ErrorWithID(ctx, "[WebSocketServer: endInterviewSession] Error ending interview session", err)
+		s.log.ErrorWithID(ctx, "[WebSocketServer: updateInterviewSession] Error ending interview session", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return
 	}
@@ -516,7 +541,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
 	ctx context.Context,
 	client *Client,
-	req MsgInterviewerAudioChunk,
+	req MsgInterviewTypeAndSessionID,
 	audioData []byte,
 ) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Called")
@@ -557,7 +582,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
 	})
 }
 
-func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Context, client *Client, req MsgInterviewTurnStart) {
+func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnStart] Called")
 
 	if client.SessionID != req.SessionID {
@@ -572,7 +597,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Con
 	})
 }
 
-func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Context, client *Client, req MsgInterviewTurnEnd) {
+func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
 	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnEnd] Called")
 
 	if client.SessionID != req.SessionID {
@@ -583,6 +608,29 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Conte
 
 	s.writeJSON(ctx, client, map[string]interface{}{
 		"type":       constants.WebSocketMessageTypeInterviewTurnEnd,
+		"session_id": req.SessionID,
+	})
+}
+
+func (s *WebSocketServerLogic) sendMessageTypeInterviewCompleted(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
+	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Called")
+
+	if client.SessionID != req.SessionID {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Security violation: Session ID mismatch")
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidSessionID)
+		return
+	}
+
+	if err := s.interviewSessionService.UpdateIsCompletedSession(context.Background(), req.SessionID); err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Error updating interview session is completed", err)
+		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
+		return
+	}
+
+	client.isCompleted = true
+
+	s.writeJSON(ctx, client, map[string]interface{}{
+		"type":       constants.WebSocketMessageTypeInterviewCompleted,
 		"session_id": req.SessionID,
 	})
 }

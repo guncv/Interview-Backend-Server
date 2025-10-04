@@ -18,7 +18,7 @@ type WebSocketClient interface {
 	Start(ctx context.Context, url string) error
 	Close(ctx context.Context) error
 
-	StartSessionConversation(ctx context.Context, msg MsgStartSessionConversation) error
+	StartSessionConversation(ctx context.Context, msg MsgInterviewTypeAndSessionID) error
 	SegmentStart(ctx context.Context, msg MsgSegmentStart) error
 	SendUserAudio(ctx context.Context, msg MsgUserAudioChunk, audioData []byte) error
 	SegmentEnd(ctx context.Context, msg MsgSegmentEnd) error
@@ -135,7 +135,7 @@ func (c *webSocketClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *webSocketClient) StartSessionConversation(ctx context.Context, msg MsgStartSessionConversation) error {
+func (c *webSocketClient) StartSessionConversation(ctx context.Context, msg MsgInterviewTypeAndSessionID) error {
 	c.log.InfoWithID(ctx, "[WebSocketClient: StartSessionConversation] Called:", msg)
 
 	if c.sessionID != msg.SessionID {
@@ -374,7 +374,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 			switch base.Type {
 
 			case constants.WebSocketMessageTypeConnectionEstablished:
-				var msg MsgConnectionEstablished
+				var msg MsgInterviewTypeAndSessionID
 
 				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)
@@ -402,7 +402,7 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				c.cb.OnInterviewerResp(ctx, msg)
 
 			case constants.WebSocketMessageTypeInterviewTurnStart:
-				var msg MsgInterviewTurnStart
+				var msg MsgInterviewTypeAndSessionID
 
 				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)
@@ -411,13 +411,21 @@ func (c *webSocketClient) readLoop(ctx context.Context) {
 				c.cb.OnInterviewTurnStart(ctx, msg)
 
 			case constants.WebSocketMessageTypeInterviewTurnEnd:
-				var msg MsgInterviewTurnEnd
+				var msg MsgInterviewTypeAndSessionID
 
 				if json.Unmarshal(data, &msg) != nil {
 					c.disconnect(ctx)
 					return
 				}
 				c.cb.OnInterviewTurnEnd(ctx, msg)
+
+			case constants.WebSocketMessageTypeInterviewCompleted:
+				var msg MsgInterviewTypeAndSessionID
+				if json.Unmarshal(data, &msg) != nil {
+					c.disconnect(ctx)
+					return
+				}
+				c.cb.OnInterviewCompleted(ctx, msg)
 			}
 
 		case websocket.BinaryMessage:
