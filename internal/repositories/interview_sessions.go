@@ -31,8 +31,7 @@ type InterviewSessionRepository interface {
 	GetInterviewSessionInformationByID(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewSessionInformationByIDRow, error)
 	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *db.UpdateFinalizeStatusInterviewSessionByIDParams) error
 	GetInterviewSessionStatusByID(ctx context.Context, sessionID uuid.UUID) (string, error)
-	UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error
-	UpdateIsCompletedSession(ctx context.Context, req *db.UpdateIsCompletedSessionParams) error
+	UpdateSessionStatus(ctx context.Context, req *db.UpdateSessionStatusParams) error
 }
 
 type interviewSessionRepository struct {
@@ -328,36 +327,18 @@ func (r *interviewSessionRepository) GetInterviewSessionStatusByID(ctx context.C
 	return resp, nil
 }
 
-func (r *interviewSessionRepository) UpdateIsTimedOutSession(ctx context.Context, req *db.UpdateIsTimedOutSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateIsTimedOutSession] Called")
+func (r *interviewSessionRepository) UpdateSessionStatus(ctx context.Context, req *db.UpdateSessionStatusParams) error {
+	r.log.InfoWithID(ctx, "[Repository: UpdateSessionStatus] Called")
 
-	rowAffected, err := r.db.UpdateIsTimedOutSession(ctx, *req)
+	rowAffected, err := r.db.UpdateSessionStatus(ctx, *req)
 	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateSessionStatus] Error updating interview session is timed out", err)
 		return app_error.HandleDatabaseError(err)
 	}
 
 	if rowAffected == 0 {
 		err := errors.New("interview session not found")
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsTimedOutSession] Interview session not found", err)
-		return app_error.New(err, app_error.ErrCodeSessionNotFound)
-	}
-
-	return nil
-}
-
-func (r *interviewSessionRepository) UpdateIsCompletedSession(ctx context.Context, req *db.UpdateIsCompletedSessionParams) error {
-	r.log.InfoWithID(ctx, "[Repository: UpdateIsCompletedSession] Called")
-
-	rowAffected, err := r.db.UpdateIsCompletedSession(ctx, *req)
-	if err != nil {
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsCompletedSession] Error updating interview session is completed", err)
-		return app_error.HandleDatabaseError(err)
-	}
-
-	if rowAffected == 0 {
-		err := errors.New("interview session not found")
-		r.log.ErrorWithID(ctx, "[Repository: UpdateIsCompletedSession] Interview session not found", err)
+		r.log.ErrorWithID(ctx, "[Repository: UpdateSessionStatus] Interview session not found", err)
 		return app_error.New(err, app_error.ErrCodeSessionNotFound)
 	}
 

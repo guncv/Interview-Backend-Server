@@ -45,6 +45,7 @@ type Client struct {
 	currentStateID           string
 	disconnecting            bool
 	isCompleted              bool
+	isFinalized              bool
 }
 
 type WebSocketServerInterface interface {
@@ -164,6 +165,8 @@ func (s *webSocketServer) HandleConnection(
 		currentState:             "",
 		currentStateID:           "",
 		isCompleted:              false,
+		isFinalized:              false,
+		disconnecting:            false,
 	}
 
 	// client.conn.SetPongHandler(func(string) error {
@@ -194,17 +197,17 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
-	if resp.IsTimedOut {
+	if resp.Status == constants.StatusTimedOut {
 		s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Interview session timed out")
 		s.writeJSON(ctx, client, map[string]any{
 			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyTimedOut,
 		})
 
-		s.Disconnect(ctx, client, constants.StatusAlreadyTimedOut)
+		s.Disconnect(ctx, client, constants.StatusTimedOut)
 		return nil
 	}
 
-	if resp.IsCompleted {
+	if resp.Status == constants.StatusCompleted {
 		s.log.InfoWithID(ctx, "[WebSocketServer: HandleConnection] Interview session completed")
 		s.writeJSON(ctx, client, map[string]any{
 			"type": constants.WebSocketMessageTypeInterviewSessionAlreadyCompleted,
@@ -215,6 +218,7 @@ func (s *webSocketServer) HandleConnection(
 
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
+	client.isFinalized = resp.IsFinalized
 
 	if err := s.initClient(ctx, client, resp.Position, resp.BiasPrompt); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client", err)
@@ -445,7 +449,7 @@ func (s *webSocketServer) inactivityMonitor(ctx context.Context, client *Client)
 			if timeSinceLastActivity >= constants.WebSocketInactivityTimeoutDuration {
 				s.log.InfoWithID(ctx, "[WebSocketServer: inactivityMonitor] Session timed out due to inactivity")
 
-				_ = s.interviewSessionService.UpdateIsTimedOutSession(ctx, client.SessionID)
+				_ = s.interviewSessionService.UpdateSessionStatus(ctx, client.SessionID, constants.StatusTimedOut)
 
 				s.writeJSON(ctx, client, map[string]any{
 					"type":    constants.WebSocketMessageTypeInterviewSessionTimedOut,
@@ -504,25 +508,25 @@ func (s *webSocketServer) Disconnect(ctx context.Context, client *Client, status
 	client.connected = false
 	client.mu.Unlock()
 
-	sessionStatus := constants.StatusCancelled
-	if len(status) > 0 && status[0] != "" {
-		sessionStatus = status[0]
-	}
+	if !client.isFinalized {
+		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task")
 
-	endInterviewReq := &entities.EndInterviewSessionReq{
-		SessionId: client.SessionID,
-		Status:    sessionStatus,
-	}
-
-	if sessionStatus != constants.StatusAlreadyTimedOut {
-		s.log.InfoWithID(ctx, "[WebSocketServer: disconnect] Publishing end interview session task", endInterviewReq)
-
-		endInterviewPayload := &entities.EndInterviewSessionPayload{
-			SessionID: endInterviewReq.SessionId,
-			Status:    endInterviewReq.Status,
+		sessionStatus := constants.StatusCancelled
+		if len(status) > 0 && status[0] != "" {
+			sessionStatus = status[0]
 		}
 
-		if err := s.logic.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload); err != nil {
+		endInterviewPayload := &entities.EndInterviewSessionPayload{
+			SessionID: client.SessionID,
+			Status:    sessionStatus,
+		}
+
+		endInterviewReq := &entities.EndInterviewSessionReq{
+			SessionId: client.SessionID,
+			Status:    sessionStatus,
+		}
+
+		if err := s.publisher.PublishTaskEndInterviewSession(context.Background(), endInterviewPayload); err != nil {
 			s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error publishing end interview session task", err)
 			if fallbackErr := s.interviewSessionService.EndInterviewSession(context.Background(), endInterviewReq); fallbackErr != nil {
 				s.log.ErrorWithID(ctx, "[WebSocketServer: disconnect] Error finalizing session phrase evaluation (fallback)", fallbackErr)

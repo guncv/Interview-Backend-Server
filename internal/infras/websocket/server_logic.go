@@ -308,6 +308,7 @@ func (s *WebSocketServerLogic) updateInterviewSession(ctx context.Context, clien
 		return
 	}
 
+	client.isFinalized = true
 	s.writeJSON(ctx, client, map[string]interface{}{
 		"type":       constants.WebSocketMessageTypeSummarizeInterviewSession,
 		"session_id": req.SessionID,
@@ -621,7 +622,7 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewCompleted(ctx context.Con
 		return
 	}
 
-	if err := s.interviewSessionService.UpdateIsCompletedSession(context.Background(), req.SessionID); err != nil {
+	if err := s.interviewSessionService.UpdateSessionStatus(context.Background(), req.SessionID, constants.StatusCompleted); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Error updating interview session is completed", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		return

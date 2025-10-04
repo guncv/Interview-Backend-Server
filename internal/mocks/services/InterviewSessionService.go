@@ -1279,17 +1279,17 @@ func (_c *MockInterviewSessionService_UpdateInterviewSessionStatus_Call) RunAndR
 	return _c
 }
 
-// UpdateIsCompletedSession provides a mock function with given fields: ctx, sessionIDReq
-func (_m *MockInterviewSessionService) UpdateIsCompletedSession(ctx context.Context, sessionIDReq string) error {
-	ret := _m.Called(ctx, sessionIDReq)
+// UpdateSessionStatus provides a mock function with given fields: ctx, sessionIDReq, status
+func (_m *MockInterviewSessionService) UpdateSessionStatus(ctx context.Context, sessionIDReq string, status string) error {
+	ret := _m.Called(ctx, sessionIDReq, status)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateIsCompletedSession")
+		panic("no return value specified for UpdateSessionStatus")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, sessionIDReq)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, sessionIDReq, status)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1297,78 +1297,32 @@ func (_m *MockInterviewSessionService) UpdateIsCompletedSession(ctx context.Cont
 	return r0
 }
 
-// MockInterviewSessionService_UpdateIsCompletedSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsCompletedSession'
-type MockInterviewSessionService_UpdateIsCompletedSession_Call struct {
+// MockInterviewSessionService_UpdateSessionStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateSessionStatus'
+type MockInterviewSessionService_UpdateSessionStatus_Call struct {
 	*mock.Call
 }
 
-// UpdateIsCompletedSession is a helper method to define mock.On call
+// UpdateSessionStatus is a helper method to define mock.On call
 //   - ctx context.Context
 //   - sessionIDReq string
-func (_e *MockInterviewSessionService_Expecter) UpdateIsCompletedSession(ctx interface{}, sessionIDReq interface{}) *MockInterviewSessionService_UpdateIsCompletedSession_Call {
-	return &MockInterviewSessionService_UpdateIsCompletedSession_Call{Call: _e.mock.On("UpdateIsCompletedSession", ctx, sessionIDReq)}
+//   - status string
+func (_e *MockInterviewSessionService_Expecter) UpdateSessionStatus(ctx interface{}, sessionIDReq interface{}, status interface{}) *MockInterviewSessionService_UpdateSessionStatus_Call {
+	return &MockInterviewSessionService_UpdateSessionStatus_Call{Call: _e.mock.On("UpdateSessionStatus", ctx, sessionIDReq, status)}
 }
 
-func (_c *MockInterviewSessionService_UpdateIsCompletedSession_Call) Run(run func(ctx context.Context, sessionIDReq string)) *MockInterviewSessionService_UpdateIsCompletedSession_Call {
+func (_c *MockInterviewSessionService_UpdateSessionStatus_Call) Run(run func(ctx context.Context, sessionIDReq string, status string)) *MockInterviewSessionService_UpdateSessionStatus_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
 
-func (_c *MockInterviewSessionService_UpdateIsCompletedSession_Call) Return(_a0 error) *MockInterviewSessionService_UpdateIsCompletedSession_Call {
+func (_c *MockInterviewSessionService_UpdateSessionStatus_Call) Return(_a0 error) *MockInterviewSessionService_UpdateSessionStatus_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockInterviewSessionService_UpdateIsCompletedSession_Call) RunAndReturn(run func(context.Context, string) error) *MockInterviewSessionService_UpdateIsCompletedSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// UpdateIsTimedOutSession provides a mock function with given fields: ctx, sessionIDReq
-func (_m *MockInterviewSessionService) UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error {
-	ret := _m.Called(ctx, sessionIDReq)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateIsTimedOutSession")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, sessionIDReq)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockInterviewSessionService_UpdateIsTimedOutSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIsTimedOutSession'
-type MockInterviewSessionService_UpdateIsTimedOutSession_Call struct {
-	*mock.Call
-}
-
-// UpdateIsTimedOutSession is a helper method to define mock.On call
-//   - ctx context.Context
-//   - sessionIDReq string
-func (_e *MockInterviewSessionService_Expecter) UpdateIsTimedOutSession(ctx interface{}, sessionIDReq interface{}) *MockInterviewSessionService_UpdateIsTimedOutSession_Call {
-	return &MockInterviewSessionService_UpdateIsTimedOutSession_Call{Call: _e.mock.On("UpdateIsTimedOutSession", ctx, sessionIDReq)}
-}
-
-func (_c *MockInterviewSessionService_UpdateIsTimedOutSession_Call) Run(run func(ctx context.Context, sessionIDReq string)) *MockInterviewSessionService_UpdateIsTimedOutSession_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockInterviewSessionService_UpdateIsTimedOutSession_Call) Return(_a0 error) *MockInterviewSessionService_UpdateIsTimedOutSession_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockInterviewSessionService_UpdateIsTimedOutSession_Call) RunAndReturn(run func(context.Context, string) error) *MockInterviewSessionService_UpdateIsTimedOutSession_Call {
+func (_c *MockInterviewSessionService_UpdateSessionStatus_Call) RunAndReturn(run func(context.Context, string, string) error) *MockInterviewSessionService_UpdateSessionStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

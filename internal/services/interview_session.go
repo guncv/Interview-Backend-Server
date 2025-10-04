@@ -52,8 +52,7 @@ type InterviewSessionService interface {
 	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 	GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error)
-	UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error
-	UpdateIsCompletedSession(ctx context.Context, sessionIDReq string) error
+	UpdateSessionStatus(ctx context.Context, sessionIDReq string, status string) error
 }
 
 type interviewSessionService struct {
@@ -789,6 +788,13 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 		currentStateID = ""
 	}
 
+	var isFinalized bool
+	if dbResp.FinalizeStatus.Valid {
+		isFinalized = dbResp.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalized
+	} else {
+		isFinalized = false
+	}
+
 	if dbResp.StartedAt.Valid {
 		return &entities.GetInterviewSessionStateResp{
 			StartedAt:             utils.FormatToUTCString(dbResp.StartedAt.Time),
@@ -796,9 +802,9 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			Position:              dbResp.Position,
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
-			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			Status:                dbResp.Status,
 			BiasPrompt:            dbResp.BiasPrompt,
-			IsCompleted:           dbResp.IsCompleted.Bool,
+			IsFinalized:           isFinalized,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -819,9 +825,9 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			Position:              dbResp.Position,
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
-			IsTimedOut:            dbResp.IsTimedOut.Bool,
+			Status:                dbResp.Status,
 			BiasPrompt:            dbResp.BiasPrompt,
-			IsCompleted:           dbResp.IsCompleted.Bool,
+			IsFinalized:           isFinalized,
 		}, nil
 	}
 }
@@ -1684,44 +1690,22 @@ func isValidSessionStatus(status string) bool {
 	return false
 }
 
-func (s *interviewSessionService) UpdateIsTimedOutSession(ctx context.Context, sessionIDReq string) error {
-	s.log.InfoWithID(ctx, "[Service: UpdateIsTimedOutSession] Called")
+func (s *interviewSessionService) UpdateSessionStatus(ctx context.Context, sessionIDReq string, status string) error {
+	s.log.InfoWithID(ctx, "[Service: UpdateSessionStatus] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateIsTimedOutSession] Invalid session ID", err)
+		s.log.ErrorWithID(ctx, "[Service: UpdateSessionStatus] Invalid session ID", err)
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	dbReq := &db.UpdateIsTimedOutSessionParams{
-		ID:         sessionID,
-		IsTimedOut: sql.NullBool{Bool: true, Valid: true},
+	dbReq := &db.UpdateSessionStatusParams{
+		ID:     sessionID,
+		Status: status,
 	}
 
-	if err := s.interviewSessionRepo.UpdateIsTimedOutSession(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateIsTimedOutSession] Error updating interview session is timed out", err)
-		return err
-	}
-
-	return nil
-}
-
-func (s *interviewSessionService) UpdateIsCompletedSession(ctx context.Context, sessionIDReq string) error {
-	s.log.InfoWithID(ctx, "[Service: UpdateIsCompletedSession] Called")
-
-	sessionID, err := uuid.Parse(sessionIDReq)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateIsCompletedSession] Invalid session ID", err)
-		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
-	}
-
-	dbReq := &db.UpdateIsCompletedSessionParams{
-		ID:          sessionID,
-		IsCompleted: sql.NullBool{Bool: true, Valid: true},
-	}
-
-	if err := s.interviewSessionRepo.UpdateIsCompletedSession(ctx, dbReq); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: UpdateIsCompletedSession] Error updating interview session is completed", err)
+	if err := s.interviewSessionRepo.UpdateSessionStatus(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateSessionStatus] Error updating interview session is timed out", err)
 		return err
 	}
 

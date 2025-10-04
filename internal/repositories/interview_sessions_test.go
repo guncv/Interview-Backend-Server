@@ -575,7 +575,7 @@ func TestInterviewSessionRepository_GetInterviewSessionState(t *testing.T) {
 					Return(db.GetSessionStateRow{
 						StartedAt:             sql.NullTime{Time: startedAt, Valid: true},
 						IsStartedConversation: sql.NullBool{Bool: true, Valid: true},
-						IsTimedOut:            sql.NullBool{Bool: false, Valid: true},
+						Status:                constants.StatusCompleted,
 					}, nil)
 
 				return mockStore
@@ -586,8 +586,7 @@ func TestInterviewSessionRepository_GetInterviewSessionState(t *testing.T) {
 				assert.True(t, gotResp.StartedAt.Valid)
 				assert.Equal(t, true, gotResp.IsStartedConversation.Bool)
 				assert.True(t, gotResp.IsStartedConversation.Valid)
-				assert.False(t, gotResp.IsTimedOut.Bool)
-				assert.True(t, gotResp.IsTimedOut.Valid)
+				assert.Equal(t, constants.StatusCompleted, gotResp.Status)
 			},
 		},
 		{
@@ -1037,18 +1036,18 @@ func TestInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID(t *
 	}
 }
 
-func TestInterviewSessionRepository_UpdateIsCompletedSession(t *testing.T) {
+func TestInterviewSessionRepository_UpdateSessionStatus(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
-	isCompletedReq := db.UpdateIsCompletedSessionParams{
-		ID:          updateID,
-		IsCompleted: sql.NullBool{Bool: true, Valid: true},
+	isCompletedReq := db.UpdateSessionStatusParams{
+		ID:     updateID,
+		Status: constants.StatusCompleted,
 	}
 
 	testCases := []struct {
 		name   string
-		input  *db.UpdateIsCompletedSessionParams
+		input  *db.UpdateSessionStatusParams
 		setup  func() *mockSqlc.MockStore
 		verify func(t *testing.T, gotErr error)
 	}{
@@ -1059,7 +1058,7 @@ func TestInterviewSessionRepository_UpdateIsCompletedSession(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					UpdateIsCompletedSession(ctx, isCompletedReq).
+					UpdateSessionStatus(ctx, isCompletedReq).
 					Return(1, nil)
 
 				return mockStore
@@ -1075,7 +1074,7 @@ func TestInterviewSessionRepository_UpdateIsCompletedSession(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					UpdateIsCompletedSession(ctx, isCompletedReq).
+					UpdateSessionStatus(ctx, isCompletedReq).
 					Return(0, nil)
 
 				return mockStore
@@ -1092,7 +1091,7 @@ func TestInterviewSessionRepository_UpdateIsCompletedSession(t *testing.T) {
 				mockStore := new(mockSqlc.MockStore)
 
 				mockStore.EXPECT().
-					UpdateIsCompletedSession(ctx, isCompletedReq).
+					UpdateSessionStatus(ctx, isCompletedReq).
 					Return(0, errors.New("error"))
 
 				return mockStore
@@ -1119,7 +1118,7 @@ func TestInterviewSessionRepository_UpdateIsCompletedSession(t *testing.T) {
 
 			svc := NewInterviewSessionRepository(lgr, mockStore, cfg)
 
-			gotErr := svc.UpdateIsCompletedSession(ctx, tC.input)
+			gotErr := svc.UpdateSessionStatus(ctx, tC.input)
 
 			tC.verify(t, gotErr)
 		})

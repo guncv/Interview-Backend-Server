@@ -5,13 +5,12 @@ import (
 )
 
 const (
-	StatusPending         = "pending"
-	StatusOnGoing         = "on_going"
-	StatusCompleted       = "completed"
-	StatusAborted         = "aborted"
-	StatusCancelled       = "cancelled"
-	StatusTimedOut        = "timed_out"
-	StatusAlreadyTimedOut = "already_timed_out"
+	StatusPending   = "pending"
+	StatusOnGoing   = "on_going"
+	StatusCompleted = "completed"
+	StatusAborted   = "aborted"
+	StatusCancelled = "cancelled"
+	StatusTimedOut  = "timed_out"
 
 	ModalityVoiceChat = "voice_chat"
 

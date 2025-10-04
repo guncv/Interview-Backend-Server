@@ -180,9 +180,9 @@ type GetInterviewSessionStateResp struct {
 	IsStartedConversation bool   `json:"is_started_conversation"`
 	CurrentState          string `json:"current_state"`
 	CurrentStateID        string `json:"current_state_id"`
-	IsTimedOut            bool   `json:"is_timed_out"`
+	Status                string `json:"status"`
 	BiasPrompt            string `json:"bias_prompt"`
-	IsCompleted           bool   `json:"is_completed"`
+	IsFinalized           bool   `json:"is_finalized"`
 }
 
 type EndInterviewSessionReq struct {
