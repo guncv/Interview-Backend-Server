@@ -281,24 +281,16 @@ func (v *validatorImpl) ValidateAndBind(c *gin.Context, req interface{}, handler
 				errMsg,
 			)
 		}
-		v.log.InfoWithID(ctx, fmt.Sprintf("[%s] Using JSON binding as fallback", handlerName))
-	} else {
-		v.log.InfoWithID(ctx, fmt.Sprintf("[%s] Form data binding successful", handlerName))
 	}
-
-	// Log the request data for debugging
-	v.log.InfoWithID(ctx, fmt.Sprintf("[%s] Request data: %+v", handlerName, req))
 
 	// Validate the struct
 	if err := v.validate.Struct(req); err != nil {
 		if validatorErrors, ok := err.(validator.ValidationErrors); ok {
-			// Log all validation errors for debugging
 			for i, validationErr := range validatorErrors {
 				v.log.ErrorWithID(ctx, fmt.Sprintf("[%s] Validation error %d: Field=%s, Tag=%s, Value=%v, Param=%s",
 					handlerName, i+1, validationErr.Field(), validationErr.Tag(), validationErr.Value(), validationErr.Param()))
 			}
 
-			// Return the first validation error with a clear message
 			firstError := validatorErrors[0]
 			errorMsg := getSimpleErrorMessage(firstError)
 			v.log.ErrorWithID(ctx, fmt.Sprintf("[%s] Validation failed: %v", handlerName, errorMsg))
@@ -313,7 +305,6 @@ func (v *validatorImpl) ValidateAndBind(c *gin.Context, req interface{}, handler
 		)
 	}
 
-	v.log.InfoWithID(ctx, fmt.Sprintf("[%s] Validation successful", handlerName))
 	return nil
 }
 
@@ -389,7 +380,6 @@ func (v *validatorImpl) IsAllowedResumeContentType(ctx context.Context, fileHead
 	}
 	for _, allowed := range constants.ResumeAllowContentTypes {
 		if contentType == allowed {
-			v.log.InfoWithID(ctx, fmt.Sprintf("[Validator: isAllowedResumeContentType] Content type %s is allowed", contentType))
 			return true
 		}
 	}

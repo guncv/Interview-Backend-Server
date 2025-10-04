@@ -24,15 +24,12 @@ func NewGenerator(log *log.Logger) Generator {
 }
 
 func (g *generator) GenerateUUID(ctx context.Context) uuid.UUID {
-	g.log.InfoWithID(ctx, "[Utils: GenerateUUID] Called")
 	uuid := uuid.New()
 
 	return uuid
 }
 
 func (g *generator) GenerateRandomString(ctx context.Context, length int) string {
-	g.log.InfoWithID(ctx, "[Utils: GenerateRandomString] Called")
-
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
 

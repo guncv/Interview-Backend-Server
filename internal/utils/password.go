@@ -25,8 +25,6 @@ func NewPassword(log *log.Logger) PasswordUtil {
 }
 
 func (p *passwordUtil) HashPassword(ctx context.Context, password string) (string, error) {
-	p.log.InfoWithID(ctx, "[Password: HashPassword] Hashing password")
-
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		p.log.ErrorWithID(ctx, "[Password: HashPassword] Error hashing password", zap.Error(err))
@@ -36,8 +34,6 @@ func (p *passwordUtil) HashPassword(ctx context.Context, password string) (strin
 }
 
 func (p *passwordUtil) IsPasswordValid(ctx context.Context, password string, hashedPassword string) bool {
-	p.log.InfoWithID(ctx, "[Password: IsPasswordValid] Checking password")
-
 	err := p.checkPassword(ctx, password, hashedPassword)
 	if err != nil {
 		p.log.ErrorWithID(ctx, "[Password: IsPasswordValid] Error checking password", zap.Error(err))
@@ -47,8 +43,6 @@ func (p *passwordUtil) IsPasswordValid(ctx context.Context, password string, has
 }
 
 func (p *passwordUtil) checkPassword(ctx context.Context, password string, hashedPassword string) error {
-	p.log.InfoWithID(ctx, "[Password: CheckPassword] Checking password")
-
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
 		p.log.ErrorWithID(ctx, "[Password: CheckPassword] Error checking password", zap.Error(err))

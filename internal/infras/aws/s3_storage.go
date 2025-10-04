@@ -115,7 +115,6 @@ func NewS3Storage(cfp *cfg.Config, logger *log.Logger) (S3Storage, error) {
 }
 
 func (s *s3Storage) UploadFile(ctx context.Context, file *multipart.FileHeader, key string, userID string) (string, error) {
-	s.log.InfoWithID(ctx, "[S3: UploadFile] Uploading file Called: ", file.Filename)
 
 	src, err := file.Open()
 	if err != nil {
@@ -143,7 +142,6 @@ func (s *s3Storage) UploadFile(ctx context.Context, file *multipart.FileHeader, 
 }
 
 func (s *s3Storage) GeneratePresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
-	s.log.InfoWithID(ctx, "[S3: GeneratePresignedURL] Generating presigned URL Called: ", key)
 	presignClient := s3.NewPresignClient(s.s3Client)
 
 	req, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
@@ -160,7 +158,6 @@ func (s *s3Storage) GeneratePresignedURL(ctx context.Context, key string, expiry
 }
 
 func (s *s3Storage) DeleteFile(ctx context.Context, key string) error {
-	s.log.InfoWithID(ctx, "[S3: DeleteFile] Deleting file Called: ", key)
 
 	_, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.cfp.AWSConfig.S3Bucket),
@@ -176,7 +173,6 @@ func (s *s3Storage) DeleteFile(ctx context.Context, key string) error {
 }
 
 func (s *s3Storage) DownloadFile(ctx context.Context, key string) (*CustomFileHeader, error) {
-	s.log.InfoWithID(ctx, "[S3: DownloadFile] Downloading file Called: ", key)
 
 	result, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.cfp.AWSConfig.S3Bucket),

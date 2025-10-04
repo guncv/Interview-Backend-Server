@@ -48,7 +48,6 @@ func NewUserHandler(
 // @Router /auth/health [get]
 func (h *UserHandler) HealthCheck(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: HealthCheck] Called")
 
 	res, err := h.userService.HealthCheck(ctx)
 	if err != nil {
@@ -73,7 +72,6 @@ func (h *UserHandler) HealthCheck(c *gin.Context) {
 // @Router /auth/sign-up [post]
 func (h *UserHandler) SignUpUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SignUpUser] Called")
 
 	req := &entities.SignUpUserRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignUpUser"); err != nil {
@@ -105,7 +103,6 @@ func (h *UserHandler) SignUpUser(c *gin.Context) {
 // @Router /auth/verify-email [post]
 func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SendVerifyEmail] Called")
 
 	req := &entities.VerifyEmailRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SendVerifyEmail"); err != nil {
@@ -137,7 +134,6 @@ func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
 // @Router /auth/reset-verify-email [post]
 func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ResetVerifyEmailCode] Called")
 
 	req := &entities.ResetVerifyEmailCodeRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ResetVerifyEmailCode"); err != nil {
@@ -169,7 +165,6 @@ func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
 // @Router /auth/sign-in [post]
 func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Called")
 
 	req := &entities.SignInByEmailAndPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignInUserByEmailAndPassword"); err != nil {
@@ -203,7 +198,6 @@ func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
 // @Router /auth/sign-in-admin [post]
 func (h *UserHandler) SignInAdminByEmailAndPassword(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Called")
 
 	req := &entities.SignInByEmailAndPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "SignInAdminByEmailAndPassword"); err != nil {
@@ -237,7 +231,6 @@ func (h *UserHandler) SignInAdminByEmailAndPassword(c *gin.Context) {
 // @Router /auth/forgot-password [post]
 func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ForgotPassword] Called")
 
 	req := &entities.ForgotPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ForgotPassword"); err != nil {
@@ -269,7 +262,6 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 // @Router /auth/reset-password [post]
 func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ResetUserPassword] Called")
 
 	req := &entities.ResetUserPasswordRequest{}
 	if err := h.validator.ValidateAndBind(c, req, "ResetUserPassword"); err != nil {
@@ -301,7 +293,6 @@ func (h *UserHandler) ResetUserPassword(c *gin.Context) {
 // @Router /auth/sign-out [post]
 func (h *UserHandler) SignOut(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SignOut] Called")
 
 	ctx, err := h.authContext.ExtractAuthContext(c)
 	if err != nil {

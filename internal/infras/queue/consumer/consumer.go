@@ -76,7 +76,6 @@ func NewRedisTaskConsumer(
 }
 
 func (c *redisTaskConsumer) Start(ctx context.Context) error {
-	c.log.InfoWithID(ctx, "[Email: Start] Starting email consumer server")
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(constants.TaskSendResetPasswordEmail, c.ConsumeTaskSendResetPasswordEmail)
 	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
@@ -93,7 +92,6 @@ func (c *redisTaskConsumer) Start(ctx context.Context) error {
 }
 
 func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
-	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Cleaning up email queue")
 
 	if err := c.redisClient.Delete(ctx, constants.QueueDefault); err != nil {
 		c.log.WarnWithID(ctx, "Failed to cleanup default queue", err)
@@ -103,12 +101,10 @@ func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
 		c.log.WarnWithID(ctx, "Failed to cleanup critical queue", err)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: CleanupQueue] Queue cleanup completed")
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Processing reset password email task")
 
 	var payload email.ResetPasswordEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -121,12 +117,10 @@ func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Contex
 		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Successfully sent reset password email", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Processing verify email task")
 
 	var payload email.VerifyEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -139,12 +133,10 @@ func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task
 		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Successfully sent verify email", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Processing delete file task")
 
 	var payload aws.DeleteFilePayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -157,12 +149,10 @@ func (c *redisTaskConsumer) ConsumeTaskDeleteFile(ctx context.Context, task *asy
 		return app_error.New(fmt.Errorf("failed to delete file: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskDeleteFile] Successfully deleted file", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Processing calculate turn score task")
 
 	var payload entities.CalculateTurnScoreReq
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -175,12 +165,10 @@ func (c *redisTaskConsumer) ConsumeTaskCalculateTurnScore(ctx context.Context, t
 		return app_error.New(fmt.Errorf("failed to calculate turn score: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Email: ConsumeTaskCalculateTurnScore] Successfully deleted redis", nil)
 	return nil
 }
 
 func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error {
-	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Processing end interview session task")
 
 	var payload entities.EndInterviewSessionPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
@@ -198,6 +186,5 @@ func (c *redisTaskConsumer) ConsumeTaskEndInterviewSession(ctx context.Context, 
 		return app_error.New(fmt.Errorf("failed to end interview session: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
-	c.log.InfoWithID(ctx, "[Consumer: ConsumeTaskEndInterviewSession] Successfully ended interview session", nil)
 	return nil
 }

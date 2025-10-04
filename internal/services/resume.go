@@ -66,7 +66,6 @@ func NewResumeService(
 }
 
 func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResumeRequest) (*entities.ListResumeResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: ListResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -93,8 +92,6 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 			goto FetchBoth
 		}
 
-		s.log.InfoWithID(ctx, "[Service: ListResume] Redis hit for default resume, fetching only resume list")
-
 		if req.UpdatedAt != nil {
 			resumeList, err = s.resumeRepo.ListResumeByUserIDPaginated(ctx, &db.ListResumeByUserIDPaginatedParams{
 				UserID:    userID,
@@ -108,7 +105,6 @@ func (s *resumeService) ListResume(ctx context.Context, req *entities.ListResume
 			return nil, err
 		}
 	} else if errors.Is(err, redis.Nil) {
-		s.log.InfoWithID(ctx, "[Service: ListResume] Default resume not in Redis, fetching both concurrently")
 		goto FetchBoth
 	} else {
 		s.log.ErrorWithID(ctx, "[Service: ListResume] Redis error", err)
@@ -146,7 +142,6 @@ FetchBoth:
 			resume, err := s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
 				if appErr, ok := err.(*app_error.AppError); ok && appErr.Code == app_error.ErrCodeResumeNotFound {
-					s.log.InfoWithID(ctx, "[Service: ListResume] No default resume found for user", err)
 					defaultResumeChan <- db.Resumes{}
 					return
 				}
@@ -287,7 +282,6 @@ Finalize:
 }
 
 func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.SwitchDefaultResumeRequest) error {
-	s.log.InfoWithID(ctx, "[Service: SwitchDefaultResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -306,8 +300,6 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 	defaultResumeFromRedis, err := s.redisClient.Get(ctx, defaultResumeKey)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			s.log.InfoWithID(ctx, "[Service: SwitchDefaultResume] Default resume not in Redis, creating new default resume")
-
 			defaultResume, err = s.resumeRepo.GetDefaultResumeByUserID(ctx, userID)
 			if err != nil {
 				s.log.ErrorWithID(ctx, "[Service: SwitchDefaultResume] Error getting default resume", err)
@@ -351,7 +343,6 @@ func (s *resumeService) SwitchDefaultResume(ctx context.Context, req *entities.S
 }
 
 func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResumeByIDRequest) (*entities.GetResumeByIDResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: GetResumeByID] Called")
 
 	resumeID, err := uuid.Parse(req.ResumeID)
 	if err != nil {
@@ -385,7 +376,6 @@ func (s *resumeService) GetResumeByID(ctx context.Context, req *entities.GetResu
 }
 
 func (s *resumeService) DownloadResumeByResumeId(ctx context.Context, req *entities.DownloadResumeByResumeIdReq) (*entities.DownloadResumeByResumeIdResp, error) {
-	s.log.InfoWithID(ctx, "[Service: DownloadResumeByResumeId] Called")
 
 	resumeID, err := uuid.Parse(req.ResumeID)
 	if err != nil {

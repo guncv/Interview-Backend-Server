@@ -25,8 +25,6 @@ func NewCookies(config *config.Config, log *log.Logger) Cookies {
 }
 
 func (c *cookies) SetRefreshTokenCookie(ctx *gin.Context, refreshToken string) {
-	c.log.InfoWithID(ctx, "[Utils: SetRefreshTokenCookie] Called")
-
 	duration := c.config.AuthConfig.RefreshTokenDuration
 	domain := c.config.AuthConfig.CookieDomain
 	isRejectHTTP := c.config.AuthConfig.CookieRejectHTTP
@@ -36,8 +34,6 @@ func (c *cookies) SetRefreshTokenCookie(ctx *gin.Context, refreshToken string) {
 }
 
 func (c *cookies) ClearRefreshTokenCookie(ctx *gin.Context) {
-	c.log.InfoWithID(ctx, "[Utils: ClearRefreshTokenCookie] Called")
-
 	expiration := time.Now().Add(-24 * time.Hour)
 	secure := !c.config.AuthConfig.CookieRejectHTTP
 	domain := c.config.AuthConfig.CookieDomain

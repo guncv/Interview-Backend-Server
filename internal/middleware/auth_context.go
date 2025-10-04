@@ -32,7 +32,6 @@ func NewAuthContext(l *log.Logger) AuthContext {
 }
 
 func (a *authContext) ExtractAuthContext(ctx *gin.Context) (context.Context, error) {
-	a.log.InfoWithID(ctx.Request.Context(), "[Middleware: ExtractAuthContext] Called")
 	rawPayload, ok := ctx.Get(string(constants.AuthorizationPayloadKey))
 	if !ok {
 		a.log.ErrorWithID(ctx.Request.Context(), "[Middleware: ExtractAuthContext] Auth payload not found")
@@ -51,7 +50,6 @@ func (a *authContext) ExtractAuthContext(ctx *gin.Context) (context.Context, err
 
 	rawAccessToken, ok := ctx.Get(string(constants.NewAccessTokenKey))
 	if ok {
-		a.log.InfoWithID(ctx.Request.Context(), "[Middleware: ExtractAuthContext] Access token found")
 		accessToken, _ := rawAccessToken.(string)
 		authCtx.AccessToken = accessToken
 	}
@@ -62,7 +60,6 @@ func (a *authContext) ExtractAuthContext(ctx *gin.Context) (context.Context, err
 
 func (a *authContext) GetAuthContext(ctx context.Context) (*AuthPayload, error) {
 	val := ctx.Value(constants.AuthContextKey)
-	a.log.InfoWithID(ctx, "[Middleware: GetAuthContext] Called")
 
 	if val == nil {
 		a.log.ErrorWithID(ctx, "[Middleware: GetAuthContext] Missing auth context")

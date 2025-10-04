@@ -68,9 +68,6 @@ func NewInterviewSessionHandler(
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /sessions [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithNewResume] Called")
-
 	var req entities.CreateInterviewSessionWithNewResumeRequest
 	if err := h.validator.ValidateAndBind(c, &req, "CreateInterviewSessionWithNewResume"); err != nil {
 		utils.RespondWithError(c, err)
@@ -108,9 +105,6 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithNewResume(c *gin.Con
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /sessions/existing [post]
 func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: CreateInterviewSessionWithExistingResume] Called")
-
 	var req entities.CreateInterviewSessionWithExistingResumeReq
 	if err := h.validator.ValidateAndBind(c, &req, "CreateInterviewSessionWithExistingResume"); err != nil {
 		utils.RespondWithError(c, err)
@@ -149,7 +143,6 @@ func (h *InterviewSessionHandler) CreateInterviewSessionWithExistingResume(c *gi
 // @Router /ws/connect/{id} [get]
 func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: OpenWsConnection] Called")
 
 	sessionToken := c.Param("id")
 	if err := h.validator.GetValidate().Var(sessionToken, "required,uuid"); err != nil {
@@ -213,7 +206,6 @@ func (h *InterviewSessionHandler) OpenWsConnection(c *gin.Context) {
 // @Router /sessions/chat-history/{session_token} [get]
 func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionToken] Called")
 
 	req := entities.GetChatHistoryBySessionTokenReq{}
 
@@ -290,7 +282,6 @@ func (h *InterviewSessionHandler) GetChatHistoryBySessionToken(c *gin.Context) {
 // @Router /sessions/cursor [get]
 func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithCursor(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Called")
 
 	req := entities.ListInterviewSessionsByUserIDWithCursorReq{}
 
@@ -374,7 +365,6 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithCursor(c *gin
 // @Router /sessions/jump [get]
 func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPagination(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListInterviewSessionsByUserID] Called")
 
 	req := entities.ListInterviewSessionsByUserIDWithJumpPaginationReq{}
 
@@ -454,7 +444,6 @@ func (h *InterviewSessionHandler) ListInterviewSessionsByUserIDWithJumpPaginatio
 // @Router /sessions/{session_id} [delete]
 func (h *InterviewSessionHandler) DeleteUserInterviewSessionByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: DeleteUserInterviewSessionByID] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {
@@ -500,7 +489,6 @@ func (h *InterviewSessionHandler) DeleteUserInterviewSessionByID(c *gin.Context)
 // @Router /sessions/{session_id} [get]
 func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetInterviewSessionInformationByID] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {
@@ -548,7 +536,6 @@ func (h *InterviewSessionHandler) GetInterviewSessionInformationByID(c *gin.Cont
 // @Router /sessions/{session_id}/chat-with-evaluation [get]
 func (h *InterviewSessionHandler) GetChatHistoryBySessionIDWithEvaluation(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetChatHistoryBySessionIDWithEvaluation] Called")
 
 	sessionID := c.Param("session_id")
 	if sessionID == "" {

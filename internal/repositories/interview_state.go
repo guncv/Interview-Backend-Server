@@ -31,8 +31,6 @@ func NewInterviewStateRepository(l *log.Logger, db db.Store) InterviewStateRepos
 }
 
 func (r *interviewStateRepository) CreateInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *CreateInterviewStateWithUpdateFlagSessionTxReq) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateInterviewStateWithUpdateFlagSession] Called")
-
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		createInterviewStateReq := db.CreateInterviewStateParams{
@@ -76,8 +74,6 @@ func (r *interviewStateRepository) CreateInterviewStateWithUpdateFlagSessionTx(c
 }
 
 func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTx(ctx context.Context, req *EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSessionTxReq) error {
-	r.log.InfoWithID(ctx, "[Repository: EndOldInterviewStateAndCreateNewInterviewStateWithUpdateFlagSession] Called")
-
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 
 		updateInterviewStateReq := db.UpdateEndedAtInterviewStateByIDParams{
@@ -137,8 +133,6 @@ func (r *interviewStateRepository) EndOldInterviewStateAndCreateNewInterviewStat
 }
 
 func (r *interviewStateRepository) GetLastTurnIDInterviewStateByID(ctx context.Context, req uuid.UUID) (uuid.NullUUID, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetLastTurnIDInterviewStateByID] Called")
-
 	lastTurnID, err := r.db.GetLastTurnIDInterviewStateByID(ctx, req)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -153,8 +147,6 @@ func (r *interviewStateRepository) GetLastTurnIDInterviewStateByID(ctx context.C
 }
 
 func (r *interviewStateRepository) GetUnprocessedInterviewStatesBySessionID(ctx context.Context, req uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetUnprocessedInterviewStatesBySessionID] Called")
-
 	states, err := r.db.GetUnprocessedInterviewStatesBySessionID(ctx, req)
 	if err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: GetUnprocessedInterviewStatesBySessionID] Error getting interview states", err)

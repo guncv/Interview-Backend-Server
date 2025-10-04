@@ -36,12 +36,10 @@ func NewUserRepository(l *log.Logger, db db.Store) UserRepository {
 }
 
 func (r *userRepository) HealthCheck(ctx context.Context) (string, error) {
-	r.log.InfoWithID(ctx, "[Repository: HealthCheck] Called")
 	return "Status OK", nil
 }
 
 func (r *userRepository) CreateUser(ctx context.Context, req *db.CreateUserParams) (*db.Users, error) {
-	r.log.InfoWithID(ctx, "[Repository: CreateUser] Called")
 
 	user, err := r.db.CreateUser(ctx, *req)
 	if err != nil {
@@ -66,7 +64,6 @@ func (r *userRepository) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID
 }
 
 func (r *userRepository) CheckIsEmailExists(ctx context.Context, email string) (*db.Users, error) {
-	r.log.InfoWithID(ctx, "[Repository: CheckIsEmailExists] Called")
 
 	user, err := r.db.CheckIsEmailExists(ctx, email)
 	if err != nil {
@@ -82,7 +79,6 @@ func (r *userRepository) CheckIsEmailExists(ctx context.Context, email string) (
 }
 
 func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParams) (*db.Users, error) {
-	r.log.InfoWithID(ctx, "[Repository: UpdateUser] Called")
 
 	user, err := r.db.UpdateUser(ctx, *req)
 	if err != nil {
@@ -98,7 +94,6 @@ func (r *userRepository) UpdateUser(ctx context.Context, req *db.UpdateUserParam
 }
 
 func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) error {
-	r.log.InfoWithID(ctx, "[Repository: VerifyEmail] Called")
 
 	rowsAffected, err := r.db.VerifyEmail(ctx, userID)
 	if err != nil {
@@ -115,7 +110,6 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) erro
 }
 
 func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req *SignInUserByEmailAndPasswordTxModel) error {
-	r.log.InfoWithID(ctx, "[Repository: SignInUserByEmailAndPasswordTx] Called")
 
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 		userReq := db.SignInUserByEmailAndPasswordParams{
@@ -166,7 +160,6 @@ func (r *userRepository) SignInUserByEmailAndPasswordTx(ctx context.Context, req
 }
 
 func (r *userRepository) ResetUserPasswordAndUpdateResetTokenTx(ctx context.Context, req *ResetUserPasswordTxModel) error {
-	r.log.InfoWithID(ctx, "[Repository: ResetUserPasswordAndUpdateResetTokenTx] Called")
 
 	err := r.db.ExecTx(ctx, func(q *db.Queries) error {
 

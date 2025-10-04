@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
@@ -57,7 +56,6 @@ func NewWebSocketServerLogic(
 }
 
 func (s *WebSocketServerLogic) getInterviewSessionState(ctx context.Context, client *Client) (*entities.GetInterviewSessionStateResp, error) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: getInterviewSessionState] Called")
 
 	resp, err := s.interviewSessionService.GetInterviewSessionState(ctx, client.SessionID)
 	if err != nil {
@@ -69,8 +67,6 @@ func (s *WebSocketServerLogic) getInterviewSessionState(ctx context.Context, cli
 }
 
 func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.Context, client *Client) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResponse] Called")
-
 	openingMsg := MsgInterviewTypeAndSessionID{
 		Type:      constants.WebSocketMessageTypeStartSessionConversation,
 		SessionID: client.SessionID,
@@ -85,7 +81,6 @@ func (s *WebSocketServerLogic) sendStartSessionConversationMessage(ctx context.C
 }
 
 func (s *WebSocketServerLogic) handleUserAudioBinaryMessage(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Called")
 
 	if len(payload) < 4 {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Invalid frame: too short")
@@ -114,9 +109,6 @@ func (s *WebSocketServerLogic) handleUserAudioBinaryMessage(ctx context.Context,
 		return
 	}
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Segment ID", map[string]any{
-		"segment_id": header.SegmentID,
-	})
 	segmentMapping, err := s.getSegmentMapping(ctx, header.SegmentID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: handleUserAudioBinaryMessage] Error getting segment mapping", err)
@@ -142,7 +134,6 @@ func (s *WebSocketServerLogic) handleUserAudioBinaryMessage(ctx context.Context,
 }
 
 func (s *WebSocketServerLogic) SendMessageTypeSegmentStart(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentStart] Called")
 
 	var m MsgSegmentStart
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
@@ -191,7 +182,6 @@ func (s *WebSocketServerLogic) SendMessageTypeSegmentStart(ctx context.Context, 
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Called")
 
 	var m MsgSegmentEnd
 	if json.Unmarshal(payload, &m) != nil || m.SegmentID == "" {
@@ -238,26 +228,9 @@ func (s *WebSocketServerLogic) sendMessageTypeSegmentEnd(ctx context.Context, cl
 			s.sendMessageTypeError(ctx, client, app_error.ErrCodeWebSocketInvalidMessage)
 		}
 	}
-
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, client.SessionID)
-	lastMessage, err := s.redisClient.Get(context.Background(), redisKey)
-	if err != nil {
-		if err == redis.Nil {
-			s.log.WarnWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Last message not found", err)
-		} else {
-			s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Error getting last message", err)
-			s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisGetFailed)
-			return
-		}
-	} else {
-		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeSegmentEnd] Last message retrieved", map[string]any{
-			"last_message": lastMessage,
-		})
-	}
 }
 
 func (s *WebSocketServerLogic) endInterviewSession(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: endInterviewSession] Called")
 
 	var req MsgInterviewTypeAndSessionID
 	if json.Unmarshal(payload, &req) != nil {
@@ -270,7 +243,6 @@ func (s *WebSocketServerLogic) endInterviewSession(ctx context.Context, client *
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeUserCompleteSession(ctx context.Context, client *Client, payload []byte) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserCompleteSession] Called")
 
 	if !client.isCompleted {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserCompleteSession] Interview session is not completed")
@@ -289,7 +261,6 @@ func (s *WebSocketServerLogic) sendMessageTypeUserCompleteSession(ctx context.Co
 }
 
 func (s *WebSocketServerLogic) updateInterviewSession(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID, status string) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: updateInterviewSession] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: updateInterviewSession] Security violation: Session ID mismatch")
@@ -316,7 +287,6 @@ func (s *WebSocketServerLogic) updateInterviewSession(ctx context.Context, clien
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Context, client *Client, req MsgUserFullTranscript) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeUserFullTranscript] Security violation: Session ID mismatch")
@@ -388,7 +358,6 @@ func (s *WebSocketServerLogic) sendMessageTypeUserFullTranscript(ctx context.Con
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Context, client *Client, req MsgInterviewerResp) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Called: ", req)
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Security violation: Session ID mismatch")
@@ -449,8 +418,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Error creating last message", err)
 		s.sendMessageTypeError(ctx, client, app_error.ErrCodeGeneralRedisSetFailed)
 		return
-	} else {
-		s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Last message created")
 	}
 
 	if !client.isStartedConversation {
@@ -469,10 +436,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 
 	if client.currentState != req.CurrentState {
 		if client.currentStateID == "" && client.currentState == "" {
-			s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Initial first current state session", map[string]any{
-				"session_id":    req.SessionID,
-				"current_state": req.CurrentState,
-			})
 			resp, err := s.interviewSessionService.InitialFirstCurrentStateSession(context.Background(), &entities.InitialFirstCurrentStateSessionReq{
 				SessionID:    req.SessionID,
 				CurrentState: req.CurrentState,
@@ -487,10 +450,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerResp(ctx context.Contex
 			client.currentState = resp.CurrentState
 			client.currentStateID = resp.CurrentStateID
 		} else {
-			s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerResp] Updating current state session", map[string]any{
-				"old_current_state_id": client.currentStateID,
-				"current_state":        req.CurrentState,
-			})
 
 			var lastTurnID string
 			if client.LastTurnID != "" {
@@ -545,7 +504,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
 	req MsgInterviewTypeAndSessionID,
 	audioData []byte,
 ) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Security violation: Session ID mismatch")
@@ -577,14 +535,9 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewerAudioChunk(
 		return
 	}
 
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewerAudioChunk] Audio chunk sent", map[string]any{
-		"session_id": req.SessionID,
-		"audio_size": len(audioData),
-	})
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnStart] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnStart] Security violation: Session ID mismatch")
@@ -599,7 +552,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnStart(ctx context.Con
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnEnd] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewTurnEnd] Security violation: Session ID mismatch")
@@ -614,7 +566,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewTurnEnd(ctx context.Conte
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeInterviewCompleted(ctx context.Context, client *Client, req MsgInterviewTypeAndSessionID) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Called")
 
 	if client.SessionID != req.SessionID {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: sendMessageTypeInterviewCompleted] Security violation: Session ID mismatch")
@@ -637,7 +588,6 @@ func (s *WebSocketServerLogic) sendMessageTypeInterviewCompleted(ctx context.Con
 }
 
 func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client *Client, errCode app_error.ErrorCode) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: sendMessageTypeError] Called")
 
 	s.writeJSON(ctx, client, msgError{
 		Type:    constants.WebSocketMessageTypeError,
@@ -649,7 +599,6 @@ func (s *WebSocketServerLogic) sendMessageTypeError(ctx context.Context, client 
 }
 
 func (s *WebSocketServerLogic) createSegmentMapping(ctx context.Context, fromSegmentID, toSegmentID string) error {
-	s.log.InfoWithID(ctx, "[WebSocketServer: createSegmentMapping] Called")
 
 	key := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSegmentMapping, fromSegmentID)
 
@@ -666,7 +615,6 @@ func (s *WebSocketServerLogic) createSegmentMapping(ctx context.Context, fromSeg
 }
 
 func (s *WebSocketServerLogic) getSegmentMapping(ctx context.Context, fromSegmentID string) (string, error) {
-	s.log.InfoWithID(ctx, "[WebSocketServer: getSegmentMapping] Called")
 
 	key := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSegmentMapping, fromSegmentID)
 

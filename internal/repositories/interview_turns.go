@@ -35,8 +35,6 @@ func NewInterviewTurnsRepository(l *log.Logger, db db.Store) InterviewTurnsRepos
 }
 
 func (r *interviewTurnsRepository) GetInterviewerLastMessage(ctx context.Context, sessionID uuid.UUID) (*db.GetInterviewerLastMessageRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetInterviewerLastMessage] Called")
-
 	turnRow, err := r.db.GetInterviewerLastMessage(ctx, sessionID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -51,7 +49,6 @@ func (r *interviewTurnsRepository) GetInterviewerLastMessage(ctx context.Context
 }
 
 func (r *interviewTurnsRepository) GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (int64, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetMaxTurnNoBySessionID] Called")
 
 	turnNo, err := r.db.GetMaxTurnNoBySessionID(ctx, sessionID)
 	if err != nil {
@@ -67,7 +64,6 @@ func (r *interviewTurnsRepository) GetMaxTurnNoBySessionID(ctx context.Context, 
 }
 
 func (r *interviewTurnsRepository) CreateSessionTurnBySessionID(ctx context.Context, req *db.CreateInterviewTurnParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateSessionTurnBySessionID] Called")
 
 	if err := r.db.CreateInterviewTurn(ctx, *req); err != nil {
 		r.log.ErrorWithID(ctx, "[Repository: CreateSessionTurnBySessionID] Error creating session turn by session ID", err)
@@ -78,7 +74,6 @@ func (r *interviewTurnsRepository) CreateSessionTurnBySessionID(ctx context.Cont
 }
 
 func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context, req *db.GetChatHistoryBySessionIDParams) ([]db.GetChatHistoryBySessionIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionID] Called")
 
 	chatHistory, err := r.db.GetChatHistoryBySessionID(ctx, *req)
 	if err != nil {
@@ -90,7 +85,6 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionID(ctx context.Context
 }
 
 func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithCursor(ctx context.Context, req *db.GetChatHistoryBySessionIDWithCursorParams) ([]db.GetChatHistoryBySessionIDWithCursorRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithCursor] Called")
 
 	chatHistory, err := r.db.GetChatHistoryBySessionIDWithCursor(ctx, *req)
 	if err != nil {
@@ -102,7 +96,6 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithCursor(ctx conte
 }
 
 func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *db.GetChatHistoryBySessionIDWithEvaluationParams) ([]db.GetChatHistoryBySessionIDWithEvaluationRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Called")
 
 	resp, err := r.db.GetChatHistoryBySessionIDWithEvaluation(ctx, *req)
 	if err != nil {
@@ -110,12 +103,10 @@ func (r *interviewTurnsRepository) GetChatHistoryBySessionIDWithEvaluation(ctx c
 		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	r.log.InfoWithID(ctx, "[Repository: GetChatHistoryBySessionIDWithEvaluation] Response: ", resp)
 	return resp, nil
 }
 
 func (r *interviewTurnsRepository) FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) error {
-	r.log.InfoWithID(ctx, "[Repository: FlagIsScoreEvaluated] Called")
 
 	rowAffected, err := r.db.FlagIsScoreEvaluated(ctx, id)
 	if err != nil {
@@ -133,7 +124,6 @@ func (r *interviewTurnsRepository) FlagIsScoreEvaluated(ctx context.Context, id 
 }
 
 func (r *interviewTurnsRepository) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *db.GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetLastUserTurnIDBySessionIDAndCurrentState] Called")
 
 	turnID, err := r.db.GetLastUserTurnIDBySessionIDAndCurrentState(ctx, *req)
 	if err != nil {

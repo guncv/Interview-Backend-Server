@@ -130,7 +130,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	ctx context.Context,
 	req *entities.CreateInterviewSessionWithNewResumeRequest,
 ) (*entities.CreateInterviewSessionWithNewResumeResponse, error) {
-	s.log.InfoWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -252,7 +251,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	ctx context.Context,
 	req *entities.CreateInterviewSessionWithExistingResumeReq,
 ) (*entities.CreateInterviewSessionWithExistingResumeResp, error) {
-	s.log.InfoWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -350,7 +348,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 }
 
 func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error {
-	s.log.InfoWithID(ctx, "[Service: CreateInterviewerSessionTurnBySessionID] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID)
 
@@ -401,7 +398,6 @@ func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx co
 }
 
 func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.Context, req *entities.CreateUserSessionTurnBySessionIDReq) error {
-	s.log.InfoWithID(ctx, "[Service: CreateUserSessionTurnBySessionID] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewMaxTurnNo, req.SessionID)
 
@@ -449,7 +445,6 @@ func (s *interviewSessionService) CreateUserSessionTurnBySessionID(ctx context.C
 }
 
 func (s *interviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Context, sessionID string) (map[string]string, error) {
-	s.log.InfoWithID(ctx, "[Service: GetSessionStartedAtAndEndedAt] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, sessionID)
 
@@ -472,7 +467,6 @@ func (s *interviewSessionService) GetSessionStartedAtAndEndedAt(ctx context.Cont
 }
 
 func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, sessionID uuid.UUID, redisKey string) (int64, error) {
-	s.log.InfoWithID(ctx, "[Service: IncreaseMaxTurnNo] Called")
 
 	maxTurnNo, err := s.redisClient.Increment(ctx, redisKey)
 
@@ -500,7 +494,6 @@ func (s *interviewSessionService) increaseMaxTurnNo(ctx context.Context, session
 }
 
 func (s *interviewSessionService) SetSessionStartTime(ctx context.Context, req *entities.SetSessionStartTimeReq) error {
-	s.log.InfoWithID(ctx, "[Service: SetSessionStartTime] Called")
 	context := context.Background()
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
 
@@ -513,7 +506,6 @@ func (s *interviewSessionService) SetSessionStartTime(ctx context.Context, req *
 }
 
 func (s *interviewSessionService) SetSessionEndTime(ctx context.Context, req *entities.SetSessionEndTimeReq) error {
-	s.log.InfoWithID(ctx, "[Service: SetSessionEndTime] Called")
 	context := context.Background()
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewStartEndTime, req.SessionID)
 
@@ -526,7 +518,6 @@ func (s *interviewSessionService) SetSessionEndTime(ctx context.Context, req *en
 }
 
 func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Context, req *entities.UpdateInterviewSessionStatusReq) error {
-	s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -563,8 +554,6 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 		go func() {
 			if delErr := s.redisClient.Delete(ctx, redisKey); delErr != nil {
 				s.log.ErrorWithID(ctx, "[Service: UpdateInterviewSessionStatus] Error deleting stale redis key", delErr)
-			} else {
-				s.log.InfoWithID(ctx, "[Service: UpdateInterviewSessionStatus] Deleted stale redis key after set failure")
 			}
 		}()
 	}
@@ -573,7 +562,6 @@ func (s *interviewSessionService) UpdateInterviewSessionStatus(ctx context.Conte
 }
 
 func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entities.IsSessionValidReq) (*entities.IsSessionValidResp, error) {
-	s.log.InfoWithID(ctx, "[Service: IsSessionValid] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewSessionToken, req.SessionToken)
 
@@ -620,7 +608,6 @@ func (s *interviewSessionService) IsSessionValid(ctx context.Context, req *entit
 }
 
 func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context, req *entities.GetInterviewerLastMessageReq) (*entities.GetInterviewerLastMessageResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewerLastMessage] Called")
 
 	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixInterviewLastMessage, req.SessionID)
 	lastMessage, err := s.redisClient.Get(context.Background(), redisKey)
@@ -657,7 +644,6 @@ func (s *interviewSessionService) GetInterviewerLastMessage(ctx context.Context,
 }
 
 func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Context, req *entities.GetChatHistoryBySessionTokenReq) (*entities.GetChatHistoryBySessionTokenResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Called")
 
 	authContext, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -745,7 +731,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 
 		if len(chatHistory) > 0 {
 			cursorTurnNext = int32(chatHistoryResp[0].TurnNo)
-			s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionToken] Cursor turn next", "cursor_turn_next", cursorTurnNext)
 		} else {
 			cursorTurnNext = 0
 		}
@@ -760,7 +745,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionToken(ctx context.Conte
 }
 
 func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, sessionId string) (*entities.GetInterviewSessionStateResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionState] Called")
 
 	sessionID, err := uuid.Parse(sessionId)
 	if err != nil {
@@ -833,7 +817,6 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 }
 
 func (s *interviewSessionService) StartConversationBySessionID(ctx context.Context, sessionId string) error {
-	s.log.InfoWithID(ctx, "[Service: StartConversationBySessionID] Called")
 
 	dbReq := &db.UpdateIsStartedConversationSessionParams{
 		ID:                    uuid.MustParse(sessionId),
@@ -849,7 +832,6 @@ func (s *interviewSessionService) StartConversationBySessionID(ctx context.Conte
 }
 
 func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *entities.EndInterviewSessionReq) error {
-	s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Called")
 
 	sessionID, err := uuid.Parse(req.SessionId)
 	if err != nil {
@@ -867,7 +849,6 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 
 	if sessionStatus == constants.StatusCompleted || sessionStatus == constants.StatusCancelled ||
 		sessionStatus == constants.StatusAborted || sessionStatus == constants.StatusTimedOut {
-		s.log.InfoWithID(ctx, "[Service: EndInterviewSession] Session already ended")
 		return nil
 	}
 
@@ -952,7 +933,6 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 }
 
 func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithCursorReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
-	s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Called")
 
 	authContext, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -990,7 +970,6 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 		searchText = *req.SearchText
 		countReq.Column2 = *req.SearchText
 	} else {
-		s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Search text is nil", "search_text", "NULL")
 		countReq.Column2 = ""
 	}
 
@@ -1137,7 +1116,6 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 }
 
 func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPagination(ctx context.Context, req *entities.ListInterviewSessionsByUserIDWithJumpPaginationReq) (*entities.ListInterviewSessionsByUserIDResp, error) {
-	s.log.InfoWithID(ctx, "[Service: ListInterviewSessionsByUserID] Called")
 
 	authContext, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -1243,7 +1221,6 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 }
 
 func (s *interviewSessionService) DeleteUserInterviewSessionByID(ctx context.Context, sessionIDReq string) error {
-	s.log.InfoWithID(ctx, "[Service: DeleteUserInterviewSessionByID] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
@@ -1277,7 +1254,6 @@ func (s *interviewSessionService) DeleteUserInterviewSessionByID(ctx context.Con
 }
 
 func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context.Context, sessionIDReq string) (*entities.GetInterviewSessionInformationResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionInformationByID] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
@@ -1360,7 +1336,6 @@ func (s *interviewSessionService) GetInterviewSessionInformationByID(ctx context
 }
 
 func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx context.Context, req *entities.GetChatHistoryBySessionIDWithEvaluationReq) (*entities.GetChatHistoryBySessionIDWithEvaluationResp, error) {
-	s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -1396,7 +1371,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx co
 		if chat.Evaluation != nil {
 			var evalMap map[string]interface{}
 			if err := json.Unmarshal(chat.Evaluation.([]byte), &evalMap); err == nil {
-				s.log.InfoWithID(ctx, "[Service: GetChatHistoryBySessionIDWithEvaluation] Evaluation: ", evalMap)
 
 				var overallScoreFloat float64
 				var err error
@@ -1499,7 +1473,6 @@ func (s *interviewSessionService) GetChatHistoryBySessionIDWithEvaluation(ctx co
 }
 
 func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Context, req *entities.InitialFirstCurrentStateSessionReq) (*entities.InitialFirstCurrentStateSessionResp, error) {
-	s.log.InfoWithID(ctx, "[Service: InitialFirstCurrentStateSession] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -1530,7 +1503,6 @@ func (s *interviewSessionService) InitialFirstCurrentStateSession(ctx context.Co
 }
 
 func (s *interviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error) {
-	s.log.InfoWithID(ctx, "[Service: UpdateCurrentStateSessionAndLastTurnID] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -1589,7 +1561,6 @@ func (s *interviewSessionService) UpdateCurrentStateSessionAndLastTurnID(ctx con
 }
 
 func (s *interviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error) {
-	s.log.InfoWithID(ctx, "[Service: GetLastUserTurnIDBySessionIDAndCurrentState] Called")
 
 	sessionID, err := uuid.Parse(req.SessionID)
 	if err != nil {
@@ -1612,7 +1583,6 @@ func (s *interviewSessionService) GetLastUserTurnIDBySessionIDAndCurrentState(ct
 }
 
 func (s *interviewSessionService) GetInterviewSessionStatusByID(ctx context.Context, sessionIDReq string) (string, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionStatusByID] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {
@@ -1650,7 +1620,6 @@ func (s *interviewSessionService) GetInterviewSessionStatusByID(ctx context.Cont
 }
 
 func (s *interviewSessionService) getStatusFromDBAndUpdateCache(ctx context.Context, sessionID uuid.UUID) (string, error) {
-	s.log.InfoWithID(ctx, "[Service: GetInterviewSessionStatusByID] Getting interview session status from database and updating cache")
 
 	dbStatus, err := s.interviewSessionRepo.GetInterviewSessionStatusByID(ctx, sessionID)
 	if err != nil {
@@ -1691,7 +1660,6 @@ func isValidSessionStatus(status string) bool {
 }
 
 func (s *interviewSessionService) UpdateSessionStatus(ctx context.Context, sessionIDReq string, status string) error {
-	s.log.InfoWithID(ctx, "[Service: UpdateSessionStatus] Called")
 
 	sessionID, err := uuid.Parse(sessionIDReq)
 	if err != nil {

@@ -50,7 +50,6 @@ func NewResumeHandler(
 // @Router /resumes/list [get]
 func (h *ResumeHandler) ListResume(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: ListResume] Called")
 
 	updatedAtStr := c.Query("updated_at")
 	var req entities.ListResumeRequest
@@ -96,9 +95,6 @@ func (h *ResumeHandler) ListResume(c *gin.Context) {
 // @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
 // @Router /resumes/switch-default [post]
 func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
-	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: SwitchDefaultResume] Called")
-
 	var req entities.SwitchDefaultResumeRequest
 	if err := h.validator.ValidateAndBind(c, &req, "SwitchDefaultResume"); err != nil {
 		utils.RespondWithError(c, err)
@@ -138,7 +134,6 @@ func (h *ResumeHandler) SwitchDefaultResume(c *gin.Context) {
 // @Router /resumes/{id} [get]
 func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: GetResumeByID] Called")
 
 	resumeId := c.Param("id")
 	if resumeId == "" {
@@ -181,7 +176,6 @@ func (h *ResumeHandler) GetResumeByID(c *gin.Context) {
 // @Router /resumes/download/{resume_id} [get]
 func (h *ResumeHandler) DownloadResumeByResumeId(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.log.InfoWithID(ctx, "[Handler: DownloadResumeByResumeId] Called")
 
 	resumeId := c.Param("resume_id")
 	if resumeId == "" {

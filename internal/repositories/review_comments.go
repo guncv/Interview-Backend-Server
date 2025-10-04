@@ -26,7 +26,6 @@ func NewReviewCommentRepository(l *log.Logger, db db.Store) ReviewCommentReposit
 }
 
 func (r *reviewCommentRepository) CreateReviewComment(ctx context.Context, req *db.CreateReviewCommentParams) error {
-	r.log.InfoWithID(ctx, "[Repository: CreateReviewComment] Called")
 
 	rowAffected, err := r.db.CreateReviewComment(ctx, *req)
 	if err != nil {

@@ -29,7 +29,6 @@ func NewIssueReportsRepository(l *log.Logger, db db.Store) IssueReportsRepositor
 }
 
 func (r *issueReportsRepository) CreateUserIssueReport(ctx context.Context, req *db.CreateUserIssueReportParams) (*db.CreateUserIssueReportRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: CreateUserIssueReport] Called")
 
 	resp, err := r.db.CreateUserIssueReport(ctx, *req)
 	if err != nil {
@@ -41,7 +40,6 @@ func (r *issueReportsRepository) CreateUserIssueReport(ctx context.Context, req 
 }
 
 func (r *issueReportsRepository) GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (*db.GetUserIssueReportUserIDAndStatusByIDRow, error) {
-	r.log.InfoWithID(ctx, "[Repository: GetUserIssueReportUserIDAndStatusByID] Called")
 
 	resp, err := r.db.GetUserIssueReportUserIDAndStatusByID(ctx, id)
 	if err != nil {

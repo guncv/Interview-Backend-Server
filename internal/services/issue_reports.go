@@ -51,7 +51,6 @@ func NewIssueReportsService(
 }
 
 func (s *issueReportsService) CreateUserIssueReport(ctx context.Context, req *entities.CreateUserIssueReportReq) (*entities.UserIssueReport, error) {
-	s.log.InfoWithID(ctx, "[Service: CreateUserIssueReport] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {
@@ -112,7 +111,6 @@ func (s *issueReportsService) CreateUserIssueReport(ctx context.Context, req *en
 }
 
 func (s *issueReportsService) ListIssueCategories(ctx context.Context) (*entities.ListIssueCategoriesResp, error) {
-	s.log.InfoWithID(ctx, "[Service: ListIssueCategories] Called")
 
 	var issueCategories []entities.IssueCategory
 	redisData, err := s.redisClient.Get(ctx, constants.RedisPrefixIssueCategories)
@@ -171,7 +169,6 @@ func (s *issueReportsService) fetchIssueCategoriesFromDB(ctx context.Context) ([
 }
 
 func (s *issueReportsService) CreateAdminIssueCategory(ctx context.Context, req *entities.CreateAdminIssueCategoryReq) error {
-	s.log.InfoWithID(ctx, "[Service: CreateAdminIssueCategory] Called")
 
 	authCtx, err := s.authContext.GetAuthContext(ctx)
 	if err != nil {

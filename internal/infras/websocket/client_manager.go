@@ -22,14 +22,12 @@ func NewClientManager(log *log.Logger) *ClientManager {
 }
 
 func (m *ClientManager) SetClientBySessionID(ctx context.Context, sessionID string, client WebSocketClient) {
-	m.log.InfoWithID(ctx, "[ClientManager: SetClientBySessionID Called]:", sessionID)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.clients[sessionID] = client
 }
 
 func (m *ClientManager) GetClientBySessionID(ctx context.Context, sessionID string) (WebSocketClient, bool) {
-	m.log.InfoWithID(ctx, "[ClientManager: GetClientBySessionID] Called:", sessionID)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	client, ok := m.clients[sessionID]
@@ -37,14 +35,12 @@ func (m *ClientManager) GetClientBySessionID(ctx context.Context, sessionID stri
 }
 
 func (m *ClientManager) DeleteClientBySessionID(ctx context.Context, sessionID string) {
-	m.log.InfoWithID(ctx, "[ClientManager: DeleteClientBySessionID] Called:", sessionID)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.clients, sessionID)
 }
 
 func (m *ClientManager) CloseAllClients(ctx context.Context) {
-	m.log.InfoWithID(ctx, "[ClientManager: CloseAllClients] Called")
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, client := range m.clients {
