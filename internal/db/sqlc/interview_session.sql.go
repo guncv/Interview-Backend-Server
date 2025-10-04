@@ -123,16 +123,14 @@ func (q *Queries) DeleteUserInterviewSessionByID(ctx context.Context, arg Delete
 const endInterviewSession = `-- name: EndInterviewSession :execrows
 UPDATE interview_sessions
 SET status = $2,
-    ended_at = $3,
-    overall_score = $4,
-    summary_md = $5
+    overall_score = $3,
+    summary_md = $4
 WHERE id = $1
 `
 
 type EndInterviewSessionParams struct {
 	ID           uuid.UUID       `json:"id"`
 	Status       string          `json:"status"`
-	EndedAt      sql.NullTime    `json:"ended_at"`
 	OverallScore sql.NullFloat64 `json:"overall_score"`
 	SummaryMd    sql.NullString  `json:"summary_md"`
 }
@@ -141,7 +139,6 @@ func (q *Queries) EndInterviewSession(ctx context.Context, arg EndInterviewSessi
 	result, err := q.db.ExecContext(ctx, endInterviewSession,
 		arg.ID,
 		arg.Status,
-		arg.EndedAt,
 		arg.OverallScore,
 		arg.SummaryMd,
 	)
@@ -596,17 +593,18 @@ func (q *Queries) UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Contex
 
 const updateFinalizeStatusInterviewSessionByID = `-- name: UpdateFinalizeStatusInterviewSessionByID :execrows
 UPDATE interview_sessions
-SET finalize_status = $2
+SET finalize_status = $2::finalize_status_enum,
+    ended_at = CASE WHEN $2::finalize_status_enum != 'failed' THEN now() ELSE ended_at END
 WHERE id = $1
 `
 
 type UpdateFinalizeStatusInterviewSessionByIDParams struct {
-	ID             uuid.UUID              `json:"id"`
-	FinalizeStatus NullFinalizeStatusEnum `json:"finalize_status"`
+	ID      uuid.UUID          `json:"id"`
+	Column2 FinalizeStatusEnum `json:"column_2"`
 }
 
 func (q *Queries) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, arg UpdateFinalizeStatusInterviewSessionByIDParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateFinalizeStatusInterviewSessionByID, arg.ID, arg.FinalizeStatus)
+	result, err := q.db.ExecContext(ctx, updateFinalizeStatusInterviewSessionByID, arg.ID, arg.Column2)
 	if err != nil {
 		return 0, err
 	}

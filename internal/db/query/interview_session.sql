@@ -17,9 +17,8 @@ INSERT INTO interview_sessions (
 -- name: EndInterviewSession :execrows
 UPDATE interview_sessions
 SET status = $2,
-    ended_at = $3,
-    overall_score = $4,
-    summary_md = $5
+    overall_score = $3,
+    summary_md = $4
 WHERE id = $1;
 
 -- name: UpdateInterviewSessionStatus :execrows
@@ -187,7 +186,8 @@ WHERE id = $1;
 
 -- name: UpdateFinalizeStatusInterviewSessionByID :execrows
 UPDATE interview_sessions
-SET finalize_status = $2
+SET finalize_status = $2::finalize_status_enum,
+    ended_at = CASE WHEN $2::finalize_status_enum != 'failed' THEN now() ELSE ended_at END
 WHERE id = $1;
 
 -- name: GetInterviewSessionStatusByID :one

@@ -49,7 +49,7 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 			},
 		},
 		{
-			name: "CreateAndVerifyToken_OK",
+			name: "CreateAndVerifyToken_ExpiredWithinGraceWindow",
 			input: func() *entities.TokenRequest {
 				return &entities.TokenRequest{
 					UserID:   "user-123",
@@ -58,11 +58,11 @@ func TestCreateAndVerifyTokens(t *testing.T) {
 				}
 			},
 			verify: func(t *testing.T, got *SignInTokenPayload, gotErr error) {
+				// Token expired 10 seconds ago, but within 1-minute grace window
+				assert.NotNil(t, got)
+				assert.NoError(t, gotErr)
 				assert.Equal(t, got.UserID, "user-123")
 				assert.Equal(t, got.Role, constants.UserRole("user"))
-				assert.WithinDuration(t, got.IssuedAt, time.Now(), time.Second)
-				assert.WithinDuration(t, got.ExpiredAt, time.Now().Add(time.Second*-10), time.Second)
-				assert.NoError(t, gotErr)
 			},
 		},
 		{

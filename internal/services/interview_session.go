@@ -841,8 +841,6 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	endAt := time.Now().UTC()
-
 	evaluations, err := s.evaluationScoresRepo.GetAllEvaluationsBySessionID(ctx, sessionID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: EndInterviewSession] Error getting all evaluations by session ID", err)
@@ -889,7 +887,6 @@ func (s *interviewSessionService) EndInterviewSession(ctx context.Context, req *
 	dbReq := &db.EndInterviewSessionParams{
 		ID:           sessionID,
 		Status:       req.Status,
-		EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 		OverallScore: sql.NullFloat64{Float64: math.Round(overallScore*100) / 100, Valid: true},
 		SummaryMd:    sql.NullString{String: overallSummaryMd, Valid: true},
 	}
@@ -980,14 +977,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 		sessions = make([]entities.InterviewSessionSummary, 0, len(dbResp))
 		for _, row := range dbResp {
 			session := entities.InterviewSessionSummary{
-				ID:               row.ID.String(),
-				ResumeID:         row.ResumeID.String(),
-				ResumeFileName:   row.ResumeFileName,
-				Position:         row.Position,
-				Status:           row.Status,
-				StatusColor:      utils.GetStatusColor(row.Status),
-				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
-				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+				ID:             row.ID.String(),
+				ResumeID:       row.ResumeID.String(),
+				ResumeFileName: row.ResumeFileName,
+				Position:       row.Position,
+				Status:         row.Status,
+				StatusColor:    utils.GetStatusColor(row.Status),
+				CreatedAt:      utils.FormatNullableTimeToUTCString(row.CreatedAt),
 			}
 
 			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
@@ -1037,14 +1033,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithCursor(ctx co
 			}
 
 			session := entities.InterviewSessionSummary{
-				ID:               row.ID.String(),
-				ResumeID:         row.ResumeID.String(),
-				ResumeFileName:   row.ResumeFileName,
-				Position:         row.Position,
-				Status:           row.Status,
-				StatusColor:      utils.GetStatusColor(row.Status),
-				CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
-				CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
+				ID:             row.ID.String(),
+				ResumeID:       row.ResumeID.String(),
+				ResumeFileName: row.ResumeFileName,
+				Position:       row.Position,
+				Status:         row.Status,
+				StatusColor:    utils.GetStatusColor(row.Status),
+				CreatedAt:      utils.FormatNullableTimeToUTCString(row.CreatedAt),
 			}
 
 			overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
@@ -1146,14 +1141,13 @@ func (s *interviewSessionService) ListInterviewSessionsByUserIDWithJumpPaginatio
 	sessions := make([]entities.InterviewSessionSummary, 0, len(dbResp))
 	for _, row := range dbResp {
 		session := entities.InterviewSessionSummary{
-			ID:               row.ID.String(),
-			ResumeID:         row.ResumeID.String(),
-			ResumeFileName:   row.ResumeFileName,
-			Position:         row.Position,
-			Status:           row.Status,
-			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
-			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
-			StatusColor:      utils.GetStatusColor(row.Status),
+			ID:             row.ID.String(),
+			ResumeID:       row.ResumeID.String(),
+			ResumeFileName: row.ResumeFileName,
+			Position:       row.Position,
+			Status:         row.Status,
+			CreatedAt:      utils.FormatNullableTimeToUTCString(row.CreatedAt),
+			StatusColor:    utils.GetStatusColor(row.Status),
 		}
 
 		overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
@@ -1217,29 +1211,30 @@ func (s *interviewSessionService) ListFinalizingInterviewSessionByUserID(ctx con
 		return nil, err
 	}
 
-	sessions := make([]entities.InterviewSessionSummary, 0, len(dbResp))
+	sessions := make([]entities.FinalizingInterviewSessionSummary, 0, len(dbResp))
 	for _, row := range dbResp {
-		session := entities.InterviewSessionSummary{
-			ID:               row.ID.String(),
-			ResumeID:         row.ResumeID.String(),
-			ResumeFileName:   row.ResumeFileName,
-			Position:         row.Position,
-			Status:           row.Status,
-			TotalTime:        utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time),
-			CreatedAt:        utils.FormatNullableTimeToUTCString(row.CreatedAt),
-			CreatedAtDisplay: utils.FormatNullableTimeToBangkokString(row.CreatedAt),
-			StatusColor:      utils.GetStatusColor(row.Status),
+		session := entities.FinalizingInterviewSessionSummary{
+			ID:             row.ID.String(),
+			ResumeID:       row.ResumeID.String(),
+			ResumeFileName: row.ResumeFileName,
+			Position:       row.Position,
+			Status:         row.Status,
+			CreatedAt:      utils.FormatNullableTimeToUTCString(row.CreatedAt),
+			StatusColor:    utils.GetStatusColor(row.Status),
 		}
 
-		overallScore := utils.GetNullableFloat64(row.OverallScore, 0.00)
-		session.OverallScore = overallScore
-		session.OverallScoreColor = utils.GetScoreColor(overallScore)
+		if row.StartedAt.Valid && row.EndedAt.Valid {
+			session.TotalTime = utils.FormatDurationToMinutesSeconds(row.StartedAt.Time, row.EndedAt.Time)
+		} else {
+			session.TotalTime = "0.00"
+		}
 
 		sessions = append(sessions, session)
 	}
 
 	return &entities.ListFinalizingInterviewSessionByUserIDResp{
-		Sessions: sessions,
+		Sessions:   sessions,
+		TotalCount: len(sessions),
 	}, nil
 }
 
