@@ -71,8 +71,8 @@ networks:
     external: true
 
 volumes:
-  postgres_uat_data:
+  postgres_data:
     driver: local
-  redis_uat_data:
+  redis_data:
     driver: local
 
