@@ -1,2 +1,3 @@
 /config/config.local.yaml
 /config/config.dev.yaml
+/config/config.uat.yaml
