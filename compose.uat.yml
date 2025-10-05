@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:12-alpine
-    container_name: interview-db-uat
+    container_name: interview-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
@@ -12,7 +12,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_uat_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - interview-network
     healthcheck:
@@ -23,13 +23,13 @@ services:
 
   redis_server:
     image: redis:alpine
-    container_name: interview-redis-uat
+    container_name: interview-redis
     restart: unless-stopped
     ports:
       - "6380:6379"
     command: redis-server --appendonly yes --maxmemory-policy allkeys-lru
     volumes:
-      - redis_uat_data:/data
+      - redis_data:/data
     networks:
       - interview-network
     healthcheck:
@@ -39,7 +39,7 @@ services:
       retries: 5
 
   interview-backend-server:
-    container_name: interview-backend-server-uat
+    container_name: interview-backend-server
     build:
       context: .
       dockerfile: Dockerfile.uat
