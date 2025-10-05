@@ -1,31 +1,57 @@
-# Version control
-.git
-.gitignore
-.gitlab-ci.yml
-
-# Environment and secrets
-.env
-*.env
-.env.*
-
-# Development tools
-!.air.toml
-.idea
-.vscode
-__debug_bin
-tmp
-
 # Test files
 *_test.go
-coverage.*
+**/*_test.go
+
+# Test directories
+test/
+tests/
+**/test/
+**/tests/
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (unless needed)
+README.md
+docs/
+*.md
 
 # Build artifacts
-bin/
-dist/
+main
+server
+*.exe
+*.dll
+*.so
+*.dylib
 
-# OS specific
-.DS_Store
-*.swp
+# Logs
+*.log
+logs/
 
-# Go specific
-vendor/
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage files
+*.out
+coverage/
