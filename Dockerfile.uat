@@ -26,6 +26,8 @@ WORKDIR /app
 COPY --from=builder /app/migrate ./migrate
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/internal ./internal
+COPY --from=builder /app/docs ./docs
 COPY migration.sh .
 
 RUN chmod +x /app/migration.sh
