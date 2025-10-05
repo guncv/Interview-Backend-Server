@@ -530,11 +530,8 @@ func (s *evaluationService) UpdateFinalizeStatusSessionEvaluation(ctx context.Co
 	}
 
 	dbReq := &db.UpdateFinalizeStatusInterviewSessionByIDParams{
-		ID: sessionID,
-		FinalizeStatus: db.NullFinalizeStatusEnum{
-			FinalizeStatusEnum: finalizeStatus,
-			Valid:              true,
-		},
+		ID:      sessionID,
+		Column2: finalizeStatus,
 	}
 
 	if err := s.interviewSessionsRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {

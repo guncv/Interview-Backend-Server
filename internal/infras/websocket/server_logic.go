@@ -55,6 +55,23 @@ func NewWebSocketServerLogic(
 	}
 }
 
+func (s *WebSocketServerLogic) updateFinalizeStatusInterviewSessionByID(ctx context.Context, client *Client) error {
+
+	req := &entities.UpdateFinalizeStatusInterviewSessionByIDReq{
+		SessionID:      client.SessionID,
+		FinalizeStatus: "ongoing",
+	}
+
+	err := s.interviewSessionService.UpdateFinalizeStatusInterviewSessionByID(ctx, req)
+
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: updateFinalizeStatusInterviewSessionByID] Error updating finalize status interview session", err)
+		return err
+	}
+
+	return nil
+}
+
 func (s *WebSocketServerLogic) getInterviewSessionState(ctx context.Context, client *Client) (*entities.GetInterviewSessionStateResp, error) {
 
 	resp, err := s.interviewSessionService.GetInterviewSessionState(ctx, client.SessionID)
@@ -149,9 +166,6 @@ func (s *WebSocketServerLogic) SendMessageTypeSegmentStart(ctx context.Context, 
 	}
 
 	segmentMapping := s.generator.GenerateUUID(ctx).String()
-
-	client.PreviousSegmentID = client.CurrentSegmentID
-	client.PreviousSegmentExpiredAt = time.Now().Add(constants.WebSocketPreviousSegmentExpiredDuration)
 
 	client.CurrentSegmentID = segmentMapping
 	if err := s.createSegmentMapping(ctx, m.SegmentID, segmentMapping); err != nil {

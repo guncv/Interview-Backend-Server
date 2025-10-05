@@ -125,7 +125,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 	ctx := context.Background()
 	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 	updateStatus := "active"
-	endAt := time.Date(2025, 9, 4, 18, 35, 49, 777972000, time.FixedZone("UTC+7", 7*3600))
 
 	testCases := []struct {
 		name   string
@@ -138,7 +137,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 			input: &db.EndInterviewSessionParams{
 				ID:           updateID,
 				Status:       updateStatus,
-				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
@@ -149,7 +147,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 					EndInterviewSession(ctx, db.EndInterviewSessionParams{
 						ID:           updateID,
 						Status:       updateStatus,
-						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
@@ -166,7 +163,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 			input: &db.EndInterviewSessionParams{
 				ID:           updateID,
 				Status:       updateStatus,
-				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
@@ -177,7 +173,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 					EndInterviewSession(ctx, db.EndInterviewSessionParams{
 						ID:           updateID,
 						Status:       updateStatus,
-						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
@@ -194,7 +189,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 			input: &db.EndInterviewSessionParams{
 				ID:           updateID,
 				Status:       updateStatus,
-				EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 				OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 				SummaryMd:    sql.NullString{String: "summary", Valid: true},
 			},
@@ -205,7 +199,6 @@ func TestInterviewSessionRepository_EndInterviewSession(t *testing.T) {
 					EndInterviewSession(ctx, db.EndInterviewSessionParams{
 						ID:           updateID,
 						Status:       updateStatus,
-						EndedAt:      sql.NullTime{Time: endAt, Valid: true},
 						OverallScore: sql.NullFloat64{Float64: 100, Valid: true},
 						SummaryMd:    sql.NullString{String: "summary", Valid: true},
 					}).
@@ -949,11 +942,8 @@ func TestInterviewSessionRepository_UpdateFinalizeStatusInterviewSessionByID(t *
 	ctx := context.Background()
 	updateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 	finalizeReq := db.UpdateFinalizeStatusInterviewSessionByIDParams{
-		ID: updateID,
-		FinalizeStatus: db.NullFinalizeStatusEnum{
-			FinalizeStatusEnum: db.FinalizeStatusEnumFinalizing,
-			Valid:              true,
-		},
+		ID:      updateID,
+		Column2: db.FinalizeStatusEnumFinalizing,
 	}
 
 	testCases := []struct {

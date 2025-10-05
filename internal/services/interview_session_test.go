@@ -4009,7 +4009,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 					}, nil)
 
 				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
-					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
 				})).
 					Return(nil)
 
@@ -4038,7 +4038,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 					Return([]db.GetAllEvaluationsBySessionIDRow{}, nil)
 
 				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
-					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 0.00 && req.SummaryMd.String == constants.BlankOverallSummaryMd
+					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.OverallScore.Valid && req.OverallScore.Float64 == 0.00 && req.SummaryMd.String == constants.BlankOverallSummaryMd
 				})).
 					Return(nil)
 
@@ -4216,7 +4216,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 					}, nil)
 
 				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
-					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
 				})).
 					Return(errors.New("end interview session error"))
 
@@ -4258,7 +4258,7 @@ func TestInterviewSessionService_EndInterviewSessionsByUserID(t *testing.T) {
 					}, nil)
 
 				mockInterviewSessionRepo.EXPECT().EndInterviewSession(ctx, mock.MatchedBy(func(req *db.EndInterviewSessionParams) bool {
-					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.EndedAt.Valid && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
+					return req.ID == sessionID && req.Status == constants.StatusCompleted && req.OverallScore.Valid && req.OverallScore.Float64 == 3.00 && req.SummaryMd.String == "summary overall"
 				})).
 					Return(nil)
 
@@ -5646,8 +5646,7 @@ func TestInterviewSessionService_ListFinalizingInterviewSessionByUserID(t *testi
 				assert.Equal(t, "test-resume.pdf", gotResp.Sessions[0].ResumeFileName)
 				assert.Equal(t, "Software Engineer", gotResp.Sessions[0].Position)
 				assert.Equal(t, "completed", gotResp.Sessions[0].Status)
-				assert.Equal(t, 85.5, gotResp.Sessions[0].OverallScore)
-				assert.Equal(t, "30.00", gotResp.Sessions[0].TotalTime)
+				assert.Equal(t, 1, gotResp.TotalCount)
 			},
 		},
 		{

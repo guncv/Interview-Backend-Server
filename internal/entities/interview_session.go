@@ -206,7 +206,19 @@ type ListInterviewSessionsByUserIDWithJumpPaginationReq struct {
 }
 
 type ListFinalizingInterviewSessionByUserIDResp struct {
-	Sessions []InterviewSessionSummary `json:"sessions"`
+	Sessions   []FinalizingInterviewSessionSummary `json:"sessions"`
+	TotalCount int                                 `json:"total_count"`
+}
+
+type FinalizingInterviewSessionSummary struct {
+	ID             string `json:"id"`
+	ResumeID       string `json:"resume_id"`
+	ResumeFileName string `json:"resume_file_name"`
+	Position       string `json:"position"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"created_at"`
+	StatusColor    string `json:"status_color"`
+	TotalTime      string `json:"total_time"`
 }
 
 type Cursor struct {
@@ -233,7 +245,6 @@ type InterviewSessionSummary struct {
 	OverallScore      float64 `json:"overall_score"`
 	OverallScoreColor string  `json:"overall_score_color"`
 	CreatedAt         string  `json:"created_at"`
-	CreatedAtDisplay  string  `json:"created_at_display"`
 }
 
 type GetChatHistoryBySessionIDWithEvaluationReq struct {
@@ -272,6 +283,11 @@ type CriteriaScore struct {
 	Score         string `json:"score"`
 	ScoreColor    string `json:"score_color"`
 	CommentMd     string `json:"comment_md"`
+}
+
+type UpdateFinalizeStatusInterviewSessionByIDReq struct {
+	SessionID      string `json:"session_id" binding:"required"`
+	FinalizeStatus string `json:"finalize_status" binding:"required"`
 }
 
 type InitialFirstCurrentStateSessionReq struct {

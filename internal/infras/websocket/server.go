@@ -24,28 +24,26 @@ import (
 )
 
 type Client struct {
-	conn                     *websocket.Conn
-	mu                       sync.Mutex
-	userID                   string
-	SessionID                string
-	resumeID                 string
-	CurrentSegmentID         string
-	LastTurnID               string
-	PreviousSegmentID        string
-	PreviousSegmentExpiredAt time.Time
-	StartSessionTime         time.Time
-	lastPongTime             time.Time
-	lastActivityTime         time.Time
-	inactivityWarningSent    bool
-	isStartedConversation    bool
-	pongReceived             chan struct{}
-	connected                bool
-	cancelFunc               context.CancelFunc
-	currentState             string
-	currentStateID           string
-	disconnecting            bool
-	isCompleted              bool
-	isFinalized              bool
+	conn                  *websocket.Conn
+	mu                    sync.Mutex
+	userID                string
+	SessionID             string
+	resumeID              string
+	CurrentSegmentID      string
+	LastTurnID            string
+	StartSessionTime      time.Time
+	lastPongTime          time.Time
+	lastActivityTime      time.Time
+	inactivityWarningSent bool
+	isStartedConversation bool
+	pongReceived          chan struct{}
+	connected             bool
+	cancelFunc            context.CancelFunc
+	currentState          string
+	currentStateID        string
+	disconnecting         bool
+	isCompleted           bool
+	isFinalized           bool
 }
 
 type WebSocketServerInterface interface {
@@ -143,26 +141,24 @@ func (s *webSocketServer) HandleConnection(
 	}
 
 	client := &Client{
-		conn:                     conn,
-		userID:                   session.UserID,
-		SessionID:                session.SessionID,
-		resumeID:                 session.ResumeID,
-		CurrentSegmentID:         "",
-		LastTurnID:               "",
-		PreviousSegmentID:        "",
-		PreviousSegmentExpiredAt: time.Now(),
-		StartSessionTime:         time.Now(),
-		lastPongTime:             time.Now(),
-		lastActivityTime:         time.Now(),
-		inactivityWarningSent:    false,
-		pongReceived:             make(chan struct{}, 1),
-		connected:                true,
-		isStartedConversation:    false,
-		currentState:             "",
-		currentStateID:           "",
-		isCompleted:              false,
-		isFinalized:              false,
-		disconnecting:            false,
+		conn:                  conn,
+		userID:                session.UserID,
+		SessionID:             session.SessionID,
+		resumeID:              session.ResumeID,
+		CurrentSegmentID:      "",
+		LastTurnID:            "",
+		StartSessionTime:      time.Now(),
+		lastPongTime:          time.Now(),
+		lastActivityTime:      time.Now(),
+		inactivityWarningSent: false,
+		pongReceived:          make(chan struct{}, 1),
+		connected:             true,
+		isStartedConversation: false,
+		currentState:          "",
+		currentStateID:        "",
+		isCompleted:           false,
+		isFinalized:           false,
+		disconnecting:         false,
 	}
 
 	// client.conn.SetPongHandler(func(string) error {
@@ -224,6 +220,13 @@ func (s *webSocketServer) HandleConnection(
 	client.currentState = resp.CurrentState
 	client.currentStateID = resp.CurrentStateID
 	client.isFinalized = resp.IsFinalized
+
+	err = s.logic.updateFinalizeStatusInterviewSessionByID(ctx, client)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error updating finalize status interview session", err)
+		s.Disconnect(ctx, client)
+		return nil
+	}
 
 	if err := s.initClient(ctx, client, resp.Position, resp.BiasPrompt); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client - AI agent connection failed", err)

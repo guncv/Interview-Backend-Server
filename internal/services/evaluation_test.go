@@ -2239,7 +2239,7 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalized
+							req.Column2 == db.FinalizeStatusEnumFinalized
 					})).
 					Return(nil)
 
@@ -2281,7 +2281,7 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFailed
+							req.Column2 == db.FinalizeStatusEnumFailed
 					})).
 					Return(nil)
 
@@ -2315,7 +2315,7 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFailed
+							req.Column2 == db.FinalizeStatusEnumFailed
 					})).
 					Return(nil)
 
@@ -2344,7 +2344,7 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalized
+							req.Column2 == db.FinalizeStatusEnumFinalized
 					})).
 					Return(nil)
 
@@ -2393,14 +2393,14 @@ func TestEvaluationService_FinalizeSessionPhraseEvaluation(t *testing.T) {
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFinalized
+							req.Column2 == db.FinalizeStatusEnumFinalized
 					})).
 					Return(errors.New("database error"))
 
 				mockInterviewSessionsRepo.EXPECT().
 					UpdateFinalizeStatusInterviewSessionByID(ctx, mock.MatchedBy(func(req *db.UpdateFinalizeStatusInterviewSessionByIDParams) bool {
 						return req.ID == uuid.MustParse(validSessionID) &&
-							req.FinalizeStatus.FinalizeStatusEnum == db.FinalizeStatusEnumFailed
+							req.Column2 == db.FinalizeStatusEnumFailed
 					})).
 					Return(nil)
 

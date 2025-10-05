@@ -1860,20 +1860,17 @@ func TestInterviewSessionHandler_ListFinalizingInterviewSessionByUserID(t *testi
 	ctx := context.Background()
 
 	validResp := &entities.ListFinalizingInterviewSessionByUserIDResp{
-		Sessions: []entities.InterviewSessionSummary{
+		Sessions: []entities.FinalizingInterviewSessionSummary{
 			{
-				ID:                uuid.New().String(),
-				ResumeFileName:    "resume.pdf",
-				Position:          "position",
-				Status:            "status",
-				CreatedAt:         time.Now().Format(time.RFC3339),
-				TotalTime:         "10:00",
-				OverallScore:      85.5,
-				OverallScoreColor: "green",
-				CreatedAtDisplay:  time.Now().Format(time.RFC3339),
-				StatusColor:       "green",
+				ID:             uuid.New().String(),
+				ResumeFileName: "resume.pdf",
+				Position:       "position",
+				Status:         "status",
+				CreatedAt:      "2023-01-01T00:00:00Z",
+				StatusColor:    "green",
 			},
 		},
+		TotalCount: 1,
 	}
 
 	tests := []struct {

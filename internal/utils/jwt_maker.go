@@ -163,7 +163,7 @@ func (maker *jwtToken) validateClaims(ctx context.Context, targetClaims jwt.Clai
 				graceWindow = time.Minute
 			}
 
-			if time.Since(expiredAt) < graceWindow {
+			if time.Since(expiredAt) > graceWindow {
 				maker.logger.ErrorWithID(ctx, "[Utils: JWT] Expired token outside grace window",
 					"error", constants.ErrExpiredToken, "expiredAt", expiredAt, "graceWindow", graceWindow)
 				return app_error.New(constants.ErrExpiredToken, app_error.ErrCodeAuthExpiredToken)
