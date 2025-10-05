@@ -46,7 +46,7 @@ services:
       target: uat
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "8080:8080"
     networks:
       - interview-network
     depends_on:
