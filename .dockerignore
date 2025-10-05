@@ -32,7 +32,6 @@ Thumbs.db
 
 # Documentation (unless needed)
 README.md
-docs/
 *.md
 
 # Build artifacts
