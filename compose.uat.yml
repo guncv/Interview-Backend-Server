@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:12-alpine
+    container_name: interview-db-uat
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: ${UAT_DB_PASSWORD:-password}
+      POSTGRES_DB: interview
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_uat_data:/var/lib/postgresql/data
+    networks:
+      - interview-network-uat
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d interview"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis_server:
+    image: redis:alpine
+    container_name: interview-redis-uat
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_uat_data:/data
+    networks:
+      - interview-network-uat
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  interview-backend-server:
+    container_name: interview-backend-server-uat
+    build:
+      context: .
+      dockerfile: Dockerfile.uat
+      target: uat
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    networks:
+      - interview-network-uat
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis_server:
+        condition: service_healthy
+    environment:
+      ENV: uat
+      DB_SOURCE: postgresql://user:${UAT_DB_PASSWORD:-password}@postgres:5432/interview?sslmode=disable
+    entrypoint: ["/app/migration.sh", "postgres:5432", "--"]
+    command: ["/app/main"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  interview-network-uat:
+    driver: bridge
+
+volumes:
+  postgres_uat_data:
+    driver: local
+  redis_uat_data:
+    driver: local
+

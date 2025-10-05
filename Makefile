@@ -1,4 +1,5 @@
 dc = docker compose -f compose.dev.yml
+dc-uat = docker compose -f compose.uat.yml
 
 .PHONY: run-dev down-dev build-dev clean-dev logs-dev restart-dev ps-dev migrate-up-dev migrate-down-dev rebuild-dev mock clean-mock test swagger-gen
 
@@ -8,8 +9,11 @@ info:
 run-dev:
 	$(dc) up
 
-down-dev:
-	$(dc) down
+run-uat:
+	$(dc-uat) up
+
+build-uat:
+	$(dc-uat) build
 
 build-dev:
 	$(dc) build
@@ -17,14 +21,8 @@ build-dev:
 clean-dev:
 	$(dc) down --rmi all --volumes --remove-orphans
 
-logs-dev:
-	$(dc) logs -f
-
-restart-dev:
-	$(dc) restart
-
-ps-dev:
-	$(dc) ps
+clean-uat:
+	$(dc-uat) down --rmi all --volumes --remove-orphans
 
 migrate-up-dev:
 	$(dc) exec interview-backend-server migrate -path ./internal/db/migration -database postgres://user:password@localhost:5432/interview?sslmode=disable up
@@ -36,6 +34,8 @@ sqlc:
 	sqlc generate
 
 rebuild-dev: clean-dev build-dev run-dev
+
+rebuild-uat: clean-uat build-uat run-uat
 
 mock-gen:
 	mockery --all
