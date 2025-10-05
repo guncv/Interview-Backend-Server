@@ -285,6 +285,11 @@ type CriteriaScore struct {
 	CommentMd     string `json:"comment_md"`
 }
 
+type UpdateFinalizeStatusInterviewSessionByIDReq struct {
+	SessionID      string `json:"session_id" binding:"required"`
+	FinalizeStatus string `json:"finalize_status" binding:"required"`
+}
+
 type InitialFirstCurrentStateSessionReq struct {
 	SessionID    string `json:"session_id" binding:"required"`
 	CurrentState string `json:"current_state" binding:"required"`

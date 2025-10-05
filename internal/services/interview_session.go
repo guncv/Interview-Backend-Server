@@ -53,6 +53,7 @@ type InterviewSessionService interface {
 	UpdateCurrentStateSessionAndLastTurnID(ctx context.Context, req *entities.UpdateCurrentStateSessionAndLastTurnIDReq) (*entities.UpdateCurrentStateSessionResp, error)
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, req *entities.GetLastUserTurnIDBySessionIDAndCurrentStateReq) (string, error)
 	UpdateSessionStatus(ctx context.Context, sessionIDReq string, status string) error
+	UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *entities.UpdateFinalizeStatusInterviewSessionByIDReq) error
 }
 
 type interviewSessionService struct {
@@ -1615,6 +1616,27 @@ func (s *interviewSessionService) UpdateSessionStatus(ctx context.Context, sessi
 
 	if err := s.interviewSessionRepo.UpdateSessionStatus(ctx, dbReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: UpdateSessionStatus] Error updating interview session is timed out", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *interviewSessionService) UpdateFinalizeStatusInterviewSessionByID(ctx context.Context, req *entities.UpdateFinalizeStatusInterviewSessionByIDReq) error {
+
+	sessionID, err := uuid.Parse(req.SessionID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusInterviewSessionByID] Invalid session ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	dbReq := &db.UpdateFinalizeStatusInterviewSessionByIDParams{
+		ID:      sessionID,
+		Column2: db.FinalizeStatusEnum(req.FinalizeStatus),
+	}
+
+	if err := s.interviewSessionRepo.UpdateFinalizeStatusInterviewSessionByID(ctx, dbReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: UpdateFinalizeStatusInterviewSessionByID] Error updating finalize status interview session", err)
 		return err
 	}
 
