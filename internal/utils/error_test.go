@@ -20,16 +20,12 @@ func TestRespondWithError_AppError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rr)
 
-	// Create a test app error
 	appErr := app_error.New(errors.New("test error"), app_error.ErrCodeAuthInvalidRequest)
 
-	// Test
 	RespondWithError(c, appErr)
 
-	// Assertions
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-	// Parse the response body
 	var response app_error.AppError
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	require.NoError(t, err)
@@ -47,16 +43,12 @@ func TestRespondWithError_SingleValidationError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rr)
 
-	// Create a single validation error
 	validationErr := errors.New("Field validation for 'Email' failed on the 'required' tag")
 
-	// Test
 	RespondWithError(c, validationErr)
 
-	// Assertions
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-	// Parse the response body
 	var response app_error.AppError
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	require.NoError(t, err)
@@ -70,20 +62,15 @@ func TestRespondWithError_GenericError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rr)
 
-	// Create a generic error
 	genericErr := errors.New("database connection failed")
 
-	// Test
 	RespondWithError(c, genericErr)
 
-	// Assertions
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
-	// The response should contain the error message
 	body := rr.Body.String()
 	assert.Contains(t, body, "database connection failed")
 
-	// Parse the response body to verify structure
 	var response map[string]string
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	require.NoError(t, err)
@@ -108,16 +95,12 @@ func TestRespondWithError_EmptyValidationErrors(t *testing.T) {
 	rr := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rr)
 
-	// Create empty validation errors
 	validationErr := validator.ValidationErrors{}
 
-	// Test
 	RespondWithError(c, validationErr)
 
-	// Assertions
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-	// Parse the response body
 	var response app_error.AppError
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	require.NoError(t, err)

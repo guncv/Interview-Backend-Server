@@ -1,52 +1,36 @@
--- name: CreateUser :one
+-- name: CreateUserWithProvider :exec
 INSERT INTO users (
     id,
     email,
-    password_hash,
     full_name,
-    country,
-    gender,
-    date_of_birth
+    profile_image,
+    provider,
+    provider_id,
+    is_admin,
+    is_suspended,
+    last_login_at,
+    last_login_ip,
+    last_login_user_agent,
+    locale
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-)
-RETURNING *;
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+);
 
--- name: UpdateUser :one
-UPDATE users
-SET email = $2,
-    password_hash = $3,
-    full_name = $4,
-    country = $5,
-    gender = $6,
-    date_of_birth = $7
-WHERE id = $1
-RETURNING *;
-
--- name: CheckIsEmailExists :one
+-- name: GetUserByProviderID :one
 SELECT * FROM users
-WHERE email = $1;
+WHERE provider_id = $1 AND provider = $2
+LIMIT 1;
 
--- name: CheckIsUserExistsByID :one
-SELECT * FROM users
-WHERE id = $1;
+-- name: CheckUserExistsByProviderID :one
+SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE provider_id = $1 AND provider = $2
+);
 
--- name: VerifyEmail :execrows
+-- name: UpdateUserLoginInfo :exec
 UPDATE users
-SET is_email_verified = true,
-    updated_at = now()
-WHERE id = $1;
-
--- name: SignInUserByEmailAndPassword :execrows
-UPDATE users
-SET last_login_at = $2,
-    last_login_ip = $3,
-    last_login_user_agent = $4,
-    updated_at = $5
-WHERE email = $1;
-
--- name: ResetUserPassword :execrows
-UPDATE users
-SET password_hash = $2,
-    updated_at = $3
+SET last_login_at = NOW(),
+    last_login_ip = $2,
+    last_login_user_agent = $3,
+    locale = $4
 WHERE id = $1;

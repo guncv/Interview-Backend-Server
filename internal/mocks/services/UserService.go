@@ -22,49 +22,236 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
-// ForgotPassword provides a mock function with given fields: ctx, req
-func (_m *MockUserService) ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error {
-	ret := _m.Called(ctx, req)
+// GetFacebookAuthURL provides a mock function with given fields: ctx
+func (_m *MockUserService) GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error) {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ForgotPassword")
+		panic("no return value specified for GetFacebookAuthURL")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.ForgotPasswordRequest) error); ok {
-		r0 = rf(ctx, req)
+	var r0 *entities.FacebookAuthURLResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (*entities.FacebookAuthURLResponse, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) *entities.FacebookAuthURLResponse); ok {
+		r0 = rf(ctx)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.FacebookAuthURLResponse)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
-// MockUserService_ForgotPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForgotPassword'
-type MockUserService_ForgotPassword_Call struct {
+// MockUserService_GetFacebookAuthURL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFacebookAuthURL'
+type MockUserService_GetFacebookAuthURL_Call struct {
 	*mock.Call
 }
 
-// ForgotPassword is a helper method to define mock.On call
+// GetFacebookAuthURL is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req *entities.ForgotPasswordRequest
-func (_e *MockUserService_Expecter) ForgotPassword(ctx interface{}, req interface{}) *MockUserService_ForgotPassword_Call {
-	return &MockUserService_ForgotPassword_Call{Call: _e.mock.On("ForgotPassword", ctx, req)}
+func (_e *MockUserService_Expecter) GetFacebookAuthURL(ctx interface{}) *MockUserService_GetFacebookAuthURL_Call {
+	return &MockUserService_GetFacebookAuthURL_Call{Call: _e.mock.On("GetFacebookAuthURL", ctx)}
 }
 
-func (_c *MockUserService_ForgotPassword_Call) Run(run func(ctx context.Context, req *entities.ForgotPasswordRequest)) *MockUserService_ForgotPassword_Call {
+func (_c *MockUserService_GetFacebookAuthURL_Call) Run(run func(ctx context.Context)) *MockUserService_GetFacebookAuthURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.ForgotPasswordRequest))
+		run(args[0].(context.Context))
 	})
 	return _c
 }
 
-func (_c *MockUserService_ForgotPassword_Call) Return(_a0 error) *MockUserService_ForgotPassword_Call {
-	_c.Call.Return(_a0)
+func (_c *MockUserService_GetFacebookAuthURL_Call) Return(_a0 *entities.FacebookAuthURLResponse, _a1 error) *MockUserService_GetFacebookAuthURL_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockUserService_ForgotPassword_Call) RunAndReturn(run func(context.Context, *entities.ForgotPasswordRequest) error) *MockUserService_ForgotPassword_Call {
+func (_c *MockUserService_GetFacebookAuthURL_Call) RunAndReturn(run func(context.Context) (*entities.FacebookAuthURLResponse, error)) *MockUserService_GetFacebookAuthURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGoogleAuthURL provides a mock function with given fields: ctx
+func (_m *MockUserService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGoogleAuthURL")
+	}
+
+	var r0 *entities.GoogleAuthURLResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (*entities.GoogleAuthURLResponse, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) *entities.GoogleAuthURLResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GoogleAuthURLResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_GetGoogleAuthURL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGoogleAuthURL'
+type MockUserService_GetGoogleAuthURL_Call struct {
+	*mock.Call
+}
+
+// GetGoogleAuthURL is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockUserService_Expecter) GetGoogleAuthURL(ctx interface{}) *MockUserService_GetGoogleAuthURL_Call {
+	return &MockUserService_GetGoogleAuthURL_Call{Call: _e.mock.On("GetGoogleAuthURL", ctx)}
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) Run(run func(ctx context.Context)) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) Return(_a0 *entities.GoogleAuthURLResponse, _a1 error) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) RunAndReturn(run func(context.Context) (*entities.GoogleAuthURLResponse, error)) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HandleFacebookCallback provides a mock function with given fields: ctx, req
+func (_m *MockUserService) HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HandleFacebookCallback")
+	}
+
+	var r0 *entities.HandleFacebookCallbackResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleFacebookCallbackReq) *entities.HandleFacebookCallbackResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.HandleFacebookCallbackResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.HandleFacebookCallbackReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_HandleFacebookCallback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HandleFacebookCallback'
+type MockUserService_HandleFacebookCallback_Call struct {
+	*mock.Call
+}
+
+// HandleFacebookCallback is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.HandleFacebookCallbackReq
+func (_e *MockUserService_Expecter) HandleFacebookCallback(ctx interface{}, req interface{}) *MockUserService_HandleFacebookCallback_Call {
+	return &MockUserService_HandleFacebookCallback_Call{Call: _e.mock.On("HandleFacebookCallback", ctx, req)}
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) Run(run func(ctx context.Context, req *entities.HandleFacebookCallbackReq)) *MockUserService_HandleFacebookCallback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.HandleFacebookCallbackReq))
+	})
+	return _c
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) Return(_a0 *entities.HandleFacebookCallbackResp, _a1 error) *MockUserService_HandleFacebookCallback_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) RunAndReturn(run func(context.Context, *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)) *MockUserService_HandleFacebookCallback_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HandleGoogleCallback provides a mock function with given fields: ctx, req
+func (_m *MockUserService) HandleGoogleCallback(ctx context.Context, req *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HandleGoogleCallback")
+	}
+
+	var r0 *entities.HandleGoogleCallbackResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleGoogleCallbackReq) *entities.HandleGoogleCallbackResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.HandleGoogleCallbackResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.HandleGoogleCallbackReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_HandleGoogleCallback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HandleGoogleCallback'
+type MockUserService_HandleGoogleCallback_Call struct {
+	*mock.Call
+}
+
+// HandleGoogleCallback is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.HandleGoogleCallbackReq
+func (_e *MockUserService_Expecter) HandleGoogleCallback(ctx interface{}, req interface{}) *MockUserService_HandleGoogleCallback_Call {
+	return &MockUserService_HandleGoogleCallback_Call{Call: _e.mock.On("HandleGoogleCallback", ctx, req)}
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) Run(run func(ctx context.Context, req *entities.HandleGoogleCallbackReq)) *MockUserService_HandleGoogleCallback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.HandleGoogleCallbackReq))
+	})
+	return _c
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) Return(_a0 *entities.HandleGoogleCallbackResp, _a1 error) *MockUserService_HandleGoogleCallback_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) RunAndReturn(run func(context.Context, *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)) *MockUserService_HandleGoogleCallback_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -125,277 +312,6 @@ func (_c *MockUserService_HealthCheck_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// ResetUserPassword provides a mock function with given fields: ctx, req
-func (_m *MockUserService) ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ResetUserPassword")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetUserPasswordRequest) error); ok {
-		r0 = rf(ctx, req)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockUserService_ResetUserPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetUserPassword'
-type MockUserService_ResetUserPassword_Call struct {
-	*mock.Call
-}
-
-// ResetUserPassword is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.ResetUserPasswordRequest
-func (_e *MockUserService_Expecter) ResetUserPassword(ctx interface{}, req interface{}) *MockUserService_ResetUserPassword_Call {
-	return &MockUserService_ResetUserPassword_Call{Call: _e.mock.On("ResetUserPassword", ctx, req)}
-}
-
-func (_c *MockUserService_ResetUserPassword_Call) Run(run func(ctx context.Context, req *entities.ResetUserPasswordRequest)) *MockUserService_ResetUserPassword_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.ResetUserPasswordRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_ResetUserPassword_Call) Return(_a0 error) *MockUserService_ResetUserPassword_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockUserService_ResetUserPassword_Call) RunAndReturn(run func(context.Context, *entities.ResetUserPasswordRequest) error) *MockUserService_ResetUserPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ResetVerifyEmailCode provides a mock function with given fields: ctx, req
-func (_m *MockUserService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ResetVerifyEmailCode")
-	}
-
-	var r0 *entities.ResetVerifyEmailCodeResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) *entities.ResetVerifyEmailCodeResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.ResetVerifyEmailCodeResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.ResetVerifyEmailCodeRequest) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockUserService_ResetVerifyEmailCode_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetVerifyEmailCode'
-type MockUserService_ResetVerifyEmailCode_Call struct {
-	*mock.Call
-}
-
-// ResetVerifyEmailCode is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.ResetVerifyEmailCodeRequest
-func (_e *MockUserService_Expecter) ResetVerifyEmailCode(ctx interface{}, req interface{}) *MockUserService_ResetVerifyEmailCode_Call {
-	return &MockUserService_ResetVerifyEmailCode_Call{Call: _e.mock.On("ResetVerifyEmailCode", ctx, req)}
-}
-
-func (_c *MockUserService_ResetVerifyEmailCode_Call) Run(run func(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest)) *MockUserService_ResetVerifyEmailCode_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.ResetVerifyEmailCodeRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_ResetVerifyEmailCode_Call) Return(_a0 *entities.ResetVerifyEmailCodeResponse, _a1 error) *MockUserService_ResetVerifyEmailCode_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockUserService_ResetVerifyEmailCode_Call) RunAndReturn(run func(context.Context, *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)) *MockUserService_ResetVerifyEmailCode_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SendVerifyEmail provides a mock function with given fields: ctx, req
-func (_m *MockUserService) SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SendVerifyEmail")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.VerifyEmailRequest) error); ok {
-		r0 = rf(ctx, req)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockUserService_SendVerifyEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendVerifyEmail'
-type MockUserService_SendVerifyEmail_Call struct {
-	*mock.Call
-}
-
-// SendVerifyEmail is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.VerifyEmailRequest
-func (_e *MockUserService_Expecter) SendVerifyEmail(ctx interface{}, req interface{}) *MockUserService_SendVerifyEmail_Call {
-	return &MockUserService_SendVerifyEmail_Call{Call: _e.mock.On("SendVerifyEmail", ctx, req)}
-}
-
-func (_c *MockUserService_SendVerifyEmail_Call) Run(run func(ctx context.Context, req *entities.VerifyEmailRequest)) *MockUserService_SendVerifyEmail_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.VerifyEmailRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_SendVerifyEmail_Call) Return(_a0 error) *MockUserService_SendVerifyEmail_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockUserService_SendVerifyEmail_Call) RunAndReturn(run func(context.Context, *entities.VerifyEmailRequest) error) *MockUserService_SendVerifyEmail_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SignInAdminByEmailAndPassword provides a mock function with given fields: ctx, req
-func (_m *MockUserService) SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SignInAdminByEmailAndPassword")
-	}
-
-	var r0 *entities.SignInByEmailAndPasswordResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) *entities.SignInByEmailAndPasswordResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.SignInByEmailAndPasswordResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockUserService_SignInAdminByEmailAndPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignInAdminByEmailAndPassword'
-type MockUserService_SignInAdminByEmailAndPassword_Call struct {
-	*mock.Call
-}
-
-// SignInAdminByEmailAndPassword is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.SignInByEmailAndPasswordRequest
-func (_e *MockUserService_Expecter) SignInAdminByEmailAndPassword(ctx interface{}, req interface{}) *MockUserService_SignInAdminByEmailAndPassword_Call {
-	return &MockUserService_SignInAdminByEmailAndPassword_Call{Call: _e.mock.On("SignInAdminByEmailAndPassword", ctx, req)}
-}
-
-func (_c *MockUserService_SignInAdminByEmailAndPassword_Call) Run(run func(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest)) *MockUserService_SignInAdminByEmailAndPassword_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.SignInByEmailAndPasswordRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_SignInAdminByEmailAndPassword_Call) Return(_a0 *entities.SignInByEmailAndPasswordResponse, _a1 error) *MockUserService_SignInAdminByEmailAndPassword_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockUserService_SignInAdminByEmailAndPassword_Call) RunAndReturn(run func(context.Context, *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)) *MockUserService_SignInAdminByEmailAndPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SignInUserByEmailAndPassword provides a mock function with given fields: ctx, req
-func (_m *MockUserService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SignInUserByEmailAndPassword")
-	}
-
-	var r0 *entities.SignInByEmailAndPasswordResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) *entities.SignInByEmailAndPasswordResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.SignInByEmailAndPasswordResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.SignInByEmailAndPasswordRequest) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockUserService_SignInUserByEmailAndPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignInUserByEmailAndPassword'
-type MockUserService_SignInUserByEmailAndPassword_Call struct {
-	*mock.Call
-}
-
-// SignInUserByEmailAndPassword is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.SignInByEmailAndPasswordRequest
-func (_e *MockUserService_Expecter) SignInUserByEmailAndPassword(ctx interface{}, req interface{}) *MockUserService_SignInUserByEmailAndPassword_Call {
-	return &MockUserService_SignInUserByEmailAndPassword_Call{Call: _e.mock.On("SignInUserByEmailAndPassword", ctx, req)}
-}
-
-func (_c *MockUserService_SignInUserByEmailAndPassword_Call) Run(run func(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest)) *MockUserService_SignInUserByEmailAndPassword_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.SignInByEmailAndPasswordRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_SignInUserByEmailAndPassword_Call) Return(_a0 *entities.SignInByEmailAndPasswordResponse, _a1 error) *MockUserService_SignInUserByEmailAndPassword_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockUserService_SignInUserByEmailAndPassword_Call) RunAndReturn(run func(context.Context, *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)) *MockUserService_SignInUserByEmailAndPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // SignOut provides a mock function with given fields: ctx
 func (_m *MockUserService) SignOut(ctx context.Context) error {
 	ret := _m.Called(ctx)
@@ -438,65 +354,6 @@ func (_c *MockUserService_SignOut_Call) Return(_a0 error) *MockUserService_SignO
 }
 
 func (_c *MockUserService_SignOut_Call) RunAndReturn(run func(context.Context) error) *MockUserService_SignOut_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SignUpUser provides a mock function with given fields: ctx, req
-func (_m *MockUserService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SignUpUser")
-	}
-
-	var r0 *entities.SignUpUserResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entities.SignUpUserRequest) *entities.SignUpUserResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*entities.SignUpUserResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *entities.SignUpUserRequest) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockUserService_SignUpUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SignUpUser'
-type MockUserService_SignUpUser_Call struct {
-	*mock.Call
-}
-
-// SignUpUser is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req *entities.SignUpUserRequest
-func (_e *MockUserService_Expecter) SignUpUser(ctx interface{}, req interface{}) *MockUserService_SignUpUser_Call {
-	return &MockUserService_SignUpUser_Call{Call: _e.mock.On("SignUpUser", ctx, req)}
-}
-
-func (_c *MockUserService_SignUpUser_Call) Run(run func(ctx context.Context, req *entities.SignUpUserRequest)) *MockUserService_SignUpUser_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entities.SignUpUserRequest))
-	})
-	return _c
-}
-
-func (_c *MockUserService_SignUpUser_Call) Return(_a0 *entities.SignUpUserResponse, _a1 error) *MockUserService_SignUpUser_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockUserService_SignUpUser_Call) RunAndReturn(run func(context.Context, *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)) *MockUserService_SignUpUser_Call {
 	_c.Call.Return(run)
 	return _c
 }

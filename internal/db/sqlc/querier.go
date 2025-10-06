@@ -15,8 +15,7 @@ import (
 type Querier interface {
 	CheckInterviewSessionExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
-	CheckIsEmailExists(ctx context.Context, email string) (Users, error)
-	CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error)
+	CheckUserExistsByProviderID(ctx context.Context, arg CheckUserExistsByProviderIDParams) (bool, error)
 	CountInterviewSessionsByUserID(ctx context.Context, arg CountInterviewSessionsByUserIDParams) (int64, error)
 	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
 	CreateAllPhraseRubricScores(ctx context.Context, arg CreateAllPhraseRubricScoresParams) error
@@ -28,12 +27,11 @@ type Querier interface {
 	CreateInterviewState(ctx context.Context, arg CreateInterviewStateParams) error
 	CreateInterviewTurn(ctx context.Context, arg CreateInterviewTurnParams) error
 	CreatePhraseEvaluation(ctx context.Context, arg CreatePhraseEvaluationParams) error
-	CreateResetToken(ctx context.Context, arg CreateResetTokenParams) error
 	CreateResume(ctx context.Context, arg CreateResumeParams) error
 	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) (int64, error)
-	CreateUser(ctx context.Context, arg CreateUserParams) (Users, error)
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
+	CreateUserWithProvider(ctx context.Context, arg CreateUserWithProviderParams) error
 	DeleteUserInterviewSessionByID(ctx context.Context, arg DeleteUserInterviewSessionByIDParams) (int64, error)
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error)
@@ -52,11 +50,11 @@ type Querier interface {
 	GetLastUserTurnIDBySessionIDAndCurrentState(ctx context.Context, arg GetLastUserTurnIDBySessionIDAndCurrentStateParams) (uuid.UUID, error)
 	GetMaxTurnNoBySessionID(ctx context.Context, sessionID uuid.UUID) (interface{}, error)
 	GetPhraseEvaluationsWithCriteriaBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetPhraseEvaluationsWithCriteriaBySessionIDRow, error)
-	GetResetToken(ctx context.Context, tokenHash string) (ResetTokens, error)
 	GetResumeByID(ctx context.Context, id uuid.UUID) (Resumes, error)
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error)
 	GetUnprocessedInterviewStatesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetUnprocessedInterviewStatesBySessionIDRow, error)
+	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (Users, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	IsLastUserStateTurnScored(ctx context.Context, arg IsLastUserStateTurnScoredParams) (sql.NullBool, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
@@ -68,10 +66,8 @@ type Querier interface {
 	ListIssueCategories(ctx context.Context) ([]ListIssueCategoriesRow, error)
 	ListResumeByUserIDFirstPage(ctx context.Context, userID uuid.UUID) ([]Resumes, error)
 	ListResumeByUserIDPaginated(ctx context.Context, arg ListResumeByUserIDPaginatedParams) ([]Resumes, error)
-	ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error)
 	RevokeAuthSessionByID(ctx context.Context, id uuid.UUID) error
 	SetDefaultResume(ctx context.Context, id uuid.UUID) error
-	SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error)
 	UnsetDefaultResume(ctx context.Context, id uuid.UUID) error
 	UpdateCurrentStateAndIDInterviewSessionByID(ctx context.Context, arg UpdateCurrentStateAndIDInterviewSessionByIDParams) (int64, error)
 	UpdateEndedAtInterviewStateByID(ctx context.Context, arg UpdateEndedAtInterviewStateByIDParams) (int64, error)
@@ -80,11 +76,9 @@ type Querier interface {
 	UpdateIsEvaluatedInterviewStateByID(ctx context.Context, arg UpdateIsEvaluatedInterviewStateByIDParams) (int64, error)
 	UpdateIsStartedConversationSession(ctx context.Context, arg UpdateIsStartedConversationSessionParams) (int64, error)
 	UpdateLastTurnIDInterviewStateByID(ctx context.Context, arg UpdateLastTurnIDInterviewStateByIDParams) (int64, error)
-	UpdateResetTokenUsed(ctx context.Context, arg UpdateResetTokenUsedParams) (int64, error)
 	UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (int64, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error)
-	UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error)
-	VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error)
+	UpdateUserLoginInfo(ctx context.Context, arg UpdateUserLoginInfoParams) error
 }
 
 var _ Querier = (*Queries)(nil)
