@@ -190,10 +190,30 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
 			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
 		}); err != nil {
-			s.log.WarnWithID(ctx, "[Google OAuth] Failed to update login info", err)
+			s.log.ErrorWithID(ctx, "[Google OAuth] Failed to update login info", err)
+			return nil, err
 		}
 	}
 
+	tokens, err := s.createTokensAndSession(ctx, dbUser, clientIP, userAgent, "[Google OAuth]")
+	if err != nil {
+		return nil, err
+	}
+
+	result := &entities.HandleGoogleCallbackResp{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+	}
+
+	return result, nil
+}
+
+type TokenResponse struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+func (s *userService) createTokensAndSession(ctx context.Context, dbUser db.Users, clientIP, userAgent, logPrefix string) (*TokenResponse, error) {
 	accessToken, _, err := s.jwtToken.CreateToken(ctx, &entities.TokenRequest{
 		UserID:   dbUser.ID.String(),
 		Role:     constants.UserRoleUser,
@@ -201,8 +221,8 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 	})
 
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to create access token", err)
-		return nil, fmt.Errorf("failed to create access token: %w", err)
+		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create access token", logPrefix), err)
+		return nil, err
 	}
 
 	refreshToken, refreshPayload, err := s.jwtToken.CreateToken(ctx, &entities.TokenRequest{
@@ -211,8 +231,8 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 		Duration: s.config.AuthConfig.RefreshTokenDuration,
 	})
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to create refresh token", err)
-		return nil, fmt.Errorf("failed to create refresh token: %w", err)
+		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create refresh token", logPrefix), err)
+		return nil, err
 	}
 
 	sessionID := refreshPayload.ID
@@ -229,16 +249,16 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 	}
 
 	if err := s.sessionRepo.CreateAuthSession(ctx, &createSessionParams); err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to create auth session", err)
+		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create auth session", logPrefix), err)
 		return nil, app_error.HandleDatabaseError(err)
 	}
 
-	result := &entities.HandleGoogleCallbackResp{
+	resp := &TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
 
-	return result, nil
+	return resp, nil
 }
 
 func (s *userService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
