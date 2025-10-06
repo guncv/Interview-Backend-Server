@@ -17,6 +17,7 @@ type Config struct {
 	EmailConfig            EmailConfig            `mapstructure:"EmailConfig"`
 	AWSConfig              AWSConfig              `mapstructure:"AWSConfig"`
 	InterviewSessionConfig InterviewSessionConfig `mapstructure:"InterviewSessionConfig"`
+	OAuthConfig            OAuthConfig            `mapstructure:"OAuthConfig"`
 }
 
 type AppConfig struct {
@@ -77,6 +78,12 @@ type InterviewSessionConfig struct {
 	InterviewSessionTokenTTL time.Duration `mapstructure:"INTERVIEW_SESSION_TOKEN_TTL"`
 	InterviewSessionDuration time.Duration `mapstructure:"INTERVIEW_SESSION_DURATION"`
 	EncryptionSecretKey      string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
+}
+
+type OAuthConfig struct {
+	OAuthGoogleClientID     string `mapstructure:"OAUTH_GOOGLE_CLIENT_ID"`
+	OAuthGoogleClientSecret string `mapstructure:"OAUTH_GOOGLE_CLIENT_SECRET"`
+	OAuthGoogleRedirectURI  string `mapstructure:"OAUTH_GOOGLE_REDIRECT_URI"`
 }
 
 func LoadConfig() (*Config, error) {

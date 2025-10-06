@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
+	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
@@ -59,225 +60,23 @@ func (h *UserHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-// SignUpUser godoc
-// @Summary User registration
-// @Description Create a new user account with email verification
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.SignUpUserRequest true "User registration details"
-// @Success 200 {object} entities.SignUpUserResponse
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/sign-up [post]
-func (h *UserHandler) SignUpUser(c *gin.Context) {
+func (h *UserHandler) SignInWithGoogle(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	req := &entities.SignUpUserRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "SignUpUser"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignUpUser] Error validate and bind", err)
-		utils.RespondWithError(c, err)
+	code := c.Query("code")
+	if code == "" {
+		h.log.ErrorWithID(ctx, "[Handler: SignInWithGoogle] Error getting code", errors.New("missing code"))
+		utils.RespondWithError(c, app_error.New(errors.New("missing code"), app_error.ErrCodeAuthInvalidRequest))
 		return
 	}
 
-	resp, err := h.userService.SignUpUser(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignUpUser] Error sign up user", err)
-		utils.RespondWithError(c, err)
-		return
-	}
+	// userInfo, err := h.userService.HandleGoogleCallback(c, code)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
 
-	c.JSON(http.StatusOK, resp)
-}
-
-// SendVerifyEmail godoc
-// @Summary Send email verification
-// @Description Send verification code to user's email address
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.VerifyEmailRequest true "Email verification details"
-// @Success 204 "Email sent successfully"
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/verify-email [post]
-func (h *UserHandler) SendVerifyEmail(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.VerifyEmailRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "SendVerifyEmail"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SendVerifyEmail] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	err := h.userService.SendVerifyEmail(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SendVerifyEmail] Error send verify email", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusNoContent, nil)
-}
-
-// ResetVerifyEmailCode godoc
-// @Summary Reset email verification code
-// @Description Generate a new verification code for email verification
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.ResetVerifyEmailCodeRequest true "Reset verification code request"
-// @Success 200 {object} entities.ResetVerifyEmailCodeResponse
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/reset-verify-email [post]
-func (h *UserHandler) ResetVerifyEmailCode(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.ResetVerifyEmailCodeRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "ResetVerifyEmailCode"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ResetVerifyEmailCode] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	resp, err := h.userService.ResetVerifyEmailCode(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ResetVerifyEmailCode] Error reset verify email code", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
-}
-
-// SignInUserByEmailAndPassword godoc
-// @Summary User authentication
-// @Description Authenticate user with email and password, returns access and refresh tokens
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.SignInByEmailAndPasswordRequest true "Login credentials"
-// @Success 200 {object} entities.SignInByEmailAndPasswordResponse
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid credentials"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/sign-in [post]
-func (h *UserHandler) SignInUserByEmailAndPassword(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.SignInByEmailAndPasswordRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "SignInUserByEmailAndPassword"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	res, err := h.userService.SignInUserByEmailAndPassword(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignInUserByEmailAndPassword] Error logging in user", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	h.cookies.SetRefreshTokenCookie(c, res.RefreshToken)
-
-	c.JSON(http.StatusOK, res)
-}
-
-// SignInAdminByEmailAndPassword godoc
-// @Summary Admin authentication
-// @Description Authenticate admin with email and password, returns access and refresh tokens
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.SignInByEmailAndPasswordRequest true "Login credentials"
-// @Success 200 {object} entities.SignInByEmailAndPasswordResponse
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid credentials"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/sign-in-admin [post]
-func (h *UserHandler) SignInAdminByEmailAndPassword(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.SignInByEmailAndPasswordRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "SignInAdminByEmailAndPassword"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	res, err := h.userService.SignInAdminByEmailAndPassword(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: SignInAdminByEmailAndPassword] Error logging in admin", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	h.cookies.SetRefreshTokenCookie(c, res.RefreshToken)
-
-	c.JSON(http.StatusOK, res)
-}
-
-// ForgotPassword godoc
-// @Summary Request password reset
-// @Description Send password reset link to user's email
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.ForgotPasswordRequest true "Password reset request"
-// @Success 204 "Password reset email sent successfully"
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or business logic error"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/forgot-password [post]
-func (h *UserHandler) ForgotPassword(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.ForgotPasswordRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "ForgotPassword"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ForgotPassword] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	err := h.userService.ForgotPassword(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ForgotPassword] Error forgot password", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusNoContent, nil)
-}
-
-// ResetUserPassword godoc
-// @Summary Reset user password
-// @Description Reset user password using reset token
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body entities.ResetUserPasswordRequest true "Password reset details"
-// @Success 204 "Password reset successfully"
-// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Validation error or invalid token"
-// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
-// @Router /auth/reset-password [post]
-func (h *UserHandler) ResetUserPassword(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	req := &entities.ResetUserPasswordRequest{}
-	if err := h.validator.ValidateAndBind(c, req, "ResetUserPassword"); err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ResetUserPassword] Error validate and bind", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	err := h.userService.ResetUserPassword(ctx, req)
-	if err != nil {
-		h.log.ErrorWithID(ctx, "[Handler: ResetUserPassword] Error resetting user password", err)
-		utils.RespondWithError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusNoContent, nil)
+	// c.JSON(http.StatusOK, gin.H{"message": "Login success", "user": userInfo})
 }
 
 // SignOut godoc
