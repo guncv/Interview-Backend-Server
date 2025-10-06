@@ -67,7 +67,7 @@ func TestUserService_HealthCheck(t *testing.T) {
 			mockUserRepo := tC.setup()
 			defer mockUserRepo.AssertExpectations(t)
 
-			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			got, gotErr := svc.HealthCheck(ctx)
 
 			tC.verify(t, got, gotErr)
@@ -222,7 +222,7 @@ func TestUserService_SignOut(t *testing.T) {
 				}
 			}()
 
-			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil)
+			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil)
 			gotErr := svc.SignOut(ctx)
 
 			tC.verify(t, gotErr)

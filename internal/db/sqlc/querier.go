@@ -15,6 +15,7 @@ import (
 type Querier interface {
 	CheckInterviewSessionExists(ctx context.Context, id uuid.UUID) (bool, error)
 	CheckIsDefaultResumeExistsByUserID(ctx context.Context, userID uuid.UUID) (bool, error)
+	CheckUserExistsByProviderID(ctx context.Context, arg CheckUserExistsByProviderIDParams) (bool, error)
 	CountInterviewSessionsByUserID(ctx context.Context, arg CountInterviewSessionsByUserIDParams) (int64, error)
 	CreateAdminIssueCategory(ctx context.Context, arg CreateAdminIssueCategoryParams) error
 	CreateAllPhraseRubricScores(ctx context.Context, arg CreateAllPhraseRubricScoresParams) error
@@ -30,6 +31,7 @@ type Querier interface {
 	CreateReviewComment(ctx context.Context, arg CreateReviewCommentParams) (int64, error)
 	CreateUserIssueReport(ctx context.Context, arg CreateUserIssueReportParams) (CreateUserIssueReportRow, error)
 	CreateUserTurnImprovement(ctx context.Context, arg CreateUserTurnImprovementParams) error
+	CreateUserWithProvider(ctx context.Context, arg CreateUserWithProviderParams) error
 	DeleteUserInterviewSessionByID(ctx context.Context, arg DeleteUserInterviewSessionByIDParams) (int64, error)
 	EndInterviewSession(ctx context.Context, arg EndInterviewSessionParams) (int64, error)
 	FlagIsScoreEvaluated(ctx context.Context, id uuid.UUID) (int64, error)
@@ -52,6 +54,7 @@ type Querier interface {
 	GetRubricWithCriteriaByName(ctx context.Context, arg GetRubricWithCriteriaByNameParams) ([]GetRubricWithCriteriaByNameRow, error)
 	GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error)
 	GetUnprocessedInterviewStatesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]GetUnprocessedInterviewStatesBySessionIDRow, error)
+	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (Users, error)
 	GetUserIssueReportUserIDAndStatusByID(ctx context.Context, id uuid.UUID) (GetUserIssueReportUserIDAndStatusByIDRow, error)
 	IsLastUserStateTurnScored(ctx context.Context, arg IsLastUserStateTurnScoredParams) (sql.NullBool, error)
 	ListAllResumesFileNameByUserID(ctx context.Context, userID uuid.UUID) ([]string, error)
@@ -75,6 +78,7 @@ type Querier interface {
 	UpdateLastTurnIDInterviewStateByID(ctx context.Context, arg UpdateLastTurnIDInterviewStateByIDParams) (int64, error)
 	UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (int64, error)
 	UpdateStartedAtInterviewSession(ctx context.Context, arg UpdateStartedAtInterviewSessionParams) (int64, error)
+	UpdateUserLoginInfo(ctx context.Context, arg UpdateUserLoginInfoParams) error
 }
 
 var _ Querier = (*Queries)(nil)

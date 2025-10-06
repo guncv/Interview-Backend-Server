@@ -17,3 +17,8 @@ var (
 	AuthContextKey          ContextKey = "auth_context"
 	RoleKey                 ContextKey = "x-active-role"
 )
+
+var (
+	GoogleProvider   = "google"
+	FacebookProvider = "facebook"
+)

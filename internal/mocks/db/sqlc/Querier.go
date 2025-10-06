@@ -142,6 +142,63 @@ func (_c *MockQuerier_CheckIsDefaultResumeExistsByUserID_Call) RunAndReturn(run 
 	return _c
 }
 
+// CheckUserExistsByProviderID provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CheckUserExistsByProviderID(ctx context.Context, arg db.CheckUserExistsByProviderIDParams) (bool, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckUserExistsByProviderID")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CheckUserExistsByProviderIDParams) (bool, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.CheckUserExistsByProviderIDParams) bool); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.CheckUserExistsByProviderIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_CheckUserExistsByProviderID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckUserExistsByProviderID'
+type MockQuerier_CheckUserExistsByProviderID_Call struct {
+	*mock.Call
+}
+
+// CheckUserExistsByProviderID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CheckUserExistsByProviderIDParams
+func (_e *MockQuerier_Expecter) CheckUserExistsByProviderID(ctx interface{}, arg interface{}) *MockQuerier_CheckUserExistsByProviderID_Call {
+	return &MockQuerier_CheckUserExistsByProviderID_Call{Call: _e.mock.On("CheckUserExistsByProviderID", ctx, arg)}
+}
+
+func (_c *MockQuerier_CheckUserExistsByProviderID_Call) Run(run func(ctx context.Context, arg db.CheckUserExistsByProviderIDParams)) *MockQuerier_CheckUserExistsByProviderID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CheckUserExistsByProviderIDParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CheckUserExistsByProviderID_Call) Return(_a0 bool, _a1 error) *MockQuerier_CheckUserExistsByProviderID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_CheckUserExistsByProviderID_Call) RunAndReturn(run func(context.Context, db.CheckUserExistsByProviderIDParams) (bool, error)) *MockQuerier_CheckUserExistsByProviderID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CountInterviewSessionsByUserID provides a mock function with given fields: ctx, arg
 func (_m *MockQuerier) CountInterviewSessionsByUserID(ctx context.Context, arg db.CountInterviewSessionsByUserIDParams) (int64, error) {
 	ret := _m.Called(ctx, arg)
@@ -873,6 +930,53 @@ func (_c *MockQuerier_CreateUserTurnImprovement_Call) Return(_a0 error) *MockQue
 }
 
 func (_c *MockQuerier_CreateUserTurnImprovement_Call) RunAndReturn(run func(context.Context, db.CreateUserTurnImprovementParams) error) *MockQuerier_CreateUserTurnImprovement_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateUserWithProvider provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) CreateUserWithProvider(ctx context.Context, arg db.CreateUserWithProviderParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserWithProvider")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.CreateUserWithProviderParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_CreateUserWithProvider_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserWithProvider'
+type MockQuerier_CreateUserWithProvider_Call struct {
+	*mock.Call
+}
+
+// CreateUserWithProvider is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.CreateUserWithProviderParams
+func (_e *MockQuerier_Expecter) CreateUserWithProvider(ctx interface{}, arg interface{}) *MockQuerier_CreateUserWithProvider_Call {
+	return &MockQuerier_CreateUserWithProvider_Call{Call: _e.mock.On("CreateUserWithProvider", ctx, arg)}
+}
+
+func (_c *MockQuerier_CreateUserWithProvider_Call) Run(run func(ctx context.Context, arg db.CreateUserWithProviderParams)) *MockQuerier_CreateUserWithProvider_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.CreateUserWithProviderParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserWithProvider_Call) Return(_a0 error) *MockQuerier_CreateUserWithProvider_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_CreateUserWithProvider_Call) RunAndReturn(run func(context.Context, db.CreateUserWithProviderParams) error) *MockQuerier_CreateUserWithProvider_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2147,6 +2251,63 @@ func (_c *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call) Return(_a0 
 }
 
 func (_c *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]db.GetUnprocessedInterviewStatesBySessionIDRow, error)) *MockQuerier_GetUnprocessedInterviewStatesBySessionID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUserByProviderID provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) GetUserByProviderID(ctx context.Context, arg db.GetUserByProviderIDParams) (db.Users, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserByProviderID")
+	}
+
+	var r0 db.Users
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetUserByProviderIDParams) (db.Users, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, db.GetUserByProviderIDParams) db.Users); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Get(0).(db.Users)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, db.GetUserByProviderIDParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockQuerier_GetUserByProviderID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserByProviderID'
+type MockQuerier_GetUserByProviderID_Call struct {
+	*mock.Call
+}
+
+// GetUserByProviderID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.GetUserByProviderIDParams
+func (_e *MockQuerier_Expecter) GetUserByProviderID(ctx interface{}, arg interface{}) *MockQuerier_GetUserByProviderID_Call {
+	return &MockQuerier_GetUserByProviderID_Call{Call: _e.mock.On("GetUserByProviderID", ctx, arg)}
+}
+
+func (_c *MockQuerier_GetUserByProviderID_Call) Run(run func(ctx context.Context, arg db.GetUserByProviderIDParams)) *MockQuerier_GetUserByProviderID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.GetUserByProviderIDParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_GetUserByProviderID_Call) Return(_a0 db.Users, _a1 error) *MockQuerier_GetUserByProviderID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockQuerier_GetUserByProviderID_Call) RunAndReturn(run func(context.Context, db.GetUserByProviderIDParams) (db.Users, error)) *MockQuerier_GetUserByProviderID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3445,6 +3606,53 @@ func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) Return(_a0 int64, _a
 }
 
 func (_c *MockQuerier_UpdateStartedAtInterviewSession_Call) RunAndReturn(run func(context.Context, db.UpdateStartedAtInterviewSessionParams) (int64, error)) *MockQuerier_UpdateStartedAtInterviewSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateUserLoginInfo provides a mock function with given fields: ctx, arg
+func (_m *MockQuerier) UpdateUserLoginInfo(ctx context.Context, arg db.UpdateUserLoginInfoParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateUserLoginInfo")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, db.UpdateUserLoginInfoParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockQuerier_UpdateUserLoginInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUserLoginInfo'
+type MockQuerier_UpdateUserLoginInfo_Call struct {
+	*mock.Call
+}
+
+// UpdateUserLoginInfo is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg db.UpdateUserLoginInfoParams
+func (_e *MockQuerier_Expecter) UpdateUserLoginInfo(ctx interface{}, arg interface{}) *MockQuerier_UpdateUserLoginInfo_Call {
+	return &MockQuerier_UpdateUserLoginInfo_Call{Call: _e.mock.On("UpdateUserLoginInfo", ctx, arg)}
+}
+
+func (_c *MockQuerier_UpdateUserLoginInfo_Call) Run(run func(ctx context.Context, arg db.UpdateUserLoginInfoParams)) *MockQuerier_UpdateUserLoginInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(db.UpdateUserLoginInfoParams))
+	})
+	return _c
+}
+
+func (_c *MockQuerier_UpdateUserLoginInfo_Call) Return(_a0 error) *MockQuerier_UpdateUserLoginInfo_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockQuerier_UpdateUserLoginInfo_Call) RunAndReturn(run func(context.Context, db.UpdateUserLoginInfoParams) error) *MockQuerier_UpdateUserLoginInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }

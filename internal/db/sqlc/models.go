@@ -274,9 +274,6 @@ type Users struct {
 	ID                 uuid.UUID      `json:"id"`
 	Email              string         `json:"email"`
 	FullName           string         `json:"full_name"`
-	Country            string         `json:"country"`
-	Gender             string         `json:"gender"`
-	DateOfBirth        time.Time      `json:"date_of_birth"`
 	IsAdmin            sql.NullBool   `json:"is_admin"`
 	LastLoginAt        sql.NullTime   `json:"last_login_at"`
 	IsSuspended        sql.NullBool   `json:"is_suspended"`

@@ -2,7 +2,9 @@ package utils
 
 import (
 	"context"
-	"math/rand"
+	"crypto/rand"
+	"encoding/hex"
+	mathrand "math/rand"
 
 	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
@@ -11,6 +13,7 @@ import (
 type Generator interface {
 	GenerateUUID(ctx context.Context) uuid.UUID
 	GenerateRandomString(ctx context.Context, length int) string
+	GenerateCryptographicallySecureString(ctx context.Context, length int) string
 }
 
 type generator struct {
@@ -34,8 +37,20 @@ func (g *generator) GenerateRandomString(ctx context.Context, length int) string
 	b := make([]byte, length)
 
 	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+		b[i] = charset[mathrand.Intn(len(charset))]
 	}
 
 	return string(b)
+}
+
+func (g *generator) GenerateCryptographicallySecureString(ctx context.Context, length int) string {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+
+	if err != nil {
+		g.log.Error(ctx, "Failed to generate cryptographically secure random bytes, falling back to math/rand", "error", err)
+		return g.GenerateRandomString(ctx, length)
+	}
+
+	return hex.EncodeToString(bytes)
 }

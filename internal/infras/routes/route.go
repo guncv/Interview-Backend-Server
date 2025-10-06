@@ -98,6 +98,8 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 
 	{
 		userRoutes.GET("/health", userHandler.HealthCheck)
+		userRoutes.GET("/google/url", userHandler.GetGoogleAuthURL)
+		userRoutes.GET("/google/callback", userHandler.HandleGoogleCallback)
 		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
 	}
 }

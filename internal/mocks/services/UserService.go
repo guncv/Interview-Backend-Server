@@ -22,6 +22,123 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
+// GetGoogleAuthURL provides a mock function with given fields: ctx
+func (_m *MockUserService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGoogleAuthURL")
+	}
+
+	var r0 *entities.GoogleAuthURLResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (*entities.GoogleAuthURLResponse, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) *entities.GoogleAuthURLResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.GoogleAuthURLResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_GetGoogleAuthURL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGoogleAuthURL'
+type MockUserService_GetGoogleAuthURL_Call struct {
+	*mock.Call
+}
+
+// GetGoogleAuthURL is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockUserService_Expecter) GetGoogleAuthURL(ctx interface{}) *MockUserService_GetGoogleAuthURL_Call {
+	return &MockUserService_GetGoogleAuthURL_Call{Call: _e.mock.On("GetGoogleAuthURL", ctx)}
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) Run(run func(ctx context.Context)) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) Return(_a0 *entities.GoogleAuthURLResponse, _a1 error) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_GetGoogleAuthURL_Call) RunAndReturn(run func(context.Context) (*entities.GoogleAuthURLResponse, error)) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HandleGoogleCallback provides a mock function with given fields: ctx, req
+func (_m *MockUserService) HandleGoogleCallback(ctx context.Context, req *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HandleGoogleCallback")
+	}
+
+	var r0 *entities.HandleGoogleCallbackResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleGoogleCallbackReq) *entities.HandleGoogleCallbackResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.HandleGoogleCallbackResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.HandleGoogleCallbackReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_HandleGoogleCallback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HandleGoogleCallback'
+type MockUserService_HandleGoogleCallback_Call struct {
+	*mock.Call
+}
+
+// HandleGoogleCallback is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.HandleGoogleCallbackReq
+func (_e *MockUserService_Expecter) HandleGoogleCallback(ctx interface{}, req interface{}) *MockUserService_HandleGoogleCallback_Call {
+	return &MockUserService_HandleGoogleCallback_Call{Call: _e.mock.On("HandleGoogleCallback", ctx, req)}
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) Run(run func(ctx context.Context, req *entities.HandleGoogleCallbackReq)) *MockUserService_HandleGoogleCallback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.HandleGoogleCallbackReq))
+	})
+	return _c
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) Return(_a0 *entities.HandleGoogleCallbackResp, _a1 error) *MockUserService_HandleGoogleCallback_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_HandleGoogleCallback_Call) RunAndReturn(run func(context.Context, *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)) *MockUserService_HandleGoogleCallback_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // HealthCheck provides a mock function with given fields: ctx
 func (_m *MockUserService) HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error) {
 	ret := _m.Called(ctx)

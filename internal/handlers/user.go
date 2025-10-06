@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	app_error "gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -60,23 +61,65 @@ func (h *UserHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-func (h *UserHandler) SignInWithGoogle(c *gin.Context) {
+// GetGoogleAuthURL godoc
+// @Summary Get Google OAuth URL
+// @Description Generate and return Google OAuth authorization URL
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} entities.GoogleAuthURLResponse "OAuth URL response"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /auth/google/url [get]
+func (h *UserHandler) GetGoogleAuthURL(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	code := c.Query("code")
-	if code == "" {
-		h.log.ErrorWithID(ctx, "[Handler: SignInWithGoogle] Error getting code", errors.New("missing code"))
-		utils.RespondWithError(c, app_error.New(errors.New("missing code"), app_error.ErrCodeAuthInvalidRequest))
+	resp, err := h.userService.GetGoogleAuthURL(ctx)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: GetGoogleAuthURL] Error generating auth URL", err)
+		utils.RespondWithError(c, err)
 		return
 	}
 
-	// userInfo, err := h.userService.HandleGoogleCallback(c, code)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	c.JSON(http.StatusOK, resp)
+}
 
-	// c.JSON(http.StatusOK, gin.H{"message": "Login success", "user": userInfo})
+// HandleGoogleCallback godoc
+// @Summary Handle Google OAuth callback
+// @Description Process Google OAuth callback and return authentication tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param code query string true "Authorization code from Google"
+// @Param state query string true "State from Google"
+// @Success 200 {object} entities.HandleGoogleCallbackResp "Authentication response"
+// @Failure 400 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Bad request"
+// @Failure 500 {object} gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError "Internal server error"
+// @Router /auth/google/callback [get]
+func (h *UserHandler) HandleGoogleCallback(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	code := c.Query("code")
+	state := c.Query("state")
+	if code == "" || state == "" {
+		h.log.ErrorWithID(ctx, "[Handler: HandleGoogleCallback] Error getting code or state", errors.New("missing code or state"))
+		utils.RespondWithError(c, app_error.New(errors.New("missing code or state"), app_error.ErrCodeAuthInvalidRequest))
+		return
+	}
+
+	req := &entities.HandleGoogleCallbackReq{
+		Code:  code,
+		State: state,
+	}
+
+	resp, err := h.userService.HandleGoogleCallback(ctx, req)
+	if err != nil {
+		h.log.ErrorWithID(ctx, "[Handler: HandleGoogleCallback] Error handling Google callback", err)
+		utils.RespondWithError(c, err)
+		return
+	}
+
+	h.cookies.SetRefreshTokenCookie(c, resp.RefreshToken)
+	c.JSON(http.StatusOK, resp)
 }
 
 // SignOut godoc
