@@ -33,6 +33,13 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 	e.RedirectTrailingSlash = false
 	e.Use(middleware.InjectRequestMetadata())
 
+	e.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "healthy",
+			"service": "interview-backend-server",
+		})
+	})
+
 	e.GET("/api/v1/docs", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "swagger.html", gin.H{
 			"title": "Interview Simulation API - Swagger UI",

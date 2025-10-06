@@ -13,6 +13,7 @@ COPY . .
 RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz \
     | tar xvz -C /app
 
+# Build the application, excluding test files
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
 
 
@@ -26,6 +27,8 @@ WORKDIR /app
 COPY --from=builder /app/migrate ./migrate
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/internal ./internal
+COPY --from=builder /app/docs ./docs
 COPY migration.sh .
 
 RUN chmod +x /app/migration.sh

@@ -1,9 +1,7 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:12-alpine
-    container_name: interview-db-uat
+    container_name: interview-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: user
@@ -12,11 +10,11 @@ services:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - postgres_uat_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - interview-network-uat
+      - interview-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d interview"]
       interval: 10s
@@ -25,15 +23,15 @@ services:
 
   redis_server:
     image: redis:alpine
-    container_name: interview-redis-uat
+    container_name: interview-redis
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "6379:6379"
     command: redis-server --appendonly yes --maxmemory-policy allkeys-lru
     volumes:
-      - redis_uat_data:/data
+      - redis_data:/data
     networks:
-      - interview-network-uat
+      - interview-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -41,16 +39,16 @@ services:
       retries: 5
 
   interview-backend-server:
-    container_name: interview-backend-server-uat
+    container_name: interview-backend-server
     build:
       context: .
       dockerfile: Dockerfile.uat
       target: uat
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "8080:8080"
     networks:
-      - interview-network-uat
+      - interview-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,12 +67,12 @@ services:
       start_period: 40s
 
 networks:
-  interview-network-uat:
-    driver: bridge
+  interview-network:
+    external: true
 
 volumes:
-  postgres_uat_data:
+  postgres_data:
     driver: local
-  redis_uat_data:
+  redis_data:
     driver: local
 
