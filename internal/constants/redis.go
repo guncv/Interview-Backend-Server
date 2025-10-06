@@ -19,7 +19,6 @@ const (
 	RedisPrefixInterviewIsScoreSessionState = "interview:session_state_is_score:"
 	RedisPrefixInterviewLastTurnID          = "interview:last_turn_id:"
 	RedisPrefixInterviewPendingScores       = "interview:pending_scores:"
-	RedisPrefixOAuthState                   = "oauth:state:"
 
 	MaxAttemptVerifyEmail = 3
 	RedisTTLDefault       = 1 * time.Hour
@@ -34,5 +33,4 @@ const (
 	RedisTTLInterviewIsScoreSessionState = 30 * time.Minute
 	RedisTTLInterviewLastTurnID          = 1 * time.Hour
 	RedisTTLInterviewPendingScores       = 1 * time.Hour
-	RedisTTLOAuthState                   = 5 * time.Minute
 )

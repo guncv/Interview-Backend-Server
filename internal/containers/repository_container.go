@@ -9,6 +9,10 @@ func (c *Container) RepositoryProvider() {
 		c.Error = err
 	}
 
+	if err := c.Container.Provide(repositories.NewResetTokenRepository); err != nil {
+		c.Error = err
+	}
+
 	if err := c.Container.Provide(repositories.NewAuthSessionRepository); err != nil {
 		c.Error = err
 	}

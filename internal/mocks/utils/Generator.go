@@ -23,53 +23,6 @@ func (_m *MockGenerator) EXPECT() *MockGenerator_Expecter {
 	return &MockGenerator_Expecter{mock: &_m.Mock}
 }
 
-// GenerateCryptographicallySecureString provides a mock function with given fields: ctx, length
-func (_m *MockGenerator) GenerateCryptographicallySecureString(ctx context.Context, length int) string {
-	ret := _m.Called(ctx, length)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GenerateCryptographicallySecureString")
-	}
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, int) string); ok {
-		r0 = rf(ctx, length)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
-// MockGenerator_GenerateCryptographicallySecureString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GenerateCryptographicallySecureString'
-type MockGenerator_GenerateCryptographicallySecureString_Call struct {
-	*mock.Call
-}
-
-// GenerateCryptographicallySecureString is a helper method to define mock.On call
-//   - ctx context.Context
-//   - length int
-func (_e *MockGenerator_Expecter) GenerateCryptographicallySecureString(ctx interface{}, length interface{}) *MockGenerator_GenerateCryptographicallySecureString_Call {
-	return &MockGenerator_GenerateCryptographicallySecureString_Call{Call: _e.mock.On("GenerateCryptographicallySecureString", ctx, length)}
-}
-
-func (_c *MockGenerator_GenerateCryptographicallySecureString_Call) Run(run func(ctx context.Context, length int)) *MockGenerator_GenerateCryptographicallySecureString_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int))
-	})
-	return _c
-}
-
-func (_c *MockGenerator_GenerateCryptographicallySecureString_Call) Return(_a0 string) *MockGenerator_GenerateCryptographicallySecureString_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockGenerator_GenerateCryptographicallySecureString_Call) RunAndReturn(run func(context.Context, int) string) *MockGenerator_GenerateCryptographicallySecureString_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GenerateRandomString provides a mock function with given fields: ctx, length
 func (_m *MockGenerator) GenerateRandomString(ctx context.Context, length int) string {
 	ret := _m.Called(ctx, length)

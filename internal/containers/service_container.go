@@ -29,6 +29,7 @@ func (c *Container) ServiceProvider() {
 		c.Error = err
 	}
 
+	// Start the consumer
 	if err := c.Container.Invoke(func(consumer consumer.RedisTaskConsumer) {
 		if err := consumer.CleanupQueue(context.Background()); err != nil {
 			panic(fmt.Sprintf("Failed to cleanup queue: %v", err))

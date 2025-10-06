@@ -4,11 +4,13 @@ import (
 	"mime/multipart"
 	"reflect"
 	"testing"
+	"time"
 
 	"errors"
 
 	ut "github.com/go-playground/universal-translator"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
@@ -144,6 +146,7 @@ func TestGetSimpleErrorMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock FieldError
 			mockErr := &mockFieldError{
 				tag:   tt.tag,
 				field: tt.field,
@@ -156,6 +159,7 @@ func TestGetSimpleErrorMessage(t *testing.T) {
 	}
 }
 
+// Mock implementation of validator.FieldError for testing
 type mockFieldError struct {
 	tag   string
 	field string
@@ -265,10 +269,259 @@ func TestValidateFileRequired(t *testing.T) {
 	}
 }
 
+func TestValidateEmail(t *testing.T) {
+	logger := log.Initialize("test")
+	validator := NewValidator(logger)
+
+	tests := []struct {
+		name     string
+		email    string
+		expected bool
+	}{
+		{
+			name:     "Valid email",
+			email:    "user@example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with subdomain",
+			email:    "user@sub.example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with plus",
+			email:    "user+tag@example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with dots",
+			email:    "user.name@example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with underscore",
+			email:    "user_name@example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with percent",
+			email:    "user%tag@example.com",
+			expected: true,
+		},
+		{
+			name:     "Valid email with hyphen in domain",
+			email:    "user@example-domain.com",
+			expected: true,
+		},
+		{
+			name:     "Invalid email - missing @",
+			email:    "userexample.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - missing domain",
+			email:    "user@",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - missing TLD",
+			email:    "user@example",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - consecutive dots",
+			email:    "user..name@example.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - @ followed by dot",
+			email:    "user@.example.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - dot followed by @",
+			email:    "user.@example.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - @ followed by hyphen",
+			email:    "user@-example.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - hyphen followed by dot",
+			email:    "user@example-.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - dot followed by hyphen",
+			email:    "user@example.-com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - single character TLD",
+			email:    "user@example.c",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - spaces",
+			email:    "user name@example.com",
+			expected: false,
+		},
+		{
+			name:     "Invalid email - multiple @",
+			email:    "user@name@example.com",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test request with the email
+			req := &entities.SignUpUserRequest{
+				Email:       tt.email,
+				Password:    "password123",
+				FullName:    "Test User",
+				Country:     "USA",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			}
+
+			// Validate the struct
+			err := validator.GetValidate().Struct(req)
+
+			if tt.expected {
+				assert.NoError(t, err, "Expected valid email but got validation error")
+			} else {
+				assert.Error(t, err, "Expected invalid email but validation passed")
+			}
+		})
+	}
+}
+
+func TestValidateEmailEmptyString(t *testing.T) {
+	logger := log.Initialize("test")
+	validator := NewValidator(logger)
+
+	// Test that empty email is handled by required tag, not valid_email
+	req := &entities.SignUpUserRequest{
+		Email:       "",
+		Password:    "password123",
+		FullName:    "Test User",
+		Country:     "USA",
+		Gender:      "male",
+		DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	err := validator.GetValidate().Struct(req)
+	assert.Error(t, err, "Empty email should fail required validation")
+
+	// The error should be about required field, not invalid email format
+	assert.Contains(t, err.Error(), "required", "Error should mention required field")
+}
+
+func TestValidateEmailEnhancedValidation(t *testing.T) {
+	logger := log.Initialize("test")
+	validator := NewValidator(logger)
+
+	// Test enhanced validation scenarios
+	enhancedTests := []struct {
+		name     string
+		email    string
+		expected bool
+		reason   string
+	}{
+		{
+			name:     "Valid corporate email",
+			email:    "john.doe@company-name.co.uk",
+			expected: true,
+			reason:   "Should accept valid corporate emails with hyphens and multiple TLDs",
+		},
+		{
+			name:     "Valid email with numbers in domain",
+			email:    "user123@domain123.com",
+			expected: true,
+			reason:   "Should accept domains with numbers",
+		},
+		{
+			name:     "Valid email with underscore in local part",
+			email:    "user_name@example.com",
+			expected: true,
+			reason:   "Should accept underscores in local part",
+		},
+		{
+			name:     "Invalid email - starts with dot",
+			email:    ".user@example.com",
+			expected: false,
+			reason:   "Should reject emails starting with dot",
+		},
+		{
+			name:     "Invalid email - ends with dot",
+			email:    "user.@example.com",
+			expected: false,
+			reason:   "Should reject emails ending with dot",
+		},
+		{
+			name:     "Invalid email - domain starts with dot",
+			email:    "user@.example.com",
+			expected: false,
+			reason:   "Should reject domains starting with dot",
+		},
+		{
+			name:     "Invalid email - domain ends with dot",
+			email:    "user@example.com.",
+			expected: false,
+			reason:   "Should reject domains ending with dot",
+		},
+		{
+			name:     "Invalid email - consecutive hyphens",
+			email:    "user@ex--ample.com",
+			expected: false,
+			reason:   "Should reject consecutive hyphens in domain",
+		},
+		{
+			name:     "Invalid email - TLD too short",
+			email:    "user@example.a",
+			expected: false,
+			reason:   "Should reject single character TLDs",
+		},
+		{
+			name:     "Invalid email - invalid characters",
+			email:    "user@example.com!",
+			expected: false,
+			reason:   "Should reject invalid characters",
+		},
+	}
+
+	for _, tt := range enhancedTests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test request with the email
+			req := &entities.SignUpUserRequest{
+				Email:       tt.email,
+				Password:    "password123",
+				FullName:    "Test User",
+				Country:     "USA",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			}
+
+			// Validate the struct
+			err := validator.GetValidate().Struct(req)
+
+			if tt.expected {
+				assert.NoError(t, err, "Expected valid email but got validation error: %s", tt.reason)
+			} else {
+				assert.Error(t, err, "Expected invalid email but validation passed: %s", tt.reason)
+			}
+		})
+	}
+}
+
 func TestGetSpecificBindingErrorMessage(t *testing.T) {
 	logger := log.Initialize("test")
 	validator := NewValidator(logger)
 
+	// Type assert to access the private method for testing
 	validatorImpl, ok := validator.(*validatorImpl)
 	assert.True(t, ok, "Validator should be of type *validatorImpl")
 
@@ -341,24 +594,41 @@ func TestImprovedErrorHandlingDemonstration(t *testing.T) {
 	logger := log.Initialize("test")
 	validator := NewValidator(logger)
 
+	// Type assert to access the private method for testing
 	validatorImpl, ok := validator.(*validatorImpl)
 	assert.True(t, ok, "Validator should be of type *validatorImpl")
 
-	t.Run("Demonstrate improved error messages", func(t *testing.T) {
+	// This test demonstrates how the improved error handling provides specific messages
+	// instead of the generic "Something went wrong with the request. Please try again."
 
+	t.Run("Demonstrate improved error messages", func(t *testing.T) {
+		// Simulate different types of binding errors that users commonly encounter
+
+		// 1. Date format error - user sends "2024/05/12" instead of "2024-05-12"
 		dateError := errors.New("parsing time \"2024/05/12\" as \"2006-01-02\": cannot parse \"/05/12\" as \"-\"")
 		dateMsg := validatorImpl.getSpecificBindingErrorMessage(dateError)
 		assert.Equal(t, "invalid date format. Please use ISO 8601 format (YYYY-MM-DD)", dateMsg)
 
+		// 2. JSON syntax error - user sends malformed JSON
 		jsonError := errors.New("invalid character '}' looking for beginning of value")
 		jsonMsg := validatorImpl.getSpecificBindingErrorMessage(jsonError)
 		assert.Equal(t, "invalid JSON format. Check for syntax errors in your request body", jsonMsg)
 
+		// 3. Type mismatch - user sends string where number expected
 		typeError := errors.New("cannot unmarshal string \"abc\" into Go struct field .Age of type int")
 		typeMsg := validatorImpl.getSpecificBindingErrorMessage(typeError)
 		assert.Equal(t, "invalid data type. Expected number but received string", typeMsg)
+
+		// 4. Incomplete JSON - user sends partial request
 		incompleteError := errors.New("unexpected end of JSON input")
 		incompleteMsg := validatorImpl.getSpecificBindingErrorMessage(incompleteError)
 		assert.Equal(t, "invalid JSON format. Request body is incomplete or malformed", incompleteMsg)
+
+		t.Logf("✅ Date format error: %s", dateMsg)
+		t.Logf("✅ JSON syntax error: %s", jsonMsg)
+		t.Logf("✅ Type mismatch error: %s", typeMsg)
+		t.Logf("✅ Incomplete JSON error: %s", incompleteMsg)
+		t.Logf("")
+		t.Logf("🎯 Instead of generic 'Something went wrong', users now get specific guidance!")
 	})
 }

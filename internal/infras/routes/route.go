@@ -98,10 +98,13 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 
 	{
 		userRoutes.GET("/health", userHandler.HealthCheck)
-		userRoutes.GET("/google/url", userHandler.GetGoogleAuthURL)
-		userRoutes.GET("/google/callback", userHandler.HandleGoogleCallback)
-		userRoutes.GET("/facebook/url", userHandler.GetFacebookAuthURL)
-		userRoutes.GET("/facebook/callback", userHandler.HandleFacebookCallback)
+		userRoutes.POST("/sign-up", userHandler.SignUpUser)
+		userRoutes.POST("/verify-email", userHandler.SendVerifyEmail)
+		userRoutes.POST("/reset-verify-email", userHandler.ResetVerifyEmailCode)
+		userRoutes.POST("/sign-in", userHandler.SignInUserByEmailAndPassword)
+		userRoutes.POST("/sign-in-admin", userHandler.SignInAdminByEmailAndPassword)
+		userRoutes.POST("/forgot-password", userHandler.ForgotPassword)
+		userRoutes.POST("/reset-password", userHandler.ResetUserPassword)
 		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
 	}
 }

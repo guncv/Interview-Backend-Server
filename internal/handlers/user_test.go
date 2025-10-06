@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -75,6 +78,820 @@ func TestUserHandler_HealthCheck(t *testing.T) {
 
 			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, nil)
 			handler.HealthCheck(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_SignUpUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.SignUpUserRequest
+		setup  func() (*services.MockUserService, *utils.MockValidator, *config.Config)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.SignUpUserRequest {
+				return &entities.SignUpUserRequest{
+					Email:       "test@example.com",
+					Password:    "password123",
+					FullName:    "Test User",
+					Country:     "USA",
+					Gender:      "male",
+					DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignUpUser").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignUpUser(ctx, mock.Anything).
+					Return(&entities.SignUpUserResponse{TokenId: "token-123"}, nil)
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"token_id":"token-123"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.SignUpUserRequest {
+				return &entities.SignUpUserRequest{
+					Email:       "invalid-email",
+					Password:    "",
+					FullName:    "",
+					Country:     "",
+					Gender:      "",
+					DateOfBirth: time.Time{},
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignUpUser").
+					Return(app_error.NewWithCustomMessage(errors.New("validation failed"), app_error.ErrCodeAuthInvalidRequest, "validation failed"))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"validation failed"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.SignUpUserRequest {
+				return &entities.SignUpUserRequest{
+					Email:       "test@example.com",
+					Password:    "password123",
+					FullName:    "Test User",
+					Country:     "USA",
+					Gender:      "male",
+					DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignUpUser").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignUpUser(ctx, mock.Anything).
+					Return(nil, app_error.New(errors.New("user already exists"), app_error.ErrCodeAuthUserAlreadyExists))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0207","message":"This email is already registered. Try logging in instead."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/signup", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig := tt.setup()
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
+			handler.SignUpUser(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_SignInUserByEmailAndPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.SignInByEmailAndPasswordRequest
+		setup  func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInUserByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInUserByEmailAndPassword(ctx, mock.Anything).
+					Return(&entities.SignInByEmailAndPasswordResponse{
+						AccessToken:  "access-token",
+						RefreshToken: "refresh-token",
+					}, nil)
+
+				mockCookies.EXPECT().
+					SetRefreshTokenCookie(mock.Anything, mock.Anything)
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"access_token":"access-token","refresh_token":"refresh-token"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInUserByEmailAndPassword").
+					Return(app_error.NewWithCustomMessage(errors.New("password is required"), app_error.ErrCodeAuthInvalidRequest, "password is required"))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"password is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInUserByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInUserByEmailAndPassword(ctx, mock.Anything).
+					Return(nil, app_error.New(errors.New("invalid credentials"), app_error.ErrCodeAuthInvalidPassword))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/signin", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig, mockCookies := tt.setup(c)
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+			defer mockCookies.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, mockCookies)
+			handler.SignInUserByEmailAndPassword(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_SignInAdminByEmailAndPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.SignInByEmailAndPasswordRequest
+		setup  func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInAdminByEmailAndPassword(ctx, mock.Anything).
+					Return(&entities.SignInByEmailAndPasswordResponse{
+						AccessToken:  "access-token",
+						RefreshToken: "refresh-token",
+					}, nil)
+
+				mockCookies.EXPECT().
+					SetRefreshTokenCookie(mock.Anything, mock.Anything)
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"access_token":"access-token","refresh_token":"refresh-token"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(app_error.NewWithCustomMessage(errors.New("password is required"), app_error.ErrCodeAuthInvalidRequest, "password is required"))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"password is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.SignInByEmailAndPasswordRequest {
+				return &entities.SignInByEmailAndPasswordRequest{
+					Email:    "admin@example.com",
+					Password: "password123",
+				}
+			},
+			setup: func(c *gin.Context) (*services.MockUserService, *utils.MockValidator, *config.Config, *utils.MockCookies) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockCookies := new(utils.MockCookies)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SignInAdminByEmailAndPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SignInAdminByEmailAndPassword(ctx, mock.Anything).
+					Return(nil, app_error.New(errors.New("invalid credentials"), app_error.ErrCodeAuthInvalidPassword))
+
+				return mockUserService, mockValidator, mockConfig, mockCookies
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0217","message":"Incorrect email or password. Please try again."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/signin", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig, mockCookies := tt.setup(c)
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+			defer mockCookies.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, mockCookies)
+			handler.SignInAdminByEmailAndPassword(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_SendVerifyEmail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.VerifyEmailRequest
+		setup  func() (*services.MockUserService, *utils.MockValidator, *config.Config)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.VerifyEmailRequest {
+				return &entities.VerifyEmailRequest{
+					Token: "token-123",
+					Code:  "123456",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SendVerifyEmail").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SendVerifyEmail(ctx, mock.Anything).
+					Return(nil)
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, w.Code)
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.VerifyEmailRequest {
+				return &entities.VerifyEmailRequest{
+					Token: "",
+					Code:  "",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SendVerifyEmail").
+					Return(app_error.NewWithCustomMessage(errors.New("token is required"), app_error.ErrCodeAuthInvalidRequest, "token is required"))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.VerifyEmailRequest {
+				return &entities.VerifyEmailRequest{
+					Token: "token-123",
+					Code:  "123456",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "SendVerifyEmail").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					SendVerifyEmail(ctx, mock.Anything).
+					Return(app_error.New(errors.New("invalid code"), app_error.ErrCodeAuthInvalidVerifyEmailCode))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0214","message":"The verification code is invalid. Please try again."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/verify-email", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig := tt.setup()
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
+			handler.SendVerifyEmail(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_ForgotPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.ForgotPasswordRequest
+		setup  func() (*services.MockUserService, *utils.MockValidator, *config.Config)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.ForgotPasswordRequest {
+				return &entities.ForgotPasswordRequest{
+					Email: "test@example.com",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ForgotPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ForgotPassword(ctx, mock.Anything).
+					Return(nil)
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, w.Code)
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.ForgotPasswordRequest {
+				return &entities.ForgotPasswordRequest{
+					Email: "invalid-email",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ForgotPassword").
+					Return(app_error.NewWithCustomMessage(errors.New("invalid email"), app_error.ErrCodeAuthInvalidRequest, "invalid email"))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"invalid email"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.ForgotPasswordRequest {
+				return &entities.ForgotPasswordRequest{
+					Email: "test@example.com",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ForgotPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ForgotPassword(ctx, mock.Anything).
+					Return(app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, w.Code)
+				assert.JSONEq(t, `{"code":"INS0206","message":"We couldn't find your account. Please sign up to continue."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/forgot-password", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig := tt.setup()
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
+			handler.ForgotPassword(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_ResetVerifyEmailCode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.ResetVerifyEmailCodeRequest
+		setup  func() (*services.MockUserService, *utils.MockValidator, *config.Config)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.ResetVerifyEmailCodeRequest {
+				return &entities.ResetVerifyEmailCodeRequest{
+					Token: "token-123",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetVerifyEmailCode").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ResetVerifyEmailCode(ctx, mock.Anything).
+					Return(&entities.ResetVerifyEmailCodeResponse{TokenId: "new-token-123"}, nil)
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusOK, w.Code)
+				assert.JSONEq(t, `{"token_id":"new-token-123"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.ResetVerifyEmailCodeRequest {
+				return &entities.ResetVerifyEmailCodeRequest{
+					Token: "",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetVerifyEmailCode").
+					Return(app_error.NewWithCustomMessage(errors.New("token is required"), app_error.ErrCodeAuthInvalidRequest, "token is required"))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.ResetVerifyEmailCodeRequest {
+				return &entities.ResetVerifyEmailCodeRequest{
+					Token: "token-123",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetVerifyEmailCode").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ResetVerifyEmailCode(ctx, mock.Anything).
+					Return(nil, app_error.New(errors.New("max attempts reached"), app_error.ErrCodeAuthMaxAttemptVerifyEmail))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0216","message":"You have reached the maximum number of attempts. Please resend the new code."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/reset-verify-email-code", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig := tt.setup()
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
+			handler.ResetVerifyEmailCode(c)
+
+			tt.verify(t, w)
+		})
+	}
+}
+
+func TestUserHandler_ResetUserPassword(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	log := log.Initialize("test")
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		input  func() *entities.ResetUserPasswordRequest
+		setup  func() (*services.MockUserService, *utils.MockValidator, *config.Config)
+		verify func(t *testing.T, w *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Success",
+			input: func() *entities.ResetUserPasswordRequest {
+				return &entities.ResetUserPasswordRequest{
+					Token:       "token-123",
+					NewPassword: "newpassword123",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetUserPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ResetUserPassword(ctx, mock.Anything).
+					Return(nil)
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, w.Code)
+			},
+		},
+		{
+			name: "ValidationFailed",
+			input: func() *entities.ResetUserPasswordRequest {
+				return &entities.ResetUserPasswordRequest{
+					Token:       "",
+					NewPassword: "",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetUserPassword").
+					Return(app_error.NewWithCustomMessage(errors.New("token is required"), app_error.ErrCodeAuthInvalidRequest, "token is required"))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+				assert.JSONEq(t, `{"code":"INS0213","message":"token is required"}`, w.Body.String())
+			},
+		},
+		{
+			name: "ServiceError",
+			input: func() *entities.ResetUserPasswordRequest {
+				return &entities.ResetUserPasswordRequest{
+					Token:       "token-123",
+					NewPassword: "newpassword123",
+				}
+			},
+			setup: func() (*services.MockUserService, *utils.MockValidator, *config.Config) {
+				mockUserService := new(services.MockUserService)
+				mockValidator := new(utils.MockValidator)
+				mockConfig := &config.Config{}
+
+				mockValidator.EXPECT().
+					ValidateAndBind(mock.Anything, mock.Anything, "ResetUserPassword").
+					Return(nil)
+
+				mockUserService.EXPECT().
+					ResetUserPassword(ctx, mock.Anything).
+					Return(app_error.New(errors.New("token expired"), app_error.ErrCodeAuthResetTokenExpired))
+
+				return mockUserService, mockValidator, mockConfig
+			},
+			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNotFound, w.Code)
+				assert.JSONEq(t, `{"code":"INS0209","message":"That reset link has expired. Please request a new one."}`, w.Body.String())
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, _ := json.Marshal(tt.input())
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodPost, "/reset-password", bytes.NewBuffer(body))
+			c.Request.Header.Set("Content-Type", "application/json")
+
+			mockUserService, mockValidator, mockConfig := tt.setup()
+			defer mockUserService.AssertExpectations(t)
+			defer mockValidator.AssertExpectations(t)
+
+			handler := NewUserHandler(log, mockUserService, mockConfig, nil, mockValidator, nil)
+			handler.ResetUserPassword(c)
 
 			tt.verify(t, w)
 		})
@@ -171,620 +988,6 @@ func TestUserHandler_SignOut(t *testing.T) {
 
 			handler := NewUserHandler(log, mockUserService, nil, mockAuthContext, nil, mockCookies)
 			handler.SignOut(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestUserHandler_GetGoogleAuthURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		setup  func() (*services.MockUserService, *config.Config)
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Success",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetGoogleAuthURL(ctx).
-					Return(&entities.GoogleAuthURLResponse{
-						AuthURL: "https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=callback&scope=email&response_type=code&state=random_state",
-					}, nil)
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"auth_url":"https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=callback&scope=email&response_type=code&state=random_state"}`, w.Body.String())
-			},
-		},
-		{
-			name: "ServiceError",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetGoogleAuthURL(ctx).
-					Return(nil, app_error.New(errors.New("failed to generate auth URL"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "AuthConfigurationError",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetGoogleAuthURL(ctx).
-					Return(nil, app_error.New(errors.New("invalid OAuth configuration"), app_error.ErrCodeAuthInvalidRequest))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodGet, "/auth/google/url", nil)
-
-			mockUserService, mockConfig := tt.setup()
-			defer mockUserService.AssertExpectations(t)
-
-			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, nil)
-			handler.GetGoogleAuthURL(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestUserHandler_HandleGoogleCallback(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		setup  func() (*services.MockUserService, *utils.MockCookies, *config.Config)
-		url    string
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Success",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleGoogleCallback(ctx, &entities.HandleGoogleCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(&entities.HandleGoogleCallbackResp{
-						AccessToken:  "test_access_token",
-						RefreshToken: "test_refresh_token",
-					}, nil)
-
-				mockCookies.EXPECT().
-					SetRefreshTokenCookie(mock.Anything, "test_refresh_token").
-					Return()
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"access_token":"test_access_token","refresh_token":"test_refresh_token"}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingCode",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingBothCodeAndState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "EmptyCode",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "EmptyState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code&state=",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "ServiceError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleGoogleCallback(ctx, &entities.HandleGoogleCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("invalid authorization code"), app_error.ErrCodeAuthInvalidRequest))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name: "OAuthTokenExchangeError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleGoogleCallback(ctx, &entities.HandleGoogleCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("failed to exchange code for token"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "UserCreationError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleGoogleCallback(ctx, &entities.HandleGoogleCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("failed to create user"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/google/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodGet, tt.url, nil)
-
-			mockUserService, mockCookies, mockConfig := tt.setup()
-			defer mockUserService.AssertExpectations(t)
-			defer mockCookies.AssertExpectations(t)
-
-			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, mockCookies)
-			handler.HandleGoogleCallback(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestUserHandler_GetFacebookAuthURL(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		setup  func() (*services.MockUserService, *config.Config)
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Success",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetFacebookAuthURL(ctx).
-					Return(&entities.FacebookAuthURLResponse{
-						AuthURL: "https://www.facebook.com/v18.0/dialog/oauth?client_id=test&redirect_uri=callback&scope=email&response_type=code&state=random_state",
-					}, nil)
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"auth_url":"https://www.facebook.com/v18.0/dialog/oauth?client_id=test&redirect_uri=callback&scope=email&response_type=code&state=random_state"}`, w.Body.String())
-			},
-		},
-		{
-			name: "ServiceError",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetFacebookAuthURL(ctx).
-					Return(nil, app_error.New(errors.New("failed to generate auth URL"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "AuthConfigurationError",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetFacebookAuthURL(ctx).
-					Return(nil, app_error.New(errors.New("invalid OAuth configuration"), app_error.ErrCodeAuthInvalidRequest))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name: "FacebookAPIError",
-			setup: func() (*services.MockUserService, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					GetFacebookAuthURL(ctx).
-					Return(nil, app_error.New(errors.New("Facebook API unavailable"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockConfig
-			},
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodGet, "/auth/facebook/url", nil)
-
-			mockUserService, mockConfig := tt.setup()
-			defer mockUserService.AssertExpectations(t)
-
-			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, nil)
-			handler.GetFacebookAuthURL(c)
-
-			tt.verify(t, w)
-		})
-	}
-}
-
-func TestUserHandler_HandleFacebookCallback(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	log := log.Initialize("test")
-	ctx := context.Background()
-
-	tests := []struct {
-		name   string
-		setup  func() (*services.MockUserService, *utils.MockCookies, *config.Config)
-		url    string
-		verify func(t *testing.T, w *httptest.ResponseRecorder)
-	}{
-		{
-			name: "Success",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(&entities.HandleFacebookCallbackResp{
-						AccessToken:  "test_access_token",
-						RefreshToken: "test_refresh_token",
-					}, nil)
-
-				mockCookies.EXPECT().
-					SetRefreshTokenCookie(mock.Anything, "test_refresh_token").
-					Return()
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusOK, w.Code)
-				assert.JSONEq(t, `{"access_token":"test_access_token","refresh_token":"test_refresh_token"}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingCode",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "MissingBothCodeAndState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "EmptyCode",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "EmptyState",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-				assert.JSONEq(t, `{"code":"INS0213","message":"Something went wrong with the request. Please try again."}`, w.Body.String())
-			},
-		},
-		{
-			name: "ServiceError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("invalid authorization code"), app_error.ErrCodeAuthInvalidRequest))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name: "OAuthTokenExchangeError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("failed to exchange code for token"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "UserCreationError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("failed to create user"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "FacebookAPIError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "test_state",
-					}).
-					Return(nil, app_error.New(errors.New("Facebook API error"), app_error.ErrCodeGeneralServerUnavailable))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=test_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusInternalServerError, w.Code)
-			},
-		},
-		{
-			name: "InvalidStateError",
-			setup: func() (*services.MockUserService, *utils.MockCookies, *config.Config) {
-				mockUserService := new(services.MockUserService)
-				mockCookies := new(utils.MockCookies)
-				mockConfig := &config.Config{}
-
-				mockUserService.EXPECT().
-					HandleFacebookCallback(ctx, &entities.HandleFacebookCallbackReq{
-						Code:  "test_auth_code",
-						State: "invalid_state",
-					}).
-					Return(nil, app_error.New(errors.New("invalid state parameter"), app_error.ErrCodeAuthInvalidRequest))
-
-				return mockUserService, mockCookies, mockConfig
-			},
-			url: "/auth/facebook/callback?code=test_auth_code&state=invalid_state",
-			verify: func(t *testing.T, w *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(w)
-			c.Request = httptest.NewRequest(http.MethodGet, tt.url, nil)
-
-			mockUserService, mockCookies, mockConfig := tt.setup()
-			defer mockUserService.AssertExpectations(t)
-			defer mockCookies.AssertExpectations(t)
-
-			handler := NewUserHandler(log, mockUserService, mockConfig, nil, nil, mockCookies)
-			handler.HandleFacebookCallback(c)
 
 			tt.verify(t, w)
 		})

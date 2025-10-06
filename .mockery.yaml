@@ -62,9 +62,3 @@ packages:
       filename: "{{.InterfaceName}}.go"
       outpkg: http
       recursive: true
-  gitlab.com/interview-simulation/interview-backend-server/internal/infras/auth:
-    config:
-      dir: ./internal/mocks/auth
-      filename: "{{.InterfaceName}}.go"
-      outpkg: auth
-      recursive: true

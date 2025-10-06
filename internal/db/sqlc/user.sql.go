@@ -8,136 +8,243 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const checkUserExistsByProviderID = `-- name: CheckUserExistsByProviderID :one
-SELECT EXISTS (
-    SELECT 1 FROM users
-    WHERE provider_id = $1 AND provider = $2
-)
+const checkIsEmailExists = `-- name: CheckIsEmailExists :one
+SELECT id, email, password_hash, full_name, country, gender, date_of_birth, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
+WHERE email = $1
 `
 
-type CheckUserExistsByProviderIDParams struct {
-	ProviderID sql.NullString `json:"provider_id"`
-	Provider   string         `json:"provider"`
-}
-
-func (q *Queries) CheckUserExistsByProviderID(ctx context.Context, arg CheckUserExistsByProviderIDParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, checkUserExistsByProviderID, arg.ProviderID, arg.Provider)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const createUserWithProvider = `-- name: CreateUserWithProvider :exec
-INSERT INTO users (
-    id,
-    email,
-    full_name,
-    profile_image,
-    provider,
-    provider_id,
-    is_admin,
-    is_suspended,
-    last_login_at,
-    last_login_ip,
-    last_login_user_agent,
-    locale
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-)
-`
-
-type CreateUserWithProviderParams struct {
-	ID                 uuid.UUID      `json:"id"`
-	Email              string         `json:"email"`
-	FullName           string         `json:"full_name"`
-	ProfileImage       sql.NullString `json:"profile_image"`
-	Provider           string         `json:"provider"`
-	ProviderID         sql.NullString `json:"provider_id"`
-	IsAdmin            sql.NullBool   `json:"is_admin"`
-	IsSuspended        sql.NullBool   `json:"is_suspended"`
-	LastLoginAt        sql.NullTime   `json:"last_login_at"`
-	LastLoginIp        sql.NullString `json:"last_login_ip"`
-	LastLoginUserAgent sql.NullString `json:"last_login_user_agent"`
-	Locale             sql.NullString `json:"locale"`
-}
-
-func (q *Queries) CreateUserWithProvider(ctx context.Context, arg CreateUserWithProviderParams) error {
-	_, err := q.db.ExecContext(ctx, createUserWithProvider,
-		arg.ID,
-		arg.Email,
-		arg.FullName,
-		arg.ProfileImage,
-		arg.Provider,
-		arg.ProviderID,
-		arg.IsAdmin,
-		arg.IsSuspended,
-		arg.LastLoginAt,
-		arg.LastLoginIp,
-		arg.LastLoginUserAgent,
-		arg.Locale,
-	)
-	return err
-}
-
-const getUserByProviderID = `-- name: GetUserByProviderID :one
-SELECT id, email, full_name, is_admin, last_login_at, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at, provider, provider_id, profile_image, locale FROM users
-WHERE provider_id = $1 AND provider = $2
-LIMIT 1
-`
-
-type GetUserByProviderIDParams struct {
-	ProviderID sql.NullString `json:"provider_id"`
-	Provider   string         `json:"provider"`
-}
-
-func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (Users, error) {
-	row := q.db.QueryRowContext(ctx, getUserByProviderID, arg.ProviderID, arg.Provider)
+func (q *Queries) CheckIsEmailExists(ctx context.Context, email string) (Users, error) {
+	row := q.db.QueryRowContext(ctx, checkIsEmailExists, email)
 	var i Users
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.PasswordHash,
 		&i.FullName,
+		&i.Country,
+		&i.Gender,
+		&i.DateOfBirth,
 		&i.IsAdmin,
+		&i.IsEmailVerified,
 		&i.LastLoginAt,
+		&i.LoginAttemptCount,
 		&i.IsSuspended,
 		&i.LastLoginIp,
 		&i.LastLoginUserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Provider,
-		&i.ProviderID,
-		&i.ProfileImage,
-		&i.Locale,
 	)
 	return i, err
 }
 
-const updateUserLoginInfo = `-- name: UpdateUserLoginInfo :exec
-UPDATE users
-SET last_login_at = NOW(),
-    last_login_ip = $2,
-    last_login_user_agent = $3,
-    locale = $4
+const checkIsUserExistsByID = `-- name: CheckIsUserExistsByID :one
+SELECT id, email, password_hash, full_name, country, gender, date_of_birth, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at FROM users
 WHERE id = $1
 `
 
-type UpdateUserLoginInfoParams struct {
-	ID                 uuid.UUID      `json:"id"`
-	LastLoginIp        sql.NullString `json:"last_login_ip"`
-	LastLoginUserAgent sql.NullString `json:"last_login_user_agent"`
-	Locale             sql.NullString `json:"locale"`
+func (q *Queries) CheckIsUserExistsByID(ctx context.Context, id uuid.UUID) (Users, error) {
+	row := q.db.QueryRowContext(ctx, checkIsUserExistsByID, id)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Country,
+		&i.Gender,
+		&i.DateOfBirth,
+		&i.IsAdmin,
+		&i.IsEmailVerified,
+		&i.LastLoginAt,
+		&i.LoginAttemptCount,
+		&i.IsSuspended,
+		&i.LastLoginIp,
+		&i.LastLoginUserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-func (q *Queries) UpdateUserLoginInfo(ctx context.Context, arg UpdateUserLoginInfoParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserLoginInfo,
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    id,
+    email,
+    password_hash,
+    full_name,
+    country,
+    gender,
+    date_of_birth
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+)
+RETURNING id, email, password_hash, full_name, country, gender, date_of_birth, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	FullName     string    `json:"full_name"`
+	Country      string    `json:"country"`
+	Gender       string    `json:"gender"`
+	DateOfBirth  time.Time `json:"date_of_birth"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Users, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FullName,
+		arg.Country,
+		arg.Gender,
+		arg.DateOfBirth,
+	)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Country,
+		&i.Gender,
+		&i.DateOfBirth,
+		&i.IsAdmin,
+		&i.IsEmailVerified,
+		&i.LastLoginAt,
+		&i.LoginAttemptCount,
+		&i.IsSuspended,
+		&i.LastLoginIp,
+		&i.LastLoginUserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const resetUserPassword = `-- name: ResetUserPassword :execrows
+UPDATE users
+SET password_hash = $2,
+    updated_at = $3
+WHERE id = $1
+`
+
+type ResetUserPasswordParams struct {
+	ID           uuid.UUID    `json:"id"`
+	PasswordHash string       `json:"password_hash"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
+}
+
+func (q *Queries) ResetUserPassword(ctx context.Context, arg ResetUserPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, resetUserPassword, arg.ID, arg.PasswordHash, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const signInUserByEmailAndPassword = `-- name: SignInUserByEmailAndPassword :execrows
+UPDATE users
+SET last_login_at = $2,
+    last_login_ip = $3,
+    last_login_user_agent = $4,
+    updated_at = $5
+WHERE email = $1
+`
+
+type SignInUserByEmailAndPasswordParams struct {
+	Email              string         `json:"email"`
+	LastLoginAt        sql.NullTime   `json:"last_login_at"`
+	LastLoginIp        sql.NullString `json:"last_login_ip"`
+	LastLoginUserAgent sql.NullString `json:"last_login_user_agent"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+}
+
+func (q *Queries) SignInUserByEmailAndPassword(ctx context.Context, arg SignInUserByEmailAndPasswordParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, signInUserByEmailAndPassword,
+		arg.Email,
+		arg.LastLoginAt,
 		arg.LastLoginIp,
 		arg.LastLoginUserAgent,
-		arg.Locale,
+		arg.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET email = $2,
+    password_hash = $3,
+    full_name = $4,
+    country = $5,
+    gender = $6,
+    date_of_birth = $7
+WHERE id = $1
+RETURNING id, email, password_hash, full_name, country, gender, date_of_birth, is_admin, is_email_verified, last_login_at, login_attempt_count, is_suspended, last_login_ip, last_login_user_agent, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	FullName     string    `json:"full_name"`
+	Country      string    `json:"country"`
+	Gender       string    `json:"gender"`
+	DateOfBirth  time.Time `json:"date_of_birth"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Users, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FullName,
+		arg.Country,
+		arg.Gender,
+		arg.DateOfBirth,
+	)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Country,
+		&i.Gender,
+		&i.DateOfBirth,
+		&i.IsAdmin,
+		&i.IsEmailVerified,
+		&i.LastLoginAt,
+		&i.LoginAttemptCount,
+		&i.IsSuspended,
+		&i.LastLoginIp,
+		&i.LastLoginUserAgent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const verifyEmail = `-- name: VerifyEmail :execrows
+UPDATE users
+SET is_email_verified = true,
+    updated_at = now()
+WHERE id = $1
+`
+
+func (q *Queries) VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, verifyEmail, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

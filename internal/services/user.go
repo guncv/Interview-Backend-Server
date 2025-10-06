@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/auth"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
@@ -24,11 +25,14 @@ import (
 
 type UserService interface {
 	HealthCheck(ctx context.Context) (entities.HealthCheckResponse, error)
+	SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error)
+	SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error
+	ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error)
+	SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)
+	SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error)
+	ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error
+	ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error
 	SignOut(ctx context.Context) error
-	HandleGoogleCallback(ctx context.Context, req *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)
-	GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error)
-	HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)
-	GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error)
 }
 
 type userService struct {
@@ -39,12 +43,11 @@ type userService struct {
 	config             *config.Config
 	db                 db.Store
 	authContext        middleware.AuthContext
+	resetTokenRepo     repositories.ResetTokenRepository
 	redisClient        database.RedisClient
 	redisTaskPublisher publisher.RedisTaskPublisher
 	password           utils.PasswordUtil
 	generator          utils.Generator
-	googleClient       auth.GoogleClient
-	facebookClient     auth.FacebookClient
 }
 
 func NewUserService(l *log.Logger,
@@ -54,12 +57,11 @@ func NewUserService(l *log.Logger,
 	db db.Store,
 	config *config.Config,
 	authContext middleware.AuthContext,
+	resetTokenRepository repositories.ResetTokenRepository,
 	redisClient database.RedisClient,
 	redisTaskPublisher publisher.RedisTaskPublisher,
 	password utils.PasswordUtil,
 	generator utils.Generator,
-	googleClient auth.GoogleClient,
-	facebookClient auth.FacebookClient,
 ) UserService {
 	return &userService{
 		log:                l,
@@ -69,12 +71,11 @@ func NewUserService(l *log.Logger,
 		db:                 db,
 		config:             config,
 		authContext:        authContext,
+		resetTokenRepo:     resetTokenRepository,
 		redisClient:        redisClient,
 		redisTaskPublisher: redisTaskPublisher,
 		password:           password,
 		generator:          generator,
-		googleClient:       googleClient,
-		facebookClient:     facebookClient,
 	}
 }
 
@@ -92,342 +93,511 @@ func (s *userService) HealthCheck(ctx context.Context) (entities.HealthCheckResp
 	return result, nil
 }
 
-func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error) {
+func (s *userService) SignUpUser(ctx context.Context, req *entities.SignUpUserRequest) (*entities.SignUpUserResponse, error) {
 
-	token, err := s.googleClient.ExchangeCodeForToken(ctx, req.Code)
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to exchange code for token", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
+		if appErr, ok := err.(*app_error.AppError); ok && appErr.Code == app_error.ErrCodeAuthUserNotFound {
+			hashedPassword, err := s.password.HashPassword(ctx, req.Password)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+				return nil, err
+			}
 
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, req.State)
-	state, err := s.redisClient.Get(ctx, redisKey)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to get state", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
+			createUserReq := &db.CreateUserParams{
+				ID:           s.generator.GenerateUUID(ctx),
+				Email:        req.Email,
+				PasswordHash: hashedPassword,
+				FullName:     req.FullName,
+				Country:      req.Country,
+				Gender:       req.Gender,
+				DateOfBirth:  req.DateOfBirth,
+			}
 
-	if state != constants.GoogleProvider {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Invalid state", errors.New("invalid state"))
-		return nil, app_error.New(errors.New("invalid state"), app_error.ErrCodeAuthInvalidToken)
-	}
+			resp, err := s.userRepo.CreateUser(ctx, createUserReq)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating user", "error", err)
+				return nil, err
+			}
 
-	userInfo, err := s.googleClient.GetUserInfo(ctx, token)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to get user info", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
+			code := s.generator.GenerateRandomString(ctx, 6)
 
-	if userInfo.Email == "" || userInfo.ID == "" {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Invalid user info from Google")
-		return nil, app_error.New(errors.New("invalid user information from Google"), app_error.ErrCodeAuthInvalidToken)
-	}
+			verifyEmailReq := &entities.VerifyEmailTokenRequest{
+				UserID:   resp.ID.String(),
+				Email:    req.Email,
+				Duration: s.config.EmailConfig.VerifyEmailTokenDuration,
+			}
 
-	checkUserParams := db.CheckUserExistsByProviderIDParams{
-		ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-		Provider:   constants.GoogleProvider,
-	}
+			verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
+			if err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating verify email token", "error", err)
+				return nil, err
+			}
 
-	userExists, err := s.userRepo.CheckUserExistsByProviderID(ctx, checkUserParams)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Database lookup failed", err)
-		return nil, app_error.HandleDatabaseError(err)
-	}
+			if err = s.redisClient.Set(ctx, database.RedisPayload{
+				Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
+				Value: code,
+				TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
+			}); err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
+				return nil, err
+			}
 
-	clientIP := ""
-	userAgent := ""
-	if ip, ok := ctx.Value(constants.ClientIPKey).(string); ok {
-		clientIP = ip
-	}
-	if ua, ok := ctx.Value(constants.UserAgentKey).(string); ok {
-		userAgent = ua
-	}
+			if err = s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+				EmailReceiver: req.Email,
+				Code:          code,
+			}); err != nil {
+				s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error publishing task send verify email", "error", err)
+				return nil, err
+			}
 
-	var dbUser db.Users
-	if !userExists {
-		newUserId := s.generator.GenerateUUID(ctx)
-		createUserParams := db.CreateUserWithProviderParams{
-			ID:                 newUserId,
-			Email:              userInfo.Email,
-			FullName:           userInfo.Name,
-			ProfileImage:       sql.NullString{String: userInfo.Picture, Valid: userInfo.Picture != ""},
-			Provider:           constants.GoogleProvider,
-			ProviderID:         sql.NullString{String: userInfo.ID, Valid: true},
-			IsAdmin:            sql.NullBool{Bool: false, Valid: true},
-			IsSuspended:        sql.NullBool{Bool: false, Valid: true},
-			LastLoginAt:        sql.NullTime{Time: time.Now(), Valid: true},
-			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
-			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
-			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
+			result := entities.SignUpUserResponse{
+				TokenId: verifyEmailToken,
+			}
+
+			return &result, nil
 		}
 
-		if err := s.userRepo.CreateUserWithProvider(ctx, &createUserParams); err != nil {
-			s.log.ErrorWithID(ctx, "[Google OAuth] Failed to create user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-		dbUser, err = s.userRepo.GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-			Provider:   constants.GoogleProvider,
-		})
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Google OAuth] Failed to retrieve created user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-	} else {
-		getUserParams := db.GetUserByProviderIDParams{
-			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-			Provider:   constants.GoogleProvider,
-		}
-
-		existingUser, err := s.userRepo.GetUserByProviderID(ctx, getUserParams)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Google OAuth] Failed to fetch existing user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-		dbUser = existingUser
-
-		if err := s.userRepo.UpdateUserLoginInfo(ctx, db.UpdateUserLoginInfoParams{
-			ID:                 dbUser.ID,
-			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
-			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
-			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
-		}); err != nil {
-			s.log.ErrorWithID(ctx, "[Google OAuth] Failed to update login info", err)
-			return nil, err
-		}
-	}
-
-	tokens, err := s.createTokensAndSession(ctx, dbUser, clientIP, userAgent, "[Google OAuth]")
-	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error checking if email exists", "error", err)
 		return nil, err
 	}
 
-	result := &entities.HandleGoogleCallbackResp{
-		AccessToken:  tokens.AccessToken,
-		RefreshToken: tokens.RefreshToken,
+	if user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error", "error", errors.New("this email already exists and verified"))
+		return nil, app_error.New(errors.New("this email already exists"), app_error.ErrCodeAuthUserAlreadyExists)
 	}
 
-	return result, nil
+	newHashedPassword, err := s.password.HashPassword(ctx, req.Password)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error hashing password", "error", err)
+		return nil, err
+	}
+
+	updateUserReq := &db.UpdateUserParams{
+		ID:           user.ID,
+		Email:        req.Email,
+		PasswordHash: newHashedPassword,
+		FullName:     req.FullName,
+		Country:      req.Country,
+		Gender:       req.Gender,
+		DateOfBirth:  req.DateOfBirth,
+	}
+
+	resp, err := s.userRepo.UpdateUser(ctx, updateUserReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error updating user", "error", err)
+		return nil, err
+	}
+
+	code := s.generator.GenerateRandomString(ctx, 6)
+
+	verifyEmailReq := &entities.VerifyEmailTokenRequest{
+		UserID:   resp.ID.String(),
+		Email:    req.Email,
+		Duration: s.config.EmailConfig.VerifyEmailTokenDuration,
+	}
+
+	verifyEmailToken, _, err := s.jwtToken.CreateVerifyEmailToken(ctx, verifyEmailReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error creating verify email token", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, verifyEmailToken),
+		Value: code,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting verify email token", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, verifyEmailToken),
+		Value: "0",
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error setting attempt", "error", err)
+		return nil, err
+	}
+
+	if err = s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+		EmailReceiver: req.Email,
+		Code:          code,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignUpUser] Error publishing task send verify email", "error", err)
+		return nil, err
+	}
+
+	result := entities.SignUpUserResponse{
+		TokenId: verifyEmailToken,
+	}
+
+	return &result, nil
 }
 
-func (s *userService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
-	state := s.generator.GenerateCryptographicallySecureString(ctx, 32)
+func (s *userService) SendVerifyEmail(ctx context.Context, req *entities.VerifyEmailRequest) error {
 
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, state),
-		Value: constants.GoogleProvider,
-		TTL:   constants.RedisTTLOAuthState,
+	payload, err := s.jwtToken.VerifyVerifyEmailToken(ctx, req.Token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying token", "error", err)
+		return err
 	}
 
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to store state", err)
+	userID, err := uuid.Parse(payload.UserID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	code, err := s.redisClient.Get(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token))
+	if err != nil {
+		if err == redis.Nil {
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
+			return app_error.New(errors.New("invalid verify email token"), app_error.ErrCodeAuthInvalidVerifyEmailToken)
+		}
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error getting verify email token", "error", err)
+		return err
+	}
+
+	if code != req.Code {
+		newAttempts, err := s.redisClient.Increment(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token))
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] INCR attempts failed", "error", err)
+			return err
+		}
+
+		if newAttempts >= int64(constants.MaxAttemptVerifyEmail) {
+			if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token), fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+				s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cleanup after max attempts failed", "error", err)
+			}
+
+			s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Max attempts reached")
+			return app_error.New(errors.New("max attempt reached"), app_error.ErrCodeAuthMaxAttemptVerifyEmail)
+		}
+
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Invalid code", "attempt", newAttempts)
+		return app_error.New(errors.New("invalid verify email code"), app_error.ErrCodeAuthInvalidVerifyEmailCode)
+	}
+
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error checking if email exists", "error", err)
+		return err
+	}
+
+	if user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error", "error", errors.New("this email already verified"))
+		return app_error.New(errors.New("this email already verified"), app_error.ErrCodeAuthUserAlreadyExists)
+	}
+
+	if err = s.userRepo.VerifyEmail(ctx, user.ID); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: VerifyEmail] Error verifying email", "error", err)
+		return err
+	}
+
+	if err = s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cannot delete verify email token", "error", err)
+		return err
+	}
+
+	if err = s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: VerifyEmail] Cannot delete attempt", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *userService) ResetVerifyEmailCode(ctx context.Context, req *entities.ResetVerifyEmailCodeRequest) (*entities.ResetVerifyEmailCodeResponse, error) {
+
+	code := s.generator.GenerateRandomString(ctx, 6)
+
+	if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ResetVerifyEmailCode] Cannot delete verify email token", "error", err)
+	}
+
+	if err := s.redisClient.Delete(ctx, fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, req.Token)); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ResetVerifyEmailCode] Cannot delete attempt", "error", err)
+	}
+
+	newToken, payload, err := s.jwtToken.RenewVerifyEmailToken(ctx, req.Token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error verifying token", "error", err)
 		return nil, err
 	}
 
-	authURL := s.googleClient.GetAuthURL(state)
-	resp := &entities.GoogleAuthURLResponse{
-		AuthURL: authURL,
+	if err := s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixVerifyEmail, newToken),
+		Value: code,
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting verify email token", "error", err)
+		return nil, err
+	}
+
+	if err := s.redisClient.Set(ctx, database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisAttemptPrefixVerifyEmail, newToken),
+		Value: "0",
+		TTL:   s.config.EmailConfig.VerifyEmailTokenDuration,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error setting attempt", "error", err)
+		return nil, err
+	}
+
+	if err := s.redisTaskPublisher.PublishTaskSendVerifyEmail(ctx, &email.VerifyEmailPayload{
+		EmailReceiver: payload.Email,
+		Code:          code,
+	}); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetVerifyEmailCode] Error publishing task send verify email", "error", err)
+		return nil, err
+	}
+
+	result := entities.ResetVerifyEmailCodeResponse{
+		TokenId: newToken,
+	}
+
+	return &result, nil
+}
+
+func (s *userService) SignInUserByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
+
+	resp, err := s.signInByEmailAndPassword(ctx, req, false)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInUserByEmailAndPassword] Error signing in user", err)
+		return nil, err
 	}
 
 	return resp, nil
 }
 
-func (s *userService) HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error) {
-	token, err := s.facebookClient.ExchangeCodeForToken(ctx, req.Code)
+func (s *userService) SignInAdminByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest) (*entities.SignInByEmailAndPasswordResponse, error) {
+
+	resp, err := s.signInByEmailAndPassword(ctx, req, true)
 	if err != nil {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to exchange code for token", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, req.State)
-	state, err := s.redisClient.Get(ctx, redisKey)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to get state", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if state != constants.FacebookProvider {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Invalid state", errors.New("invalid state"))
-		return nil, app_error.New(errors.New("invalid state"), app_error.ErrCodeAuthInvalidToken)
-	}
-
-	userInfo, err := s.facebookClient.GetUserInfo(ctx, token)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to get user info", err)
-		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	if userInfo.Email == "" || userInfo.ID == "" {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Invalid user info from Facebook")
-		return nil, app_error.New(errors.New("invalid user information from Facebook"), app_error.ErrCodeAuthInvalidToken)
-	}
-
-	checkUserParams := db.CheckUserExistsByProviderIDParams{
-		ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-		Provider:   constants.FacebookProvider,
-	}
-
-	userExists, err := s.userRepo.CheckUserExistsByProviderID(ctx, checkUserParams)
-	if err != nil {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Database lookup failed", err)
-		return nil, app_error.HandleDatabaseError(err)
-	}
-
-	clientIP := ""
-	userAgent := ""
-	if ip, ok := ctx.Value(constants.ClientIPKey).(string); ok {
-		clientIP = ip
-	}
-	if ua, ok := ctx.Value(constants.UserAgentKey).(string); ok {
-		userAgent = ua
-	}
-
-	var dbUser db.Users
-	if !userExists {
-		newUserId := s.generator.GenerateUUID(ctx)
-		createUserParams := db.CreateUserWithProviderParams{
-			ID:                 newUserId,
-			Email:              userInfo.Email,
-			FullName:           userInfo.Name,
-			ProfileImage:       sql.NullString{String: userInfo.Picture.Data.URL, Valid: userInfo.Picture.Data.URL != ""},
-			Provider:           constants.FacebookProvider,
-			ProviderID:         sql.NullString{String: userInfo.ID, Valid: true},
-			IsAdmin:            sql.NullBool{Bool: false, Valid: true},
-			IsSuspended:        sql.NullBool{Bool: false, Valid: true},
-			LastLoginAt:        sql.NullTime{Time: time.Now(), Valid: true},
-			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
-			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
-			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
-		}
-
-		if err := s.userRepo.CreateUserWithProvider(ctx, &createUserParams); err != nil {
-			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to create user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-		dbUser, err = s.userRepo.GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-			Provider:   constants.FacebookProvider,
-		})
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to retrieve created user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-	} else {
-		getUserParams := db.GetUserByProviderIDParams{
-			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
-			Provider:   constants.FacebookProvider,
-		}
-
-		existingUser, err := s.userRepo.GetUserByProviderID(ctx, getUserParams)
-		if err != nil {
-			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to fetch existing user", err)
-			return nil, app_error.HandleDatabaseError(err)
-		}
-
-		dbUser = existingUser
-
-		if err := s.userRepo.UpdateUserLoginInfo(ctx, db.UpdateUserLoginInfoParams{
-			ID:                 dbUser.ID,
-			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
-			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
-			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
-		}); err != nil {
-			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to update login info", err)
-			return nil, err
-		}
-	}
-
-	tokens, err := s.createTokensAndSession(ctx, dbUser, clientIP, userAgent, "[Facebook OAuth]")
-	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: SignInAdminByEmailAndPassword] Error signing in user", err)
 		return nil, err
-	}
-
-	result := &entities.HandleFacebookCallbackResp{
-		AccessToken:  tokens.AccessToken,
-		RefreshToken: tokens.RefreshToken,
-	}
-
-	return result, nil
-}
-
-func (s *userService) GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error) {
-	state := s.generator.GenerateCryptographicallySecureString(ctx, 32)
-
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, state),
-		Value: constants.FacebookProvider,
-		TTL:   constants.RedisTTLOAuthState,
-	}
-
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
-		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to store state", err)
-		return nil, err
-	}
-
-	authURL := s.facebookClient.GetAuthURL(state)
-	resp := &entities.FacebookAuthURLResponse{
-		AuthURL: authURL,
 	}
 
 	return resp, nil
 }
 
-type TokenResponse struct {
-	AccessToken  string
-	RefreshToken string
-}
+func (s *userService) signInByEmailAndPassword(ctx context.Context, req *entities.SignInByEmailAndPasswordRequest, isAdmin bool) (*entities.SignInByEmailAndPasswordResponse, error) {
 
-func (s *userService) createTokensAndSession(ctx context.Context, dbUser db.Users, clientIP, userAgent, logPrefix string) (*TokenResponse, error) {
-	accessToken, _, err := s.jwtToken.CreateToken(ctx, &entities.TokenRequest{
-		UserID:   dbUser.ID.String(),
-		Role:     constants.UserRoleUser,
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error checking if email exists", err)
+		return nil, err
+	}
+
+	if !user.IsEmailVerified.Bool {
+		err := errors.New("this email or password is incorrect")
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error", "error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthEmailNotVerified)
+	}
+
+	if !s.password.IsPasswordValid(ctx, req.Password, user.PasswordHash) {
+		err := errors.New("this email or password is incorrect")
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Password is incorrect", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidPassword)
+	}
+
+	if isAdmin && !user.IsAdmin.Bool {
+		err := errors.New("this email or password is incorrect")
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error", "error", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidPassword)
+	}
+
+	var role constants.UserRole
+	if isAdmin {
+		role = constants.UserRoleAdmin
+	} else {
+		role = constants.UserRoleUser
+	}
+
+	accessTokenRequest := &entities.TokenRequest{
+		UserID:   user.ID.String(),
+		Role:     role,
 		Duration: s.config.AuthConfig.AccessTokenDuration,
-	})
+	}
 
+	accessToken, _, err := s.jwtToken.CreateToken(ctx, accessTokenRequest)
 	if err != nil {
-		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create access token", logPrefix), err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error creating access token", err)
 		return nil, err
 	}
 
-	refreshToken, refreshPayload, err := s.jwtToken.CreateToken(ctx, &entities.TokenRequest{
-		UserID:   dbUser.ID.String(),
-		Role:     constants.UserRoleUser,
+	refreshTokenRequest := &entities.TokenRequest{
+		UserID:   user.ID.String(),
+		Role:     role,
 		Duration: s.config.AuthConfig.RefreshTokenDuration,
-	})
+	}
+
+	refreshToken, refreshPayload, err := s.jwtToken.CreateToken(ctx, refreshTokenRequest)
 	if err != nil {
-		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create refresh token", logPrefix), err)
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error creating refresh token", err)
 		return nil, err
 	}
 
-	sessionID := refreshPayload.ID
 	refreshTokenHash := s.jwtToken.HashTokenSHA256(ctx, refreshToken)
 
-	createSessionParams := db.CreateAuthSessionParams{
-		ID:               sessionID,
-		UserID:           dbUser.ID,
+	txModel := &repositories.SignInUserByEmailAndPasswordTxModel{
+		Email:            req.Email,
+		LastLoginAt:      time.Now(),
+		UserAgent:        ctx.Value(constants.UserAgentKey).(string),
+		IpAddress:        ctx.Value(constants.ClientIPKey).(string),
+		SessionID:        refreshPayload.ID,
+		UserID:           user.ID,
+		UpdatedAt:        time.Now(),
 		RefreshTokenHash: refreshTokenHash,
-		UserAgent:        userAgent,
-		IpAddress:        clientIP,
-		LastActive:       sql.NullTime{Time: time.Now(), Valid: true},
-		ExpiresAt:        sql.NullTime{Time: refreshPayload.ExpiredAt, Valid: true},
+		LastActive:       time.Now().Add(s.config.AuthConfig.RefreshTokenDuration),
+		ExpiresAt:        time.Now().Add(s.config.AuthConfig.RefreshTokenDuration),
 	}
 
-	if err := s.sessionRepo.CreateAuthSession(ctx, &createSessionParams); err != nil {
-		s.log.ErrorWithID(ctx, fmt.Sprintf("%s Failed to create auth session", logPrefix), err)
-		return nil, app_error.HandleDatabaseError(err)
+	if err = s.userRepo.SignInUserByEmailAndPasswordTx(ctx, txModel); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: signInByEmailAndPassword] Error signing in user", err)
+		return nil, err
 	}
 
-	resp := &TokenResponse{
+	resp := entities.SignInByEmailAndPasswordResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
 
-	return resp, nil
+	return &resp, nil
+}
+
+func (s *userService) ForgotPassword(ctx context.Context, req *entities.ForgotPasswordRequest) error {
+
+	user, err := s.userRepo.CheckIsEmailExists(ctx, req.Email)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error checking if user exists", err)
+		return err
+	}
+
+	if !user.IsEmailVerified.Bool {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error", "error", errors.New("this email is not verified"))
+		return app_error.New(errors.New("this email is not verified"), app_error.ErrCodeAuthEmailNotVerified)
+	}
+
+	token := s.generator.GenerateUUID(ctx).String()
+	hashedToken := s.jwtToken.HashTokenSHA256(ctx, token)
+
+	resetTokenRequest := &db.CreateResetTokenParams{
+		ID:        s.generator.GenerateUUID(ctx),
+		UserID:    user.ID,
+		TokenHash: hashedToken,
+		ExpiresAt: time.Now().Add(s.config.AuthConfig.ResetPasswordTokenDuration),
+		IpAddress: sql.NullString{String: ctx.Value(constants.ClientIPKey).(string), Valid: true},
+		UserAgent: sql.NullString{String: ctx.Value(constants.UserAgentKey).(string), Valid: true},
+	}
+
+	if err := s.resetTokenRepo.CreateResetToken(ctx, resetTokenRequest); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error creating reset token", err)
+		return err
+	}
+
+	redisPayload := database.RedisPayload{
+		Key:   hashedToken,
+		Value: user.ID.String(),
+		TTL:   s.config.AuthConfig.ResetPasswordTokenDuration,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.WarnWithID(ctx, "[Service: ForgotPassword] Error setting reset password token", err)
+	}
+
+	emailPayload := &email.ResetPasswordEmailPayload{
+		EmailReceiver: req.Email,
+		Token:         token,
+	}
+
+	opts := s.redisTaskPublisher.DefineTaskOptions(constants.TaskSendResetPasswordEmail)
+	if err := s.redisTaskPublisher.PublishTaskSendResetPasswordEmail(ctx, emailPayload, opts...); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ForgotPassword] Error sending reset password email", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *userService) ResetUserPassword(ctx context.Context, req *entities.ResetUserPasswordRequest) error {
+
+	hashedToken := s.jwtToken.HashTokenSHA256(ctx, req.Token)
+	if hashedToken == "" {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error hashing token", errors.New("failed to hash token"))
+		return errors.New("failed to hash token")
+	}
+
+	userID, err := s.redisClient.Get(ctx, hashedToken)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			s.log.WarnWithID(ctx, "[Service: ResetUserPassword] Redis Miss, fallback to DB")
+		} else {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Unexpected Redis failure", err)
+		}
+
+		resetToken, err := s.resetTokenRepo.GetResetToken(ctx, hashedToken)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error checking if reset token exists", err)
+			return err
+		}
+
+		if resetToken.Used {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Reset token already used", errors.New("reset token already used"))
+			return app_error.New(errors.New("reset token already used"), app_error.ErrCodeAuthResetTokenUsed)
+		}
+
+		if resetToken.ExpiresAt.Before(time.Now()) {
+			s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Reset token expired", errors.New("reset token expired"))
+			return app_error.New(errors.New("reset token expired"), app_error.ErrCodeAuthResetTokenExpired)
+		}
+
+		userID = resetToken.UserID.String()
+	}
+
+	userIDReq, err := uuid.Parse(userID)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Invalid user ID", err)
+		return app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
+	}
+
+	user, err := s.userRepo.CheckIsUserExistsByID(ctx, userIDReq)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error checking if user exists", err)
+		return err
+	}
+
+	if s.password.IsPasswordValid(ctx, req.NewPassword, user.PasswordHash) {
+		err := errors.New("password is the same as the old password")
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Password is the same as the old password", err)
+		return app_error.New(err, app_error.ErrCodeAuthPasswordSameAsOld)
+	}
+
+	newHashedPassword, err := s.password.HashPassword(ctx, req.NewPassword)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error hashing password", err)
+		return err
+	}
+
+	resetUserReq := &repositories.ResetUserPasswordTxModel{
+		UserID:       userIDReq,
+		PasswordHash: newHashedPassword,
+		ResetToken:   hashedToken,
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.userRepo.ResetUserPasswordAndUpdateResetTokenTx(ctx, resetUserReq); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error resetting user password", err)
+		return err
+	}
+
+	if err := s.redisClient.Delete(ctx, hashedToken); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: ResetUserPassword] Error deleting reset token", err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *userService) SignOut(ctx context.Context) error {

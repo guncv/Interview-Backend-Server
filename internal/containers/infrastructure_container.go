@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/auth"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
@@ -124,14 +123,6 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(http.NewHTTPClient); err != nil {
-		c.Error = err
-	}
-
-	if err := c.Container.Provide(auth.NewGoogleClient); err != nil {
-		c.Error = err
-	}
-
-	if err := c.Container.Provide(auth.NewFacebookClient); err != nil {
 		c.Error = err
 	}
 }

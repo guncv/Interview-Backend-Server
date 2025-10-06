@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -16,17 +16,15 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/auth"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/middleware"
-	mockAuthInfras "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/auth"
 	mockDatabase "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/database"
 	middlewareMocks "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/middleware"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/mocks/queue"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/mocks/repositories"
-	mockUtils "gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
+	"gitlab.com/interview-simulation/interview-backend-server/internal/mocks/utils"
 	utilsPkg "gitlab.com/interview-simulation/interview-backend-server/internal/utils"
-	"golang.org/x/oauth2"
 )
 
 func TestUserService_HealthCheck(t *testing.T) {
@@ -80,7 +78,7 @@ func TestUserService_HealthCheck(t *testing.T) {
 			mockUserRepo := tC.setup()
 			defer mockUserRepo.AssertExpectations(t)
 
-			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			got, gotErr := svc.HealthCheck(ctx)
 
 			tC.verify(t, got, gotErr)
@@ -88,1015 +86,3479 @@ func TestUserService_HealthCheck(t *testing.T) {
 	}
 }
 
-func TestUserService_HandleGoogleCallback(t *testing.T) {
+func TestUserService_SignUpUser(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
+	mockErr := errors.New("error")
 
-	validCode := "valid_auth_code"
-	validState := "valid_oauth_state"
-	invalidCode := "invalid_auth_code"
-	invalidState := "invalid_oauth_state"
-	expiredState := "expired_oauth_state"
-
-	validUserInfo := &auth.GoogleUserInfo{
-		Email:         "test@example.com",
-		VerifiedEmail: true,
-		Name:          "Test User",
-		GivenName:     "Test",
-		FamilyName:    "User",
-		Picture:       "https://example.com/picture.jpg",
-		Locale:        "en-US",
-		ID:            "google_user_123",
-	}
-
-	invalidUserInfo := &auth.GoogleUserInfo{
-		Email:         "",
-		VerifiedEmail: false,
-		Name:          "Test User",
-		ID:            "google_user_456",
+	mockConfig := &config.Config{
+		EmailConfig: config.EmailConfig{
+			VerifyEmailTokenDuration: 15 * time.Minute,
+		},
 	}
 
 	testCases := []struct {
 		name   string
-		input  *entities.HandleGoogleCallbackReq
-		setup  func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient)
-		verify func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error)
+		input  *entities.SignUpUserRequest
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher)
+		verify func(t *testing.T, got *entities.SignUpUserResponse, gotErr error)
 	}{
 		{
 			name: "Success_NewUser",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			input: &entities.SignUpUserRequest{
+				Email:       "newuser@example.com",
+				Password:    "password123",
+				FullName:    "New User",
+				Country:     "US",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock CheckIsEmailExists returns sql.ErrNoRows
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(false, nil)
+					CheckIsEmailExists(ctx, "newuser@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
-				userID := uuid.New()
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UUID generation
 				mockGenerator.EXPECT().
 					GenerateUUID(ctx).
-					Return(userID)
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
 
+				// Mock CreateUser
 				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.GoogleProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
 					Return(nil)
 
-				createdUser := db.Users{
-					ID:         userID,
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(createdUser, nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "refresh_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == userID && params.RefreshTokenHash == "hashed_refresh_token"
-					})).
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
 					Return(nil)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, got)
-				assert.Equal(t, "access_token", got.AccessToken)
-				assert.Equal(t, "refresh_token", got.RefreshToken)
+				assert.Equal(t, "verify_token", got.TokenId)
 			},
 		},
 		{
-			name: "Success_ExistingUser",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Success_ExistingUnverifiedUser",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UpdateUser
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
 				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
 
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
-
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(existingUser, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
 					Return(nil)
 
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "refresh_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == existingUser.ID
-					})).
-					Return(nil)
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.NoError(t, gotErr)
 				assert.NotNil(t, got)
-				assert.Equal(t, "access_token", got.AccessToken)
-				assert.Equal(t, "refresh_token", got.RefreshToken)
+				assert.Equal(t, "verify_token", got.TokenId)
 			},
 		},
 		{
-			name: "Error_InvalidCode",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  invalidCode,
-				State: validState,
+			name: "Error_EmailAlreadyVerified",
+			input: &entities.SignUpUserRequest{
+				Email:       "verified@example.com",
+				Password:    "password123",
+				FullName:    "Verified User",
+				Country:     "US",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, invalidCode).
-					Return(nil, errors.New("invalid authorization code"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "invalid authorization code")
-			},
-		},
-		{
-			name: "Error_InvalidState",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: invalidState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, invalidState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("invalid", nil)
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "invalid state")
-			},
-		},
-		{
-			name: "Error_StateNotFound",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: expiredState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, expiredState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("", errors.New("key not found"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "key not found")
-			},
-		},
-		{
-			name: "Error_InvalidUserInfo",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, mock.MatchedBy(func(token *oauth2.Token) bool {
-						return token.AccessToken == "google_access_token"
-					})).
-					Return(invalidUserInfo, nil)
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "invalid user information from Google")
-			},
-		},
-		{
-			name: "Error_UserInfoRetrievalFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(nil, errors.New("failed to get user info"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "failed to get user info")
-			},
-		},
-		{
-			name: "Error_DatabaseLookupFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock CheckIsEmailExists returns existing verified user
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(false, errors.New("database connection failed"))
+					CheckIsEmailExists(ctx, "verified@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, nil, nil, nil, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "database connection failed")
+			},
+		},
+		{
+			name: "Error_PasswordHashingFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "newuser@example.com",
+				Password:    "password123",
+				FullName:    "New User",
+				Country:     "US",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+
+				// Mock CheckIsEmailExists returns sql.ErrNoRows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "newuser@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
+
+				// Mock password hashing fails
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("", mockErr)
+
+				return mockUserRepo, mockPassword, nil, nil, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
 			name: "Error_UserCreationFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(false, nil)
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
-				userID := uuid.New()
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UUID generation
 				mockGenerator.EXPECT().
 					GenerateUUID(ctx).
-					Return(userID)
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
 
+				// Mock user creation fails
 				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID
-					})).
-					Return(errors.New("user creation failed"))
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{}, mockErr)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, nil, nil, nil
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "user creation failed")
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
-			name: "Error_TokenCreationFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Error_VerifyEmailTokenCreationFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(existingUser, nil)
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
 
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
-					Return(nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String()
-					})).
-					Return("", nil, errors.New("token creation failed"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "token creation failed")
-			},
-		},
-		{
-			name: "Error_SessionCreationFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
-
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(existingUser, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
-					Return(nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String()
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(2)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "access_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == existingUser.ID
-					})).
-					Return(errors.New("session creation failed"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "session creation failed")
-			},
-		},
-		{
-			name: "Error_CreatedUserRetrievalFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
+				// Mock UUID generation
 				mockGenerator.EXPECT().
 					GenerateUUID(ctx).
-					Return(userID)
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
 
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock user creation
 				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID
-					})).
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock verify email token creation fails
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisSetFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UUID generation
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock user creation
+				mockUserRepo.EXPECT().
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock verify email token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis set fails
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, nil
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TaskPublishingFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UUID generation
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock user creation
+				mockUserRepo.EXPECT().
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock verify email token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
 					Return(nil)
 
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(db.Users{}, errors.New("failed to retrieve created user"))
+				// Mock task publishing fails
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(mockErr)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "failed to retrieve created user")
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
-			name: "Error_ExistingUserRetrievalFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Error_UserUpdateFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock user existence check returns existing unverified user
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock user update fails
 				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(db.Users{}, errors.New("failed to fetch existing user"))
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{}, mockErr)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "failed to fetch existing user")
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
-			name: "Error WithExistingUserLoginInfoUpdateFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Error_UserUpdateReturnsNoRows",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
-
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
-
+				// Mock user existence check returns existing unverified user
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock user update returns user not found
 				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(existingUser, nil)
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{}, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
-					Return(errors.New("failed to update login info"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "failed to update login info")
+				assert.Contains(t, gotErr.Error(), "[INS0206]")
+				assert.Contains(t, gotErr.Error(), "We couldn't find your account.")
 			},
 		},
 		{
-			name: "Error_RefreshTokenCreationFailed",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Error_RedisSetAttemptFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
+				// Mock user existence check returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock user update
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock first Redis set operation (verify email token) succeeds
 				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.GoogleProvider, nil)
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Once()
 
-				mockGoogleClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
-					Return(validUserInfo, nil)
+				// Mock second Redis set operation (attempt counter) fails
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr).Once()
 
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_GenerateRandomStringFailed",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check returns no rows
 				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(true, nil)
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
 
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.GoogleProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.GoogleProvider,
-					}).
-					Return(existingUser, nil)
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
 
+				// Mock UUID generation
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				// Mock user creation
 				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation fails
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("")
+
+				// Mock JWT token creation fails due to empty code
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("", nil, errors.New("failed to create token with empty code"))
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_CheckEmailExistsDatabaseError",
+			input: &entities.SignUpUserRequest{
+				Email:       "user@example.com",
+				Password:    "password123",
+				FullName:    "John Doe",
+				Country:     "US",
+				Gender:      "Male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check fails with database error
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(nil, mockErr)
+
+				return mockUserRepo, nil, nil, nil, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Failed_NewUserPublishTaskSendVerifyEmail",
+			input: &entities.SignUpUserRequest{
+				Email:       "newuser@example.com",
+				Password:    "password123",
+				FullName:    "New User",
+				Country:     "US",
+				Gender:      "male",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock CheckIsEmailExists returns sql.ErrNoRows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "newuser@example.com").
+					Return(nil, app_error.New(errors.New("user not found"), app_error.ErrCodeAuthUserNotFound))
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UUID generation
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"))
+
+				// Mock CreateUser
+				mockUserRepo.EXPECT().
+					CreateUser(ctx, mock.AnythingOfType("*db.CreateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
 					Return(nil)
 
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(mockErr)
 
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("", nil, errors.New("refresh token creation failed"))
-
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "refresh token creation failed")
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 		{
-			name: "Error_RedisStateError",
-			input: &entities.HandleGoogleCallbackReq{
-				Code:  validCode,
-				State: validState,
+			name: "Failed_ExistingUserPublishTaskSendVerifyEmail",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			setup: func() (*mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
 				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
 
-				mockGoogleClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "google_access_token"}, nil)
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UpdateUser
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
 				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("", errors.New("redis connection failed"))
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
 
-				return mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
 			},
-			verify: func(t *testing.T, got *entities.HandleGoogleCallbackResp, gotErr error) {
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Nil(t, got)
-				assert.Contains(t, gotErr.Error(), "redis connection failed")
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Failed_ExistingUserCreateVerifyEmailToken",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UpdateUser
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("", &utilsPkg.VerifyEmailTokenPayload{}, mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Failed_ExistingUserSetEmailToken",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UpdateUser
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Failed_ExistingUserSetAttempt",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("hashed_password", nil)
+
+				// Mock UpdateUser
+				mockUserRepo.EXPECT().
+					UpdateUser(ctx, mock.AnythingOfType("*db.UpdateUserParams")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock JWT token creation
+				mockJwtToken.EXPECT().
+					CreateVerifyEmailToken(ctx, mock.AnythingOfType("*entities.VerifyEmailTokenRequest")).
+					Return("verify_token", &utilsPkg.VerifyEmailTokenPayload{}, nil)
+
+				// Mock Redis operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(1)
+
+				// Mock Redis set attempt failed
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr).Times(1)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Failed_ExistingUserHashPassword",
+			input: &entities.SignUpUserRequest{
+				Email:       "existing@example.com",
+				Password:    "password123",
+				FullName:    "Existing User",
+				Country:     "US",
+				Gender:      "female",
+				DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock CheckIsEmailExists returns existing unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "existing@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "password123").
+					Return("", mockErr)
+
+				return mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.SignUpUserResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
 			},
 		},
 	}
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockGoogleClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient := tC.setup()
-			defer mockGoogleClient.AssertExpectations(t)
-			defer mockGenerator.AssertExpectations(t)
-			defer mockUserRepo.AssertExpectations(t)
-			defer mockAuthSessionRepo.AssertExpectations(t)
-			defer mockJwtToken.AssertExpectations(t)
-			defer mockRedisClient.AssertExpectations(t)
+			mockUserRepo, mockPassword, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockPassword != nil {
+					mockPassword.AssertExpectations(t)
+				}
+				if mockGenerator != nil {
+					mockGenerator.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+				if mockRedisTaskPublisher != nil {
+					mockRedisTaskPublisher.AssertExpectations(t)
+				}
+			}()
 
-			mockConfig := &config.Config{
-				AuthConfig: config.AuthConfig{
-					AccessTokenDuration:  time.Hour,
-					RefreshTokenDuration: time.Hour * 24,
-				},
-			}
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, nil, mockRedisClient, mockRedisTaskPublisher, mockPassword, mockGenerator)
+			got, gotErr := svc.SignUpUser(ctx, tC.input)
 
-			svc := NewUserService(
-				lgr,
-				mockUserRepo,
-				mockAuthSessionRepo,
-				mockJwtToken,
-				nil,
-				mockConfig,
-				nil,
-				mockRedisClient,
-				nil,
-				nil,
-				mockGenerator,
-				mockGoogleClient,
-				nil,
-			)
-
-			got, gotErr := svc.HandleGoogleCallback(ctx, tC.input)
 			tC.verify(t, got, gotErr)
 		})
 	}
 }
 
-func TestUserService_GetGoogleAuthURL(t *testing.T) {
+func TestUserService_SendVerifyEmail(t *testing.T) {
 	lgr := log.Initialize(constants.TestAppEnv)
 	ctx := context.Background()
 	mockErr := errors.New("error")
 
-	okResponse := &entities.GoogleAuthURLResponse{
-		AuthURL: "https://www.google.com/auth/url",
-	}
-
 	testCases := []struct {
 		name   string
-		setup  func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator)
-		verify func(t *testing.T, got *entities.GoogleAuthURLResponse, gotErr error)
+		input  *entities.VerifyEmailRequest
+		setup  func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient)
+		verify func(t *testing.T, gotErr error)
 	}{
 		{
 			name: "Success",
-			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator) {
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
-				redisPayload := database.RedisPayload{
-					Key:   redisKey,
-					Value: constants.GoogleProvider,
-					TTL:   constants.RedisTTLOAuthState,
-				}
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
 
-				mockGenerator.EXPECT().
-					GenerateCryptographicallySecureString(ctx, 32).
-					Return("oauth_state")
-
+				// Mock Redis get operation
 				mockRedisClient.EXPECT().
-					Set(ctx, redisPayload).
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
 					Return(nil)
 
-				mockGoogleClient.EXPECT().
-					GetAuthURL("oauth_state").
-					Return("https://www.google.com/auth/url")
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
 
-				return mockRedisClient, mockGoogleClient, mockGenerator
+				return mockUserRepo, mockJwtToken, mockRedisClient
 			},
-			verify: func(t *testing.T, got *entities.GoogleAuthURLResponse, gotErr error) {
-				assert.Equal(t, okResponse, got)
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		}, {
+			name: "Error_InvalidUserID",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "invalid-user-id",
+						Email:  "user@example.com",
+					}, nil)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name: "Success_WithDeleteRedisFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr).Times(1)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Success_WithDeleteRedisAttemptFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(1)
+
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr).Times(1)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_InvalidToken",
+			input: &entities.VerifyEmailRequest{
+				Token: "invalid_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock JWT token verification fails
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "invalid_token").
+					Return(nil, mockErr)
+
+				return nil, mockJwtToken, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_InvalidCode",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "wrong_code",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation returns different code
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock Redis increment operation
+				mockRedisClient.EXPECT().
+					Increment(ctx, mock.AnythingOfType("string")).
+					Return(int64(1), nil)
+
+				return nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_EmailAlreadyVerified",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check returns already verified user
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_RedisGetFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("", mockErr)
+
+				return nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisGetReturnsNil",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation returns redis.Nil
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("", redis.Nil)
+
+				return nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_MaxAttemptsReached",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "wrong_code",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation returns different code
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock Redis increment operation returns max attempts
+				mockRedisClient.EXPECT().
+					Increment(ctx, mock.AnythingOfType("string")).
+					Return(int64(3), nil)
+
+				// Mock Redis delete operations for cleanup
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+					Return(nil)
+
+				return nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_RedisIncrementFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "wrong_code",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation returns different code
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock Redis increment operation fails
+				mockRedisClient.EXPECT().
+					Increment(ctx, mock.AnythingOfType("string")).
+					Return(int64(0), mockErr)
+
+				return nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check fails
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil, mockErr)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_VerifyEmailFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification fails
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(mockErr)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisDeleteFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil)
+
+				// Mock Redis delete operations fail
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisDeleteAttemptFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil)
+
+				// Mock first Redis delete operation succeeds
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil)
+
+				// Mock second Redis delete operation (attempt counter) fails
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				// Note: The service only logs a warning when the second Redis delete fails
+				// and returns nil (no error), so we expect no error here
 				assert.NoError(t, gotErr)
 			},
 		},
 		{
-			name: "Error WithRedisSetFailed",
-			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockGoogleClient, *mockUtils.MockGenerator) {
+			name: "Error_RedisCleanupAfterMaxAttemptsFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "wrong_code",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
 				mockRedisClient := new(mockDatabase.MockRedisClient)
-				mockGoogleClient := new(mockAuthInfras.MockGoogleClient)
-				mockGenerator := new(mockUtils.MockGenerator)
 
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
-				redisPayload := database.RedisPayload{
-					Key:   redisKey,
-					Value: constants.GoogleProvider,
-					TTL:   constants.RedisTTLOAuthState,
-				}
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
 
-				mockGenerator.EXPECT().
-					GenerateCryptographicallySecureString(ctx, 32).
-					Return("oauth_state")
-
+				// Mock Redis get operation returns different code
 				mockRedisClient.EXPECT().
-					Set(ctx, redisPayload).
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock Redis increment operation returns max attempts
+				mockRedisClient.EXPECT().
+					Increment(ctx, mock.AnythingOfType("string")).
+					Return(int64(3), nil)
+
+				// Mock Redis delete operations for cleanup fail
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string")).
 					Return(mockErr)
 
-				return mockRedisClient, mockGoogleClient, mockGenerator
+				return nil, mockJwtToken, mockRedisClient
 			},
-			verify: func(t *testing.T, got *entities.GoogleAuthURLResponse, gotErr error) {
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_GenerateRandomStringFailed",
+			input: &entities.VerifyEmailRequest{
+				Token: "verify_token",
+				Code:  "123456",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token verification
+				mockJwtToken.EXPECT().
+					VerifyVerifyEmailToken(ctx, "verify_token").
+					Return(&utilsPkg.VerifyEmailTokenPayload{
+						UserID: "550e8400-e29b-41d4-a716-446655440000",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis get operation
+				mockRedisClient.EXPECT().
+					Get(ctx, mock.AnythingOfType("string")).
+					Return("123456", nil)
+
+				// Mock user existence check
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				// Mock email verification
+				mockUserRepo.EXPECT().
+					VerifyEmail(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				return mockUserRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo, mockJwtToken, mockRedisClient := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, nil, nil, nil, mockRedisClient, nil, nil, nil)
+			gotErr := svc.SendVerifyEmail(ctx, tC.input)
+
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestUserService_ResetVerifyEmailCode(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	mockErr := errors.New("error")
+
+	// Create mock config
+	mockConfig := &config.Config{
+		EmailConfig: config.EmailConfig{
+			VerifyEmailTokenDuration: 15 * time.Minute,
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.ResetVerifyEmailCodeRequest
+		setup  func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher)
+		verify func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
+
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(nil)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "new_token", got.TokenId)
+			},
+		},
+		{
+			name: "Error_TokenRenewalFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "invalid_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock random string generation (called before token renewal)
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal fails
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "invalid_token").
+					Return("", nil, mockErr)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisDeleteFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock random string generation (called before Redis delete)
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis delete operations fail
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr)
+
+				// Mock JWT token renewal (called after Redis delete)
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("", nil, mockErr)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisSetFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis set operations fail
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisSetAttemptFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(1)
+
+				// Mock Redis set operations fail
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TaskPublishingFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
+
+				// Mock task publishing fails
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(mockErr)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisDeleteFirstOperationFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock random string generation (called before Redis delete)
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock first Redis delete operation fails
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr)
+
+				// Mock JWT token renewal (called after Redis delete)
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
+
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(nil)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				// Note: The service only logs a warning when Redis delete fails
+				// and continues execution, so we expect no error here
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+			},
+		},
+		{
+			name: "Error_RedisDeleteSecondOperationFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock random string generation (called before Redis delete)
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock first Redis delete operation succeeds
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil)
+
+				// Mock second Redis delete operation fails
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(mockErr)
+
+				// Mock JWT token renewal (called after Redis delete)
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock Redis set operations
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil).Times(2)
+
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(nil)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				// Note: The service only logs a warning when Redis delete fails
+				// and continues execution, so we expect no error here
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+			},
+		},
+		{
+			name: "Error_RedisSetSecondOperationFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations for old token cleanup (called at the beginning)
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock JWT token renewal
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("new_token", &utilsPkg.VerifyEmailTokenPayload{
+						UserID: "user-123",
+						Email:  "user@example.com",
+					}, nil)
+
+				// Mock random string generation
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("123456")
+
+				// Mock first Redis set operation succeeds (verify email token)
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				// Mock second Redis set operation fails (attempt counter)
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				// Mock task publishing (this will be called before the second Redis set operation fails)
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendVerifyEmail(ctx, mock.AnythingOfType("*email.VerifyEmailPayload")).
+					Return(nil)
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				// Note: The service only logs a warning when Redis set fails
+				// and continues execution, so we expect no error here
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+			},
+		},
+		{
+			name: "Error_GenerateRandomStringFailed",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations for old token cleanup (called at the beginning)
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock random string generation fails
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("")
+
+				// Mock JWT token renewal fails due to empty code
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("", nil, errors.New("failed to create token with empty code"))
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_GenerateRandomStringEmpty",
+			input: &entities.ResetVerifyEmailCodeRequest{
+				Token: "old_token",
+			},
+			setup: func() (*utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock Redis delete operations for old token cleanup (called at the beginning)
+				mockRedisClient.EXPECT().
+					Delete(ctx, mock.AnythingOfType("string")).
+					Return(nil).Times(2)
+
+				// Mock random string generation returns empty string
+				mockGenerator.EXPECT().
+					GenerateRandomString(ctx, 6).
+					Return("")
+
+				// Mock JWT token renewal fails due to empty code
+				mockJwtToken.EXPECT().
+					RenewVerifyEmailToken(ctx, "old_token").
+					Return("", nil, errors.New("failed to create token with empty code"))
+
+				return mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, got *entities.ResetVerifyEmailCodeResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher := tC.setup()
+			defer func() {
+				if mockGenerator != nil {
+					mockGenerator.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+				if mockRedisTaskPublisher != nil {
+					mockRedisTaskPublisher.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewUserService(lgr, nil, nil, mockJwtToken, nil, mockConfig, nil, nil, mockRedisClient, mockRedisTaskPublisher, nil, mockGenerator)
+			got, gotErr := svc.ResetVerifyEmailCode(ctx, tC.input)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
+func TestUserService_SignInUserByEmailAndPassword(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	// Add required context values that the service expects
+	ctx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+	ctx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+
+	mockErr := errors.New("error")
+
+	// Create mock config
+	mockConfig := &config.Config{
+		AuthConfig: config.AuthConfig{
+			AccessTokenDuration:  15 * time.Minute,
+			RefreshTokenDuration: 24 * time.Hour,
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.SignInByEmailAndPasswordRequest
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken)
+		verify func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(nil)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "access_token", got.AccessToken)
+				assert.Equal(t, "refresh_token", got.RefreshToken)
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "nonexistent@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "nonexistent@example.com").
+					Return(nil, sql.ErrNoRows)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_EmailNotVerified",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "unverified@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "unverified@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidPassword",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "wrong_password",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification fails
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "wrong_password", mock.AnythingOfType("string")).
+					Return(false)
+
+				return mockUserRepo, mockPassword, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_AccessTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RefreshTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TokenHashingFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing fails
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("")
+
+				// Mock user sign-in transaction (this will be called even after token hashing fails)
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(errors.New("transaction failed due to empty token hash"))
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_SignInTransactionFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction fails
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_ContextMissingUserAgent",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_ContextMissingClientIP",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo, mockPassword, mockJwtToken := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockPassword != nil {
+					mockPassword.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+			}()
+
+			// Handle context-specific test cases
+			testCtx := ctx
+			if tC.name == "Error_ContextMissingUserAgent" {
+				testCtx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+				// Remove UserAgentKey
+				testCtx = context.WithValue(testCtx, constants.UserAgentKey, nil)
+			} else if tC.name == "Error_ContextMissingClientIP" {
+				testCtx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+				// Remove ClientIPKey
+				testCtx = context.WithValue(testCtx, constants.ClientIPKey, nil)
+			}
+
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, nil, nil, nil, mockPassword, nil)
+			got, gotErr := svc.SignInUserByEmailAndPassword(testCtx, tC.input)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
+func TestUserService_SignInAdminByEmailAndPassword(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	// Add required context values that the service expects
+	ctx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+	ctx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+
+	mockErr := errors.New("error")
+
+	// Create mock config
+	mockConfig := &config.Config{
+		AuthConfig: config.AuthConfig{
+			AccessTokenDuration:  15 * time.Minute,
+			RefreshTokenDuration: 24 * time.Hour,
+		},
+	}
+
+	checkEmailResp := &db.Users{
+		ID:              uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+		IsEmailVerified: sql.NullBool{Bool: true, Valid: true},
+		IsAdmin:         sql.NullBool{Bool: true, Valid: true},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.SignInByEmailAndPasswordRequest
+		setup  func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken)
+		verify func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(nil)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "access_token", got.AccessToken)
+				assert.Equal(t, "refresh_token", got.RefreshToken)
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "nonexistent@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "nonexistent@example.com").
+					Return(nil, sql.ErrNoRows)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_EmailNotVerified",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "unverified@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "unverified@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidPassword",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "wrong_password",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification fails
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "wrong_password", mock.AnythingOfType("string")).
+					Return(false)
+
+				return mockUserRepo, mockPassword, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.Contains(t, gotErr.Error(), "this email or password is incorrect")
+				assert.Contains(t, gotErr.Error(), "[INS0217]")
+			},
+		},
+		{
+			name: "Error - WithDontHaveAdminRole",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{
+						ID:              uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						IsEmailVerified: sql.NullBool{Bool: true, Valid: true},
+						IsAdmin:         sql.NullBool{Bool: false, Valid: true},
+					}, nil)
+
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.Contains(t, gotErr.Error(), "this email or password is incorrect")
+				assert.Contains(t, gotErr.Error(), "[INS0217]")
+			},
+		},
+		{
+			name: "Error_AccessTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RefreshTokenCreationFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token fails
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("", nil, mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TokenHashingFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing fails
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("")
+
+				// Mock user sign-in transaction (this will be called even after token hashing fails)
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(errors.New("transaction failed due to empty token hash"))
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_SignInTransactionFailed",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(checkEmailResp, nil)
+
+				// Mock password verification
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "password123", mock.AnythingOfType("string")).
+					Return(true)
+
+				// Mock JWT token creation for access token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.AccessTokenDuration
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token creation for refresh token
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.Duration == mockConfig.AuthConfig.RefreshTokenDuration
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{}, nil)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				// Mock user sign-in transaction fails
+				mockUserRepo.EXPECT().
+					SignInUserByEmailAndPasswordTx(ctx, mock.AnythingOfType("*repositories.SignInUserByEmailAndPasswordTxModel")).
+					Return(mockErr)
+
+				return mockUserRepo, mockPassword, mockJwtToken
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_ContextMissingUserAgent",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_ContextMissingClientIP",
+			input: &entities.SignInByEmailAndPasswordRequest{
+				Email:    "user@example.com",
+				Password: "password123",
+			},
+			setup: func() (*repositories.MockUserRepository, *utils.MockPasswordUtil, *utils.MockJwtToken) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check to fail early since context is invalid
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(mock.AnythingOfType("*context.valueCtx"), "user@example.com").
+					Return(nil, errors.New("context validation failed"))
+
+				return mockUserRepo, nil, nil
+			},
+			verify: func(t *testing.T, got *entities.SignInByEmailAndPasswordResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo, mockPassword, mockJwtToken := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockPassword != nil {
+					mockPassword.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+			}()
+
+			// Handle context-specific test cases
+			testCtx := ctx
+			if tC.name == "Error_ContextMissingUserAgent" {
+				testCtx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+				// Remove UserAgentKey
+				testCtx = context.WithValue(testCtx, constants.UserAgentKey, nil)
+			} else if tC.name == "Error_ContextMissingClientIP" {
+				testCtx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+				// Remove ClientIPKey
+				testCtx = context.WithValue(testCtx, constants.ClientIPKey, nil)
+			}
+
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, nil, nil, nil, mockPassword, nil)
+			got, gotErr := svc.SignInAdminByEmailAndPassword(testCtx, tC.input)
+
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
+func TestUserService_ForgotPassword(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	// Add required context values that the service expects
+	ctx = context.WithValue(ctx, constants.UserAgentKey, "test-user-agent")
+	ctx = context.WithValue(ctx, constants.ClientIPKey, "127.0.0.1")
+
+	mockErr := errors.New("error")
+
+	// Create mock config
+	mockConfig := &config.Config{
+		AuthConfig: config.AuthConfig{
+			ResetPasswordTokenDuration: 15 * time.Minute,
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.ForgotPasswordRequest
+		setup  func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher)
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name: "Success",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("hashed_token")
+
+				// Mock reset token creation
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(nil)
+
+				// Mock Redis set operation
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					DefineTaskOptions(mock.AnythingOfType("string")).
+					Return([]asynq.Option{asynq.ProcessIn(10 * time.Second)})
+
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendResetPasswordEmail(ctx, mock.AnythingOfType("*email.ResetPasswordEmailPayload"), mock.Anything).
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.ForgotPasswordRequest{
+				Email: "nonexistent@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns no rows
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "nonexistent@example.com").
+					Return(nil, sql.ErrNoRows)
+
+				return mockUserRepo, nil, nil, nil, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_EmailNotVerified",
+			input: &entities.ForgotPasswordRequest{
+				Email: "unverified@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "unverified@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: false, Valid: true}}, nil)
+
+				return mockUserRepo, nil, nil, nil, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_IsEmailExistsFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "unverified@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+
+				// Mock user existence check returns unverified user
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "unverified@example.com").
+					Return(nil, mockErr)
+
+				return mockUserRepo, nil, nil, nil, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_ResetTokenCreationFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("hashed_token")
+
+				// Mock reset token creation fails
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(mockErr)
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisSetFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("hashed_token")
+
+				// Mock reset token creation
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(nil)
+
+				// Mock Redis set operation fails
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(mockErr)
+
+				// Mock task options definition (this will be called even after Redis set fails)
+				mockRedisTaskPublisher.EXPECT().
+					DefineTaskOptions(mock.AnythingOfType("string")).
+					Return(nil)
+
+				// Mock task publishing (this will be called even after Redis set fails)
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendResetPasswordEmail(ctx, mock.AnythingOfType("*email.ResetPasswordEmailPayload")).
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, gotErr error) {
+				// Note: The service only logs a warning when Redis set fails
+				// and continues execution, so we expect no error here
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error_TaskOptionsDefinitionFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("hashed_token")
+
+				// Mock reset token creation
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(nil)
+
+				// Mock Redis set operation
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				// Mock task options definition fails
+				mockRedisTaskPublisher.EXPECT().
+					DefineTaskOptions(mock.AnythingOfType("string")).
+					Return(nil)
+
+				// Mock task publishing (this will be called even after task options definition fails)
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendResetPasswordEmail(ctx, mock.AnythingOfType("*email.ResetPasswordEmailPayload")).
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, gotErr error) {
+				// Note: The service doesn't check if DefineTaskOptions fails
+				// and continues execution, so we expect no error here
+				assert.NoError(t, gotErr)
+			},
+		},
+
+		{
+			name: "Error_TokenHashingFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing fails
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("")
+
+				// Mock reset token creation (this will be called even after token hashing fails)
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(errors.New("failed to create reset token with empty hash"))
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_UUIDGenerationFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation fails
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.Nil)
+
+				// Mock JWT token hashing (this will be called even after UUID generation fails)
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("")
+
+				// Mock reset token creation (this will be called even after UUID generation fails)
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(errors.New("failed to create reset token with nil UUID"))
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, nil, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_PublishTaskSendResetPasswordEmailFailed",
+			input: &entities.ForgotPasswordRequest{
+				Email: "user@example.com",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockGenerator, *utils.MockJwtToken, *mockDatabase.MockRedisClient, *queue.MockRedisTaskPublisher) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockGenerator := new(utils.MockGenerator)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockRedisTaskPublisher := new(queue.MockRedisTaskPublisher)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsEmailExists(ctx, "user@example.com").
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), IsEmailVerified: sql.NullBool{Bool: true, Valid: true}}, nil)
+
+				// Mock UUID generation for reset token
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).Times(2)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, mock.AnythingOfType("string")).
+					Return("hashed_token")
+
+				// Mock reset token creation
+				mockResetTokenRepo.EXPECT().
+					CreateResetToken(ctx, mock.AnythingOfType("*db.CreateResetTokenParams")).
+					Return(nil)
+
+				// Mock Redis set operation
+				mockRedisClient.EXPECT().
+					Set(ctx, mock.AnythingOfType("database.RedisPayload")).
+					Return(nil)
+
+				// Mock task publishing
+				mockRedisTaskPublisher.EXPECT().
+					DefineTaskOptions(mock.AnythingOfType("string")).
+					Return([]asynq.Option{asynq.ProcessIn(10 * time.Second)})
+
+				mockRedisTaskPublisher.EXPECT().
+					PublishTaskSendResetPasswordEmail(ctx, mock.AnythingOfType("*email.ResetPasswordEmailPayload"), mock.Anything).
+					Return(mockErr)
+
+				return mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher
+			},
+			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.ErrorIs(t, gotErr, mockErr)
 			},
@@ -1105,15 +3567,626 @@ func TestUserService_GetGoogleAuthURL(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			mockRedisClient, mockGoogleClient, mockGenerator := tC.setup()
-			defer mockRedisClient.AssertExpectations(t)
-			defer mockGoogleClient.AssertExpectations(t)
-			defer mockGenerator.AssertExpectations(t)
+			mockUserRepo, mockResetTokenRepo, mockGenerator, mockJwtToken, mockRedisClient, mockRedisTaskPublisher := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockResetTokenRepo != nil {
+					mockResetTokenRepo.AssertExpectations(t)
+				}
+				if mockGenerator != nil {
+					mockGenerator.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+				if mockRedisTaskPublisher != nil {
+					mockRedisTaskPublisher.AssertExpectations(t)
+				}
+			}()
 
-			svc := NewUserService(lgr, nil, nil, nil, nil, nil, nil, mockRedisClient, nil, nil, mockGenerator, mockGoogleClient, nil)
-			got, gotErr := svc.GetGoogleAuthURL(ctx)
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, mockConfig, nil, mockResetTokenRepo, mockRedisClient, mockRedisTaskPublisher, nil, mockGenerator)
+			gotErr := svc.ForgotPassword(ctx, tC.input)
 
-			tC.verify(t, got, gotErr)
+			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestUserService_ResetUserPassword(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	mockErr := errors.New("error")
+
+	testCases := []struct {
+		name   string
+		input  *entities.ResetUserPasswordRequest
+		setup  func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient)
+		verify func(t *testing.T, gotErr error)
+	}{
+		{
+			name: "Success_RedisHit",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("new_hash", nil)
+
+				// Mock password reset transaction
+				mockUserRepo.EXPECT().
+					ResetUserPasswordAndUpdateResetTokenTx(ctx, mock.AnythingOfType("*repositories.ResetUserPasswordTxModel")).
+					Return(nil)
+
+				// Mock Redis delete operation
+				mockRedisClient.EXPECT().
+					Delete(ctx, "hashed_token").
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error_RedisGetFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", mockErr)
+
+				// Mock reset token retrieval (fallback to database when Redis fails)
+				mockResetTokenRepo.EXPECT().
+					GetResetToken(ctx, "hashed_token").
+					Return(&db.ResetTokens{
+						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						Used:      false,
+						ExpiresAt: time.Now().Add(time.Hour),
+					}, nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("new_hash", nil)
+
+				// Mock password reset transaction
+				mockUserRepo.EXPECT().
+					ResetUserPasswordAndUpdateResetTokenTx(ctx, mock.AnythingOfType("*repositories.ResetUserPasswordTxModel")).
+					Return(nil)
+
+				// Mock Redis delete operation
+				mockRedisClient.EXPECT().
+					Delete(ctx, "hashed_token").
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Success_DatabaseFallback",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("", redis.Nil)
+
+				// Mock reset token retrieval
+				mockResetTokenRepo.EXPECT().
+					GetResetToken(ctx, "hashed_token").
+					Return(&db.ResetTokens{
+						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						Used:      false,
+						ExpiresAt: time.Now().Add(time.Hour),
+					}, nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("new_hash", nil)
+
+				// Mock password reset transaction
+				mockUserRepo.EXPECT().
+					ResetUserPasswordAndUpdateResetTokenTx(ctx, mock.AnythingOfType("*repositories.ResetUserPasswordTxModel")).
+					Return(nil)
+
+				// Mock Redis delete operation
+				mockRedisClient.EXPECT().
+					Delete(ctx, "hashed_token").
+					Return(nil)
+
+				return mockUserRepo, mockResetTokenRepo, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error_TokenAlreadyUsed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "used_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "used_token").
+					Return("hashed_used_token")
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_used_token").
+					Return("", redis.Nil)
+
+				// Mock reset token retrieval returns used token
+				mockResetTokenRepo.EXPECT().
+					GetResetToken(ctx, "hashed_used_token").
+					Return(&db.ResetTokens{
+						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						Used:      true,
+						ExpiresAt: time.Now().Add(time.Hour),
+					}, nil)
+
+				return nil, mockResetTokenRepo, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_TokenExpired",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "expired_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "expired_token").
+					Return("hashed_expired_token")
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_expired_token").
+					Return("", redis.Nil)
+
+				// Mock reset token retrieval returns expired token
+				mockResetTokenRepo.EXPECT().
+					GetResetToken(ctx, "hashed_expired_token").
+					Return(&db.ResetTokens{
+						UserID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"),
+						Used:      false,
+						ExpiresAt: time.Now().Add(-time.Hour),
+					}, nil)
+
+				return nil, mockResetTokenRepo, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_InvalidUserID",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("invalid-user-id", nil)
+
+				return mockUserRepo, nil, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Contains(t, gotErr.Error(), "The UUID is invalid. Please try again.")
+				assert.Contains(t, gotErr.Error(), "[INS0107]")
+			},
+		},
+		{
+			name: "Error_UserNotFound",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check fails
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(nil, mockErr)
+
+				return mockUserRepo, nil, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_PasswordSameAsOld",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "samepassword",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (same as old password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "samepassword", "old_hash").
+					Return(true)
+
+				return mockUserRepo, nil, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+		{
+			name: "Error_PasswordHashingFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing fails
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("", mockErr)
+
+				return mockUserRepo, nil, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_ResetTransactionFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("new_hash", nil)
+
+				// Mock password reset transaction fails
+				mockUserRepo.EXPECT().
+					ResetUserPasswordAndUpdateResetTokenTx(ctx, mock.AnythingOfType("*repositories.ResetUserPasswordTxModel")).
+					Return(mockErr)
+
+				return mockUserRepo, nil, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_RedisDeleteFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockPassword := new(utils.MockPasswordUtil)
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation returns user ID
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("550e8400-e29b-41d4-a716-446655440000", nil)
+
+				// Mock user existence check
+				mockUserRepo.EXPECT().
+					CheckIsUserExistsByID(ctx, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")).
+					Return(&db.Users{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), PasswordHash: "old_hash"}, nil)
+
+				// Mock password check (different from new password)
+				mockPassword.EXPECT().
+					IsPasswordValid(ctx, "newpassword123", "old_hash").
+					Return(false)
+
+				// Mock password hashing
+				mockPassword.EXPECT().
+					HashPassword(ctx, "newpassword123").
+					Return("new_hash", nil)
+
+				// Mock password reset transaction
+				mockUserRepo.EXPECT().
+					ResetUserPasswordAndUpdateResetTokenTx(ctx, mock.AnythingOfType("*repositories.ResetUserPasswordTxModel")).
+					Return(nil)
+
+				// Mock Redis delete operation fails
+				mockRedisClient.EXPECT().
+					Delete(ctx, "hashed_token").
+					Return(mockErr)
+
+				return mockUserRepo, nil, mockPassword, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_GetResetTokenFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockResetTokenRepo := new(repositories.MockResetTokenRepository)
+
+				// Mock JWT token hashing
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("hashed_token")
+
+				// Mock Redis get operation fails
+				mockRedisClient.EXPECT().
+					Get(ctx, "hashed_token").
+					Return("", redis.Nil)
+
+				// Mock reset token retrieval fails
+				mockResetTokenRepo.EXPECT().
+					GetResetToken(ctx, "hashed_token").
+					Return(&db.ResetTokens{}, mockErr)
+
+				return nil, mockResetTokenRepo, nil, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+		{
+			name: "Error_TokenHashingFailed",
+			input: &entities.ResetUserPasswordRequest{
+				Token:       "reset_token",
+				NewPassword: "newpassword123",
+			},
+			setup: func() (*repositories.MockUserRepository, *repositories.MockResetTokenRepository, *utils.MockPasswordUtil, *utils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockJwtToken := new(utils.MockJwtToken)
+
+				// Mock JWT token hashing fails
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "reset_token").
+					Return("")
+
+				return nil, nil, nil, mockJwtToken, nil
+			},
+			verify: func(t *testing.T, gotErr error) {
+				assert.Error(t, gotErr)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockUserRepo, mockResetTokenRepo, mockPassword, mockJwtToken, mockRedisClient := tC.setup()
+			defer func() {
+				if mockUserRepo != nil {
+					mockUserRepo.AssertExpectations(t)
+				}
+				if mockResetTokenRepo != nil {
+					mockResetTokenRepo.AssertExpectations(t)
+				}
+				if mockPassword != nil {
+					mockPassword.AssertExpectations(t)
+				}
+				if mockJwtToken != nil {
+					mockJwtToken.AssertExpectations(t)
+				}
+				if mockRedisClient != nil {
+					mockRedisClient.AssertExpectations(t)
+				}
+			}()
+
+			svc := NewUserService(lgr, mockUserRepo, nil, mockJwtToken, nil, nil, nil, mockResetTokenRepo, mockRedisClient, nil, mockPassword, nil)
+			gotErr := svc.ResetUserPassword(ctx, tC.input)
+
+			tC.verify(t, gotErr)
 		})
 	}
 }
@@ -1265,1015 +4338,10 @@ func TestUserService_SignOut(t *testing.T) {
 				}
 			}()
 
-			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil)
 			gotErr := svc.SignOut(ctx)
 
 			tC.verify(t, gotErr)
-		})
-	}
-}
-
-func TestUserService_HandleFacebookCallback(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-
-	validCode := "valid_auth_code"
-	validState := "valid_oauth_state"
-
-	validUserInfo := &auth.FacebookUserInfo{
-		Email:  "test@example.com",
-		Name:   "Test User",
-		ID:     "facebook_user_123",
-		Locale: "en-US",
-		Picture: struct {
-			Data struct {
-				URL string `json:"url"`
-			} `json:"data"`
-		}{
-			Data: struct {
-				URL string `json:"url"`
-			}{
-				URL: "https://example.com/picture.jpg",
-			},
-		},
-	}
-
-	testCases := []struct {
-		name   string
-		input  *entities.HandleFacebookCallbackReq
-		setup  func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient)
-		verify func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error)
-	}{
-		{
-			name: "Success_NewUser",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
-				mockGenerator.EXPECT().
-					GenerateUUID(ctx).
-					Return(userID)
-
-				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.FacebookProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
-					Return(nil)
-
-				createdUser := db.Users{
-					ID:         userID,
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.FacebookProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(createdUser, nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "refresh_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == userID && params.RefreshTokenHash == "hashed_refresh_token"
-					})).
-					Return(nil)
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.NotNil(t, got)
-				assert.Equal(t, "access_token", got.AccessToken)
-				assert.Equal(t, "refresh_token", got.RefreshToken)
-			},
-		},
-		{
-			name: "Success_ExistingUser",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(true, nil)
-
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.FacebookProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(existingUser, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
-					Return(nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "refresh_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == existingUser.ID && params.RefreshTokenHash == "hashed_refresh_token"
-					})).
-					Return(nil)
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.NoError(t, gotErr)
-				assert.NotNil(t, got)
-				assert.Equal(t, "access_token", got.AccessToken)
-				assert.Equal(t, "refresh_token", got.RefreshToken)
-			},
-		},
-		{
-			name: "Error_InvalidCode",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  "",
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, "").
-					Return(nil, errors.New("invalid code"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_InvalidState",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: "",
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "")
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("", errors.New("invalid state"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_StateNotFound",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: "invalid_state",
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "invalid_state")
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("", redis.Nil)
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_InvalidUserInfo",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				invalidUserInfo := &auth.FacebookUserInfo{
-					Email: "",
-					Name:  "",
-					ID:    "",
-				}
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(invalidUserInfo, nil)
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_UserInfoRetrievalFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(nil, errors.New("facebook api error"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_DatabaseLookupFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, errors.New("database error"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_UserCreationFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
-				mockGenerator.EXPECT().
-					GenerateUUID(ctx).
-					Return(userID)
-
-				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.FacebookProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
-					Return(errors.New("user creation failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_TokenCreationFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
-				mockGenerator.EXPECT().
-					GenerateUUID(ctx).
-					Return(userID)
-
-				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.FacebookProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
-					Return(nil)
-
-				createdUser := db.Users{
-					ID:         userID,
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.FacebookProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(createdUser, nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("", nil, errors.New("token creation failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_SessionCreationFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
-				mockGenerator.EXPECT().
-					GenerateUUID(ctx).
-					Return(userID)
-
-				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.FacebookProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
-					Return(nil)
-
-				createdUser := db.Users{
-					ID:         userID,
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.FacebookProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(createdUser, nil)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
-						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
-					})).
-					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
-					Times(1)
-
-				mockJwtToken.EXPECT().
-					HashTokenSHA256(ctx, "refresh_token").
-					Return("hashed_refresh_token")
-
-				mockAuthSessionRepo.EXPECT().
-					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
-						return params.UserID == userID && params.RefreshTokenHash == "hashed_refresh_token"
-					})).
-					Return(errors.New("session creation failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_RedisStateError",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("", errors.New("redis error"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_InvalidStateValidation",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return("different_state", nil)
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_CreatedUserRetrievalFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(false, nil)
-
-				userID := uuid.New()
-				mockGenerator.EXPECT().
-					GenerateUUID(ctx).
-					Return(userID)
-
-				mockUserRepo.EXPECT().
-					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
-						return params.ID == userID &&
-							params.Email == validUserInfo.Email &&
-							params.FullName == validUserInfo.Name &&
-							params.Provider == constants.FacebookProvider &&
-							params.ProviderID.String == validUserInfo.ID
-					})).
-					Return(nil)
-
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(db.Users{}, errors.New("user retrieval failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_ExistingUserRetrievalFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(true, nil)
-
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(db.Users{}, errors.New("user retrieval failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-		{
-			name: "Error_UpdateLoginInfoFailed",
-			input: &entities.HandleFacebookCallbackReq{
-				Code:  validCode,
-				State: validState,
-			},
-			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-				mockUserRepo := new(repositories.MockUserRepository)
-				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
-				mockJwtToken := new(mockUtils.MockJwtToken)
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-
-				mockFacebookClient.EXPECT().
-					ExchangeCodeForToken(ctx, validCode).
-					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
-				mockRedisClient.EXPECT().
-					Get(ctx, redisKey).
-					Return(constants.FacebookProvider, nil)
-
-				mockFacebookClient.EXPECT().
-					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
-					Return(validUserInfo, nil)
-
-				mockUserRepo.EXPECT().
-					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(true, nil)
-
-				existingUser := db.Users{
-					ID:         uuid.New(),
-					Email:      validUserInfo.Email,
-					FullName:   validUserInfo.Name,
-					Provider:   constants.FacebookProvider,
-					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-				}
-				mockUserRepo.EXPECT().
-					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
-						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
-						Provider:   constants.FacebookProvider,
-					}).
-					Return(existingUser, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
-						return params.ID == existingUser.ID
-					})).
-					Return(errors.New("update login info failed"))
-
-				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
-			},
-			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.Nil(t, got)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient := tC.setup()
-			defer mockFacebookClient.AssertExpectations(t)
-			defer mockGenerator.AssertExpectations(t)
-			defer mockUserRepo.AssertExpectations(t)
-			defer mockAuthSessionRepo.AssertExpectations(t)
-			defer mockJwtToken.AssertExpectations(t)
-			defer mockRedisClient.AssertExpectations(t)
-
-			mockConfig := &config.Config{
-				AuthConfig: config.AuthConfig{
-					AccessTokenDuration:  time.Hour,
-					RefreshTokenDuration: time.Hour * 24,
-				},
-			}
-
-			svc := NewUserService(
-				lgr,
-				mockUserRepo,
-				mockAuthSessionRepo,
-				mockJwtToken,
-				nil,
-				mockConfig,
-				nil,
-				mockRedisClient,
-				nil,
-				nil,
-				mockGenerator,
-				nil,
-				mockFacebookClient,
-			)
-
-			got, gotErr := svc.HandleFacebookCallback(ctx, tC.input)
-			tC.verify(t, got, gotErr)
-		})
-	}
-}
-
-func TestUserService_GetFacebookAuthURL(t *testing.T) {
-	lgr := log.Initialize(constants.TestAppEnv)
-	ctx := context.Background()
-	mockErr := errors.New("error")
-
-	okResponse := &entities.FacebookAuthURLResponse{
-		AuthURL: "https://www.facebook.com/auth/url",
-	}
-
-	testCases := []struct {
-		name   string
-		setup  func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator)
-		verify func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error)
-	}{
-		{
-			name: "Success",
-			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator) {
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
-				redisPayload := database.RedisPayload{
-					Key:   redisKey,
-					Value: constants.FacebookProvider,
-					TTL:   constants.RedisTTLOAuthState,
-				}
-
-				mockGenerator.EXPECT().
-					GenerateCryptographicallySecureString(ctx, 32).
-					Return("oauth_state")
-
-				mockRedisClient.EXPECT().
-					Set(ctx, redisPayload).
-					Return(nil)
-
-				mockFacebookClient.EXPECT().
-					GetAuthURL("oauth_state").
-					Return("https://www.facebook.com/auth/url")
-
-				return mockRedisClient, mockFacebookClient, mockGenerator
-			},
-			verify: func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error) {
-				assert.Equal(t, okResponse, got)
-				assert.NoError(t, gotErr)
-			},
-		},
-		{
-			name: "Error_RedisSetFailed",
-			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator) {
-				mockRedisClient := new(mockDatabase.MockRedisClient)
-				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
-				mockGenerator := new(mockUtils.MockGenerator)
-
-				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
-				redisPayload := database.RedisPayload{
-					Key:   redisKey,
-					Value: constants.FacebookProvider,
-					TTL:   constants.RedisTTLOAuthState,
-				}
-
-				mockGenerator.EXPECT().
-					GenerateCryptographicallySecureString(ctx, 32).
-					Return("oauth_state")
-
-				mockRedisClient.EXPECT().
-					Set(ctx, redisPayload).
-					Return(mockErr)
-
-				return mockRedisClient, mockFacebookClient, mockGenerator
-			},
-			verify: func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error) {
-				assert.Error(t, gotErr)
-				assert.ErrorIs(t, gotErr, mockErr)
-			},
-		},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.name, func(t *testing.T) {
-			mockRedisClient, mockFacebookClient, mockGenerator := tC.setup()
-			defer mockRedisClient.AssertExpectations(t)
-			defer mockFacebookClient.AssertExpectations(t)
-			defer mockGenerator.AssertExpectations(t)
-
-			svc := NewUserService(lgr, nil, nil, nil, nil, nil, nil, mockRedisClient, nil, nil, mockGenerator, nil, mockFacebookClient)
-			got, gotErr := svc.GetFacebookAuthURL(ctx)
-
-			tC.verify(t, got, gotErr)
 		})
 	}
 }

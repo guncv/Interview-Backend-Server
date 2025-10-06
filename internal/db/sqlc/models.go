@@ -235,6 +235,18 @@ type PhraseRubricScores struct {
 	SoftDelete         sql.NullBool   `json:"soft_delete"`
 }
 
+type ResetTokens struct {
+	ID          uuid.UUID      `json:"id"`
+	UserID      uuid.UUID      `json:"user_id"`
+	TokenHash   string         `json:"token_hash"`
+	Used        bool           `json:"used"`
+	RequestedAt sql.NullTime   `json:"requested_at"`
+	UsedAt      sql.NullTime   `json:"used_at"`
+	ExpiresAt   time.Time      `json:"expires_at"`
+	IpAddress   sql.NullString `json:"ip_address"`
+	UserAgent   sql.NullString `json:"user_agent"`
+}
+
 type Resumes struct {
 	ID         uuid.UUID    `json:"id"`
 	UserID     uuid.UUID    `json:"user_id"`
@@ -269,24 +281,21 @@ type UserTurnImprovements struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
-// User accounts authenticated via Google OAuth (no password stored)
 type Users struct {
 	ID                 uuid.UUID      `json:"id"`
 	Email              string         `json:"email"`
+	PasswordHash       string         `json:"password_hash"`
 	FullName           string         `json:"full_name"`
+	Country            string         `json:"country"`
+	Gender             string         `json:"gender"`
+	DateOfBirth        time.Time      `json:"date_of_birth"`
 	IsAdmin            sql.NullBool   `json:"is_admin"`
+	IsEmailVerified    sql.NullBool   `json:"is_email_verified"`
 	LastLoginAt        sql.NullTime   `json:"last_login_at"`
+	LoginAttemptCount  sql.NullInt32  `json:"login_attempt_count"`
 	IsSuspended        sql.NullBool   `json:"is_suspended"`
 	LastLoginIp        sql.NullString `json:"last_login_ip"`
 	LastLoginUserAgent sql.NullString `json:"last_login_user_agent"`
 	CreatedAt          sql.NullTime   `json:"created_at"`
 	UpdatedAt          sql.NullTime   `json:"updated_at"`
-	// OAuth provider (e.g. google, github, facebook)
-	Provider string `json:"provider"`
-	// Unique ID from the OAuth provider
-	ProviderID sql.NullString `json:"provider_id"`
-	// User profile image URL from Google
-	ProfileImage sql.NullString `json:"profile_image"`
-	// Preferred locale returned from OAuth provider
-	Locale sql.NullString `json:"locale"`
 }
