@@ -33,6 +33,10 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 	e.RedirectTrailingSlash = false
 	e.Use(middleware.InjectRequestMetadata())
 
+	e.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	e.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "healthy",
