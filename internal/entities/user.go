@@ -24,6 +24,20 @@ type GoogleAuthURLResponse struct {
 	AuthURL string `json:"auth_url"`
 }
 
+type HandleFacebookCallbackReq struct {
+	Code  string `json:"code"`
+	State string `json:"state"`
+}
+
+type HandleFacebookCallbackResp struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type FacebookAuthURLResponse struct {
+	AuthURL string `json:"auth_url"`
+}
+
 type TokenRequest struct {
 	UserID   string             `json:"user_id"`
 	Role     constants.UserRole `json:"role"`

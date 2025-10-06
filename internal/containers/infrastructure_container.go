@@ -130,4 +130,8 @@ func (c *Container) InfrastructureProvider() {
 	if err := c.Container.Provide(auth.NewGoogleClient); err != nil {
 		c.Error = err
 	}
+
+	if err := c.Container.Provide(auth.NewFacebookClient); err != nil {
+		c.Error = err
+	}
 }

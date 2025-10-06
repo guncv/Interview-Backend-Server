@@ -22,6 +22,64 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
+// GetFacebookAuthURL provides a mock function with given fields: ctx
+func (_m *MockUserService) GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetFacebookAuthURL")
+	}
+
+	var r0 *entities.FacebookAuthURLResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (*entities.FacebookAuthURLResponse, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) *entities.FacebookAuthURLResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.FacebookAuthURLResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_GetFacebookAuthURL_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFacebookAuthURL'
+type MockUserService_GetFacebookAuthURL_Call struct {
+	*mock.Call
+}
+
+// GetFacebookAuthURL is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockUserService_Expecter) GetFacebookAuthURL(ctx interface{}) *MockUserService_GetFacebookAuthURL_Call {
+	return &MockUserService_GetFacebookAuthURL_Call{Call: _e.mock.On("GetFacebookAuthURL", ctx)}
+}
+
+func (_c *MockUserService_GetFacebookAuthURL_Call) Run(run func(ctx context.Context)) *MockUserService_GetFacebookAuthURL_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockUserService_GetFacebookAuthURL_Call) Return(_a0 *entities.FacebookAuthURLResponse, _a1 error) *MockUserService_GetFacebookAuthURL_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_GetFacebookAuthURL_Call) RunAndReturn(run func(context.Context) (*entities.FacebookAuthURLResponse, error)) *MockUserService_GetFacebookAuthURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGoogleAuthURL provides a mock function with given fields: ctx
 func (_m *MockUserService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
 	ret := _m.Called(ctx)
@@ -76,6 +134,65 @@ func (_c *MockUserService_GetGoogleAuthURL_Call) Return(_a0 *entities.GoogleAuth
 }
 
 func (_c *MockUserService_GetGoogleAuthURL_Call) RunAndReturn(run func(context.Context) (*entities.GoogleAuthURLResponse, error)) *MockUserService_GetGoogleAuthURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HandleFacebookCallback provides a mock function with given fields: ctx, req
+func (_m *MockUserService) HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error) {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HandleFacebookCallback")
+	}
+
+	var r0 *entities.HandleFacebookCallbackResp
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)); ok {
+		return rf(ctx, req)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *entities.HandleFacebookCallbackReq) *entities.HandleFacebookCallbackResp); ok {
+		r0 = rf(ctx, req)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entities.HandleFacebookCallbackResp)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *entities.HandleFacebookCallbackReq) error); ok {
+		r1 = rf(ctx, req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserService_HandleFacebookCallback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HandleFacebookCallback'
+type MockUserService_HandleFacebookCallback_Call struct {
+	*mock.Call
+}
+
+// HandleFacebookCallback is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *entities.HandleFacebookCallbackReq
+func (_e *MockUserService_Expecter) HandleFacebookCallback(ctx interface{}, req interface{}) *MockUserService_HandleFacebookCallback_Call {
+	return &MockUserService_HandleFacebookCallback_Call{Call: _e.mock.On("HandleFacebookCallback", ctx, req)}
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) Run(run func(ctx context.Context, req *entities.HandleFacebookCallbackReq)) *MockUserService_HandleFacebookCallback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*entities.HandleFacebookCallbackReq))
+	})
+	return _c
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) Return(_a0 *entities.HandleFacebookCallbackResp, _a1 error) *MockUserService_HandleFacebookCallback_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserService_HandleFacebookCallback_Call) RunAndReturn(run func(context.Context, *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)) *MockUserService_HandleFacebookCallback_Call {
 	_c.Call.Return(run)
 	return _c
 }

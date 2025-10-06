@@ -18,9 +18,9 @@
     "host": "${API_HOST:-localhost:8080}",
     "basePath": "/api/v1",
     "paths": {
-        "/auth/forgot-password": {
-            "post": {
-                "description": "Send password reset link to user's email",
+        "/auth/facebook/callback": {
+            "get": {
+                "description": "Process Facebook OAuth callback and return authentication tokens",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,26 +30,143 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Request password reset",
+                "summary": "Handle Facebook OAuth callback",
                 "parameters": [
                     {
-                        "description": "Password reset request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ForgotPasswordRequest"
-                        }
+                        "type": "string",
+                        "description": "Authorization code from Facebook",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State from Facebook",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Password reset email sent successfully"
+                    "200": {
+                        "description": "Authentication response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.HandleFacebookCallbackResp"
+                        }
                     },
                     "400": {
-                        "description": "Validation error or business logic error",
+                        "description": "Bad request",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/facebook/url": {
+            "get": {
+                "description": "Generate and return Facebook OAuth authorization URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get Facebook OAuth URL",
+                "responses": {
+                    "200": {
+                        "description": "OAuth URL response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.FacebookAuthURLResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "Process Google OAuth callback and return authentication tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Handle Google OAuth callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code from Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State from Google",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authentication response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.HandleGoogleCallbackResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/url": {
+            "get": {
+                "description": "Generate and return Google OAuth authorization URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get Google OAuth URL",
+                "responses": {
+                    "200": {
+                        "description": "OAuth URL response",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.GoogleAuthURLResponse"
                         }
                     },
                     "500": {
@@ -84,187 +201,6 @@
                 }
             }
         },
-        "/auth/reset-password": {
-            "post": {
-                "description": "Reset user password using reset token",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Reset user password",
-                "parameters": [
-                    {
-                        "description": "Password reset details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetUserPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Password reset successfully"
-                    },
-                    "400": {
-                        "description": "Validation error or invalid token",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/reset-verify-email": {
-            "post": {
-                "description": "Generate a new verification code for email verification",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Reset email verification code",
-                "parameters": [
-                    {
-                        "description": "Reset verification code request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Validation error or business logic error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/sign-in": {
-            "post": {
-                "description": "Authenticate user with email and password, returns access and refresh tokens",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "User authentication",
-                "parameters": [
-                    {
-                        "description": "Login credentials",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Validation error or invalid credentials",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/sign-in-admin": {
-            "post": {
-                "description": "Authenticate admin with email and password, returns access and refresh tokens",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Admin authentication",
-                "parameters": [
-                    {
-                        "description": "Login credentials",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Validation error or invalid credentials",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/sign-out": {
             "post": {
                 "security": [
@@ -289,95 +225,6 @@
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/sign-up": {
-            "post": {
-                "description": "Create a new user account with email verification",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "User registration",
-                "parameters": [
-                    {
-                        "description": "User registration details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Validation error or business logic error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/verify-email": {
-            "post": {
-                "description": "Send verification code to user's email address",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Send email verification",
-                "parameters": [
-                    {
-                        "description": "Email verification details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.VerifyEmailRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Email sent successfully"
-                    },
-                    "400": {
-                        "description": "Validation error or business logic error",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
                         }
@@ -1060,6 +907,12 @@
                         "name": "session_token",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Turn number for pagination",
+                        "name": "turn_no",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1208,6 +1061,52 @@
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.CreateInterviewSessionWithExistingResumeResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error or business logic error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_infras_app_error.AppError"
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/finalizing": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "List finalizing interview session by user ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Interview Sessions"
+                ],
+                "summary": "List finalizing interview session by user ID",
+                "responses": {
+                    "200": {
+                        "description": "List of finalize interview sessions",
+                        "schema": {
+                            "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListFinalizingInterviewSessionByUserIDResp"
                         }
                     },
                     "400": {
@@ -1748,15 +1647,40 @@
                 }
             }
         },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ForgotPasswordRequest": {
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.FacebookAuthURLResponse": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 100
+                "auth_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.FinalizingInterviewSessionSummary": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "resume_file_name": {
+                    "type": "string"
+                },
+                "resume_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "status_color": {
+                    "type": "string"
+                },
+                "total_time": {
+                    "type": "string"
                 }
             }
         },
@@ -1782,6 +1706,9 @@
                     "items": {
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.ChatHistory"
                     }
+                },
+                "cursor_turn_next": {
+                    "type": "integer"
                 }
             }
         },
@@ -1828,6 +1755,9 @@
                     "type": "string"
                 },
                 "summary_md": {
+                    "type": "string"
+                },
+                "total_time": {
                     "type": "string"
                 }
             }
@@ -1892,6 +1822,36 @@
                 }
             }
         },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.GoogleAuthURLResponse": {
+            "type": "object",
+            "properties": {
+                "auth_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.HandleFacebookCallbackResp": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.HandleGoogleCallbackResp": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.HealthCheckResponse": {
             "type": "object",
             "properties": {
@@ -1906,14 +1866,14 @@
                 "created_at": {
                     "type": "string"
                 },
-                "created_at_display": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
                 "overall_score": {
                     "type": "number"
+                },
+                "overall_score_color": {
+                    "type": "string"
                 },
                 "position": {
                     "type": "string"
@@ -1925,6 +1885,9 @@
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                },
+                "status_color": {
                     "type": "string"
                 },
                 "total_time": {
@@ -1951,6 +1914,20 @@
                     "items": {
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.RubricAndCriteriaRow"
                     }
+                }
+            }
+        },
+        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ListFinalizingInterviewSessionByUserIDResp": {
+            "type": "object",
+            "properties": {
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.FinalizingInterviewSessionSummary"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -2005,6 +1982,9 @@
         "gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluationCriteria": {
             "type": "object",
             "properties": {
+                "criteria_color": {
+                    "type": "string"
+                },
                 "criteria_comment": {
                     "type": "string"
                 },
@@ -2015,6 +1995,9 @@
                     "type": "string"
                 },
                 "criteria_score": {
+                    "type": "number"
+                },
+                "max_score": {
                     "type": "number"
                 }
             }
@@ -2028,6 +2011,12 @@
                         "$ref": "#/definitions/gitlab_com_interview-simulation_interview-backend-server_internal_entities.PhraseEvaluationCriteria"
                     }
                 },
+                "max_score": {
+                    "type": "number"
+                },
+                "overall_color": {
+                    "type": "string"
+                },
                 "overall_score": {
                     "type": "number"
                 },
@@ -2035,42 +2024,6 @@
                     "type": "string"
                 },
                 "state_name": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetUserPasswordRequest": {
-            "type": "object",
-            "required": [
-                "new_password",
-                "token"
-            ],
-            "properties": {
-                "new_password": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 8
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeRequest": {
-            "type": "object",
-            "required": [
-                "token"
-            ],
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.ResetVerifyEmailCodeResponse": {
-            "type": "object",
-            "properties": {
-                "token_id": {
                     "type": "string"
                 }
             }
@@ -2105,86 +2058,6 @@
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 8
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignInByEmailAndPasswordResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserRequest": {
-            "type": "object",
-            "required": [
-                "country",
-                "date_of_birth",
-                "email",
-                "full_name",
-                "gender",
-                "password"
-            ],
-            "properties": {
-                "country": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 2
-                },
-                "date_of_birth": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "full_name": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 2
-                },
-                "gender": {
-                    "type": "string",
-                    "enum": [
-                        "male",
-                        "female",
-                        "other"
-                    ]
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 8
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.SignUpUserResponse": {
-            "type": "object",
-            "properties": {
-                "token_id": {
                     "type": "string"
                 }
             }
@@ -2228,23 +2101,6 @@
                     "type": "boolean"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "gitlab_com_interview-simulation_interview-backend-server_internal_entities.VerifyEmailRequest": {
-            "type": "object",
-            "required": [
-                "code",
-                "token"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "maxLength": 6,
-                    "minLength": 6
-                },
-                "token": {
                     "type": "string"
                 }
             }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
@@ -79,7 +80,7 @@ func TestUserService_HealthCheck(t *testing.T) {
 			mockUserRepo := tC.setup()
 			defer mockUserRepo.AssertExpectations(t)
 
-			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, mockUserRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			got, gotErr := svc.HealthCheck(ctx)
 
 			tC.verify(t, got, gotErr)
@@ -142,7 +143,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -238,7 +239,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -413,7 +414,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, mock.MatchedBy(func(token *oauth2.Token) bool {
@@ -450,7 +451,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -485,7 +486,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -527,7 +528,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -580,7 +581,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -648,7 +649,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -727,7 +728,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -787,7 +788,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -836,7 +837,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -898,7 +899,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
 				mockRedisClient.EXPECT().
 					Get(ctx, redisKey).
-					Return("valid", nil)
+					Return(constants.GoogleProvider, nil)
 
 				mockGoogleClient.EXPECT().
 					GetUserInfo(ctx, &oauth2.Token{AccessToken: "google_access_token"}).
@@ -1015,6 +1016,7 @@ func TestUserService_HandleGoogleCallback(t *testing.T) {
 				nil,
 				mockGenerator,
 				mockGoogleClient,
+				nil,
 			)
 
 			got, gotErr := svc.HandleGoogleCallback(ctx, tC.input)
@@ -1047,7 +1049,7 @@ func TestUserService_GetGoogleAuthURL(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
 				redisPayload := database.RedisPayload{
 					Key:   redisKey,
-					Value: "valid",
+					Value: constants.GoogleProvider,
 					TTL:   constants.RedisTTLOAuthState,
 				}
 
@@ -1080,7 +1082,7 @@ func TestUserService_GetGoogleAuthURL(t *testing.T) {
 				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
 				redisPayload := database.RedisPayload{
 					Key:   redisKey,
-					Value: "valid",
+					Value: constants.GoogleProvider,
 					TTL:   constants.RedisTTLOAuthState,
 				}
 
@@ -1108,7 +1110,7 @@ func TestUserService_GetGoogleAuthURL(t *testing.T) {
 			defer mockGoogleClient.AssertExpectations(t)
 			defer mockGenerator.AssertExpectations(t)
 
-			svc := NewUserService(lgr, nil, nil, nil, nil, nil, nil, mockRedisClient, nil, nil, mockGenerator, mockGoogleClient)
+			svc := NewUserService(lgr, nil, nil, nil, nil, nil, nil, mockRedisClient, nil, nil, mockGenerator, mockGoogleClient, nil)
 			got, gotErr := svc.GetGoogleAuthURL(ctx)
 
 			tC.verify(t, got, gotErr)
@@ -1263,10 +1265,1015 @@ func TestUserService_SignOut(t *testing.T) {
 				}
 			}()
 
-			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil)
+			svc := NewUserService(lgr, nil, mockAuthSessionRepo, nil, nil, nil, mockAuthContext, nil, nil, nil, nil, nil, nil)
 			gotErr := svc.SignOut(ctx)
 
 			tC.verify(t, gotErr)
+		})
+	}
+}
+
+func TestUserService_HandleFacebookCallback(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+
+	validCode := "valid_auth_code"
+	validState := "valid_oauth_state"
+
+	validUserInfo := &auth.FacebookUserInfo{
+		Email:  "test@example.com",
+		Name:   "Test User",
+		ID:     "facebook_user_123",
+		Locale: "en-US",
+		Picture: struct {
+			Data struct {
+				URL string `json:"url"`
+			} `json:"data"`
+		}{
+			Data: struct {
+				URL string `json:"url"`
+			}{
+				URL: "https://example.com/picture.jpg",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name   string
+		input  *entities.HandleFacebookCallbackReq
+		setup  func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient)
+		verify func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error)
+	}{
+		{
+			name: "Success_NewUser",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, nil)
+
+				userID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(userID)
+
+				mockUserRepo.EXPECT().
+					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
+						return params.ID == userID &&
+							params.Email == validUserInfo.Email &&
+							params.FullName == validUserInfo.Name &&
+							params.Provider == constants.FacebookProvider &&
+							params.ProviderID.String == validUserInfo.ID
+					})).
+					Return(nil)
+
+				createdUser := db.Users{
+					ID:         userID,
+					Email:      validUserInfo.Email,
+					FullName:   validUserInfo.Name,
+					Provider:   constants.FacebookProvider,
+					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+				}
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(createdUser, nil)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				mockAuthSessionRepo.EXPECT().
+					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
+						return params.UserID == userID && params.RefreshTokenHash == "hashed_refresh_token"
+					})).
+					Return(nil)
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "access_token", got.AccessToken)
+				assert.Equal(t, "refresh_token", got.RefreshToken)
+			},
+		},
+		{
+			name: "Success_ExistingUser",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(true, nil)
+
+				existingUser := db.Users{
+					ID:         uuid.New(),
+					Email:      validUserInfo.Email,
+					FullName:   validUserInfo.Name,
+					Provider:   constants.FacebookProvider,
+					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+				}
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(existingUser, nil)
+
+				mockUserRepo.EXPECT().
+					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
+						return params.ID == existingUser.ID
+					})).
+					Return(nil)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == existingUser.ID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				mockAuthSessionRepo.EXPECT().
+					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
+						return params.UserID == existingUser.ID && params.RefreshTokenHash == "hashed_refresh_token"
+					})).
+					Return(nil)
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.NoError(t, gotErr)
+				assert.NotNil(t, got)
+				assert.Equal(t, "access_token", got.AccessToken)
+				assert.Equal(t, "refresh_token", got.RefreshToken)
+			},
+		},
+		{
+			name: "Error_InvalidCode",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  "",
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, "").
+					Return(nil, errors.New("invalid code"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidState",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: "",
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "")
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return("", errors.New("invalid state"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_StateNotFound",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: "invalid_state",
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "invalid_state")
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return("", redis.Nil)
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidUserInfo",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				invalidUserInfo := &auth.FacebookUserInfo{
+					Email: "",
+					Name:  "",
+					ID:    "",
+				}
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(invalidUserInfo, nil)
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_UserInfoRetrievalFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(nil, errors.New("facebook api error"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_DatabaseLookupFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, errors.New("database error"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_UserCreationFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, nil)
+
+				userID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(userID)
+
+				mockUserRepo.EXPECT().
+					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
+						return params.ID == userID &&
+							params.Email == validUserInfo.Email &&
+							params.FullName == validUserInfo.Name &&
+							params.Provider == constants.FacebookProvider &&
+							params.ProviderID.String == validUserInfo.ID
+					})).
+					Return(errors.New("user creation failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_TokenCreationFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, nil)
+
+				userID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(userID)
+
+				mockUserRepo.EXPECT().
+					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
+						return params.ID == userID &&
+							params.Email == validUserInfo.Email &&
+							params.FullName == validUserInfo.Name &&
+							params.Provider == constants.FacebookProvider &&
+							params.ProviderID.String == validUserInfo.ID
+					})).
+					Return(nil)
+
+				createdUser := db.Users{
+					ID:         userID,
+					Email:      validUserInfo.Email,
+					FullName:   validUserInfo.Name,
+					Provider:   constants.FacebookProvider,
+					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+				}
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(createdUser, nil)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("", nil, errors.New("token creation failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_SessionCreationFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, nil)
+
+				userID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(userID)
+
+				mockUserRepo.EXPECT().
+					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
+						return params.ID == userID &&
+							params.Email == validUserInfo.Email &&
+							params.FullName == validUserInfo.Name &&
+							params.Provider == constants.FacebookProvider &&
+							params.ProviderID.String == validUserInfo.ID
+					})).
+					Return(nil)
+
+				createdUser := db.Users{
+					ID:         userID,
+					Email:      validUserInfo.Email,
+					FullName:   validUserInfo.Name,
+					Provider:   constants.FacebookProvider,
+					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+				}
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(createdUser, nil)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("access_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					CreateToken(ctx, mock.MatchedBy(func(req *entities.TokenRequest) bool {
+						return req.UserID == userID.String() && req.Role == constants.UserRoleUser
+					})).
+					Return("refresh_token", &utilsPkg.SignInTokenPayload{ID: uuid.New(), ExpiredAt: time.Now().Add(time.Hour)}, nil).
+					Times(1)
+
+				mockJwtToken.EXPECT().
+					HashTokenSHA256(ctx, "refresh_token").
+					Return("hashed_refresh_token")
+
+				mockAuthSessionRepo.EXPECT().
+					CreateAuthSession(ctx, mock.MatchedBy(func(params *db.CreateAuthSessionParams) bool {
+						return params.UserID == userID && params.RefreshTokenHash == "hashed_refresh_token"
+					})).
+					Return(errors.New("session creation failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_RedisStateError",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return("", errors.New("redis error"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_InvalidStateValidation",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return("different_state", nil)
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_CreatedUserRetrievalFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(false, nil)
+
+				userID := uuid.New()
+				mockGenerator.EXPECT().
+					GenerateUUID(ctx).
+					Return(userID)
+
+				mockUserRepo.EXPECT().
+					CreateUserWithProvider(ctx, mock.MatchedBy(func(params *db.CreateUserWithProviderParams) bool {
+						return params.ID == userID &&
+							params.Email == validUserInfo.Email &&
+							params.FullName == validUserInfo.Name &&
+							params.Provider == constants.FacebookProvider &&
+							params.ProviderID.String == validUserInfo.ID
+					})).
+					Return(nil)
+
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(db.Users{}, errors.New("user retrieval failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_ExistingUserRetrievalFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(true, nil)
+
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(db.Users{}, errors.New("user retrieval failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+		{
+			name: "Error_UpdateLoginInfoFailed",
+			input: &entities.HandleFacebookCallbackReq{
+				Code:  validCode,
+				State: validState,
+			},
+			setup: func() (*mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator, *repositories.MockUserRepository, *repositories.MockAuthSessionRepository, *mockUtils.MockJwtToken, *mockDatabase.MockRedisClient) {
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+				mockUserRepo := new(repositories.MockUserRepository)
+				mockAuthSessionRepo := new(repositories.MockAuthSessionRepository)
+				mockJwtToken := new(mockUtils.MockJwtToken)
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+
+				mockFacebookClient.EXPECT().
+					ExchangeCodeForToken(ctx, validCode).
+					Return(&oauth2.Token{AccessToken: "facebook_access_token"}, nil)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, validState)
+				mockRedisClient.EXPECT().
+					Get(ctx, redisKey).
+					Return(constants.FacebookProvider, nil)
+
+				mockFacebookClient.EXPECT().
+					GetUserInfo(ctx, &oauth2.Token{AccessToken: "facebook_access_token"}).
+					Return(validUserInfo, nil)
+
+				mockUserRepo.EXPECT().
+					CheckUserExistsByProviderID(ctx, db.CheckUserExistsByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(true, nil)
+
+				existingUser := db.Users{
+					ID:         uuid.New(),
+					Email:      validUserInfo.Email,
+					FullName:   validUserInfo.Name,
+					Provider:   constants.FacebookProvider,
+					ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+				}
+				mockUserRepo.EXPECT().
+					GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+						ProviderID: sql.NullString{String: validUserInfo.ID, Valid: true},
+						Provider:   constants.FacebookProvider,
+					}).
+					Return(existingUser, nil)
+
+				mockUserRepo.EXPECT().
+					UpdateUserLoginInfo(ctx, mock.MatchedBy(func(params db.UpdateUserLoginInfoParams) bool {
+						return params.ID == existingUser.ID
+					})).
+					Return(errors.New("update login info failed"))
+
+				return mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient
+			},
+			verify: func(t *testing.T, got *entities.HandleFacebookCallbackResp, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.Nil(t, got)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockFacebookClient, mockGenerator, mockUserRepo, mockAuthSessionRepo, mockJwtToken, mockRedisClient := tC.setup()
+			defer mockFacebookClient.AssertExpectations(t)
+			defer mockGenerator.AssertExpectations(t)
+			defer mockUserRepo.AssertExpectations(t)
+			defer mockAuthSessionRepo.AssertExpectations(t)
+			defer mockJwtToken.AssertExpectations(t)
+			defer mockRedisClient.AssertExpectations(t)
+
+			mockConfig := &config.Config{
+				AuthConfig: config.AuthConfig{
+					AccessTokenDuration:  time.Hour,
+					RefreshTokenDuration: time.Hour * 24,
+				},
+			}
+
+			svc := NewUserService(
+				lgr,
+				mockUserRepo,
+				mockAuthSessionRepo,
+				mockJwtToken,
+				nil,
+				mockConfig,
+				nil,
+				mockRedisClient,
+				nil,
+				nil,
+				mockGenerator,
+				nil,
+				mockFacebookClient,
+			)
+
+			got, gotErr := svc.HandleFacebookCallback(ctx, tC.input)
+			tC.verify(t, got, gotErr)
+		})
+	}
+}
+
+func TestUserService_GetFacebookAuthURL(t *testing.T) {
+	lgr := log.Initialize(constants.TestAppEnv)
+	ctx := context.Background()
+	mockErr := errors.New("error")
+
+	okResponse := &entities.FacebookAuthURLResponse{
+		AuthURL: "https://www.facebook.com/auth/url",
+	}
+
+	testCases := []struct {
+		name   string
+		setup  func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator)
+		verify func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error)
+	}{
+		{
+			name: "Success",
+			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
+				redisPayload := database.RedisPayload{
+					Key:   redisKey,
+					Value: constants.FacebookProvider,
+					TTL:   constants.RedisTTLOAuthState,
+				}
+
+				mockGenerator.EXPECT().
+					GenerateCryptographicallySecureString(ctx, 32).
+					Return("oauth_state")
+
+				mockRedisClient.EXPECT().
+					Set(ctx, redisPayload).
+					Return(nil)
+
+				mockFacebookClient.EXPECT().
+					GetAuthURL("oauth_state").
+					Return("https://www.facebook.com/auth/url")
+
+				return mockRedisClient, mockFacebookClient, mockGenerator
+			},
+			verify: func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error) {
+				assert.Equal(t, okResponse, got)
+				assert.NoError(t, gotErr)
+			},
+		},
+		{
+			name: "Error_RedisSetFailed",
+			setup: func() (*mockDatabase.MockRedisClient, *mockAuthInfras.MockFacebookClient, *mockUtils.MockGenerator) {
+				mockRedisClient := new(mockDatabase.MockRedisClient)
+				mockFacebookClient := new(mockAuthInfras.MockFacebookClient)
+				mockGenerator := new(mockUtils.MockGenerator)
+
+				redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, "oauth_state")
+				redisPayload := database.RedisPayload{
+					Key:   redisKey,
+					Value: constants.FacebookProvider,
+					TTL:   constants.RedisTTLOAuthState,
+				}
+
+				mockGenerator.EXPECT().
+					GenerateCryptographicallySecureString(ctx, 32).
+					Return("oauth_state")
+
+				mockRedisClient.EXPECT().
+					Set(ctx, redisPayload).
+					Return(mockErr)
+
+				return mockRedisClient, mockFacebookClient, mockGenerator
+			},
+			verify: func(t *testing.T, got *entities.FacebookAuthURLResponse, gotErr error) {
+				assert.Error(t, gotErr)
+				assert.ErrorIs(t, gotErr, mockErr)
+			},
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.name, func(t *testing.T) {
+			mockRedisClient, mockFacebookClient, mockGenerator := tC.setup()
+			defer mockRedisClient.AssertExpectations(t)
+			defer mockFacebookClient.AssertExpectations(t)
+			defer mockGenerator.AssertExpectations(t)
+
+			svc := NewUserService(lgr, nil, nil, nil, nil, nil, nil, mockRedisClient, nil, nil, mockGenerator, nil, mockFacebookClient)
+			got, gotErr := svc.GetFacebookAuthURL(ctx)
+
+			tC.verify(t, got, gotErr)
 		})
 	}
 }

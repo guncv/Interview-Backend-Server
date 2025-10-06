@@ -100,6 +100,8 @@ func userRoutes(eg *gin.RouterGroup, userHandler *handlers.UserHandler, authMidd
 		userRoutes.GET("/health", userHandler.HealthCheck)
 		userRoutes.GET("/google/url", userHandler.GetGoogleAuthURL)
 		userRoutes.GET("/google/callback", userHandler.HandleGoogleCallback)
+		userRoutes.GET("/facebook/url", userHandler.GetFacebookAuthURL)
+		userRoutes.GET("/facebook/callback", userHandler.HandleFacebookCallback)
 		userMiddleRoutes.POST("/sign-out", userHandler.SignOut)
 	}
 }

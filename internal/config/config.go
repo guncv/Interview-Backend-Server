@@ -81,9 +81,12 @@ type InterviewSessionConfig struct {
 }
 
 type OAuthConfig struct {
-	OAuthGoogleClientID     string `mapstructure:"OAUTH_GOOGLE_CLIENT_ID"`
-	OAuthGoogleClientSecret string `mapstructure:"OAUTH_GOOGLE_CLIENT_SECRET"`
-	OAuthGoogleRedirectURI  string `mapstructure:"OAUTH_GOOGLE_REDIRECT_URI"`
+	OAuthGoogleClientID       string `mapstructure:"OAUTH_GOOGLE_CLIENT_ID"`
+	OAuthGoogleClientSecret   string `mapstructure:"OAUTH_GOOGLE_CLIENT_SECRET"`
+	OAuthGoogleRedirectURI    string `mapstructure:"OAUTH_GOOGLE_REDIRECT_URI"`
+	OAuthFacebookClientID     string `mapstructure:"OAUTH_FACEBOOK_CLIENT_ID"`
+	OAuthFacebookClientSecret string `mapstructure:"OAUTH_FACEBOOK_CLIENT_SECRET"`
+	OAuthFacebookRedirectURI  string `mapstructure:"OAUTH_FACEBOOK_REDIRECT_URI"`
 }
 
 func LoadConfig() (*Config, error) {

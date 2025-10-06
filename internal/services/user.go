@@ -27,6 +27,8 @@ type UserService interface {
 	SignOut(ctx context.Context) error
 	HandleGoogleCallback(ctx context.Context, req *entities.HandleGoogleCallbackReq) (*entities.HandleGoogleCallbackResp, error)
 	GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error)
+	HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error)
+	GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error)
 }
 
 type userService struct {
@@ -42,6 +44,7 @@ type userService struct {
 	password           utils.PasswordUtil
 	generator          utils.Generator
 	googleClient       auth.GoogleClient
+	facebookClient     auth.FacebookClient
 }
 
 func NewUserService(l *log.Logger,
@@ -56,6 +59,7 @@ func NewUserService(l *log.Logger,
 	password utils.PasswordUtil,
 	generator utils.Generator,
 	googleClient auth.GoogleClient,
+	facebookClient auth.FacebookClient,
 ) UserService {
 	return &userService{
 		log:                l,
@@ -70,6 +74,7 @@ func NewUserService(l *log.Logger,
 		password:           password,
 		generator:          generator,
 		googleClient:       googleClient,
+		facebookClient:     facebookClient,
 	}
 }
 
@@ -102,7 +107,7 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
 	}
 
-	if state != "valid" {
+	if state != constants.GoogleProvider {
 		s.log.ErrorWithID(ctx, "[Google OAuth] Invalid state", errors.New("invalid state"))
 		return nil, app_error.New(errors.New("invalid state"), app_error.ErrCodeAuthInvalidToken)
 	}
@@ -208,6 +213,170 @@ func (s *userService) HandleGoogleCallback(ctx context.Context, req *entities.Ha
 	return result, nil
 }
 
+func (s *userService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
+	state := s.generator.GenerateCryptographicallySecureString(ctx, 32)
+
+	redisPayload := database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, state),
+		Value: constants.GoogleProvider,
+		TTL:   constants.RedisTTLOAuthState,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to store state", err)
+		return nil, err
+	}
+
+	authURL := s.googleClient.GetAuthURL(state)
+	resp := &entities.GoogleAuthURLResponse{
+		AuthURL: authURL,
+	}
+
+	return resp, nil
+}
+
+func (s *userService) HandleFacebookCallback(ctx context.Context, req *entities.HandleFacebookCallbackReq) (*entities.HandleFacebookCallbackResp, error) {
+	token, err := s.facebookClient.ExchangeCodeForToken(ctx, req.Code)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to exchange code for token", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	redisKey := fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, req.State)
+	state, err := s.redisClient.Get(ctx, redisKey)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to get state", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if state != constants.FacebookProvider {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Invalid state", errors.New("invalid state"))
+		return nil, app_error.New(errors.New("invalid state"), app_error.ErrCodeAuthInvalidToken)
+	}
+
+	userInfo, err := s.facebookClient.GetUserInfo(ctx, token)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to get user info", err)
+		return nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
+	}
+
+	if userInfo.Email == "" || userInfo.ID == "" {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Invalid user info from Facebook")
+		return nil, app_error.New(errors.New("invalid user information from Facebook"), app_error.ErrCodeAuthInvalidToken)
+	}
+
+	checkUserParams := db.CheckUserExistsByProviderIDParams{
+		ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
+		Provider:   constants.FacebookProvider,
+	}
+
+	userExists, err := s.userRepo.CheckUserExistsByProviderID(ctx, checkUserParams)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Database lookup failed", err)
+		return nil, app_error.HandleDatabaseError(err)
+	}
+
+	clientIP := ""
+	userAgent := ""
+	if ip, ok := ctx.Value(constants.ClientIPKey).(string); ok {
+		clientIP = ip
+	}
+	if ua, ok := ctx.Value(constants.UserAgentKey).(string); ok {
+		userAgent = ua
+	}
+
+	var dbUser db.Users
+	if !userExists {
+		newUserId := s.generator.GenerateUUID(ctx)
+		createUserParams := db.CreateUserWithProviderParams{
+			ID:                 newUserId,
+			Email:              userInfo.Email,
+			FullName:           userInfo.Name,
+			ProfileImage:       sql.NullString{String: userInfo.Picture.Data.URL, Valid: userInfo.Picture.Data.URL != ""},
+			Provider:           constants.FacebookProvider,
+			ProviderID:         sql.NullString{String: userInfo.ID, Valid: true},
+			IsAdmin:            sql.NullBool{Bool: false, Valid: true},
+			IsSuspended:        sql.NullBool{Bool: false, Valid: true},
+			LastLoginAt:        sql.NullTime{Time: time.Now(), Valid: true},
+			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
+			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
+			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
+		}
+
+		if err := s.userRepo.CreateUserWithProvider(ctx, &createUserParams); err != nil {
+			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to create user", err)
+			return nil, app_error.HandleDatabaseError(err)
+		}
+
+		dbUser, err = s.userRepo.GetUserByProviderID(ctx, db.GetUserByProviderIDParams{
+			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
+			Provider:   constants.FacebookProvider,
+		})
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to retrieve created user", err)
+			return nil, app_error.HandleDatabaseError(err)
+		}
+
+	} else {
+		getUserParams := db.GetUserByProviderIDParams{
+			ProviderID: sql.NullString{String: userInfo.ID, Valid: true},
+			Provider:   constants.FacebookProvider,
+		}
+
+		existingUser, err := s.userRepo.GetUserByProviderID(ctx, getUserParams)
+		if err != nil {
+			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to fetch existing user", err)
+			return nil, app_error.HandleDatabaseError(err)
+		}
+
+		dbUser = existingUser
+
+		if err := s.userRepo.UpdateUserLoginInfo(ctx, db.UpdateUserLoginInfoParams{
+			ID:                 dbUser.ID,
+			LastLoginIp:        sql.NullString{String: clientIP, Valid: clientIP != ""},
+			LastLoginUserAgent: sql.NullString{String: userAgent, Valid: userAgent != ""},
+			Locale:             sql.NullString{String: userInfo.Locale, Valid: userInfo.Locale != ""},
+		}); err != nil {
+			s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to update login info", err)
+			return nil, err
+		}
+	}
+
+	tokens, err := s.createTokensAndSession(ctx, dbUser, clientIP, userAgent, "[Facebook OAuth]")
+	if err != nil {
+		return nil, err
+	}
+
+	result := &entities.HandleFacebookCallbackResp{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+	}
+
+	return result, nil
+}
+
+func (s *userService) GetFacebookAuthURL(ctx context.Context) (*entities.FacebookAuthURLResponse, error) {
+	state := s.generator.GenerateCryptographicallySecureString(ctx, 32)
+
+	redisPayload := database.RedisPayload{
+		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, state),
+		Value: constants.FacebookProvider,
+		TTL:   constants.RedisTTLOAuthState,
+	}
+
+	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
+		s.log.ErrorWithID(ctx, "[Facebook OAuth] Failed to store state", err)
+		return nil, err
+	}
+
+	authURL := s.facebookClient.GetAuthURL(state)
+	resp := &entities.FacebookAuthURLResponse{
+		AuthURL: authURL,
+	}
+
+	return resp, nil
+}
+
 type TokenResponse struct {
 	AccessToken  string
 	RefreshToken string
@@ -256,28 +425,6 @@ func (s *userService) createTokensAndSession(ctx context.Context, dbUser db.User
 	resp := &TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-	}
-
-	return resp, nil
-}
-
-func (s *userService) GetGoogleAuthURL(ctx context.Context) (*entities.GoogleAuthURLResponse, error) {
-	state := s.generator.GenerateCryptographicallySecureString(ctx, 32)
-
-	redisPayload := database.RedisPayload{
-		Key:   fmt.Sprintf("%s%s", constants.RedisPrefixOAuthState, state),
-		Value: "valid",
-		TTL:   constants.RedisTTLOAuthState,
-	}
-
-	if err := s.redisClient.Set(ctx, redisPayload); err != nil {
-		s.log.ErrorWithID(ctx, "[Google OAuth] Failed to store state", err)
-		return nil, err
-	}
-
-	authURL := s.googleClient.GetAuthURL(state)
-	resp := &entities.GoogleAuthURLResponse{
-		AuthURL: authURL,
 	}
 
 	return resp, nil
