@@ -30,6 +30,10 @@ func RegisterRoutes(e *gin.Engine, c *dig.Container, cfg *config.Config) {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	e.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	e.RedirectTrailingSlash = false
 	e.Use(middleware.InjectRequestMetadata())
 
