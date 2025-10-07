@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"mime/multipart"
+	"sort"
 	"strconv"
 	"time"
 
@@ -138,6 +139,20 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	var selectedStages []string
+	if req.SelectedStages != "" {
+		if err := json.Unmarshal([]byte(req.SelectedStages), &selectedStages); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error parsing selected_stages", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+	}
+
+	selectedStages, err = s.ValidateSelectedStages(ctx, selectedStages)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Invalid selected stages", err)
+		return nil, err
+	}
+
 	customFileHeader := s.convertToCustomFileHeader(req.File)
 	sessionID := s.generator.GenerateUUID(ctx)
 	resumeID := s.generator.GenerateUUID(ctx)
@@ -180,14 +195,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error checking if default resume exists", err)
 		return nil, err
-	}
-
-	var selectedStages []string
-	if req.SelectedStages != "" {
-		if err := json.Unmarshal([]byte(req.SelectedStages), &selectedStages); err != nil {
-			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error parsing selected_stages", err)
-			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
-		}
 	}
 
 	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
@@ -268,6 +275,12 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, err
 	}
 
+	selectedStages, err := s.ValidateSelectedStages(ctx, req.SelectedStages)
+	if err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid selected stages", err)
+		return nil, err
+	}
+
 	resumeID, err := uuid.Parse(req.ResumeID)
 	if err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid resume ID", err)
@@ -306,11 +319,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
-	if err := s.ValidateSelectedStages(ctx, req.SelectedStages); err != nil {
-		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid selected stages", err)
-		return nil, err
-	}
-
 	createInterviewSessionWithExistingResumeReq := &db.CreateInterviewSessionParams{
 		ID:             sessionID,
 		ResumeID:       resumeID,
@@ -322,7 +330,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		IsConsent:      req.IsConsent,
 		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
 		ResumeContext:  pqtype.NullRawMessage{RawMessage: extractResumeJsonForRAGResp.ResumeContext, Valid: true},
-		SelectedStages: req.SelectedStages,
+		SelectedStages: selectedStages,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -363,13 +371,21 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	return resp, nil
 }
 
-func (s *interviewSessionService) ValidateSelectedStages(ctx context.Context, selectedStages []string) error {
+func (s *interviewSessionService) ValidateSelectedStages(ctx context.Context, selectedStages []string) ([]string, error) {
 	for _, stage := range selectedStages {
 		if !constants.IsValidBackendStage(stage) {
-			return app_error.New(fmt.Errorf("invalid stage: %s", stage), app_error.ErrCodeSessionInvalidStage)
+			return nil, app_error.New(fmt.Errorf("invalid stage: %s", stage), app_error.ErrCodeSessionInvalidStage)
 		}
 	}
-	return nil
+
+	sortedStages := make([]string, len(selectedStages))
+	copy(sortedStages, selectedStages)
+
+	sort.Slice(sortedStages, func(i, j int) bool {
+		return constants.StageOrderMap[sortedStages[i]] < constants.StageOrderMap[sortedStages[j]]
+	})
+
+	return sortedStages, nil
 }
 
 func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error {
@@ -815,6 +831,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			Status:                dbResp.Status,
 			BiasPrompt:            dbResp.BiasPrompt,
 			IsFinalized:           isFinalized,
+			SelectedStages:        dbResp.SelectedStages,
 		}, nil
 	} else {
 		currStartedAt := time.Now()
@@ -838,6 +855,7 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			Status:                dbResp.Status,
 			BiasPrompt:            dbResp.BiasPrompt,
 			IsFinalized:           isFinalized,
+			SelectedStages:        dbResp.SelectedStages,
 		}, nil
 	}
 }

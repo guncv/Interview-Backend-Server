@@ -53,7 +53,8 @@ SELECT position,
     is_started_conversation,
     bias_prompt,
     status,
-    finalize_status
+    finalize_status,
+    selected_stages
 FROM interview_sessions
 WHERE id = $1;
 

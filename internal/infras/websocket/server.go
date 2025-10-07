@@ -46,6 +46,12 @@ type Client struct {
 	isFinalized           bool
 }
 
+type InitClientParams struct {
+	Position       string
+	BiasPrompt     string
+	SelectedStages []string
+}
+
 type WebSocketServerInterface interface {
 	HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request, session *entities.IsSessionValidResp) error
 	Start(ctx context.Context) error
@@ -228,7 +234,13 @@ func (s *webSocketServer) HandleConnection(
 		return nil
 	}
 
-	if err := s.initClient(ctx, client, resp.Position, resp.BiasPrompt); err != nil {
+	initClientParams := &InitClientParams{
+		Position:       resp.Position,
+		BiasPrompt:     resp.BiasPrompt,
+		SelectedStages: resp.SelectedStages,
+	}
+
+	if err := s.initClient(ctx, client, initClientParams); err != nil {
 		s.log.ErrorWithID(ctx, "[WebSocketServer: HandleConnection] Error initializing client - AI agent connection failed", err)
 		s.Disconnect(ctx, client)
 		return nil
@@ -272,15 +284,16 @@ func (s *webSocketServer) HandleConnection(
 	return nil
 }
 
-func (s *webSocketServer) initClient(ctx context.Context, client *Client, position string, biasPrompt string) error {
+func (s *webSocketServer) initClient(ctx context.Context, client *Client, params *InitClientParams) error {
 
 	webSocketSessionReq := &entities.WebSocketSessionReq{
-		UserID:     client.userID,
-		SessionID:  client.SessionID,
-		ResumeID:   client.resumeID,
-		Duration:   s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
-		Position:   position,
-		BiasPrompt: biasPrompt,
+		UserID:         client.userID,
+		SessionID:      client.SessionID,
+		ResumeID:       client.resumeID,
+		Duration:       s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
+		Position:       params.Position,
+		BiasPrompt:     params.BiasPrompt,
+		SelectedStages: params.SelectedStages,
 	}
 
 	token, err := s.jwtMaker.CreateWebSocketSessionToken(ctx, webSocketSessionReq)

@@ -69,6 +69,15 @@ var ValidBackendStagesMap = map[string]bool{
 	"Behavioral": true,
 }
 
+var StageOrder = []string{"Experience", "Project", "Technical", "Behavioral"}
+
+var StageOrderMap = map[string]int{
+	"Experience": 0,
+	"Project":    1,
+	"Technical":  2,
+	"Behavioral": 3,
+}
+
 func IsValidBackendStage(stage string) bool {
 	return ValidBackendStagesMap[stage]
 }
