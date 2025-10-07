@@ -58,6 +58,17 @@ const (
 	TurnNoDefault = 0
 
 	BlankOverallSummaryMd    = "The interview session ended without any responses from the candidate."
-	TimeOutMessage           = "Your interview session ended because there was no activity for a while. Don’t worry — you can refresh the page to start a new session whenever you’re ready."
-	InactivityWarningMessage = "It looks like you’ve been inactive for a few minutes. Please continue soon — the session will close in 3 minutes if no response is received."
+	TimeOutMessage           = "Your interview session ended because there was no activity for a while. Don't worry — you can refresh the page to start a new session whenever you're ready."
+	InactivityWarningMessage = "It looks like you've been inactive for a few minutes. Please continue soon — the session will close in 3 minutes if no response is received."
 )
+
+var ValidBackendStagesMap = map[string]bool{
+	"Experience": true,
+	"Project":    true,
+	"Technical":  true,
+	"Behavioral": true,
+}
+
+func IsValidBackendStage(stage string) bool {
+	return ValidBackendStagesMap[stage]
+}

@@ -76,6 +76,7 @@ const (
 	ErrMessageSessionInvalidOverallScore            ErrorMessage = "The overall score is invalid. Please try again."
 	ErrMessageSessionInvalidStatus                  ErrorMessage = "The status is invalid. Please try again."
 	ErrMessageSessionNotStarted                     ErrorMessage = "The session is not started. Please try again."
+	ErrMessageSessionInvalidStage                   ErrorMessage = "The stage is invalid. Please try again."
 
 	// Evaluation
 	ErrMessageEvaluationRubricNotFound         ErrorMessage = "The rubric was not found. Please try again."

@@ -182,6 +182,14 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		return nil, err
 	}
 
+	var selectedStages []string
+	if req.SelectedStages != "" {
+		if err := json.Unmarshal([]byte(req.SelectedStages), &selectedStages); err != nil {
+			s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error parsing selected_stages", err)
+			return nil, app_error.New(err, app_error.ErrCodeGeneralUnmarshalFailed)
+		}
+	}
+
 	createResumeAndJobRequirementReq := &repositories.CreateInterviewSessionTxReq{
 		ResumeID:   resumeID,
 		UserID:     userID,
@@ -192,12 +200,13 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		IsDefault:  !isDefaultResume,
 		BiasPrompt: extractResumeJsonForRAGResp.BiasPrompt,
 
-		SessionID:     sessionID,
-		Position:      req.Position,
-		Status:        constants.StatusPending,
-		Modality:      constants.ModalityVoiceChat,
-		IsConsent:     req.IsConsent,
-		ResumeContext: extractResumeJsonForRAGResp.ResumeContext,
+		SessionID:      sessionID,
+		Position:       req.Position,
+		Status:         constants.StatusPending,
+		Modality:       constants.ModalityVoiceChat,
+		IsConsent:      req.IsConsent,
+		ResumeContext:  extractResumeJsonForRAGResp.ResumeContext,
+		SelectedStages: selectedStages,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSessionWithNewResumeTx(ctx, createResumeAndJobRequirementReq); err != nil {
@@ -297,6 +306,11 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		return nil, app_error.New(err, app_error.ErrCodeGeneralInvalidUUID)
 	}
 
+	if err := s.ValidateSelectedStages(ctx, req.SelectedStages); err != nil {
+		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Invalid selected stages", err)
+		return nil, err
+	}
+
 	createInterviewSessionWithExistingResumeReq := &db.CreateInterviewSessionParams{
 		ID:             sessionID,
 		ResumeID:       resumeID,
@@ -308,6 +322,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		IsConsent:      req.IsConsent,
 		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
 		ResumeContext:  pqtype.NullRawMessage{RawMessage: extractResumeJsonForRAGResp.ResumeContext, Valid: true},
+		SelectedStages: req.SelectedStages,
 	}
 
 	if err := s.interviewSessionRepo.CreateInterviewSession(ctx, createInterviewSessionWithExistingResumeReq); err != nil {
@@ -346,6 +361,15 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 	}
 
 	return resp, nil
+}
+
+func (s *interviewSessionService) ValidateSelectedStages(ctx context.Context, selectedStages []string) error {
+	for _, stage := range selectedStages {
+		if !constants.IsValidBackendStage(stage) {
+			return app_error.New(fmt.Errorf("invalid stage: %s", stage), app_error.ErrCodeSessionInvalidStage)
+		}
+	}
+	return nil
 }
 
 func (s *interviewSessionService) CreateInterviewerSessionTurnBySessionID(ctx context.Context, req *entities.CreateInterviewerSessionTurnBySessionIDReq) error {

@@ -8,9 +8,10 @@ import (
 )
 
 type CreateInterviewSessionWithNewResumeRequest struct {
-	File      *multipart.FileHeader `form:"file" binding:"required"`
-	Position  string                `form:"position" binding:"required"`
-	IsConsent bool                  `form:"is_consent" binding:"required"`
+	File           *multipart.FileHeader `form:"file" binding:"required"`
+	Position       string                `form:"position" binding:"required"`
+	IsConsent      bool                  `form:"is_consent" binding:"required"`
+	SelectedStages string                `form:"selected_stages"`
 }
 
 type CreateInterviewSessionWithNewResumeResponse struct {
@@ -18,9 +19,10 @@ type CreateInterviewSessionWithNewResumeResponse struct {
 }
 
 type CreateInterviewSessionWithExistingResumeReq struct {
-	ResumeID  string `json:"resume_id" binding:"required"`
-	Position  string `json:"position" binding:"required"`
-	IsConsent bool   `json:"is_consent" binding:"required"`
+	ResumeID       string   `json:"resume_id" binding:"required"`
+	Position       string   `json:"position" binding:"required"`
+	IsConsent      bool     `json:"is_consent" binding:"required"`
+	SelectedStages []string `json:"selected_stages"`
 }
 
 type CreateInterviewSessionWithExistingResumeResp struct {

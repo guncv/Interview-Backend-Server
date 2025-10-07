@@ -604,7 +604,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 				mockIssueCategoriesRepository.EXPECT().
 					CreateAdminIssueCategory(ctx, mock.MatchedBy(func(p *db.CreateAdminIssueCategoryParams) bool {
 						return p.Name == "test category" &&
-							p.CreatedBy == userID &&
+							p.CreatedBy == uuid.NullUUID{UUID: userID, Valid: true} &&
 							p.ID == categoryID
 					})).
 					Return(nil)
@@ -727,7 +727,7 @@ func TestIssueReportsService_CreateAdminIssueCategory(t *testing.T) {
 				mockIssueCategoriesRepository.EXPECT().
 					CreateAdminIssueCategory(ctx, mock.MatchedBy(func(p *db.CreateAdminIssueCategoryParams) bool {
 						return p.Name == "test category" &&
-							p.CreatedBy == userID &&
+							p.CreatedBy == uuid.NullUUID{UUID: userID, Valid: true} &&
 							p.ID == categoryID
 					})).
 					Return(mockErr)

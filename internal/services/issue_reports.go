@@ -193,7 +193,7 @@ func (s *issueReportsService) CreateAdminIssueCategory(ctx context.Context, req 
 		ID:        s.generator.GenerateUUID(ctx),
 		Name:      req.Name,
 		CreatedAt: time.Now(),
-		CreatedBy: userID,
+		CreatedBy: uuid.NullUUID{UUID: userID, Valid: true},
 	}
 
 	if err := s.issueCategoriesRepo.CreateAdminIssueCategory(ctx, dbReq); err != nil {
