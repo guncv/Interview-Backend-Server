@@ -9,9 +9,10 @@ INSERT INTO interview_sessions (
     status,
     is_consent,
     resume_context,
-    bias_prompt
+    bias_prompt,
+    selected_stages
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 );
 
 -- name: EndInterviewSession :execrows
@@ -52,7 +53,8 @@ SELECT position,
     is_started_conversation,
     bias_prompt,
     status,
-    finalize_status
+    finalize_status,
+    selected_stages
 FROM interview_sessions
 WHERE id = $1;
 

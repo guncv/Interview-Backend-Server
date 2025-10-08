@@ -127,6 +127,7 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			IsConsent:      req.IsConsent,
 			ResumeContext:  pqtype.NullRawMessage{RawMessage: req.ResumeContext, Valid: true},
 			BiasPrompt:     req.BiasPrompt,
+			SelectedStages: req.SelectedStages,
 		}
 
 		if err := q.CreateInterviewSession(ctx, createInterviewSessionParams); err != nil {

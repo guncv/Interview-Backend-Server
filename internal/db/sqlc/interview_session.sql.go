@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -65,9 +66,10 @@ INSERT INTO interview_sessions (
     status,
     is_consent,
     resume_context,
-    bias_prompt
+    bias_prompt,
+    selected_stages
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 `
 
@@ -82,6 +84,7 @@ type CreateInterviewSessionParams struct {
 	IsConsent      bool                  `json:"is_consent"`
 	ResumeContext  pqtype.NullRawMessage `json:"resume_context"`
 	BiasPrompt     string                `json:"bias_prompt"`
+	SelectedStages []string              `json:"selected_stages"`
 }
 
 func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateInterviewSessionParams) error {
@@ -96,6 +99,7 @@ func (q *Queries) CreateInterviewSession(ctx context.Context, arg CreateIntervie
 		arg.IsConsent,
 		arg.ResumeContext,
 		arg.BiasPrompt,
+		pq.Array(arg.SelectedStages),
 	)
 	return err
 }
@@ -216,7 +220,8 @@ SELECT position,
     is_started_conversation,
     bias_prompt,
     status,
-    finalize_status
+    finalize_status,
+    selected_stages
 FROM interview_sessions
 WHERE id = $1
 `
@@ -230,6 +235,7 @@ type GetSessionStateRow struct {
 	BiasPrompt            string                 `json:"bias_prompt"`
 	Status                string                 `json:"status"`
 	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
+	SelectedStages        []string               `json:"selected_stages"`
 }
 
 func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSessionStateRow, error) {
@@ -244,6 +250,7 @@ func (q *Queries) GetSessionState(ctx context.Context, id uuid.UUID) (GetSession
 		&i.BiasPrompt,
 		&i.Status,
 		&i.FinalizeStatus,
+		pq.Array(&i.SelectedStages),
 	)
 	return i, err
 }

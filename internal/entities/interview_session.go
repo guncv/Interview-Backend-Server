@@ -8,9 +8,10 @@ import (
 )
 
 type CreateInterviewSessionWithNewResumeRequest struct {
-	File      *multipart.FileHeader `form:"file" binding:"required"`
-	Position  string                `form:"position" binding:"required"`
-	IsConsent bool                  `form:"is_consent" binding:"required"`
+	File           *multipart.FileHeader `form:"file" binding:"required"`
+	Position       string                `form:"position" binding:"required"`
+	IsConsent      bool                  `form:"is_consent" binding:"required"`
+	SelectedStages string                `form:"selected_stages"`
 }
 
 type CreateInterviewSessionWithNewResumeResponse struct {
@@ -18,9 +19,10 @@ type CreateInterviewSessionWithNewResumeResponse struct {
 }
 
 type CreateInterviewSessionWithExistingResumeReq struct {
-	ResumeID  string `json:"resume_id" binding:"required"`
-	Position  string `json:"position" binding:"required"`
-	IsConsent bool   `json:"is_consent" binding:"required"`
+	ResumeID       string   `json:"resume_id" binding:"required"`
+	Position       string   `json:"position" binding:"required"`
+	IsConsent      bool     `json:"is_consent" binding:"required"`
+	SelectedStages []string `json:"selected_stages"`
 }
 
 type CreateInterviewSessionWithExistingResumeResp struct {
@@ -119,12 +121,13 @@ type IsSessionValidResp struct {
 }
 
 type WebSocketSessionReq struct {
-	UserID     string        `json:"user_id"`
-	SessionID  string        `json:"session_id"`
-	ResumeID   string        `json:"resume_id"`
-	Duration   time.Duration `json:"duration"`
-	Position   string        `json:"position"`
-	BiasPrompt string        `json:"bias_prompt"`
+	UserID         string        `json:"user_id"`
+	SessionID      string        `json:"session_id"`
+	ResumeID       string        `json:"resume_id"`
+	Duration       time.Duration `json:"duration"`
+	Position       string        `json:"position"`
+	BiasPrompt     string        `json:"bias_prompt"`
+	SelectedStages []string      `json:"selected_stages"`
 }
 
 type RedisLastMessagePayload struct {
@@ -175,14 +178,15 @@ type GetInterviewSessionInformationResp struct {
 }
 
 type GetInterviewSessionStateResp struct {
-	Position              string `json:"position"`
-	StartedAt             string `json:"started_at"`
-	IsStartedConversation bool   `json:"is_started_conversation"`
-	CurrentState          string `json:"current_state"`
-	CurrentStateID        string `json:"current_state_id"`
-	Status                string `json:"status"`
-	BiasPrompt            string `json:"bias_prompt"`
-	IsFinalized           bool   `json:"is_finalized"`
+	Position              string   `json:"position"`
+	StartedAt             string   `json:"started_at"`
+	IsStartedConversation bool     `json:"is_started_conversation"`
+	CurrentState          string   `json:"current_state"`
+	CurrentStateID        string   `json:"current_state_id"`
+	Status                string   `json:"status"`
+	BiasPrompt            string   `json:"bias_prompt"`
+	IsFinalized           bool     `json:"is_finalized"`
+	SelectedStages        []string `json:"selected_stages"`
 }
 
 type EndInterviewSessionReq struct {

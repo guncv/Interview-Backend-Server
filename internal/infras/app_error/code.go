@@ -76,6 +76,7 @@ const (
 	ErrCodeSessionInvalidOverallScore            ErrorCode = "INS0420"
 	ErrCodeSessionInvalidStatus                  ErrorCode = "INS0421"
 	ErrCodeSessionNotStarted                     ErrorCode = "INS0422"
+	ErrCodeSessionInvalidStage                   ErrorCode = "INS0423"
 
 	// Evaluation
 	ErrCodeEvaluationRubricNotFound         ErrorCode = "INS0500"

@@ -72,12 +72,13 @@ type CreateInterviewSessionTxReq struct {
 	IsDefault  bool
 	BiasPrompt string
 
-	SessionID     uuid.UUID
-	Position      string
-	Status        string
-	Modality      string
-	IsConsent     bool
-	ResumeContext json.RawMessage
+	SessionID      uuid.UUID
+	Position       string
+	Status         string
+	Modality       string
+	IsConsent      bool
+	ResumeContext  json.RawMessage
+	SelectedStages []string
 }
 
 type InterviewFeedbackAndScoreReq struct {

@@ -147,6 +147,8 @@ type InterviewSessions struct {
 	FinalizeStatus        NullFinalizeStatusEnum `json:"finalize_status"`
 	BiasPrompt            string                 `json:"bias_prompt"`
 	ResumeContext         pqtype.NullRawMessage  `json:"resume_context"`
+	// Array of selected interview stages for the session
+	SelectedStages []string `json:"selected_stages"`
 }
 
 type InterviewStates struct {
@@ -176,13 +178,13 @@ type InterviewTurns struct {
 }
 
 type IssueCategories struct {
-	ID         uuid.UUID    `json:"id"`
-	Name       string       `json:"name"`
-	CreatedAt  time.Time    `json:"created_at"`
-	CreatedBy  uuid.UUID    `json:"created_by"`
-	UpdatedAt  time.Time    `json:"updated_at"`
-	DeletedAt  sql.NullTime `json:"deleted_at"`
-	SoftDelete sql.NullBool `json:"soft_delete"`
+	ID         uuid.UUID     `json:"id"`
+	Name       string        `json:"name"`
+	CreatedAt  time.Time     `json:"created_at"`
+	CreatedBy  uuid.NullUUID `json:"created_by"`
+	UpdatedAt  time.Time     `json:"updated_at"`
+	DeletedAt  sql.NullTime  `json:"deleted_at"`
+	SoftDelete sql.NullBool  `json:"soft_delete"`
 }
 
 type IssueComments struct {
