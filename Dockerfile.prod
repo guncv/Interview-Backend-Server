@@ -17,8 +17,8 @@ RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
 
 
-# UAT runtime
-FROM alpine:latest AS uat
+# PROD runtime
+FROM alpine:latest AS prod
 
 RUN apk add --no-cache ca-certificates tzdata
 
