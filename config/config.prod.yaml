@@ -1,6 +1,6 @@
 AppConfig:
   APP_PORT: 8080
-  APP_ENV: uat
+  APP_ENV: prod
   API_HOST: localhost:8080
   CORS_ORIGINS:
     - https://interviewsai.org
