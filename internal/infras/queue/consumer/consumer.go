@@ -14,7 +14,6 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/services"
 )
@@ -22,8 +21,6 @@ import (
 type RedisTaskConsumer interface {
 	Start(ctx context.Context) error
 	CleanupQueue(ctx context.Context) error
-	ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error
-	ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskDeleteFile(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskCalculateTurnScore(ctx context.Context, task *asynq.Task) error
 	ConsumeTaskEndInterviewSession(ctx context.Context, task *asynq.Task) error
@@ -32,7 +29,6 @@ type RedisTaskConsumer interface {
 type redisTaskConsumer struct {
 	server                  *asynq.Server
 	log                     *log.Logger
-	emailSender             email.EmailSender
 	s3Storage               aws.S3Storage
 	redisClient             database.RedisClient
 	interviewSessionService services.InterviewSessionService
@@ -42,7 +38,6 @@ type redisTaskConsumer struct {
 func NewRedisTaskConsumer(
 	cfg *config.Config,
 	log *log.Logger,
-	emailSender email.EmailSender,
 	s3Storage aws.S3Storage,
 	redisClient database.RedisClient,
 	interviewSessionService services.InterviewSessionService,
@@ -69,7 +64,6 @@ func NewRedisTaskConsumer(
 	return &redisTaskConsumer{
 		server:                  server,
 		log:                     log,
-		emailSender:             emailSender,
 		s3Storage:               s3Storage,
 		redisClient:             redisClient,
 		interviewSessionService: interviewSessionService,
@@ -79,8 +73,6 @@ func NewRedisTaskConsumer(
 
 func (c *redisTaskConsumer) Start(ctx context.Context) error {
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(constants.TaskSendResetPasswordEmail, c.ConsumeTaskSendResetPasswordEmail)
-	mux.HandleFunc(constants.TaskSendVerifyEmail, c.ConsumeTaskSendVerifyEmail)
 	mux.HandleFunc(constants.TaskDeleteFile, c.ConsumeTaskDeleteFile)
 	mux.HandleFunc(constants.TaskCalculateTurnScore, c.ConsumeTaskCalculateTurnScore)
 	mux.HandleFunc(constants.TaskEndInterviewSession, c.ConsumeTaskEndInterviewSession)
@@ -101,38 +93,6 @@ func (c *redisTaskConsumer) CleanupQueue(ctx context.Context) error {
 
 	if err := c.redisClient.Delete(ctx, constants.QueueCritical); err != nil {
 		c.log.WarnWithID(ctx, "Failed to cleanup critical queue", err)
-	}
-
-	return nil
-}
-
-func (c *redisTaskConsumer) ConsumeTaskSendResetPasswordEmail(ctx context.Context, task *asynq.Task) error {
-
-	var payload email.ResetPasswordEmailPayload
-	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Failed to unmarshal payload", err)
-		return app_error.New(fmt.Errorf("invalid reset password email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	if err := c.emailSender.SendResetPasswordEmail(ctx, &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendResetPasswordEmail] Failed to send reset password email", err)
-		return app_error.New(fmt.Errorf("failed to send reset password email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	return nil
-}
-
-func (c *redisTaskConsumer) ConsumeTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
-
-	var payload email.VerifyEmailPayload
-	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Failed to unmarshal payload", err)
-		return app_error.New(fmt.Errorf("invalid verify email payload: %w", err), app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	if err := c.emailSender.SendVerifyEmail(ctx, &payload); err != nil {
-		c.log.ErrorWithID(ctx, "[Email: ConsumeTaskSendVerifyEmail] Failed to send verify email", err)
-		return app_error.New(fmt.Errorf("failed to send verify email: %w", err), app_error.ErrCodeGeneralServerUnavailable)
 	}
 
 	return nil

@@ -409,7 +409,7 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 		input          *ExtractResumeJsonForRAGReq
 		setup          func() *mockSqlc.MockStore
 		serverResponse func(w http.ResponseWriter, r *http.Request)
-		verify         func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error)
+		verify         func(t *testing.T, gotErr error)
 	}{
 		{
 			name:  "Success - With resume file",
@@ -435,16 +435,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				file.Close()
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(ExtractResumeJsonForRAGResp{
-					BiasPrompt: "bias_prompt",
-				})
 			},
-			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
+			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
-				assert.Equal(t, &ExtractResumeJsonForRAGResp{
-					BiasPrompt:    "bias_prompt",
-					ResumeContext: json.RawMessage("null"),
-				}, gotResp)
 			},
 		},
 		{
@@ -475,15 +468,11 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(ExtractResumeJsonForRAGResp{
-					BiasPrompt: "bias_prompt",
+					ResumeText: "resume_text",
 				})
 			},
-			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
+			verify: func(t *testing.T, gotErr error) {
 				assert.NoError(t, gotErr)
-				assert.Equal(t, &ExtractResumeJsonForRAGResp{
-					BiasPrompt:    "bias_prompt",
-					ResumeContext: json.RawMessage("null"),
-				}, gotResp)
 			},
 		},
 		{
@@ -496,10 +485,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Internal Server Error"))
 			},
-			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
+			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "interview agent returned status: 500 Internal Server Error")
-				assert.Nil(t, gotResp)
 			},
 		},
 		{
@@ -512,10 +500,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("Bad Request"))
 			},
-			verify: func(t *testing.T, gotResp *ExtractResumeJsonForRAGResp, gotErr error) {
+			verify: func(t *testing.T, gotErr error) {
 				assert.Error(t, gotErr)
 				assert.Contains(t, gotErr.Error(), "interview agent returned status: 400 Bad Request")
-				assert.Nil(t, gotResp)
 			},
 		},
 	}
@@ -540,9 +527,9 @@ func TestResumeRepository_ExtractResumeJsonForRAG(t *testing.T) {
 			}()
 
 			repo := NewResumeRepository(lgr, mockStore, testConfig)
-			gotResp, gotErr := repo.ExtractResumeJsonForRAG(ctx, tC.input)
+			gotErr := repo.ExtractResumeJsonForRAG(ctx, tC.input)
 
-			tC.verify(t, gotResp, gotErr)
+			tC.verify(t, gotErr)
 		})
 	}
 }

@@ -14,7 +14,6 @@ type Config struct {
 	DatabaseConfig         DatabaseConfig         `mapstructure:"DatabaseConfig"`
 	RedisConfig            RedisConfig            `mapstructure:"RedisConfig"`
 	AuthConfig             AuthConfig             `mapstructure:"AuthConfig"`
-	EmailConfig            EmailConfig            `mapstructure:"EmailConfig"`
 	AWSConfig              AWSConfig              `mapstructure:"AWSConfig"`
 	InterviewSessionConfig InterviewSessionConfig `mapstructure:"InterviewSessionConfig"`
 	OAuthConfig            OAuthConfig            `mapstructure:"OAuthConfig"`
@@ -44,24 +43,12 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	EncryptionSecretKey        string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
-	AccessTokenDuration        time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	RefreshTokenDuration       time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
-	ResetPasswordTokenDuration time.Duration `mapstructure:"RESET_PASSWORD_TOKEN_DURATION"`
-	TokenGraceWindow           time.Duration `mapstructure:"TOKEN_GRACE_WINDOW"`
-	CookieDomain               string        `mapstructure:"COOKIE_DOMAIN"`
-	CookieRejectHTTP           bool          `mapstructure:"COOKIE_REJECT_HTTP"`
-}
-
-type EmailConfig struct {
-	Host                     string        `mapstructure:"EMAIL_HOST"`
-	Port                     int           `mapstructure:"EMAIL_PORT"`
-	Username                 string        `mapstructure:"EMAIL_USERNAME"`
-	Password                 string        `mapstructure:"EMAIL_PASSWORD"`
-	From                     string        `mapstructure:"EMAIL_FROM"`
-	ResetPasswordURL         string        `mapstructure:"RESET_PASSWORD_URL"`
-	VerifyEmailTokenDuration time.Duration `mapstructure:"VERIFY_EMAIL_TOKEN_DURATION"`
-	EncryptionSecretKey      string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
+	EncryptionSecretKey  string        `mapstructure:"ENCRYPTION_SECRET_KEY"`
+	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+	TokenGraceWindow     time.Duration `mapstructure:"TOKEN_GRACE_WINDOW"`
+	CookieDomain         string        `mapstructure:"COOKIE_DOMAIN"`
+	CookieRejectHTTP     bool          `mapstructure:"COOKIE_REJECT_HTTP"`
 }
 
 type AWSConfig struct {

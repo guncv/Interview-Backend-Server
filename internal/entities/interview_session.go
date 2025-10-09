@@ -126,7 +126,6 @@ type WebSocketSessionReq struct {
 	ResumeID       string        `json:"resume_id"`
 	Duration       time.Duration `json:"duration"`
 	Position       string        `json:"position"`
-	BiasPrompt     string        `json:"bias_prompt"`
 	SelectedStages []string      `json:"selected_stages"`
 }
 
@@ -184,7 +183,6 @@ type GetInterviewSessionStateResp struct {
 	CurrentState          string   `json:"current_state"`
 	CurrentStateID        string   `json:"current_state_id"`
 	Status                string   `json:"status"`
-	BiasPrompt            string   `json:"bias_prompt"`
 	IsFinalized           bool     `json:"is_finalized"`
 	SelectedStages        []string `json:"selected_stages"`
 }
@@ -330,4 +328,14 @@ type GetLastUserTurnIDBySessionIDAndCurrentStateReq struct {
 type EndInterviewSessionPayload struct {
 	SessionID string `json:"session_id" binding:"required"`
 	Status    string `json:"status" binding:"required"`
+}
+
+type ExtractBiasPromptAndResumeContextReq struct {
+	Type    string                                   `json:"type" binding:"required"`
+	Payload ExtractBiasPromptAndResumeContextPayload `json:"payload" binding:"required"`
+}
+
+type ExtractBiasPromptAndResumeContextPayload struct {
+	SessionID  string `json:"session_id" binding:"required"`
+	ResumeText string `json:"resume_text" binding:"required"`
 }

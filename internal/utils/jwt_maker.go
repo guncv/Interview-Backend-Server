@@ -9,7 +9,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -21,14 +20,11 @@ import (
 
 type JwtToken interface {
 	CreateWebSocketSessionToken(ctx context.Context, req *entities.WebSocketSessionReq) (string, error)
-	CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error)
-	VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error)
 	CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error)
 	VerifyToken(ctx context.Context, token string, secretKey string) (*SignInTokenPayload, error)
 	CreateJWTToken(ctx context.Context, claims jwt.Claims, secretKey string) (string, error)
 	HashTokenSHA256(ctx context.Context, token string) string
 	IsTokenMatch(ctx context.Context, providedToken string, storedTokenHash string) bool
-	RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error)
 	RenewAccessToken(ctx *gin.Context, token string) (string, *SignInTokenPayload, error)
 }
 
@@ -70,32 +66,6 @@ func (maker *jwtToken) CreateWebSocketSessionToken(ctx context.Context, req *ent
 	}
 
 	return token, nil
-}
-
-func (maker *jwtToken) CreateVerifyEmailToken(ctx context.Context, req *entities.VerifyEmailTokenRequest) (string, *VerifyEmailTokenPayload, error) {
-
-	payload, err := NewVerifyEmailTokenPayload(req)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error creating verify email token payload", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	token, err := maker.CreateJWTToken(ctx, payload, maker.config.EmailConfig.EncryptionSecretKey)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return token, payload, nil
-}
-
-func (maker *jwtToken) VerifyVerifyEmailToken(ctx context.Context, token string) (*VerifyEmailTokenPayload, error) {
-
-	payload := &VerifyEmailTokenPayload{}
-	if err := maker.verifyJWTToken(ctx, token, payload, maker.config.EmailConfig.EncryptionSecretKey); err != nil {
-		return nil, err
-	}
-
-	return payload, nil
 }
 
 func (maker *jwtToken) CreateToken(ctx context.Context, req *entities.TokenRequest) (string, *SignInTokenPayload, error) {
@@ -257,67 +227,4 @@ func (maker *jwtToken) isRefreshTokenValidWithSession(ctx context.Context, token
 	}
 
 	return nil
-}
-
-func (maker *jwtToken) RenewVerifyEmailToken(ctx context.Context, oldToken string) (string, *VerifyEmailTokenPayload, error) {
-
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token method", "error", constants.ErrInvalidToken)
-			return nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-		}
-		return []byte(maker.config.EmailConfig.EncryptionSecretKey), nil
-	}
-
-	token, err := jwt.Parse(oldToken, keyFunc)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error parsing token", "error", err)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Invalid token claims type", "error", constants.ErrInvalidToken)
-		return "", nil, app_error.New(constants.ErrInvalidToken, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	payload, err := maker.mapClaimsToVerifyEmailPayload(claims)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error mapping claims to verify email payload", "error", err)
-		return "", nil, app_error.New(err, app_error.ErrCodeAuthInvalidToken)
-	}
-
-	payload.ExpiredAt = time.Now().Add(maker.config.EmailConfig.VerifyEmailTokenDuration)
-
-	newToken, err := maker.CreateJWTToken(ctx, payload, maker.config.EmailConfig.EncryptionSecretKey)
-	if err != nil {
-		maker.logger.ErrorWithID(ctx, "[Utils: JWT] Error renewing verify email token", "error", err)
-		return "", nil, err
-	}
-
-	return newToken, payload, nil
-}
-
-func (maker *jwtToken) mapClaimsToVerifyEmailPayload(claims jwt.MapClaims) (*VerifyEmailTokenPayload, error) {
-	payload := &VerifyEmailTokenPayload{}
-
-	if idStr, ok := claims["id"].(string); ok {
-		if id, err := uuid.Parse(idStr); err == nil {
-			payload.ID = id
-		}
-	}
-	if userID, ok := claims["user_id"].(string); ok {
-		payload.UserID = userID
-	}
-	if email, ok := claims["email"].(string); ok {
-		payload.Email = email
-	}
-	if issuedAt, ok := claims["issued_at"].(float64); ok {
-		payload.IssuedAt = time.Unix(int64(issuedAt), 0)
-	}
-	if expiredAt, ok := claims["expires_at"].(float64); ok {
-		payload.ExpiredAt = time.Unix(int64(expiredAt), 0)
-	}
-
-	return payload, nil
 }

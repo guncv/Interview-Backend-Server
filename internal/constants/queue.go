@@ -2,8 +2,6 @@ package constants
 
 // Queue Constants
 var (
-	TaskSendResetPasswordEmail        = "task:send_reset_password_email"
-	TaskSendVerifyEmail               = "task:send_verify_email"
 	TaskDeleteFile                    = "task:delete_file"
 	TaskSetRedis                      = "task:set_redis"
 	TaskDeleteRedis                   = "task:delete_redis"
@@ -12,6 +10,7 @@ var (
 	TaskCalculateEvaluationInOldState = "task:calculate_evaluation_in_old_state"
 	TaskEndInterviewSession           = "task:end_interview_session"
 
+	QueueAiAgent                  = "ai_agent"
 	QueueCritical                 = "critical"
 	QueueDefault                  = "default"
 	MaxRetry                      = 3

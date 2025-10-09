@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -125,8 +124,6 @@ func (r *interviewSessionRepository) CreateInterviewSessionWithNewResumeTx(ctx c
 			Status:         req.Status,
 			Modality:       req.Modality,
 			IsConsent:      req.IsConsent,
-			ResumeContext:  pqtype.NullRawMessage{RawMessage: req.ResumeContext, Valid: true},
-			BiasPrompt:     req.BiasPrompt,
 			SelectedStages: req.SelectedStages,
 		}
 
