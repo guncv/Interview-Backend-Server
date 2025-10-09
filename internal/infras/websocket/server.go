@@ -48,7 +48,6 @@ type Client struct {
 
 type InitClientParams struct {
 	Position       string
-	BiasPrompt     string
 	SelectedStages []string
 }
 
@@ -236,7 +235,6 @@ func (s *webSocketServer) HandleConnection(
 
 	initClientParams := &InitClientParams{
 		Position:       resp.Position,
-		BiasPrompt:     resp.BiasPrompt,
 		SelectedStages: resp.SelectedStages,
 	}
 
@@ -292,7 +290,6 @@ func (s *webSocketServer) initClient(ctx context.Context, client *Client, params
 		ResumeID:       client.resumeID,
 		Duration:       s.cfg.InterviewSessionConfig.InterviewSessionTokenTTL,
 		Position:       params.Position,
-		BiasPrompt:     params.BiasPrompt,
 		SelectedStages: params.SelectedStages,
 	}
 

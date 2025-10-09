@@ -12,13 +12,10 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/entities"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/app_error"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 )
 
 type RedisTaskPublisher interface {
-	PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error
-	PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error
 	PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error
 	PublishTaskCalculateTurnScore(ctx context.Context, payload *entities.CalculateTurnScoreReq, opts ...asynq.Option) error
 	PublishTaskEndInterviewSession(ctx context.Context, payload *entities.EndInterviewSessionPayload, opts ...asynq.Option) error
@@ -42,43 +39,6 @@ func NewRedisTaskPublisher(cfg *config.Config, log *log.Logger) RedisTaskPublish
 		client: client,
 		log:    log,
 	}
-}
-
-func (p *redisTaskPublisher) PublishTaskSendResetPasswordEmail(ctx context.Context, payload *email.ResetPasswordEmailPayload, opts ...asynq.Option) error {
-
-	jsonPayload, err := json.Marshal(payload)
-
-	if err != nil {
-		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendResetPasswordEmail] Error marshalling task payload", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	task := asynq.NewTask(constants.TaskSendResetPasswordEmail, jsonPayload, opts...)
-	_, err = p.client.EnqueueContext(ctx, task)
-	if err != nil {
-		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendResetPasswordEmail] Error enqueuing task", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	return nil
-}
-
-func (p *redisTaskPublisher) PublishTaskSendVerifyEmail(ctx context.Context, payload *email.VerifyEmailPayload, opts ...asynq.Option) error {
-	jsonPayload, err := json.Marshal(payload)
-
-	if err != nil {
-		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Error marshalling task payload", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	task := asynq.NewTask(constants.TaskSendVerifyEmail, jsonPayload, opts...)
-	_, err = p.client.EnqueueContext(ctx, task)
-	if err != nil {
-		p.log.ErrorWithID(ctx, "[Queue: PublishTaskSendVerifyEmail] Error enqueuing task", err)
-		return app_error.New(err, app_error.ErrCodeGeneralServerUnavailable)
-	}
-
-	return nil
 }
 
 func (p *redisTaskPublisher) PublishTaskDeleteFile(ctx context.Context, payload *aws.DeleteFilePayload, opts ...asynq.Option) error {
@@ -137,11 +97,6 @@ func (p *redisTaskPublisher) PublishTaskEndInterviewSession(ctx context.Context,
 
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
-	case constants.TaskSendResetPasswordEmail:
-		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueCritical),
-		}
 	case constants.TaskCalculateTurnScore:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
@@ -152,11 +107,6 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.MaxRetry(constants.MaxRetryEndInterviewSession),
 			asynq.Queue(constants.QueueCritical),
 			asynq.Retention(time.Hour * 24),
-		}
-	case constants.TaskSendVerifyEmail:
-		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueCritical),
 		}
 	case constants.TaskDeleteFile:
 		return []asynq.Option{
