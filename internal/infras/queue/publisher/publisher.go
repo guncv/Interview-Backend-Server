@@ -97,11 +97,6 @@ func (p *redisTaskPublisher) PublishTaskEndInterviewSession(ctx context.Context,
 
 func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 	switch taskName {
-	case constants.TaskSendResetPasswordEmail:
-		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueCritical),
-		}
 	case constants.TaskCalculateTurnScore:
 		return []asynq.Option{
 			asynq.MaxRetry(constants.MaxRetry),
@@ -112,11 +107,6 @@ func (p *redisTaskPublisher) DefineTaskOptions(taskName string) []asynq.Option {
 			asynq.MaxRetry(constants.MaxRetryEndInterviewSession),
 			asynq.Queue(constants.QueueCritical),
 			asynq.Retention(time.Hour * 24),
-		}
-	case constants.TaskSendVerifyEmail:
-		return []asynq.Option{
-			asynq.MaxRetry(constants.MaxRetry),
-			asynq.Queue(constants.QueueCritical),
 		}
 	case constants.TaskDeleteFile:
 		return []asynq.Option{

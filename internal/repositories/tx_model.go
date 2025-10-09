@@ -38,8 +38,7 @@ type ExtractResumeJsonForRAGReq struct {
 }
 
 type ExtractResumeJsonForRAGResp struct {
-	BiasPrompt    string          `json:"bias_prompt"`
-	ResumeContext json.RawMessage `json:"resume_context"`
+	ResumeText string `json:"resume_text"`
 }
 
 type CreateResumeAndJobRequirementReq struct {

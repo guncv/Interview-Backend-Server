@@ -29,7 +29,6 @@ type WebSocketSessionPayload struct {
 	SessionID      string    `json:"session_id"`
 	ResumeID       string    `json:"resume_id"`
 	Position       string    `json:"position"`
-	BiasPrompt     string    `json:"bias_prompt"`
 	SelectedStages []string  `json:"selected_stages"`
 	IssuedAt       time.Time `json:"issued_at"`
 	ExpiredAt      time.Time `json:"expires_at"`
@@ -75,7 +74,6 @@ func NewWebSocketSessionPayload(req *entities.WebSocketSessionReq) *WebSocketSes
 		SessionID:      req.SessionID,
 		ResumeID:       req.ResumeID,
 		Position:       req.Position,
-		BiasPrompt:     req.BiasPrompt,
 		SelectedStages: req.SelectedStages,
 		IssuedAt:       time.Now(),
 		ExpiredAt:      time.Now().Add(req.Duration),

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/config"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/constants"
 	db "gitlab.com/interview-simulation/interview-backend-server/internal/db/sqlc"
@@ -164,8 +163,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		ResumeFile: customFileHeader,
 	}
 
-	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
-	if err != nil {
+	if err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithNewResume] Error extracting resume json for RAG", err)
 		return nil, err
 	}
@@ -205,14 +203,12 @@ func (s *interviewSessionService) CreateInterviewSessionWithNewResume(
 		MimeType:   req.File.Header.Get("Content-Type"),
 		ByteSize:   int32(req.File.Size),
 		IsDefault:  !isDefaultResume,
-		BiasPrompt: extractResumeJsonForRAGResp.BiasPrompt,
 
 		SessionID:      sessionID,
 		Position:       req.Position,
 		Status:         constants.StatusPending,
 		Modality:       constants.ModalityVoiceChat,
 		IsConsent:      req.IsConsent,
-		ResumeContext:  extractResumeJsonForRAGResp.ResumeContext,
 		SelectedStages: selectedStages,
 	}
 
@@ -307,8 +303,7 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		ResumeFile: resumeFile,
 	}
 
-	extractResumeJsonForRAGResp, err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq)
-	if err != nil {
+	if err := s.resumeRepo.ExtractResumeJsonForRAG(ctx, extractResumeJsonForRAGReq); err != nil {
 		s.log.ErrorWithID(ctx, "[Service: CreateInterviewSessionWithExistingResume] Error extracting resume json for RAG", err)
 		return nil, err
 	}
@@ -328,8 +323,6 @@ func (s *interviewSessionService) CreateInterviewSessionWithExistingResume(
 		Status:         constants.StatusPending,
 		Modality:       constants.ModalityVoiceChat,
 		IsConsent:      req.IsConsent,
-		BiasPrompt:     extractResumeJsonForRAGResp.BiasPrompt,
-		ResumeContext:  pqtype.NullRawMessage{RawMessage: extractResumeJsonForRAGResp.ResumeContext, Valid: true},
 		SelectedStages: selectedStages,
 	}
 
@@ -829,7 +822,6 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
 			Status:                dbResp.Status,
-			BiasPrompt:            dbResp.BiasPrompt,
 			IsFinalized:           isFinalized,
 			SelectedStages:        dbResp.SelectedStages,
 		}, nil
@@ -853,7 +845,6 @@ func (s *interviewSessionService) GetInterviewSessionState(ctx context.Context, 
 			CurrentState:          currentState,
 			CurrentStateID:        currentStateID,
 			Status:                dbResp.Status,
-			BiasPrompt:            dbResp.BiasPrompt,
 			IsFinalized:           isFinalized,
 			SelectedStages:        dbResp.SelectedStages,
 		}, nil
