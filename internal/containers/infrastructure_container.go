@@ -8,7 +8,6 @@ import (
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/auth"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/aws"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/database"
-	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/email"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/http"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/log"
 	"gitlab.com/interview-simulation/interview-backend-server/internal/infras/queue/publisher"
@@ -76,10 +75,6 @@ func (c *Container) InfrastructureProvider() {
 	}
 
 	if err := c.Container.Provide(middleware.NewAuthContext); err != nil {
-		c.Error = err
-	}
-
-	if err := c.Container.Provide(email.NewEmailSender); err != nil {
 		c.Error = err
 	}
 
