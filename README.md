@@ -941,22 +941,9 @@ limitations under the License.
 
 ### Contact
 
-- **Email**: support@interview-simulation.com
-- **Website**: https://interview-simulation.com
-- **GitLab Issues**: [Create an issue](https://gitlab.com/interview-simulation/interview-backend-server/-/issues)
-- **Documentation**: [Full docs](https://docs.interview-simulation.com)
+- **Email**: chanagun.vir@gmail.com
 
-### Community
-
-- **Discord**: [Join our community](#)
-- **Stack Overflow**: Tag `interview-simulation`
-- **Twitter**: [@interview_sim](#)
-
-### Professional Support
-
-For enterprise support, SLA agreements, and custom development:
-- Email: enterprise@interview-simulation.com
-- Schedule a call: [Calendly link](#)
+For questions, bug reports, or feature requests, please open an issue or reach out via email.
 
 ---
 
@@ -987,7 +974,7 @@ Special thanks to:
 
 **[⬆ Back to Top](#-interview-simulation-backend-server)**
 
-Made with ❤️ by the Interview Simulation Team
+Made with ❤️ by the Chanagun (Guncv)
 
 [![GitLab](https://img.shields.io/badge/GitLab-330F63?style=for-the-badge&logo=gitlab&logoColor=white)](https://gitlab.com/interview-simulation/interview-backend-server)
 [![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/)
